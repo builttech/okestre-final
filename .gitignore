@@ -1,0 +1,19 @@
+# GitIDE local files
+database.db
+db_credentials.json
+*.db
+*.sqlite
+*.sqlite3
+
+# Python env
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+.env
+
+# Configs
+.idea/
+.vscode/

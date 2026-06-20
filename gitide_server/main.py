@@ -1,0 +1,1106 @@
+import os
+import json
+import secrets
+import subprocess
+import sqlite3
+import string
+from typing import Optional
+from datetime import datetime
+
+from fastapi import FastAPI, Depends, HTTPException, Security, status, Query, Response
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
+from fastapi.responses import HTMLResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel, Field
+from sqlalchemy.orm import Session
+
+from gitide_server.database import init_db, get_db, Project, ActivityLog, FileSnapshot
+import gitide_server.vcs as vcs
+import gitide_server.git_bridge as git_bridge
+import gitide_server.agent as agent
+from fastapi.responses import StreamingResponse
+from typing import List
+
+import requests
+
+# Cria diretórios e inicializa o DB
+init_db()
+
+# Carrega ou gera a chave de API de segurança em ~/.gitide/config.json
+CONFIG_DIR = os.path.expanduser("~/.gitide")
+CONFIG_PATH = os.path.join(CONFIG_DIR, "config.json")
+
+def load_or_create_config():
+    os.makedirs(CONFIG_DIR, exist_ok=True)
+    if os.path.exists(CONFIG_PATH):
+        try:
+            with open(CONFIG_PATH, 'r') as f:
+                config = json.load(f)
+                if "api_key" in config:
+                    return config
+        except Exception:
+            pass
+            
+    # Se não existir ou estiver corrompido, gera uma chave nova
+    new_key = secrets.token_hex(24)
+    config = {"api_key": new_key}
+    with open(CONFIG_PATH, 'w') as f:
+        json.dump(config, f, indent=4)
+    return config
+
+def get_config():
+    if os.path.exists(CONFIG_PATH):
+        try:
+            with open(CONFIG_PATH, 'r') as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return load_or_create_config()
+
+def save_config(new_config):
+    os.makedirs(CONFIG_DIR, exist_ok=True)
+    with open(CONFIG_PATH, 'w') as f:
+        json.dump(new_config, f, indent=4)
+
+config = load_or_create_config()
+API_KEY = config["api_key"]
+
+app = FastAPI(
+    title="GitIDE API",
+    description="Interface para GPT Actions interagirem livremente com código, comandos e bancos de dados locais.",
+    version="1.0.0"
+)
+
+# Habilita CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Habilita compressao Gzip
+app.add_middleware(
+    GZipMiddleware,
+    minimum_size=1000
+)
+
+security = HTTPBearer()
+
+def get_api_key(credentials: HTTPAuthorizationCredentials = Security(security)):
+    """Valida o token enviado pela GPT Action."""
+    if credentials.credentials != API_KEY:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token de API GitIDE inválido ou não fornecido."
+        )
+    return credentials.credentials
+
+# Pydantic Schemas
+class ProjectCreate(BaseModel):
+    name: str = Field(..., description="Nome descritivo do projeto")
+    path: str = Field(..., description="Caminho absoluto da pasta do projeto no computador")
+    git_remote: Optional[str] = Field(None, description="URL do repositório Git remoto (GitHub/GitLab)")
+
+class CommandExecute(BaseModel):
+    command: str = Field(..., description="Comando do terminal a ser executado na pasta do projeto")
+
+class DbQuery(BaseModel):
+    db_type: str = Field("sqlite", description="Tipo de banco: sqlite, postgresql, mysql")
+    connection_string: str = Field(..., description="Caminho do arquivo SQLite ou Connection String de Produção (Postgres/MySQL)")
+    query: str = Field(..., description="Query SQL a ser executada")
+
+class FileWrite(BaseModel):
+    filepath: str = Field(..., description="Caminho do arquivo relativo à pasta do projeto")
+    content: str = Field(..., description="Conteúdo completo a ser escrito no arquivo")
+
+class FilePatch(BaseModel):
+    filepath: str = Field(..., description="Caminho do arquivo relativo à pasta do projeto")
+    target_content: str = Field(..., description="Trecho de texto exato a ser substituído")
+    replacement_content: str = Field(..., description="Conteúdo substituto")
+    allow_multiple: bool = Field(False, description="Permitir múltiplas substituições caso o trecho ocorra mais de uma vez")
+
+class GitDeployRequest(BaseModel):
+    commit_message: str = Field(..., description="Mensagem de commit para descrever as alterações")
+    branch: Optional[str] = Field(None, description="Branch Git de destino (caso omitido, usa a branch atual)")
+
+class DeviceAuthRequest(BaseModel):
+    client_id: Optional[str] = None
+
+class PollRequest(BaseModel):
+    device_code: str
+    client_id: Optional[str] = None
+
+class CreateBranchRequest(BaseModel):
+    name: str
+
+class GitMergeRequest(BaseModel):
+    branch: str = Field(..., description="Nome da branch a ser mesclada na branch ativa")
+
+class GitPullRequestCreate(BaseModel):
+    title: str = Field(..., description="Título do Pull Request")
+    base: str = Field(..., description="Branch de destino (ex: main, master)")
+    body: Optional[str] = Field(None, description="Descrição do Pull Request")
+
+class AgentConfigInput(BaseModel):
+    provider: str
+    model: str
+    api_key: str
+    enabled_tools: List[str]
+
+class AgentChatRequest(BaseModel):
+    prompt: str
+
+
+
+# Dependência para buscar projeto do DB
+def get_project_or_404(project_id: int, db: Session = Depends(get_db)) -> Project:
+    project = db.query(Project).filter(Project.id == project_id).first()
+    if not project:
+        raise HTTPException(status_code=404, detail=f"Projeto com ID {project_id} não encontrado.")
+    return project
+
+# --- ENDPOINTS DA API PARA O GPT / DASHBOARD ---
+
+# Config
+@app.get("/api/info", tags=["Configuração"])
+def get_server_info():
+    """Retorna informações públicas do servidor."""
+    return {
+        "status": "online",
+        "api_key_path": CONFIG_PATH,
+        "database_path": os.path.join(CONFIG_DIR, "gitide.db"),
+        # Retornamos a chave apenas para o localhost Dashboard
+        "api_key": API_KEY
+    }
+
+# Projetos
+@app.get("/api/projects", tags=["Projetos"])
+def list_projects(db: Session = Depends(get_db)):
+    """Lista todos os projetos cadastrados."""
+    return db.query(Project).all()
+
+@app.post("/api/projects", tags=["Projetos"])
+def create_project(project_in: ProjectCreate, db: Session = Depends(get_db)):
+    """Cadastra um novo projeto (workspace) e clona do Git se um remoto for especificado."""
+    # Normaliza caminhos
+    project_in.path = os.path.abspath(project_in.path)
+    
+    # Se a pasta não existir, cria
+    os.makedirs(project_in.path, exist_ok=True)
+
+    # Verifica se já está cadastrado
+    existing = db.query(Project).filter(Project.path == project_in.path).first()
+    if existing:
+        return {"status": "success", "message": "Projeto já cadastrado", "project": existing}
+        
+    clone_status = None
+    # Se foi fornecido um remoto Git, realiza a clonagem ou vinculação
+    if project_in.git_remote:
+        # Se a pasta estiver vazia, clona
+        if not os.listdir(project_in.path):
+            try:
+                git_bridge.clone_git(project_in.git_remote, project_in.path)
+                clone_status = "cloned"
+            except Exception as e:
+                clone_status = f"failed_clone: {str(e)}"
+        else:
+            # Se não estiver vazia, apenas tenta inicializar e vincular o remoto
+            try:
+                git_bridge.init_git(project_in.path, project_in.git_remote)
+                clone_status = "linked"
+            except Exception:
+                clone_status = "skipped_not_empty"
+                
+    db_project = Project(
+        name=project_in.name,
+        path=project_in.path,
+        git_remote=project_in.git_remote
+    )
+    db.add(db_project)
+    db.commit()
+    db.refresh(db_project)
+    
+    # Registra no log
+    details = f"Projeto '{db_project.name}' cadastrado no caminho '{db_project.path}'"
+    if clone_status:
+        details += f" (Git status: {clone_status})"
+        
+    log = ActivityLog(
+        project_id=db_project.id,
+        action_type="PROJECT_CREATED",
+        details=details
+    )
+    db.add(log)
+    db.commit()
+    
+    return {"status": "success", "project": db_project, "git_clone_status": clone_status}
+
+@app.delete("/api/projects/{project_id}", tags=["Projetos"])
+def delete_project(project_id: int, db: Session = Depends(get_db)):
+    """Remove o cadastro do projeto do GitIDE (não apaga os arquivos do computador)."""
+    project = db.query(Project).filter(Project.id == project_id).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Projeto não encontrado")
+    db.delete(project)
+    db.commit()
+    return {"status": "success", "message": "Projeto descadastrado com sucesso"}
+
+# Arquivos (Protegidos por API Key para chamadas da GPT Action)
+@app.get("/api/projects/{project_id}/files", tags=["Arquivos"])
+def list_files(project: Project = Depends(get_project_or_404)):
+    """Lista recursivamente os arquivos do projeto, ignorando pastas de build/dependências."""
+    try:
+        files = vcs.list_project_files(project.path)
+        return {"status": "success", "files": files}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/projects/{project_id}/files/read", tags=["Arquivos"])
+def read_file(filepath: str = Query(..., description="Caminho relativo do arquivo"), 
+              start_line: Optional[int] = Query(None, description="Linha inicial (1-indexed) para leitura parcial"),
+              end_line: Optional[int] = Query(None, description="Linha final (1-indexed) para leitura parcial"),
+              project: Project = Depends(get_project_or_404)):
+    """
+    Lê o conteúdo de um arquivo do projeto.
+    Suporta paginação por intervalo de linhas para evitar erros de limite de resposta.
+    """
+    try:
+        content = vcs.read_project_file(project.path, filepath)
+        lines = content.split('\n')
+        total_lines = len(lines)
+        
+        # Determina os limites
+        s_line = start_line or 1
+        e_line = end_line or total_lines
+        
+        warning = None
+        # Capping automático se não especificado e muito grande
+        if start_line is None and end_line is None:
+            if total_lines > 1000:
+                e_line = 1000
+                warning = f"O arquivo possui {total_lines} linhas. Para evitar erros de tamanho de resposta, foram retornadas apenas as primeiras 1000 linhas. Use start_line e end_line para ler trechos específicos."
+        elif end_line is None:
+            e_line = min(s_line + 999, total_lines)
+            if e_line < total_lines:
+                warning = f"Leitura parcial limitada a 1000 linhas a partir da linha {s_line}. O arquivo possui {total_lines} linhas no total."
+                
+        # Garante limites válidos
+        s_line = max(1, min(s_line, total_lines))
+        e_line = max(s_line, min(e_line, total_lines))
+        
+        # Obtém a fatia das linhas (1-indexed)
+        sliced_lines = lines[s_line - 1 : e_line]
+        sliced_content = '\n'.join(sliced_lines)
+        
+        response = {
+            "status": "success",
+            "filepath": filepath,
+            "total_lines": total_lines,
+            "start_line": s_line,
+            "end_line": e_line,
+            "content": sliced_content
+        }
+        if warning:
+            response["warning"] = warning
+            
+        return response
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail=f"Arquivo não encontrado: {filepath}")
+    except ValueError as ve:
+        raise HTTPException(status_code=400, detail=str(ve))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/projects/{project_id}/files/write", tags=["Arquivos"])
+def write_file(file_in: FileWrite, 
+               project: Project = Depends(get_project_or_404),
+               db: Session = Depends(get_db),
+               _ = Depends(get_api_key)):
+    """
+    Grava ou edita o conteúdo de um arquivo. 
+    Gera automaticamente um snapshot local para rollback.
+    Requer autenticação Bearer Token para chamadas externas.
+    """
+    try:
+        # Cria log da ação antes
+        log = ActivityLog(
+            project_id=project.id,
+            action_type="FILE_WRITE",
+            details=f"Escrita/Edição no arquivo: {file_in.filepath}"
+        )
+        db.add(log)
+        db.commit()
+        db.refresh(log)
+        
+        result = vcs.write_project_file(db, project, file_in.filepath, file_in.content, activity_log_id=log.id)
+        return result
+    except ValueError as ve:
+        raise HTTPException(status_code=400, detail=str(ve))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.patch("/api/projects/{project_id}/files/patch", tags=["Arquivos"])
+def patch_file(file_patch: FilePatch, 
+               project: Project = Depends(get_project_or_404),
+               db: Session = Depends(get_db),
+               _ = Depends(get_api_key)):
+    """
+    Substitui um trecho específico de um arquivo (atualização parcial)
+    sem a necessidade de enviar o arquivo completo.
+    Gera automaticamente um snapshot local.
+    Requer autenticação Bearer Token para chamadas externas.
+    """
+    try:
+        log = ActivityLog(
+            project_id=project.id,
+            action_type="FILE_PATCH",
+            details=f"Atualização parcial (patch) no arquivo: {file_patch.filepath}"
+        )
+        db.add(log)
+        db.commit()
+        db.refresh(log)
+        
+        result = vcs.patch_project_file(
+            db=db,
+            project=project,
+            filepath=file_patch.filepath,
+            target_content=file_patch.target_content,
+            replacement_content=file_patch.replacement_content,
+            allow_multiple=file_patch.allow_multiple,
+            activity_log_id=log.id
+        )
+        return result
+    except ValueError as ve:
+        raise HTTPException(status_code=400, detail=str(ve))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.delete("/api/projects/{project_id}/files/delete", tags=["Arquivos"])
+def delete_file(filepath: str = Query(..., description="Caminho relativo do arquivo"), 
+                project: Project = Depends(get_project_or_404),
+                db: Session = Depends(get_db),
+                _ = Depends(get_api_key)):
+    """
+    Exclui um arquivo do computador e cria um snapshot de backup.
+    Requer autenticação Bearer Token para chamadas externas.
+    """
+    try:
+        log = ActivityLog(
+            project_id=project.id,
+            action_type="FILE_DELETE",
+            details=f"Exclusão do arquivo: {filepath}"
+        )
+        db.add(log)
+        db.commit()
+        db.refresh(log)
+        
+        result = vcs.delete_project_file(db, project, filepath, activity_log_id=log.id)
+        return result
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="Arquivo não encontrado.")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Execução de Comandos
+@app.post("/api/projects/{project_id}/execute", tags=["Execução"])
+def execute_command(cmd_in: CommandExecute, 
+                    project: Project = Depends(get_project_or_404),
+                    db: Session = Depends(get_db),
+                    _ = Depends(get_api_key)):
+    """
+    Executa um comando de terminal (Shell) dentro da pasta do projeto.
+    Requer autenticação Bearer Token para chamadas externas.
+    """
+    # Registra a execução no log
+    log = ActivityLog(
+        project_id=project.id,
+        action_type="SHELL_EXEC",
+        details=f"Executando comando: {cmd_in.command}"
+    )
+    db.add(log)
+    db.commit()
+    
+    try:
+        # Roda o comando com um limite de 30 segundos
+        result = subprocess.run(
+            cmd_in.command,
+            cwd=project.path,
+            shell=True,
+            text=True,
+            capture_output=True,
+            timeout=30
+        )
+        
+        # Salva o resultado no log para consulta posterior
+        log.details += f"\n[Exit Code: {result.returncode}]\nStdout: {result.stdout[:500]}...\nStderr: {result.stderr[:500]}..."
+        db.commit()
+        
+        # Rastreia e gera snapshots de qualquer alteração de arquivos decorrente do comando
+        changes = vcs.detect_and_snapshot_workspace_changes(db, project, activity_log_id=log.id)
+        if changes:
+            log.details += "\n[Arquivos alterados: " + ", ".join([f"{c['filepath']} ({c['type']})" for c in changes]) + "]"
+            db.commit()
+        
+        return {
+            "status": "success",
+            "exit_code": result.returncode,
+            "stdout": result.stdout,
+            "stderr": result.stderr
+        }
+    except subprocess.TimeoutExpired:
+        log.details += "\n[TIMEOUT (30s)]"
+        db.commit()
+        return {
+            "status": "error",
+            "detail": "O comando excedeu o tempo limite de 30 segundos."
+        }
+    except Exception as e:
+        log.details += f"\n[ERRO: {str(e)}]"
+        db.commit()
+        raise HTTPException(status_code=500, detail=f"Erro ao executar comando: {str(e)}")
+
+# Banco de Dados do Projeto
+@app.post("/api/projects/{project_id}/db/query", tags=["Banco de Dados"])
+def execute_db_query(db_in: DbQuery, 
+                      project: Project = Depends(get_project_or_404),
+                      db: Session = Depends(get_db),
+                      _ = Depends(get_api_key)):
+    """
+    Executa uma query SQL em um banco de dados local (SQLite) ou de produção (Postgres/MySQL).
+    Requer autenticação Bearer Token para chamadas externas.
+    """
+    try:
+        from sqlalchemy import create_engine, text
+
+        # 1. Determina a URL de conexão do SQLAlchemy
+        db_url = db_in.connection_string
+        if db_in.db_type == "sqlite":
+            if not db_url.startswith("sqlite:///"):
+                db_path = vcs.get_safe_path(project.path, db_url)
+                db_url = f"sqlite:///{db_path}"
+        elif db_in.db_type == "mysql":
+            if db_url.startswith("mysql://"):
+                db_url = db_url.replace("mysql://", "mysql+pymysql://", 1)
+            elif db_url.startswith("mariadb://"):
+                db_url = db_url.replace("mariadb://", "mysql+pymysql://", 1)
+            elif db_url.startswith("mariadb+pymysql://"):
+                db_url = db_url.replace("mariadb+pymysql://", "mysql+pymysql://", 1)
+        elif db_in.db_type == "postgresql":
+            if db_url.startswith("postgres://"):
+                db_url = db_url.replace("postgres://", "postgresql://", 1)
+
+        # Registra no log do GitIDE
+        log = ActivityLog(
+            project_id=project.id,
+            action_type="DB_QUERY",
+            details=f"SQL executado no banco {db_in.db_type} ({db_in.connection_string[:40]}...): {db_in.query}"
+        )
+        db.add(log)
+        db.commit()
+        
+        # 2. Executa a query usando SQLAlchemy
+        temp_engine = create_engine(db_url, echo=False)
+        rows = []
+        affected = 0
+        
+        with temp_engine.connect() as conn:
+            result = conn.execute(text(db_in.query))
+            
+            if result.returns_rows:
+                rows = [dict(row._mapping) for row in result.all()]
+            
+            affected = result.rowcount
+            conn.commit()
+            
+        temp_engine.dispose()
+        
+        return {
+            "status": "success",
+            "rows_count": len(rows),
+            "rows": rows,
+            "rows_affected": affected
+        }
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Erro na execução da query SQL: {str(e)}")
+
+# Ponte Git
+@app.get("/api/projects/{project_id}/git/status", tags=["Git Bridge"])
+def git_status(project: Project = Depends(get_project_or_404)):
+    """Retorna o status atual do Git no projeto."""
+    return git_bridge.get_git_status(project.path)
+
+@app.post("/api/projects/{project_id}/git/init", tags=["Git Bridge"])
+def git_init(project: Project = Depends(get_project_or_404), db: Session = Depends(get_db), _ = Depends(get_api_key)):
+    """Inicializa um repositório Git ou vincula a URL remota configurada."""
+    try:
+        result = git_bridge.init_git(project.path, project.git_remote)
+        
+        log = ActivityLog(
+            project_id=project.id,
+            action_type="GIT_INIT",
+            details=f"Git inicializado com remoto: {project.git_remote}"
+        )
+        db.add(log)
+        db.commit()
+        
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/projects/{project_id}/git/pull", tags=["Git Bridge"])
+def git_pull(branch: Optional[str] = Query(None), 
+             project: Project = Depends(get_project_or_404),
+             db: Session = Depends(get_db),
+             _ = Depends(get_api_key)):
+    """Executa o git pull no repositório remoto."""
+    try:
+        result = git_bridge.pull_git(project.path, branch)
+        
+        log = ActivityLog(
+            project_id=project.id,
+            action_type="GIT_PULL",
+            details=f"Git pull executado na branch {branch or 'atual'}"
+        )
+        db.add(log)
+        db.commit()
+        
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/projects/{project_id}/git/deploy", tags=["Git Bridge"])
+def git_deploy(deploy_in: GitDeployRequest, 
+               project: Project = Depends(get_project_or_404),
+               db: Session = Depends(get_db),
+               _ = Depends(get_api_key)):
+    """
+    Executa o deploy do projeto (Git commit + Git push) na branch remota.
+    Requer autenticação Bearer Token para chamadas externas.
+    """
+    try:
+        result = git_bridge.deploy_git(project.path, deploy_in.commit_message, deploy_in.branch)
+        
+        log = ActivityLog(
+            project_id=project.id,
+            action_type="GIT_DEPLOY",
+            details=f"Deploy executado. Commit: '{deploy_in.commit_message}' na branch: '{deploy_in.branch or 'atual'}'"
+        )
+        db.add(log)
+        db.commit()
+        
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao realizar deploy via Git: {str(e)}")
+
+@app.get("/api/projects/{project_id}/git/branches", tags=["Git Bridge"])
+def git_list_branches(project: Project = Depends(get_project_or_404)):
+    """Lista as branches locais e remotas do repositório Git."""
+    try:
+        return git_bridge.list_branches(project.path)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/projects/{project_id}/git/branches", tags=["Git Bridge"])
+def git_create_branch(req: CreateBranchRequest, 
+                      project: Project = Depends(get_project_or_404),
+                      db: Session = Depends(get_db),
+                      _ = Depends(get_api_key)):
+    """Cria uma nova branch e realiza o checkout."""
+    try:
+        result = git_bridge.create_branch(project.path, req.name)
+        
+        log = ActivityLog(
+            project_id=project.id,
+            action_type="GIT_BRANCH_CREATE",
+            details=f"Criada e alternada para a branch: '{req.name}'"
+        )
+        db.add(log)
+        db.commit()
+        
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/projects/{project_id}/git/merge", tags=["Git Bridge"])
+def git_merge_branch(req: GitMergeRequest,
+                     project: Project = Depends(get_project_or_404),
+                     db: Session = Depends(get_db),
+                     _ = Depends(get_api_key)):
+    """Mescla uma branch na branch ativa."""
+    try:
+        result = git_bridge.merge_branch(project.path, req.branch)
+        
+        log = ActivityLog(
+            project_id=project.id,
+            action_type="GIT_MERGE",
+            details=f"Branch '{req.branch}' mesclada na branch ativa"
+        )
+        db.add(log)
+        db.commit()
+        
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+import re
+
+def parse_github_remote(url: str):
+    """Retorna (owner, repo) de uma URL de controle remoto do GitHub."""
+    if not url:
+        return None
+    # Matches:
+    # https://github.com/owner/repo.git
+    # https://github.com/owner/repo
+    # git@github.com:owner/repo.git
+    # git@github.com:owner/repo
+    pattern = r'(?:https://github\.com/|git@github\.com:)([^/]+)/([^/.]+)(?:\.git)?'
+    match = re.search(pattern, url)
+    if match:
+        return match.group(1), match.group(2)
+    return None
+
+@app.post("/api/projects/{project_id}/git/pullrequest", tags=["Git Bridge"])
+def git_create_pull_request(req: GitPullRequestCreate,
+                            project: Project = Depends(get_project_or_404),
+                            db: Session = Depends(get_db),
+                            _ = Depends(get_api_key)):
+    """Cria um Pull Request no repositório remoto do GitHub para o projeto ativo."""
+    conf = get_config()
+    token = conf.get("github_access_token")
+    if not token:
+        raise HTTPException(status_code=401, detail="Usuário não autenticado no GitHub. Por favor, conecte sua conta do GitHub na aba de configurações.")
+        
+    remote_url = project.git_remote
+    if not remote_url:
+        try:
+            remote_url = git_bridge.get_remote_url(project.path)
+        except Exception:
+            pass
+            
+    if not remote_url:
+        raise HTTPException(status_code=400, detail="Este projeto não possui um repositório remoto configurado.")
+        
+    parsed = parse_github_remote(remote_url)
+    if not parsed:
+        raise HTTPException(status_code=400, detail=f"A URL remota '{remote_url}' não é um repositório do GitHub válido.")
+        
+    owner, repo = parsed
+    
+    try:
+        active_branch = git_bridge.get_active_branch(project.path)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao obter a branch ativa: {str(e)}")
+        
+    if active_branch == "DETACHED":
+        raise HTTPException(status_code=400, detail="O repositório está em estado DETACHED HEAD. Não é possível criar um Pull Request.")
+        
+    headers = {
+        "Authorization": f"token {token}",
+        "Accept": "application/vnd.github.v3+json",
+        "User-Agent": "GitIDE"
+    }
+    payload = {
+        "title": req.title,
+        "head": active_branch,
+        "base": req.base,
+        "body": req.body or ""
+    }
+    
+    try:
+        github_res = requests.post(
+            f"https://api.github.com/repos/{owner}/{repo}/pulls",
+            headers=headers,
+            json=payload,
+            timeout=15
+        )
+        
+        if github_res.status_code == 201:
+            data = github_res.json()
+            
+            log = ActivityLog(
+                project_id=project.id,
+                action_type="GIT_PR_CREATE",
+                details=f"Pull Request #{data.get('number')} criado no GitHub: '{req.title}'"
+            )
+            db.add(log)
+            db.commit()
+            
+            return {
+                "status": "success",
+                "pr_number": data.get("number"),
+                "html_url": data.get("html_url"),
+                "title": data.get("title"),
+                "state": data.get("state")
+            }
+        else:
+            try:
+                err_data = github_res.json()
+                msg = err_data.get("message", github_res.text)
+                errors = err_data.get("errors", [])
+                if errors:
+                    import json
+                    msg += f" Details: {json.dumps(errors)}"
+            except Exception:
+                msg = github_res.text
+            raise HTTPException(status_code=github_res.status_code, detail=f"Erro do GitHub: {msg}")
+            
+    except requests.RequestException as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao conectar com a API do GitHub: {str(e)}")
+
+
+
+# --- ENDPOINTS DE AUTENTICAÇÃO DO GITHUB ---
+
+GITHUB_CLIENT_ID_DEFAULT = "Ov23liWV2HdC0RBLecWx"
+
+@app.post("/api/github/auth/device", tags=["GitHub Auth"])
+def github_auth_device(req: DeviceAuthRequest = DeviceAuthRequest()):
+    """Inicia o fluxo de autenticação por dispositivo (OAuth Device Flow)."""
+    client_id = GITHUB_CLIENT_ID_DEFAULT
+    if req and req.client_id:
+        client_id = req.client_id
+    else:
+        conf = get_config()
+        client_id = conf.get("github_client_id", GITHUB_CLIENT_ID_DEFAULT)
+        
+    try:
+        res = requests.post(
+            "https://github.com/login/device/code",
+            headers={"Accept": "application/json"},
+            json={
+                "client_id": client_id,
+                "scope": "repo,user,workflow"
+            },
+            timeout=10
+        )
+        if res.status_code != 200:
+            raise HTTPException(status_code=res.status_code, detail=f"Erro do GitHub: {res.text}")
+        return res.json()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Falha ao conectar com o GitHub: {str(e)}")
+
+@app.post("/api/github/auth/poll", tags=["GitHub Auth"])
+def github_auth_poll(req: PollRequest):
+    """Verifica se o usuário autorizou o dispositivo no GitHub."""
+    client_id = req.client_id
+    if not client_id:
+        conf = get_config()
+        client_id = conf.get("github_client_id", GITHUB_CLIENT_ID_DEFAULT)
+        
+    try:
+        res = requests.post(
+            "https://github.com/login/oauth/access_token",
+            headers={"Accept": "application/json"},
+            json={
+                "client_id": client_id,
+                "device_code": req.device_code,
+                "grant_type": "urn:ietf:params:oauth:grant-type:device_code"
+            },
+            timeout=10
+        )
+        if res.status_code != 200:
+            raise HTTPException(status_code=res.status_code, detail=f"Erro do GitHub: {res.text}")
+            
+        data = res.json()
+        if "access_token" in data:
+            conf = get_config()
+            conf["github_access_token"] = data["access_token"]
+            if req.client_id:
+                conf["github_client_id"] = req.client_id
+            save_config(conf)
+            return {"status": "success", "access_token": "Saved securely"}
+        
+        return data
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Falha ao consultar token: {str(e)}")
+
+@app.get("/api/github/auth/status", tags=["GitHub Auth"])
+def github_auth_status():
+    """Retorna o status da autenticação com o GitHub e informações básicas do usuário."""
+    conf = get_config()
+    token = conf.get("github_access_token")
+    if not token:
+        return {"authenticated": False}
+        
+    try:
+        res = requests.get(
+            "https://api.github.com/user",
+            headers={
+                "Authorization": f"Bearer {token}",
+                "Accept": "application/json",
+                "User-Agent": "GitIDE"
+            },
+            timeout=10
+        )
+        if res.status_code == 200:
+            return {"authenticated": True, "user": res.json()}
+        elif res.status_code == 401:
+            conf.pop("github_access_token", None)
+            save_config(conf)
+            return {"authenticated": False}
+        else:
+            raise HTTPException(status_code=res.status_code, detail=f"Erro do GitHub: {res.text}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Falha ao checar status do GitHub: {str(e)}")
+
+@app.post("/api/github/auth/logout", tags=["GitHub Auth"])
+def github_auth_logout():
+    """Desconecta a conta do GitHub e apaga o token salvo."""
+    conf = get_config()
+    conf.pop("github_access_token", None)
+    save_config(conf)
+    return {"status": "success"}
+
+@app.get("/api/github/repos", tags=["GitHub Auth"])
+def github_list_repos():
+    """Retorna os repositórios do usuário autenticado."""
+    conf = get_config()
+    token = conf.get("github_access_token")
+    if not token:
+        raise HTTPException(status_code=401, detail="Usuário não autenticado no GitHub.")
+        
+    try:
+        res = requests.get(
+            "https://api.github.com/user/repos?visibility=all&per_page=100&sort=updated",
+            headers={
+                "Authorization": f"Bearer {token}",
+                "Accept": "application/json",
+                "User-Agent": "GitIDE"
+            },
+            timeout=10
+        )
+        if res.status_code != 200:
+            raise HTTPException(status_code=res.status_code, detail=f"Erro do GitHub ao buscar repos: {res.text}")
+            
+        repos = res.json()
+        result = []
+        for repo in repos:
+            result.append({
+                "name": repo.get("name"),
+                "full_name": repo.get("full_name"),
+                "clone_url": repo.get("clone_url")
+            })
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Falha ao buscar repositórios do GitHub: {str(e)}")
+
+# Logs de Atividade e Rollbacks
+@app.get("/api/projects/{project_id}/logs", tags=["VCS Logs"])
+def list_logs(project_id: int, db: Session = Depends(get_db)):
+    """Retorna o histórico de atividades recentes do projeto com informação de diff."""
+    logs = db.query(ActivityLog).filter(ActivityLog.project_id == project_id).order_by(ActivityLog.timestamp.desc()).limit(100).all()
+    
+    result = []
+    for log in logs:
+        has_snapshot = db.query(FileSnapshot).filter(FileSnapshot.activity_log_id == log.id).first() is not None
+        result.append({
+            "id": log.id,
+            "project_id": log.project_id,
+            "timestamp": log.timestamp.isoformat(),
+            "action_type": log.action_type,
+            "details": log.details,
+            "has_snapshot": has_snapshot
+        })
+    return result
+
+@app.get("/api/projects/{project_id}/logs/{log_id}/diff", tags=["VCS Logs"])
+def get_log_diff(project_id: int, log_id: int, db: Session = Depends(get_db)):
+    """Retorna o diff da alteração associada a um log específico."""
+    log = db.query(ActivityLog).filter(ActivityLog.project_id == project_id, ActivityLog.id == log_id).first()
+    if not log:
+        raise HTTPException(status_code=404, detail="Log não encontrado")
+        
+    # Busca o snapshot associado a este log
+    snapshot = db.query(FileSnapshot).filter(
+        FileSnapshot.project_id == project_id,
+        FileSnapshot.activity_log_id == log_id
+    ).first()
+    
+    if not snapshot:
+        return {
+            "has_diff": False,
+            "message": "Nenhuma alteração de arquivo registrada para esta atividade."
+        }
+        
+    filepath = snapshot.filepath
+    if log.action_type == "FILE_DELETE":
+        old_content = snapshot.content
+        new_content = ""
+    else:
+        new_content = snapshot.content
+        # Busca o snapshot imediatamente anterior deste mesmo arquivo
+        prev_snapshot = db.query(FileSnapshot).filter(
+            FileSnapshot.project_id == project_id,
+            FileSnapshot.filepath == filepath,
+            FileSnapshot.id < snapshot.id
+        ).order_by(FileSnapshot.id.desc()).first()
+        old_content = prev_snapshot.content if prev_snapshot else ""
+        
+    # Gera o diff
+    import difflib
+    old_lines = old_content.splitlines(keepends=True)
+    new_lines = new_content.splitlines(keepends=True)
+    diff_generator = difflib.unified_diff(
+        old_lines,
+        new_lines,
+        fromfile=f"a/{filepath}",
+        tofile=f"b/{filepath}",
+        lineterm=""
+    )
+    diff_text = "\n".join(diff_generator)
+    
+    return {
+        "has_diff": True,
+        "filepath": filepath,
+        "action_type": log.action_type,
+        "diff": diff_text
+    }
+
+@app.get("/api/projects/{project_id}/snapshots", tags=["VCS Logs"])
+def list_snapshots(project_id: int, filepath: Optional[str] = None, db: Session = Depends(get_db)):
+    """Lista todos os snapshots criados para um arquivo específico ou todo o projeto."""
+    query = db.query(FileSnapshot).filter(FileSnapshot.project_id == project_id)
+    if filepath:
+        query = query.filter(FileSnapshot.filepath == filepath.replace('\\', '/'))
+    return query.order_by(FileSnapshot.timestamp.desc()).all()
+
+@app.post("/api/projects/{project_id}/snapshots/{snapshot_id}/rollback", tags=["VCS Logs"])
+def rollback_snapshot(snapshot_id: int, 
+                      project: Project = Depends(get_project_or_404),
+                      db: Session = Depends(get_db),
+                      _ = Depends(get_api_key)):
+    """
+    Restaura um arquivo para o conteúdo salvo em um snapshot.
+    Requer autenticação Bearer Token para chamadas externas.
+    """
+    try:
+        result = vcs.rollback_project_file(db, project, snapshot_id)
+        return result
+    except ValueError as ve:
+        raise HTTPException(status_code=404, detail=str(ve))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# --- ENDPOINTS DO AGENTE IA NATIVO ---
+
+@app.get("/api/agent/config", tags=["Agente IA"])
+def get_agent_config():
+    """Retorna as configurações atuais do agente IA."""
+    return agent.load_agent_config()
+
+@app.post("/api/agent/config", tags=["Agente IA"])
+def save_agent_config(config_in: AgentConfigInput):
+    """Salva as configurações do agente IA."""
+    agent.save_agent_config(config_in.model_dump())
+    return {"status": "success", "message": "Configurações do agente salvas."}
+
+@app.post("/api/projects/{project_id}/agent/run", tags=["Agente IA"])
+def run_agent(project_id: int, 
+              req: AgentChatRequest, 
+              project: Project = Depends(get_project_or_404),
+              db: Session = Depends(get_db)):
+    """
+    Roda a execução do agente em tempo real por streaming.
+    Retorna Server-Sent Events (SSE).
+    """
+    config = agent.load_agent_config()
+    return StreamingResponse(
+        agent.run_agent_loop(db, project, config, req.prompt),
+        media_type="text/event-stream"
+    )
+
+def list_drives():
+    drives = []
+    if os.name == 'nt':
+        for letter in string.ascii_uppercase:
+            drive = f"{letter}:\\"
+            if os.path.exists(drive):
+                drives.append(drive)
+    return drives
+
+@app.get("/api/system/dirs", tags=["Sistema"])
+def browse_directories(path: Optional[str] = None):
+    """Retorna a lista de subdiretórios de um caminho físico no computador (para seleção de pastas)."""
+    if not path:
+        path = os.path.expanduser("~")
+        
+    path = os.path.abspath(path)
+    if not os.path.exists(path):
+        path = os.path.expanduser("~")
+        
+    try:
+        entries = os.scandir(path)
+        dirs = []
+        for entry in entries:
+            try:
+                if entry.is_dir() and not entry.name.startswith('.'):
+                    dirs.append(entry.name)
+            except OSError:
+                continue
+        dirs.sort(key=str.lower)
+        
+        parent = os.path.dirname(path)
+        if parent == path:
+            parent = None
+            
+        return {
+            "status": "success",
+            "current_path": path,
+            "parent_path": parent,
+            "directories": dirs,
+            "drives": list_drives()
+        }
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Não foi possível ler o diretório: {str(e)}")
+
+# Servir Frontend do Dashboard
+# Serviremos o index.html na raiz e montaremos os estáticos
+# Vamos criar o diretório static em seguida
+STATIC_DIR = os.path.join(os.path.dirname(__file__), "static")
+if os.path.exists(STATIC_DIR):
+    app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+
+@app.get("/", response_class=HTMLResponse, tags=["Dashboard UI"])
+def get_dashboard():
+    """Servidor HTML principal do Dashboard do GitIDE."""
+    index_path = os.path.join(STATIC_DIR, "index.html")
+    if os.path.exists(index_path):
+        with open(index_path, 'r', encoding='utf-8') as f:
+            return f.read()
+    return HTMLResponse(content="<h1>GitIDE está rodando!</h1><p>Dashboard HTML não encontrado na pasta <code>static/</code>.</p>", status_code=200)
+
+@app.get("/favicon.ico", include_in_schema=False)
+def favicon():
+    return FileResponse(os.path.join(STATIC_DIR, "favicon.ico")) if os.path.exists(os.path.join(STATIC_DIR, "favicon.ico")) else Response(status_code=404)
+
+# Customização do OpenAPI para injetar headers de bypass do Pinggy e Ngrok
+from fastapi.openapi.utils import get_openapi
+
+def custom_openapi():
+    if app.openapi_schema:
+        return app.openapi_schema
+    openapi_schema = get_openapi(
+        title="GitIDE API",
+        version="1.0.0",
+        description="Interface para GPT Actions interagirem livremente com código, comandos e bancos de dados locais.",
+        routes=app.routes,
+    )
+    
+    # Configura o servidor padrão (URL fixa do Pinggy)
+    openapi_schema["servers"] = [
+        {
+            "url": "https://gitide.a.pinggy.link",
+            "description": "Servidor local GitIDE via Cloudflare Tunnel"
+        }
+    ]
+    
+    app.openapi_schema = openapi_schema
+    return app.openapi_schema
+
+app.openapi = custom_openapi
+

@@ -1,0 +1,1008 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GitIDE Dashboard</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="/static/style.css?v=7">
+</head>
+<body>
+    <div class="app-container">
+        <!-- TOPBAR -->
+        <header class="topbar">
+            <div class="brand">
+                <div class="logo-icon"><i class="fa-solid fa-code-merge"></i></div>
+                <div class="brand-text">
+                    <h1>GitIDE</h1>
+                    <span>LLM-Permissive Workspace & Git Bridge</span>
+                </div>
+            </div>
+            <div class="status-panel">
+                <div class="status-item">
+                    <span class="status-dot online"></span>
+                    <span class="status-label">Servidor Ativo</span>
+                </div>
+                <div class="api-key-badge" id="btn-copy-token">
+                    <i class="fa-solid fa-key"></i>
+                    <span id="api-token-preview">Carregando Token...</span>
+                    <i class="fa-solid fa-copy copy-icon"></i>
+                </div>
+            </div>
+        </header>
+
+        <!-- MAIN LAYOUT -->
+        <div class="main-layout">
+            <!-- SIDEBAR -->
+            <aside class="sidebar">
+                <!-- Project Section -->
+                <div class="sidebar-section">
+                    <div class="section-header">
+                        <h3><i class="fa-solid fa-folder-open"></i> Projetos</h3>
+                        <div style="display: flex; gap: 4px;">
+                            <button class="btn-icon" id="btn-new-project" title="Novo Projeto"><i class="fa-solid fa-plus"></i></button>
+                            <button class="btn-icon" id="btn-delete-project" title="Remover Projeto Ativo" style="color: var(--color-danger); display: none;"><i class="fa-solid fa-trash-can"></i></button>
+                        </div>
+                    </div>
+                    <div class="project-selector-wrapper" style="display: flex; gap: 8px; align-items: center;">
+                        <select id="project-selector" class="select-input" style="flex: 1;">
+                            <option value="">Carregando projetos...</option>
+                        </select>
+                        <button class="btn-icon" id="btn-copy-project-gpt-info" title="Copiar ID e instruções para o GPT" style="display: none;"><i class="fa-solid fa-robot"></i></button>
+                    </div>
+                </div>
+
+                <!-- Navigation Tabs -->
+                <nav class="sidebar-nav">
+                    <button class="nav-item active" data-tab="tab-files">
+                        <i class="fa-solid fa-file-code"></i> Arquivos do Workspace
+                    </button>
+                    <button class="nav-item" data-tab="tab-terminal">
+                        <i class="fa-solid fa-terminal"></i> Terminal Console
+                    </button>
+                    <button class="nav-item" data-tab="tab-database">
+                        <i class="fa-solid fa-database"></i> Banco de Dados (SQL)
+                    </button>
+                    <button class="nav-item" data-tab="tab-git">
+                        <i class="fa-brands fa-git-alt"></i> Controle de Versão (Git)
+                    </button>
+                    <button class="nav-item" data-tab="tab-logs">
+                        <i class="fa-solid fa-clock-rotate-left"></i> Histórico & Rollbacks
+                    </button>
+                    <button class="nav-item" data-tab="tab-tokens">
+                        <i class="fa-solid fa-palette"></i> Design System (Tokens)
+                    </button>
+                    <button class="nav-item" data-tab="tab-agent">
+                        <i class="fa-solid fa-robot"></i> Agente IA Nativo
+                    </button>
+                </nav>
+
+                <!-- Footer Info -->
+                <div class="sidebar-footer" style="display: flex; flex-direction: column; gap: 8px; padding-top: 12px; margin-top: auto;">
+                    <button class="nav-item" data-tab="tab-settings" id="btn-footer-settings" style="width: 100%; box-sizing: border-box; justify-content: center; font-size: 13px; padding: 10px; margin-bottom: 4px;">
+                        <i class="fa-solid fa-gears"></i> Configurações
+                    </button>
+                    <div style="display: flex; justify-content: space-between; font-size: 10px; color: var(--text-dark); padding: 0 4px; width: 100%; box-sizing: border-box;">
+                        <span class="version">Versão 1.0.0</span>
+                        <span class="author">Antigravity Coding</span>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- CONTENT AREA -->
+            <main class="content-area">
+                <!-- NO PROJECT STATE -->
+                <div id="no-project-state" class="state-panel active">
+                    <div class="state-icon"><i class="fa-solid fa-laptop-code"></i></div>
+                    <h2>Nenhum Projeto Selecionado</h2>
+                    <p>Selecione um projeto cadastrado no menu lateral ou registre um novo diretório para começar.</p>
+                    <button class="btn btn-primary" id="btn-state-new-project"><i class="fa-solid fa-plus"></i> Cadastrar Novo Projeto</button>
+                </div>
+
+                <!-- TAB: FILES -->
+                <div id="tab-files" class="tab-pane">
+                    <div class="files-layout">
+                        <!-- File Tree -->
+                        <div class="file-tree-panel">
+                            <div class="panel-header">
+                                <h4>Explorador de Arquivos</h4>
+                                <button class="btn-icon" id="btn-refresh-files" title="Recarregar"><i class="fa-solid fa-rotate"></i></button>
+                            </div>
+                            <div class="file-tree-container" id="file-tree">
+                                <!-- Preenchido via JS -->
+                                <div class="loading-spinner"><i class="fa-solid fa-circle-notch fa-spin"></i></div>
+                            </div>
+                        </div>
+
+                        <!-- Editor -->
+                        <div class="editor-panel">
+                            <div class="panel-header" id="editor-header">
+                                <span class="active-file-title" id="active-file-name"><i class="fa-solid fa-code"></i> Selecione um arquivo para visualizar</span>
+                                <div class="editor-actions">
+                                    <button class="btn btn-sm btn-secondary" id="btn-save-file" disabled><i class="fa-solid fa-save"></i> Salvar</button>
+                                </div>
+                            </div>
+                            <div class="editor-body-wrapper">
+                                <div class="editor-meta" id="editor-meta" style="display: none;">
+                                    <span>Tamanho: <strong id="meta-size">0 KB</strong></span>
+                                    <span>Última modificação: <strong id="meta-mtime">-</strong></span>
+                                </div>
+                                <div class="editor-container">
+                                    <div class="editor-gutter" id="editor-gutter"></div>
+                                    <textarea id="file-editor-textarea" placeholder="O conteúdo do arquivo será exibido aqui..." disabled></textarea>
+                                </div>
+                            </div>
+                            <!-- File Snapshots Timeline -->
+                            <div class="file-snapshots-drawer" id="file-snapshots-drawer" style="display: none;">
+                                <div class="drawer-header">
+                                    <h5><i class="fa-solid fa-history"></i> Snapshots Locais deste Arquivo</h5>
+                                </div>
+                                <div class="snapshots-timeline" id="file-snapshots-list">
+                                    <!-- Preenchido via JS -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB: TERMINAL -->
+                <div id="tab-terminal" class="tab-pane">
+                    <div class="terminal-panel">
+                        <div class="panel-header">
+                            <h4><i class="fa-solid fa-terminal"></i> Terminal Integrado</h4>
+                            <div class="terminal-actions">
+                                <button class="btn btn-sm btn-secondary" id="btn-clear-terminal"><i class="fa-solid fa-trash-can"></i> Limpar</button>
+                            </div>
+                        </div>
+                        <div class="terminal-output" id="terminal-output">
+                            <div class="terminal-line system-msg">GitIDE Terminal pronto. Execute comandos na pasta do projeto ativo.</div>
+                        </div>
+                        <form class="terminal-input-wrapper" id="terminal-form">
+                            <span class="prompt" id="terminal-prompt">C:\workspace></span>
+                            <input type="text" id="terminal-input" placeholder="Digite um comando (ex: npm install, pytest, python app.py) e pressione Enter..." autocomplete="off">
+                            <button type="submit" class="btn btn-primary" id="btn-run-cmd"><i class="fa-solid fa-play"></i></button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- TAB: DATABASE -->
+                <div id="tab-database" class="tab-pane">
+                    <!-- Database Sub-tabs Navigation -->
+                    <div class="db-tabs-nav" style="display: flex; gap: 8px; border-bottom: 1px solid var(--border-color); margin-bottom: 20px; padding: 20px 20px 2px 20px; flex-shrink: 0;">
+                        <button class="db-tab-btn active" data-db-subtab="db-subtab-explorer" style="background: none; border: none; padding: 10px 16px; border-bottom: 2px solid var(--color-primary); color: var(--text-light); font-weight: 600; cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 8px; transition: all var(--transition-speed);">
+                            <i class="fa-solid fa-database"></i> Consultar Base (Query/Explorer)
+                        </button>
+                        <button class="db-tab-btn" data-db-subtab="db-subtab-connection" style="background: none; border: none; padding: 10px 16px; border-bottom: 2px solid transparent; color: var(--text-muted); font-weight: 500; cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 8px; transition: all var(--transition-speed);">
+                            <i class="fa-solid fa-server"></i> Conectar Banco Real (Projeto Local)
+                        </button>
+                    </div>
+
+                    <!-- Sub-tab 1: Explorer & Query -->
+                    <div id="db-subtab-explorer" class="db-subtab-pane" style="display: block; flex: 1; min-height: 0;">
+                        <div class="database-layout" style="height: 100%; padding: 0 20px 20px 20px;">
+                            <!-- Sidebar Explorer -->
+                            <div class="db-explorer-sidebar card">
+                                <div class="panel-header-simple" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; margin-bottom: 16px;">
+                                    <h5 style="font-size: 11px; font-weight: 700; letter-spacing: 0.1em; color: var(--text-muted); margin: 0; text-transform: uppercase;">DB EXPLORER</h5>
+                                    <button class="btn-icon-sm" id="btn-db-refresh" title="Recarregar Tabelas" style="background: none; border: none; color: var(--text-muted); cursor: pointer;"><i class="fa-solid fa-rotate"></i></button>
+                                </div>
+                                <div class="db-conn-status" style="margin-bottom: 16px; font-size: 12px; display: flex; align-items: center; gap: 8px;">
+                                    <span class="status-dot offline" id="db-status-dot"></span>
+                                    <span id="db-status-text" style="color: var(--text-muted);">Não conectado</span>
+                                </div>
+                                <div class="db-tables-container" id="db-tables-list" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 6px;">
+                                    <p class="placeholder-text" style="padding: 20px 0; font-size: 12px; text-align: center; color: var(--text-dark);">Insira as credenciais do banco e conecte.</p>
+                                </div>
+                            </div>
+
+                            <!-- Right Content Area -->
+                            <div class="db-content-area">
+                                <!-- Query Editor -->
+                                <div class="db-editor-panel">
+                                    <div class="panel-header">
+                                        <h4>SQL Query Editor</h4>
+                                    </div>
+                                    <div class="db-config-row" style="display: flex; gap: 16px; flex-wrap: wrap; width: 100%;">
+                                        <div style="flex: 1; min-width: 150px; display: flex; flex-direction: column; gap: 6px;">
+                                            <label for="db-type-select" style="font-size: 12px; color: var(--text-muted);">Tipo de Banco:</label>
+                                            <select id="db-type-select" class="select-input">
+                                                <option value="sqlite">SQLite (Arquivo Local)</option>
+                                                <option value="postgresql">PostgreSQL (Produção/Remoto)</option>
+                                                <option value="mysql">MySQL (Produção/Remoto)</option>
+                                            </select>
+                                        </div>
+                                        <div style="flex: 3; min-width: 280px; display: flex; flex-direction: column; gap: 6px;">
+                                            <label id="lbl-db-conn" for="db-conn-input" style="font-size: 12px; color: var(--text-muted);">Arquivo do Banco (relativo ao projeto):</label>
+                                            <input type="text" id="db-conn-input" class="text-input" placeholder="ex: database.db ou db/sqlite.db" value="database.db">
+                                        </div>
+                                    </div>
+                                    <div class="db-query-wrapper">
+                                        <textarea id="db-sql-textarea" placeholder="SELECT * FROM tabela LIMIT 50;"></textarea>
+                                    </div>
+                                    <div class="db-actions" style="display: flex; gap: 12px;">
+                                        <button class="btn btn-primary" id="btn-run-sql"><i class="fa-solid fa-play"></i> Executar Query SQL</button>
+                                        <button class="btn btn-secondary" id="btn-db-connect"><i class="fa-solid fa-plug"></i> Conectar & Listar Tabelas</button>
+                                    </div>
+                                </div>
+                                <!-- Query Results -->
+                                <div class="db-results-panel">
+                                    <div class="panel-header">
+                                        <h4>Resultados da Consulta</h4>
+                                        <span class="db-meta-status" id="db-query-status">Pronto para consulta</span>
+                                    </div>
+                                    <div class="db-results-container" id="db-results-table-container">
+                                        <p class="placeholder-text">Execute uma query SQL acima para exibir os resultados nesta tabela.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Sub-tab 2: Conectar Banco Real -->
+                    <div id="db-subtab-connection" class="db-subtab-pane" style="display: none; flex: 1; min-height: 0; padding: 0 20px 20px 20px; overflow-y: auto;">
+                        <div class="db-connection-layout" style="display: flex; flex-direction: column; gap: 20px; max-width: 900px; margin: 0 auto;">
+                            <div class="card" style="padding: 24px; background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color); border-radius: var(--border-radius);">
+                                <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid var(--border-color); padding-bottom: 12px;">
+                                    <h4 style="margin: 0; font-size: 15px; font-weight: 600; color: var(--text-light); display: flex; align-items: center; gap: 8px;"><i class="fa-solid fa-key" style="color: var(--color-primary);"></i> Credenciais do Banco (Acesso Remoto / Produção)</h4>
+                                    <button class="btn btn-secondary btn-sm" id="btn-db-cred-edit" style="padding: 6px 12px; font-size: 12px;"><i class="fa-solid fa-pen-to-square"></i> Editar</button>
+                                </div>
+                                <div class="db-credentials-form" id="db-credentials-form-fields" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                                    <div class="form-group" style="display: flex; flex-direction: column; gap: 6px;">
+                                        <label for="db-cred-user" style="font-size: 12px; color: var(--text-muted); font-weight: 500;">User</label>
+                                        <div class="input-copy-wrapper" style="display: flex; gap: 8px; align-items: center; width: 100%;">
+                                            <input type="text" id="db-cred-user" class="text-input" disabled value="" style="flex: 1; min-width: 0;" placeholder="ex: root, perfex_user">
+                                            <button class="btn-icon-sm btn-copy-field" data-target="db-cred-user" title="Copiar" style="height: 38px; width: 38px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); border-radius: var(--border-radius); color: var(--text-muted); cursor: pointer;"><i class="fa-regular fa-copy"></i></button>
+                                        </div>
+                                    </div>
+                                    <div class="form-group" style="display: flex; flex-direction: column; gap: 6px;">
+                                        <label for="db-cred-pass" style="font-size: 12px; color: var(--text-muted); font-weight: 500;">Password</label>
+                                        <div class="input-copy-wrapper" style="display: flex; gap: 8px; align-items: center; width: 100%;">
+                                            <input type="password" id="db-cred-pass" class="text-input" disabled value="" style="flex: 1; min-width: 0;" placeholder="••••••••">
+                                            <button class="btn-icon-sm btn-toggle-visibility" data-target="db-cred-pass" title="Mostrar/Ocultar" style="height: 38px; width: 38px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); border-radius: var(--border-radius); color: var(--text-muted); cursor: pointer;"><i class="fa-regular fa-eye"></i></button>
+                                            <button class="btn-icon-sm btn-copy-field" data-target="db-cred-pass" title="Copiar" style="height: 38px; width: 38px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); border-radius: var(--border-radius); color: var(--text-muted); cursor: pointer;"><i class="fa-regular fa-copy"></i></button>
+                                        </div>
+                                    </div>
+                                    <div class="form-group" style="display: flex; flex-direction: column; gap: 6px;">
+                                        <label for="db-cred-dbname" style="font-size: 12px; color: var(--text-muted); font-weight: 500;">Database Name</label>
+                                        <div class="input-copy-wrapper" style="display: flex; gap: 8px; align-items: center; width: 100%;">
+                                            <input type="text" id="db-cred-dbname" class="text-input" disabled value="" style="flex: 1; min-width: 0;" placeholder="ex: perfex_crm">
+                                            <button class="btn-icon-sm btn-copy-field" data-target="db-cred-dbname" title="Copiar" style="height: 38px; width: 38px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); border-radius: var(--border-radius); color: var(--text-muted); cursor: pointer;"><i class="fa-regular fa-copy"></i></button>
+                                        </div>
+                                    </div>
+                                    <div class="form-group" style="display: flex; flex-direction: column; gap: 6px;">
+                                        <label for="db-cred-rootpass" style="font-size: 12px; color: var(--text-muted); font-weight: 500;">Root Password</label>
+                                        <div class="input-copy-wrapper" style="display: flex; gap: 8px; align-items: center; width: 100%;">
+                                            <input type="password" id="db-cred-rootpass" class="text-input" disabled value="" style="flex: 1; min-width: 0;" placeholder="•••••••• (Opcional)">
+                                            <button class="btn-icon-sm btn-toggle-visibility" data-target="db-cred-rootpass" title="Mostrar/Ocultar" style="height: 38px; width: 38px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); border-radius: var(--border-radius); color: var(--text-muted); cursor: pointer;"><i class="fa-regular fa-eye"></i></button>
+                                            <button class="btn-icon-sm btn-copy-field" data-target="db-cred-rootpass" title="Copiar" style="height: 38px; width: 38px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); border-radius: var(--border-radius); color: var(--text-muted); cursor: pointer;"><i class="fa-regular fa-copy"></i></button>
+                                        </div>
+                                    </div>
+                                    <div class="form-group" style="display: flex; flex-direction: column; gap: 6px;">
+                                        <label for="db-cred-inthost" style="font-size: 12px; color: var(--text-muted); font-weight: 500;">Internal Host</label>
+                                        <div class="input-copy-wrapper" style="display: flex; gap: 8px; align-items: center; width: 100%;">
+                                            <input type="text" id="db-cred-inthost" class="text-input" disabled value="" style="flex: 1; min-width: 0;" placeholder="ex: mysql, comercial_perfex-db">
+                                            <button class="btn-icon-sm btn-copy-field" data-target="db-cred-inthost" title="Copiar" style="height: 38px; width: 38px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); border-radius: var(--border-radius); color: var(--text-muted); cursor: pointer;"><i class="fa-regular fa-copy"></i></button>
+                                        </div>
+                                    </div>
+                                    <div class="form-group" style="display: flex; flex-direction: column; gap: 6px;">
+                                        <label for="db-cred-intport" style="font-size: 12px; color: var(--text-muted); font-weight: 500;">Internal Port</label>
+                                        <div class="input-copy-wrapper" style="display: flex; gap: 8px; align-items: center; width: 100%;">
+                                            <input type="text" id="db-cred-intport" class="text-input" disabled value="" style="flex: 1; min-width: 0;" placeholder="ex: 3306">
+                                            <button class="btn-icon-sm btn-copy-field" data-target="db-cred-intport" title="Copiar" style="height: 38px; width: 38px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); border-radius: var(--border-radius); color: var(--text-muted); cursor: pointer;"><i class="fa-regular fa-copy"></i></button>
+                                        </div>
+                                    </div>
+                                    <div class="form-group" style="grid-column: span 2; display: flex; flex-direction: column; gap: 6px;">
+                                        <label for="db-cred-inturl" style="font-size: 12px; color: var(--text-muted); font-weight: 500;">Internal Connection URL</label>
+                                        <div class="input-copy-wrapper" style="display: flex; gap: 8px; align-items: center; width: 100%;">
+                                            <input type="password" id="db-cred-inturl" class="text-input" disabled value="" style="flex: 1; min-width: 0;" placeholder="ex: mysql://perfex_user:senha@comercial_perfex-db:3306/perfex_crm">
+                                            <button class="btn-icon-sm btn-toggle-visibility" data-target="db-cred-inturl" title="Mostrar/Ocultar" style="height: 38px; width: 38px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); border-radius: var(--border-radius); color: var(--text-muted); cursor: pointer;"><i class="fa-regular fa-eye"></i></button>
+                                            <button class="btn-icon-sm btn-copy-field" data-target="db-cred-inturl" title="Copiar" style="height: 38px; width: 38px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); border-radius: var(--border-radius); color: var(--text-muted); cursor: pointer;"><i class="fa-regular fa-copy"></i></button>
+                                        </div>
+                                    </div>
+                                    <div class="form-group" style="display: flex; flex-direction: column; gap: 6px;">
+                                        <label for="db-cred-exthost" style="font-size: 12px; color: var(--text-muted); font-weight: 500;">External Host</label>
+                                        <div class="input-copy-wrapper" style="display: flex; gap: 8px; align-items: center; width: 100%;">
+                                            <input type="text" id="db-cred-exthost" class="text-input" disabled value="" style="flex: 1; min-width: 0;" placeholder="ex: vps.6ex.com.br, 192.168.1.100">
+                                            <button class="btn-icon-sm btn-copy-field" data-target="db-cred-exthost" title="Copiar" style="height: 38px; width: 38px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); border-radius: var(--border-radius); color: var(--text-muted); cursor: pointer;"><i class="fa-regular fa-copy"></i></button>
+                                        </div>
+                                    </div>
+                                    <div class="form-group" style="display: flex; flex-direction: column; gap: 6px;">
+                                        <label for="db-cred-extport" style="font-size: 12px; color: var(--text-muted); font-weight: 500;">External Port</label>
+                                        <div class="input-copy-wrapper" style="display: flex; gap: 8px; align-items: center; width: 100%;">
+                                            <input type="text" id="db-cred-extport" class="text-input" disabled value="" style="flex: 1; min-width: 0;" placeholder="ex: 3306">
+                                            <button class="btn-icon-sm btn-copy-field" data-target="db-cred-extport" title="Copiar" style="height: 38px; width: 38px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); border-radius: var(--border-radius); color: var(--text-muted); cursor: pointer;"><i class="fa-regular fa-copy"></i></button>
+                                        </div>
+                                    </div>
+                                    <div class="form-group" style="grid-column: span 2; display: flex; flex-direction: column; gap: 6px;">
+                                        <label for="db-cred-exturl" style="font-size: 12px; color: var(--text-muted); font-weight: 500;">External Connection URL</label>
+                                        <div class="input-copy-wrapper" style="display: flex; gap: 8px; align-items: center; width: 100%;">
+                                            <input type="password" id="db-cred-exturl" class="text-input" disabled value="" style="flex: 1; min-width: 0;" placeholder="ex: mysql://perfex_user:senha@vps.6ex.com.br:3306/perfex_crm">
+                                            <button class="btn-icon-sm btn-toggle-visibility" data-target="db-cred-exturl" title="Mostrar/Ocultar" style="height: 38px; width: 38px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); border-radius: var(--border-radius); color: var(--text-muted); cursor: pointer;"><i class="fa-regular fa-eye"></i></button>
+                                            <button class="btn-icon-sm btn-copy-field" data-target="db-cred-exturl" title="Copiar" style="height: 38px; width: 38px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); border-radius: var(--border-radius); color: var(--text-muted); cursor: pointer;"><i class="fa-regular fa-copy"></i></button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="db-credentials-actions" style="margin-top: 24px; display: flex; justify-content: flex-end; gap: 12px;">
+                                    <button class="btn btn-secondary" id="btn-db-cred-cancel" style="display: none; padding: 8px 16px; font-size: 13px;">Cancelar</button>
+                                    <button class="btn btn-primary" id="btn-db-cred-save" style="display: none; padding: 8px 16px; font-size: 13px;"><i class="fa-solid fa-floppy-disk"></i> Salvar Credenciais no Projeto</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB: GIT BRIDGE -->
+                <div id="tab-git" class="tab-pane">
+                    <div class="git-layout">
+                        <div class="git-status-card card">
+                            <div class="card-header">
+                                <h4><i class="fa-brands fa-git-alt"></i> Status do Repositório Git</h4>
+                                <button class="btn btn-sm btn-secondary" id="btn-git-status-refresh"><i class="fa-solid fa-rotate"></i> Atualizar Status</button>
+                            </div>
+                            <div id="git-status-detail">
+                                <!-- Preenchido via JS -->
+                                <p>Consultando estado do repositório Git...</p>
+                            </div>
+                        </div>
+
+                        <div class="git-operations-card card">
+                            <div class="card-header">
+                                <h4><i class="fa-solid fa-cloud-arrow-up"></i> Ações e Deploy Automático</h4>
+                            </div>
+                            <div class="card-body">
+                                <div class="git-init-section" id="git-init-panel" style="display: none;">
+                                    <p class="warning-text"><i class="fa-solid fa-circle-exclamation"></i> Este projeto não está inicializado como um repositório Git ou não possui arquivos commados.</p>
+                                    <div class="form-group inline-form">
+                                        <input type="text" id="git-remote-url-input" class="text-input" placeholder="https://github.com/usuario/repositorio.git (Opcional)">
+                                        <button class="btn btn-primary" id="btn-git-init"><i class="fa-solid fa-folder-plus"></i> Inicializar Git / Configurar Remoto</button>
+                                    </div>
+                                </div>
+                                <div class="git-deploy-section" id="git-deploy-panel">
+                                    <div class="form-group">
+                                        <label for="git-commit-msg">Mensagem de Deploy / Commit:</label>
+                                        <input type="text" id="git-commit-msg" class="text-input" placeholder="ex: feat: add dashboard module, fix api endpoint">
+                                    </div>
+                                    <div class="form-group inline-form">
+                                         <select id="git-branch-input" class="select-input" style="flex: 1; min-width: 150px;"></select>
+                                         <button class="btn btn-primary" id="btn-git-deploy"><i class="fa-solid fa-rocket"></i> Commitar e Fazer Deploy (Push)</button>
+                                         <button class="btn btn-secondary" id="btn-git-pull"><i class="fa-solid fa-cloud-arrow-down"></i> Sincronizar (Pull)</button>
+                                     </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="git-console-card card">
+                            <div class="card-header">
+                                <h4>Console Git Output</h4>
+                            </div>
+                            <div class="terminal-output" id="git-console-output">
+                                <div class="terminal-line system-msg">Log de operações do Git Bridge.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB: LOGS & ROLLBACKS -->
+                <div id="tab-logs" class="tab-pane">
+                    <div class="logs-layout">
+                        <!-- Activity History -->
+                        <div class="activity-logs-panel">
+                            <div class="panel-header">
+                                <h4>Histórico de Atividade (Logs)</h4>
+                                <button class="btn-icon" id="btn-refresh-logs" title="Recarregar"><i class="fa-solid fa-rotate"></i></button>
+                            </div>
+                            <div class="logs-container" id="activity-logs-list">
+                                <!-- Preenchido via JS -->
+                            </div>
+                        </div>
+
+                        <!-- General Snapshots List -->
+                        <div class="all-snapshots-panel">
+                            <div class="panel-header">
+                                <h4>Todos os Snapshots Locais (Versões de Arquivos)</h4>
+                                <button class="btn-icon" id="btn-refresh-all-snapshots" title="Recarregar"><i class="fa-solid fa-rotate"></i></button>
+                            </div>
+                            <div class="snapshots-container" id="all-snapshots-list">
+                                <!-- Preenchido via JS -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB: SETTINGS & TUNNEL -->
+                <div id="tab-settings" class="tab-pane">
+                    <div class="settings-dashboard-layout" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 20px; padding: 20px; max-width: 1200px; margin: 0 auto;">
+                        
+                        <!-- CARD 1: CONFIGURAÇÕES DO AGENTE IA -->
+                        <div class="settings-card card" style="display: flex; flex-direction: column; height: fit-content;">
+                            <div class="card-header" style="border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 16px;">
+                                <h4 style="margin: 0; font-size: 16px; display: flex; align-items: center; gap: 8px;">
+                                    <i class="fa-solid fa-robot" style="color: var(--color-primary);"></i> Configurações do Agente IA Nativo
+                                </h4>
+                            </div>
+                            <div class="card-body" style="display: flex; flex-direction: column; gap: 16px;">
+                                <div class="form-group">
+                                    <label for="agent-provider" style="font-weight: 500; font-size: 13px; margin-bottom: 6px; display: block;">Provedor de LLM:</label>
+                                    <select id="agent-provider" class="select-input" style="width: 100%;">
+                                        <option value="gemini">Google Gemini</option>
+                                        <option value="openai">OpenAI</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="agent-model" style="font-weight: 500; font-size: 13px; margin-bottom: 6px; display: block;">Modelo:</label>
+                                    <select id="agent-model" class="select-input" style="width: 100%;">
+                                        <!-- Preenchido via JS baseado no provedor -->
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="agent-apikey" style="font-weight: 500; font-size: 13px; margin-bottom: 6px; display: block;">API Key:</label>
+                                    <div style="position: relative; display: flex; align-items: center;">
+                                        <input type="password" id="agent-apikey" class="text-input" placeholder="Cole sua chave API aqui" style="width: 100%; padding-right: 40px;" autocomplete="off">
+                                        <button class="btn-toggle-visibility" id="btn-toggle-agent-key" type="button" style="position: absolute; right: 10px; background: none; border: none; color: var(--text-muted); cursor: pointer;"><i class="fa-regular fa-eye"></i></button>
+                                    </div>
+                                </div>
+                                
+                                <h4 style="font-size: 13px; font-weight: 600; margin-top: 10px; margin-bottom: 8px; border-bottom: 1px solid var(--border-color); padding-bottom: 6px;">
+                                    <i class="fa-solid fa-toolbox"></i> FERRAMENTAS ATIVAS
+                                </h4>
+                                <div id="agent-tools-container" style="display: flex; flex-direction: column; gap: 10px;">
+                                    <label class="checkbox-label" style="display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer; color: var(--text-light);">
+                                        <input type="checkbox" id="tool-read_file" value="read_file" checked> Ler Arquivos (Paginated)
+                                    </label>
+                                    <label class="checkbox-label" style="display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer; color: var(--text-light);">
+                                        <input type="checkbox" id="tool-write_file" value="write_file" checked> Escrever Arquivos Completos
+                                    </label>
+                                    <label class="checkbox-label" style="display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer; color: var(--text-light);">
+                                        <input type="checkbox" id="tool-patch_file" value="patch_file" checked> Atualização Parcial (Patch)
+                                    </label>
+                                    <label class="checkbox-label" style="display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer; color: var(--text-light);">
+                                        <input type="checkbox" id="tool-execute_command" value="execute_command" checked> Terminal (Shell Exec)
+                                    </label>
+                                    <label class="checkbox-label" style="display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer; color: var(--text-light);">
+                                        <input type="checkbox" id="tool-execute_db_query" value="execute_db_query" checked> Query SQL (Explorer)
+                                    </label>
+                                    <label class="checkbox-label" style="display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer; color: var(--text-light);">
+                                        <input type="checkbox" id="tool-git_status" value="git_status" checked> Status Git
+                                    </label>
+                                    <label class="checkbox-label" style="display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer; color: var(--text-light);">
+                                        <input type="checkbox" id="tool-git_branches" value="git_branches" checked> Branches Git
+                                    </label>
+                                    <label class="checkbox-label" style="display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer; color: var(--text-light);">
+                                        <input type="checkbox" id="tool-git_deploy" value="git_deploy" checked> Deploy Git (Commit & Push)
+                                    </label>
+                                </div>
+                                
+                                <button class="btn btn-primary" id="btn-save-agent-config" style="margin-top: 12px; width: 100%; padding: 10px; font-weight: 500;"><i class="fa-solid fa-save"></i> Salvar Configuração</button>
+                            </div>
+                        </div>
+
+                        <!-- CARD 2: CONFIGURAÇÃO DO GPT ACTION -->
+                        <div class="settings-card card" style="display: flex; flex-direction: column; height: fit-content;">
+                            <div class="card-header" style="border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 16px;">
+                                <h4 style="margin: 0; font-size: 16px; display: flex; align-items: center; gap: 8px;">
+                                    <i class="fa-solid fa-rocket" style="color: var(--color-primary);"></i> Configurando o GPT Action (ChatGPT)
+                                </h4>
+                            </div>
+                            <div class="card-body">
+                                <p style="font-size: 13px; color: var(--text-light); line-height: 1.5; margin-bottom: 14px;">Para conectar o ChatGPT com seu computador usando esta ferramenta de forma segura, siga estes passos:</p>
+                                <ol class="instructions-list" style="margin-left: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 14px; color: var(--text-light);">
+                                    <li style="font-size: 13px; line-height: 1.4;">
+                                        <strong>Exponha seu servidor local:</strong>
+                                        <p style="margin: 4px 0; color: var(--text-muted);">Abra um terminal no seu computador e execute um utilitário de túnel como <strong>ngrok</strong> ou <strong>Cloudflare Tunnel (cloudflared)</strong>:</p>
+                                        <pre class="code-box" style="margin: 6px 0; padding: 10px; border-radius: 6px; font-size: 11px;"># Usando Ngrok
+ngrok http 8000
+
+# Ou usando Cloudflare (Grátis sem conta)
+cloudflared tunnel --url http://localhost:8000</pre>
+                                    </li>
+                                    <li style="font-size: 13px; line-height: 1.4;">
+                                        <strong>Obtenha a URL Pública:</strong>
+                                        <p style="margin: 4px 0; color: var(--text-muted);">Copie a URL segura gerada pelo túnel (ex: <code>https://abcdef.ngrok-free.app</code> ou <code>https://random.trycloudflare.com</code>).</p>
+                                    </li>
+                                    <li style="font-size: 13px; line-height: 1.4;">
+                                        <strong>Crie uma Custom GPT:</strong>
+                                        <p style="margin: 4px 0; color: var(--text-muted);">No ChatGPT, vá em <em>Explore GPTs</em> > <em>Create</em> > <em>Configure</em>. Adicione uma <strong>Action</strong>.</p>
+                                    </li>
+                                    <li style="font-size: 13px; line-height: 1.4;">
+                                        <strong>Cole a Especificação OpenAPI:</strong>
+                                        <p style="margin: 4px 0; color: var(--text-muted);">Copie o conteúdo de <code>/openapi.json</code> do seu servidor GitIDE (você pode baixar clicando no botão abaixo) e cole no editor de schema da Action. Altere o campo <code>servers</code> para a URL do seu túnel público.</p>
+                                        <a href="/openapi.json" target="_blank" class="btn btn-secondary btn-sm" style="margin-top: 6px; padding: 6px 12px; font-size: 11px;"><i class="fa-solid fa-file-invoice"></i> Visualizar OpenAPI JSON</a>
+                                    </li>
+                                    <li style="font-size: 13px; line-height: 1.4;">
+                                        <strong>Configure a Autenticação:</strong>
+                                        <p style="margin: 4px 0; color: var(--text-muted);">Nas configurações de autenticação da Action do ChatGPT, escolha <strong>API Key</strong>, tipo <strong>Bearer</strong> e insira o Token do GitIDE abaixo:</p>
+                                        <div class="token-container" style="display: flex; gap: 8px; margin-top: 8px;">
+                                            <input type="text" id="api-token-full-view" class="text-input" readonly value="Carregando Token..." style="flex: 1; font-size: 12px;">
+                                            <button class="btn btn-primary" id="btn-copy-token-settings" style="padding: 6px 12px; font-size: 12px;"><i class="fa-solid fa-copy"></i> Copiar Token</button>
+                                        </div>
+                                    </li>
+                                </ol>
+                            </div>
+                        </div>
+                        
+                    </div>
+                </div>
+
+                <!-- TAB: DESIGN SYSTEM (TOKENS) -->
+                <div id="tab-tokens" class="tab-pane">
+                    <div class="tokens-layout">
+                        <!-- Sidebar de Configuração (Temas e Sets) -->
+                        <div class="tokens-sidebar">
+                            <div class="tokens-sidebar-card card">
+                                <div class="card-header-simple" style="margin-bottom: 10px;">
+                                    <h5>THEMES</h5>
+                                </div>
+                                <div id="tokens-themes-container" class="tokens-sidebar-body">
+                                    <!-- Preenchido via JS -->
+                                </div>
+                            </div>
+                            
+                            <div class="tokens-sidebar-card card" style="margin-top: 16px;">
+                                <div class="card-header-simple" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                                    <h5>SETS</h5>
+                                    <button class="btn-icon-sm" id="btn-add-token-set" title="Adicionar Set" style="background: none; border: none; color: var(--text-muted); cursor: pointer;"><i class="fa-solid fa-plus"></i></button>
+                                </div>
+                                <div id="tokens-sets-container" class="tokens-sidebar-body">
+                                    <!-- Preenchido via JS -->
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Painel de Tokens -->
+                        <div class="tokens-content-panel card">
+                            <div class="panel-header-simple" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; margin-bottom: 16px;">
+                                <h4 id="tokens-active-set-title" style="font-size: 14px; font-weight: 600; margin: 0;">TOKENS</h4>
+                                <span class="badge" id="tokens-active-set-status" style="font-size: 10px; padding: 2px 6px; border-radius: 4px; background: rgba(255,255,255,0.05); color: var(--text-muted);">Inactive</span>
+                            </div>
+                            <div class="tokens-list-container" id="tokens-accordion-list">
+                                <!-- Preenchido via JS com as 17 categorias -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB: AGENT -->
+                <div id="tab-agent" class="tab-pane">
+                    <div class="agent-layout" style="display: flex; gap: 20px; height: 100%; min-height: 0;">
+                        <!-- Coluna Única: Chat & Monitor de Raciocínio (Largura Total) -->
+                        <div class="agent-main-panel card" style="flex: 1; display: flex; flex-direction: column; min-width: 0; height: 100%; overflow: hidden;">
+                            
+                            <!-- Cabeçalho do Chat -->
+                            <div class="agent-chat-header" style="display: flex; justify-content: space-between; align-items: center; padding: 14px 20px; border-bottom: 1px solid var(--border-color); background: rgba(0,0,0,0.15); flex-shrink: 0;">
+                                <div style="display: flex; align-items: center; gap: 12px;">
+                                    <div style="background: rgba(99, 102, 241, 0.15); border: 1px solid rgba(99, 102, 241, 0.25); width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: var(--color-primary); font-size: 18px;">
+                                        <i class="fa-solid fa-robot"></i>
+                                    </div>
+                                    <div>
+                                        <h3 style="margin: 0; font-size: 15px; font-weight: 600; color: var(--text-light);">Agente IA Nativo</h3>
+                                        <div style="display: flex; align-items: center; gap: 6px; font-size: 11px; margin-top: 2px;">
+                                            <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #eab308; box-shadow: 0 0 6px #eab308;"></span>
+                                            <span style="color: var(--text-muted);">Online</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div style="display: flex; gap: 8px;">
+                                    <button class="btn btn-secondary btn-sm" id="btn-agent-history" style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); color: var(--text-light); padding: 6px 12px; font-size: 12px; display: flex; align-items: center; gap: 6px; cursor: pointer; border-radius: 6px; transition: all 0.2s;">
+                                        <i class="fa-solid fa-clock-rotate-left"></i> History
+                                    </button>
+                                    <button class="btn btn-secondary btn-sm" id="btn-clear-agent-chat" style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); color: var(--text-light); padding: 6px 12px; font-size: 12px; display: flex; align-items: center; gap: 6px; cursor: pointer; border-radius: 6px; transition: all 0.2s;">
+                                        <i class="fa-solid fa-trash"></i> Clear Chat
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Monitor de Raciocínio (Pensamentos em tempo real) -->
+                            <div class="agent-reasoning-monitor" id="agent-monitor" style="display: none; padding: 14px; background: rgba(0,0,0,0.2); border-bottom: 1px solid var(--border-color); flex-shrink: 0; max-height: 150px; overflow-y: auto; font-family: monospace; font-size: 12px; color: var(--text-muted);">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; font-weight: bold; color: var(--color-primary);">
+                                    <span><i class="fa-solid fa-brain fa-pulse"></i> FLUXO DE RACIOCÍNIO DO AGENTE (PENSAMENTO & AÇÃO)</span>
+                                    <button id="btn-clear-agent-monitor" style="background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 10px;" type="button"><i class="fa-solid fa-trash"></i></button>
+                                </div>
+                                <div id="agent-monitor-logs">
+                                    <!-- Injetado dinamicamente -->
+                                </div>
+                            </div>
+                            
+                            <!-- Área de Chat Histórico -->
+                            <div class="agent-chat-container" id="agent-chat-history" style="flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; background: rgba(0,0,0,0.05);">
+                                <div class="agent-chat-welcome" style="text-align: center; color: var(--text-muted); margin: auto; max-width: 480px; padding: 20px;">
+                                    <i class="fa-solid fa-robot" style="font-size: 48px; color: var(--color-primary); margin-bottom: 14px;"></i>
+                                    <h3>Olá! Eu sou o Agente IA Local do GitIDE</h3>
+                                    <p style="font-size: 13px; margin-top: 8px;">Dê-me um objetivo e eu usarei as ferramentas locais (Arquivos, Git, Terminal, SQL) para resolver de forma autônoma. Configure sua chave API nas <a href="#" id="link-welcome-settings" style="color: var(--color-primary); text-decoration: underline;">Configurações</a> para começar.</p>
+                                </div>
+                            </div>
+                            
+                            <!-- Ações Rápidas (Explain, Bugs, Tests, Refactor) -->
+                            <div class="agent-quick-actions" style="display: flex; gap: 10px; padding: 12px 20px; background: transparent; flex-shrink: 0; flex-wrap: wrap; border-top: 1px solid var(--border-color);">
+                                <button class="quick-action-btn" data-action="explain" style="display: flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: 8px; padding: 8px 14px; font-size: 12px; color: var(--text-light); cursor: pointer; transition: all 0.2s;">
+                                    <i class="fa-solid fa-file-invoice"></i> Explain this file
+                                </button>
+                                <button class="quick-action-btn" data-action="bugs" style="display: flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: 8px; padding: 8px 14px; font-size: 12px; color: var(--text-light); cursor: pointer; transition: all 0.2s;">
+                                    <i class="fa-solid fa-bug"></i> Find bugs
+                                </button>
+                                <button class="quick-action-btn" data-action="test" style="display: flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: 8px; padding: 8px 14px; font-size: 12px; color: var(--text-light); cursor: pointer; transition: all 0.2s;">
+                                    <i class="fa-solid fa-flask"></i> Generate unit test
+                                </button>
+                                <button class="quick-action-btn" data-action="refactor" style="display: flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: 8px; padding: 8px 14px; font-size: 12px; color: var(--text-light); cursor: pointer; transition: all 0.2s;">
+                                    <i class="fa-solid fa-wand-magic-sparkles"></i> Refactor code
+                                </button>
+                            </div>
+
+                            <!-- Input do prompt -->
+                            <form class="agent-input-wrapper" id="agent-chat-form" style="display: flex; align-items: center; gap: 12px; padding: 12px 20px 20px 20px; background: rgba(0,0,0,0.1); flex-shrink: 0; flex-direction: column;">
+                                <div style="display: flex; align-items: center; gap: 12px; width: 100%; max-width: 100%; background: rgba(0, 0, 0, 0.2); border: 1px solid var(--border-color); border-radius: 30px; padding: 6px 16px;">
+                                    <button type="button" style="background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 16px;"><i class="fa-solid fa-paperclip"></i></button>
+                                    <input type="text" id="agent-user-prompt" class="text-input" placeholder="O que deseja que o agente faça? (ex: 'Crie um teste unitário para vcs.py')" style="flex: 1; background: transparent; border: none; outline: none; padding: 8px 0; color: var(--text-light); font-size: 13px;" autocomplete="off" disabled>
+                                    <button type="button" style="background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 16px;"><i class="fa-solid fa-microphone"></i></button>
+                                    <button type="submit" id="btn-send-agent-prompt" disabled style="background: var(--color-primary); border: none; color: white; width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; flex-shrink: 0;"><i class="fa-solid fa-paper-plane"></i></button>
+                                </div>
+                                <div style="font-size: 11px; color: var(--text-dark); margin-top: 4px; text-align: center;">
+                                    GitIDE AI uses advanced LLMs and can occasionally hallucinate. Verify critical code.
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- MODAL: ADD NEW PROJECT -->
+    <div class="modal-backdrop" id="modal-project">
+        <div class="modal-card" style="max-width: 600px;">
+            <div class="modal-header" style="flex-direction: column; align-items: flex-start; gap: 4px; position: relative;">
+                <h3 style="font-size: 18px;">Importar App</h3>
+                <p style="font-size: 13px; color: var(--text-muted); margin: 0;">Importe um app existente de uma pasta local ou clone do Github.</p>
+                <button class="btn-icon modal-close" style="position: absolute; right: 20px; top: 20px;"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body" style="padding: 20px; display: flex; flex-direction: column; gap: 14px;">
+                <!-- Alert Box -->
+                <div class="modal-alert-info">
+                    <i class="fa-solid fa-circle-info"></i>
+                    <div>A importação de apps é um recurso experimental. Se encontrar algum problema, por favor reporte usando o botão Ajuda.</div>
+                </div>
+
+                <!-- Tabs Navigation Header -->
+                <div class="modal-tabs-header">
+                    <button type="button" class="modal-tab-btn active" data-modal-tab="local">Pasta Local</button>
+                    <button type="button" class="modal-tab-btn" data-modal-tab="github-list">Seus Repositórios do GitHub</button>
+                    <button type="button" class="modal-tab-btn" data-modal-tab="github-url">URL do GitHub</button>
+                </div>
+
+                <!-- Tab Content: Local Folder -->
+                <div class="modal-tab-content active" data-tab-content="local">
+                    <div class="local-path-pane">
+                        <button type="button" class="btn-select-folder" id="btn-select-local-path">
+                            <i class="fa-regular fa-folder-open"></i>
+                            <span>Selecionar Pasta</span>
+                        </button>
+                        <div id="local-selected-preview" class="selected-path-preview" style="display: none; margin-top: 12px;"></div>
+                        
+                        <!-- Project Name (editable) -->
+                        <div class="form-group" id="local-name-group" style="display: none; width: 100%; margin-top: 14px; text-align: left;">
+                            <label for="local-project-name">Nome do Projeto:</label>
+                            <input type="text" id="local-project-name" class="text-input" placeholder="ex: Meu App Backend">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab Content: GitHub Repositories List -->
+                <div class="modal-tab-content" data-tab-content="github-list">
+                    <!-- Logged out state / Authentication flow -->
+                    <div id="github-auth-section" style="display: none;">
+                        <div style="display: flex; justify-content: center; margin: 16px 0;">
+                            <button type="button" class="github-connect-btn" id="btn-github-connect">
+                                <i class="fa-brands fa-github"></i> Connect to GitHub <i class="fa-solid fa-circle-notch fa-spin spinner" id="github-connect-spinner" style="display: none; margin-left: 8px;"></i>
+                            </button>
+                        </div>
+                        
+                        <div class="github-auth-card" id="github-auth-card" style="display: none;">
+                            <h5>GitHub Connection</h5>
+                            <ol class="github-auth-steps">
+                                <li>Go to: <a href="https://github.com/login/device" target="_blank" id="github-device-link">https://github.com/login/device</a></li>
+                                <li>Enter code: <span class="github-code-badge"><span id="github-user-code">XXXX-XXXX</span> <button type="button" class="btn-icon-copy" id="btn-copy-github-code" title="Copiar código"><i class="fa-regular fa-clipboard"></i></button></span></li>
+                            </ol>
+                            <div class="github-auth-status" id="github-auth-status">
+                                Waiting for user authorization...
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Logged in state -->
+                    <div id="github-repos-section" style="display: none;">
+                        <div class="github-profile-bar">
+                            <div class="github-user-info">
+                                <img id="github-avatar" src="" alt="Avatar" class="github-avatar">
+                                <div>
+                                    <div id="github-username" class="github-username">...</div>
+                                    <div id="github-email" class="github-email">...</div>
+                                </div>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-secondary" id="btn-github-logout"><i class="fa-solid fa-right-from-bracket"></i> Desconectar</button>
+                        </div>
+
+                        <div class="form-group" style="margin-bottom: 12px; margin-top: 12px;">
+                            <label for="github-app-name-opt">Nome do app (opcional)</label>
+                            <input type="text" id="github-app-name-opt" class="text-input" placeholder="Deixe vazio para usar o nome do repositório">
+                        </div>
+                        
+                        <div class="github-repos-list" id="github-repos-list-container" style="margin-bottom: 14px;">
+                            <!-- Carregado dinamicamente via JS -->
+                            <div class="loading-spinner"><i class="fa-solid fa-circle-notch fa-spin"></i></div>
+                        </div>
+                    </div>
+
+                    <!-- Collapsible advanced options -->
+                    <div class="collapsible-trigger" id="github-list-adv-trigger">
+                        <span>Opções avançadas</span>
+                        <i class="fa-solid fa-chevron-down"></i>
+                    </div>
+                    <div class="collapsible-content" id="github-list-adv-content">
+                        <div class="form-group" style="padding-top: 8px;">
+                            <label for="github-list-dest-path">Caminho Absoluto Base para Clones:</label>
+                            <div style="display: flex; gap: 8px;">
+                                <input type="text" id="github-list-dest-path" class="text-input" value="C:\Users\augus\.workspace">
+                                <button type="button" class="btn btn-secondary" id="btn-browse-github-list-dest" style="white-space: nowrap;"><i class="fa-solid fa-folder-tree"></i> Procurar...</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab Content: Custom GitHub URL -->
+                <div class="modal-tab-content" data-tab-content="github-url">
+                    <div class="form-group" style="margin-bottom: 12px;">
+                        <label for="github-repo-url">URL do Repositório</label>
+                        <input type="text" id="github-repo-url" class="text-input" placeholder="https://github.com/usuario/repo.git">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 12px;">
+                        <label for="github-url-app-name-opt">Nome do app (opcional)</label>
+                        <input type="text" id="github-url-app-name-opt" class="text-input" placeholder="Deixe vazio para usar o nome do repositório">
+                    </div>
+
+                    <!-- Collapsible advanced options -->
+                    <div class="collapsible-trigger" id="github-url-adv-trigger">
+                        <span>Opções avançadas</span>
+                        <i class="fa-solid fa-chevron-down"></i>
+                    </div>
+                    <div class="collapsible-content" id="github-url-adv-content">
+                        <div class="form-group" style="padding-top: 8px;">
+                            <label for="github-url-dest-path">Caminho Absoluto da Pasta de Destino:</label>
+                            <div style="display: flex; gap: 8px;">
+                                <input type="text" id="github-url-dest-path" class="text-input" placeholder="ex: C:\Users\augus\.workspace\meu-app">
+                                <button type="button" class="btn btn-secondary" id="btn-browse-github-url-dest" style="white-space: nowrap;"><i class="fa-solid fa-folder-tree"></i> Procurar...</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary modal-close">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="btn-modal-project-import" disabled>Importar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: BROWSE DIRECTORY -->
+    <div class="modal-backdrop" id="modal-dir-browser">
+        <div class="modal-card" style="max-width: 600px;">
+            <div class="modal-header">
+                <h3>Selecionar Pasta Local</h3>
+                <button class="btn-icon dir-browser-close"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body" style="padding: 16px; display: flex; flex-direction: column; gap: 12px; max-height: 450px;">
+                <!-- Drives & Breadcrumbs -->
+                <div class="dir-browser-nav" style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 12px;">
+                    <div id="dir-browser-drives" style="display: flex; gap: 6px;"></div>
+                    <div id="dir-browser-breadcrumbs" style="display: flex; gap: 4px; font-size: 13px; color: var(--text-muted); align-items: center; overflow-x: auto; white-space: nowrap; flex: 1;"></div>
+                </div>
+                <!-- Directories List -->
+                <div id="dir-browser-list" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; min-height: 200px; background: rgba(0,0,0,0.2); padding: 8px; border-radius: 8px; border: 1px solid var(--border-color);">
+                    <!-- Preenchido via JS -->
+                </div>
+                <!-- Current Selected Path Text -->
+                <div style="font-size: 13px; font-weight: 500;">
+                    Selecionado: <span id="dir-browser-current-selected" style="color: var(--color-primary); font-family: var(--font-mono); word-break: break-all;">C:\</span>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary dir-browser-close">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="btn-dir-browser-confirm">Confirmar Seleção</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: CONFIRM DIALOG -->
+    <div class="modal-backdrop" id="modal-confirm">
+        <div class="modal-card" style="max-width: 450px;">
+            <div class="modal-header">
+                <h3 id="confirm-title">Confirmar Ação</h3>
+                <button class="btn-icon confirm-close"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body">
+                <p id="confirm-message" style="font-size: 14px; color: var(--text-muted); line-height: 1.6;"></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary confirm-close" id="btn-confirm-cancel">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="btn-confirm-ok">Confirmar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: MERGE BRANCH -->
+    <div class="modal-backdrop" id="modal-merge">
+        <div class="modal-card" style="max-width: 450px;">
+            <div class="modal-header">
+                <h3>Mesclar Branch (Git Merge)</h3>
+                <button class="btn-icon modal-close merge-close"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body" style="padding: 20px; display: flex; flex-direction: column; gap: 14px;">
+                <p style="font-size: 13px; color: var(--text-muted); margin: 0;">Selecione a branch que deseja mesclar na branch ativa (<strong id="merge-current-branch-name">...</strong>):</p>
+                <div class="form-group" style="display: flex; flex-direction: column; gap: 6px;">
+                    <label for="merge-branch-selector">Branch de origem:</label>
+                    <select id="merge-branch-selector" class="select-input">
+                        <option value="">Carregando branches...</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary merge-close" id="btn-merge-cancel">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="btn-merge-confirm">Mesclar</button>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- MODAL: THEME EDITOR -->
+    <div class="modal-backdrop" id="modal-theme-editor">
+        <div class="modal-card" style="max-width: 450px;">
+            <div class="modal-header">
+                <h3 id="theme-modal-title">Criar Tema</h3>
+                <button class="btn-icon theme-editor-close"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body" style="padding: 20px; display: flex; flex-direction: column; gap: 14px;">
+                <input type="hidden" id="theme-editor-id">
+                <div class="form-group">
+                    <label for="theme-editor-name">Nome do Tema:</label>
+                    <input type="text" id="theme-editor-name" class="text-input" placeholder="ex: light, dark, brand">
+                </div>
+                <div class="form-group">
+                    <label for="theme-editor-desc">Descrição:</label>
+                    <input type="text" id="theme-editor-desc" class="text-input" placeholder="Opcional">
+                </div>
+                <div class="form-group">
+                    <label>Sets Selecionados:</label>
+                    <div id="theme-editor-sets-checkboxes" style="display: flex; flex-direction: column; gap: 8px; max-height: 120px; overflow-y: auto; background: rgba(0,0,0,0.2); padding: 8px; border-radius: var(--border-radius); border: 1px solid var(--border-color);">
+                        <!-- populated via JS -->
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary theme-editor-close">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="btn-theme-editor-save">Salvar Tema</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: SET EDITOR -->
+    <div class="modal-backdrop" id="modal-set-editor">
+        <div class="modal-card" style="max-width: 450px;">
+            <div class="modal-header">
+                <h3>Criar Token Set</h3>
+                <button class="btn-icon set-editor-close"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body" style="padding: 20px; display: flex; flex-direction: column; gap: 14px;">
+                <div class="form-group">
+                    <label for="set-editor-name">Nome do Set:</label>
+                    <input type="text" id="set-editor-name" class="text-input" placeholder="ex: global, light, dark, components">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary set-editor-close">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="btn-set-editor-save">Salvar Set</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: TOKEN EDITOR -->
+    <div class="modal-backdrop" id="modal-token-editor">
+        <div class="modal-card" style="max-width: 480px;">
+            <div class="modal-header">
+                <h3 id="token-modal-title">Criar Token</h3>
+                <button class="btn-icon token-editor-close"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body" style="padding: 20px; display: flex; flex-direction: column; gap: 14px;">
+                <input type="hidden" id="token-editor-old-name">
+                <input type="hidden" id="token-editor-set">
+                <div class="form-group">
+                    <label for="token-editor-name">Nome do Token:</label>
+                    <input type="text" id="token-editor-name" class="text-input" placeholder="ex: small, primary, font-sans">
+                </div>
+                <div class="form-group">
+                    <label for="token-editor-type">Tipo de Token:</label>
+                    <select id="token-editor-type" class="select-input">
+                        <option value="borderRadius">Border Radius</option>
+                        <option value="color">Color</option>
+                        <option value="dimension">Dimensions</option>
+                        <option value="fontFamily">Font Family</option>
+                        <option value="fontSize">Font Size</option>
+                        <option value="fontWeight">Font Weight</option>
+                        <option value="letterSpacing">Letter Spacing</option>
+                        <option value="number">Number</option>
+                        <option value="opacity">Opacity</option>
+                        <option value="rotation">Rotation</option>
+                        <option value="boxShadow">Shadow</option>
+                        <option value="sizing">Sizing</option>
+                        <option value="spacing">Spacing</option>
+                        <option value="borderWidth">Stroke Width</option>
+                        <option value="textCase">Text Case</option>
+                        <option value="textDecoration">Text Decoration</option>
+                        <option value="typography">Typography</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="token-editor-value">Valor:</label>
+                    <input type="text" id="token-editor-value" class="text-input" placeholder="ex: 4px, #ffffff, 12px, etc.">
+                </div>
+                <!-- Typography Sub-form -->
+                <div id="token-editor-typography-fields" style="display: none; flex-direction: column; gap: 12px; background: rgba(0,0,0,0.15); padding: 12px; border-radius: var(--border-radius); border: 1px solid var(--border-color); margin-top: -6px; margin-bottom: 6px;">
+                    <div class="form-group" style="margin-bottom: 8px;">
+                        <label for="token-editor-typo-fontFamily" style="font-size: 11px; font-weight: 500;">Font Family:</label>
+                        <input type="text" id="token-editor-typo-fontFamily" class="text-input" style="padding: 6px 10px; font-size: 13px;" placeholder="ex: Inter, sans-serif or {alias}">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 8px;">
+                        <label for="token-editor-typo-fontSize" style="font-size: 11px; font-weight: 500;">Font Size:</label>
+                        <input type="text" id="token-editor-typo-fontSize" class="text-input" style="padding: 6px 10px; font-size: 13px;" placeholder="ex: 16px, 1.2rem or {alias}">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 8px;">
+                        <label for="token-editor-typo-fontWeight" style="font-size: 11px; font-weight: 500;">Font Weight:</label>
+                        <input type="text" id="token-editor-typo-fontWeight" class="text-input" style="padding: 6px 10px; font-size: 13px;" placeholder="ex: 400, Bold or {alias}">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 8px;">
+                        <label for="token-editor-typo-lineHeight" style="font-size: 11px; font-weight: 500;">Line Height:</label>
+                        <input type="text" id="token-editor-typo-lineHeight" class="text-input" style="padding: 6px 10px; font-size: 13px;" placeholder="ex: 1.5, 24px or {alias}">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 8px;">
+                        <label for="token-editor-typo-letterSpacing" style="font-size: 11px; font-weight: 500;">Letter Spacing:</label>
+                        <input type="text" id="token-editor-typo-letterSpacing" class="text-input" style="padding: 6px 10px; font-size: 13px;" placeholder="ex: 0.02em, -1px or {alias}">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 8px;">
+                        <label for="token-editor-typo-textCase" style="font-size: 11px; font-weight: 500;">Text Case (Transform):</label>
+                        <select id="token-editor-typo-textCase" class="select-input" style="padding: 6px 10px; font-size: 13px;">
+                            <option value="">-- Choose --</option>
+                            <option value="none">none</option>
+                            <option value="uppercase">uppercase</option>
+                            <option value="lowercase">lowercase</option>
+                            <option value="capitalize">capitalize</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label for="token-editor-typo-textDecoration" style="font-size: 11px; font-weight: 500;">Text Decoration:</label>
+                        <select id="token-editor-typo-textDecoration" class="select-input" style="padding: 6px 10px; font-size: 13px;">
+                            <option value="">-- Choose --</option>
+                            <option value="none">none</option>
+                            <option value="underline">underline</option>
+                            <option value="line-through">line-through (strike-through)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="token-editor-desc">Descrição:</label>
+                    <input type="text" id="token-editor-desc" class="text-input" placeholder="Opcional">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary token-editor-close">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="btn-token-editor-save">Salvar Token</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom JavaScript -->
+    <script src="/static/app.js?v=12"></script>
+</body>
+</html>
