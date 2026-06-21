@@ -13,9 +13,9 @@
     --theme-text-muted: #6f6f6f;
     --theme-border: #1a1a1a;
     --theme-border-strong: rgba(255, 255, 255, 0.15);
-    --theme-primary: #f97583;
-    --theme-primary-soft: rgba(249, 117, 131, 0.16);
-    --theme-secondary: #29c6be;
+    --theme-primary: #f5f5f5;
+    --theme-primary-soft: rgba(255, 255, 255, 0.10);
+    --theme-secondary: #b8bec8;
     --theme-info: #79b8ff;
     --theme-purple: #bc97ff;
     --theme-success: #91c17a;

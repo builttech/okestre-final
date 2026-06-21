@@ -57,7 +57,7 @@
                         </div>
                     </div>
                     <div class="project-selector-wrapper project-selector-row">
-                        <select id="project-selector" class="select-input project-selector-input">
+                        <select id="project-selector" class="select-input project-selector-input" data-no-native-select="true">
                             <option value="">Carregando projetos...</option>
                         </select>
                         <button class="btn-icon is-hidden" id="btn-copy-project-gpt-info" title="Copiar ID e instruções para o GPT"><i class="fa-solid fa-robot"></i></button>
@@ -1011,5 +1011,6 @@ cloudflared tunnel --url http://localhost:8000</pre>
     <!-- Custom JavaScript -->
     <script src="/static/app.js?v=12"></script>
     <script src="/static/theme-toggle.js?v=1"></script>
+    <script src="/static/native-select.js?v=1"></script>
 </body>
 </html>

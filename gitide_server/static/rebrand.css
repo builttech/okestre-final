@@ -937,12 +937,20 @@ textarea {
 }
 
 .files-layout{
-    padding:18px!important;
-    gap:16px!important;
+    width:100%!important;
+    max-width:none!important;
+    height:100%!important;
+    padding:0!important;
+    gap:0!important;
 }
 
 .file-tree-panel{
-    width:320px!important;
+    width:280px!important;
+    border-radius:0!important;
+    border-left:0!important;
+    border-top:0!important;
+    border-bottom:0!important;
+    border-right:1px solid var(--flat-border)!important;
 }
 
 .editor-panel,
@@ -1158,6 +1166,9 @@ html[data-theme="light"] .modal-card{
 }
 
 .git-layout{
+    width:100%!important;
+    max-width:none!important;
+    min-height:100%!important;
     grid-template-columns:minmax(280px,var(--theme-git-sidebar-width)) minmax(0,1fr)!important;
     grid-template-rows:minmax(190px,auto) 1fr!important;
     grid-template-areas:'status console' 'deploy console'!important;
@@ -1218,6 +1229,39 @@ html[data-theme="light"] .modal-card{
     border-radius:10px!important;
 }
 
+/* Flat UI direction (no shadows, neutral palette) */
+.card,
+.modal-card,
+.db-editor-panel,
+.db-results-panel,
+.db-explorer-sidebar,
+.git-status-card,
+.git-operations-card,
+.git-console-card,
+.agent-main-panel,
+.topbar,
+.sidebar{
+    box-shadow:none!important;
+}
+
+.content-area{
+    width:100%!important;
+    max-width:none!important;
+    padding:0!important;
+    margin:0!important;
+    border:0!important;
+    border-radius:0!important;
+}
+
+.content-area::before{
+    display:none!important;
+}
+
+.db-tab-btn.active{
+    background:rgba(255,255,255,.05)!important;
+    color:var(--text-main)!important;
+}
+
 /* Database View v2 — improved layout/disposition */
 #tab-database.active{
     display:flex!important;
@@ -1261,7 +1305,7 @@ html[data-theme="light"] .modal-card{
 #tab-database .database-layout,
 #tab-database .database-layout-rebrand{
     width:100%!important;
-    max-width:1480px!important;
+    max-width:none!important;
     height:100%!important;
     margin:0 auto!important;
     padding:0!important;
@@ -1362,6 +1406,294 @@ html[data-theme="light"] .modal-card{
 #tab-database .db-tables-list-rebrand,
 #tab-database .db-tables-container{
     padding:14px!important;
+}
+
+/* Flat workspace v3 — continuous layout, no card feeling */
+:root{
+    --flat-bg: var(--theme-bg);
+    --flat-panel: transparent;
+    --flat-panel-muted: rgba(255,255,255,.018);
+    --flat-border: rgba(255,255,255,.075);
+    --flat-border-soft: rgba(255,255,255,.045);
+    --flat-active: rgba(255,255,255,.06);
+}
+
+html[data-theme="light"]{
+    --flat-border: rgba(10,10,10,.08);
+    --flat-border-soft: rgba(10,10,10,.05);
+    --flat-active: rgba(10,10,10,.055);
+    --flat-panel-muted: rgba(10,10,10,.018);
+}
+
+.btn-primary{
+    background:var(--text-main)!important;
+    color:var(--bg-base)!important;
+    border-color:var(--text-main)!important;
+}
+
+.btn-primary:hover{
+    background:var(--text-main)!important;
+    color:var(--bg-base)!important;
+    transform:none!important;
+    box-shadow:none!important;
+}
+
+.btn-secondary,
+.theme-toggle-btn,
+.api-key-badge,
+.status-item{
+    background:transparent!important;
+    border-color:var(--flat-border)!important;
+    box-shadow:none!important;
+}
+
+.btn-secondary:hover,
+.theme-toggle-btn:hover,
+.api-key-badge:hover{
+    background:var(--flat-active)!important;
+    transform:none!important;
+}
+
+.card,
+.db-editor-panel,
+.db-results-panel,
+.db-explorer-sidebar,
+.file-tree-panel,
+.editor-panel,
+.git-status-card,
+.git-operations-card,
+.git-console-card,
+.agent-main-panel,
+.tokens-content-panel,
+.tokens-sidebar-card,
+.settings-card{
+    background:transparent!important;
+    border-color:var(--flat-border)!important;
+    box-shadow:none!important;
+}
+
+.panel-header,
+.card-header,
+.modal-header,
+.modal-footer{
+    background:transparent!important;
+    border-color:var(--flat-border-soft)!important;
+}
+
+.select-input,
+.text-input,
+.db-query-wrapper textarea,
+.editor-container,
+.db-results-container,
+.terminal-output,
+#git-console-output{
+    background:var(--flat-panel-muted)!important;
+    border-color:var(--flat-border)!important;
+    box-shadow:none!important;
+}
+
+.select-input:focus,
+.text-input:focus,
+.db-query-wrapper textarea:focus,
+#file-editor-textarea:focus{
+    border-color:var(--flat-border)!important;
+    box-shadow:none!important;
+}
+
+#tab-database.active{
+    padding:0!important;
+}
+
+#tab-database .db-tabs-nav-rebrand,
+#tab-database .db-tabs-nav{
+    max-width:none!important;
+    padding:14px 18px 0!important;
+    margin:0!important;
+    border-bottom:1px solid var(--flat-border-soft)!important;
+}
+
+#tab-database .db-tab-btn.active{
+    background:transparent!important;
+    border:0!important;
+    border-bottom:1px solid var(--text-main)!important;
+    border-radius:0!important;
+}
+
+#db-subtab-explorer{
+    padding:0!important;
+}
+
+#tab-database .database-layout,
+#tab-database .database-layout-rebrand{
+    width:100%!important;
+    height:100%!important;
+    display:grid!important;
+    grid-template-columns:280px minmax(0,1fr)!important;
+    gap:0!important;
+    border:0!important;
+}
+
+#tab-database .db-explorer-sidebar{
+    width:280px!important;
+    min-width:280px!important;
+    border:0!important;
+    border-right:1px solid var(--flat-border)!important;
+    border-radius:0!important;
+    background:transparent!important;
+}
+
+#tab-database .db-content-area{
+    display:grid!important;
+    grid-template-rows:auto minmax(0,1fr)!important;
+    gap:0!important;
+    height:100%!important;
+}
+
+#tab-database .db-editor-panel,
+#tab-database .db-results-panel{
+    border:0!important;
+    border-radius:0!important;
+    background:transparent!important;
+}
+
+#tab-database .db-editor-panel{
+    border-bottom:1px solid var(--flat-border)!important;
+}
+
+#tab-database .db-editor-panel > .panel-header,
+#tab-database .db-results-panel > .panel-header{
+    padding:16px 20px!important;
+    min-height:auto!important;
+    border-bottom:1px solid var(--flat-border-soft)!important;
+}
+
+#tab-database .db-config-row{
+    grid-template-columns:260px minmax(0,1fr)!important;
+    padding:18px 20px 0!important;
+}
+
+#tab-database .db-query-wrapper{
+    padding:16px 20px 0!important;
+}
+
+#tab-database .db-query-wrapper textarea{
+    height:120px!important;
+    border-radius:10px!important;
+}
+
+#tab-database .db-actions{
+    padding:14px 20px 20px!important;
+}
+
+#tab-database .db-results-container{
+    margin:0!important;
+    border:0!important;
+    border-radius:0!important;
+    min-height:0!important;
+    height:100%!important;
+    background:transparent!important;
+}
+
+#tab-database .db-results-panel{
+    overflow:hidden!important;
+}
+
+#tab-database .placeholder-text{
+    min-height:100%!important;
+    color:var(--text-muted)!important;
+}
+
+#tab-database .db-panel-header{
+    padding:18px 20px 14px!important;
+    border-bottom:1px solid var(--flat-border-soft)!important;
+}
+
+#tab-database .db-conn-status{
+    padding:14px 20px!important;
+    border-bottom:1px solid var(--flat-border-soft)!important;
+}
+
+#tab-database .db-tables-list-rebrand,
+#tab-database .db-tables-container{
+    padding:16px 20px!important;
+}
+
+.editor-panel,
+.agent-layout,
+.database-layout,
+.git-layout,
+.files-layout{
+    border:0!important;
+    border-radius:0!important;
+    box-shadow:none!important;
+}
+
+.main-content,
+.workspace-content,
+.page-content{
+    padding:0!important;
+    margin:0!important;
+}
+
+/* GitIDE Native Select */
+.gitide-select-original{
+    position:absolute!important;
+    opacity:0!important;
+    pointer-events:none!important;
+}
+
+.gitide-select{
+    position:relative;
+    width:100%;
+}
+
+.gitide-select-trigger{
+    width:100%;
+    height:40px;
+    padding:0 12px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    border:1px solid var(--flat-border);
+    border-radius:10px;
+    background:var(--flat-panel-muted);
+    color:var(--text-main);
+}
+
+.gitide-select-menu{
+    display:none;
+    position:absolute;
+    top:calc(100% + 6px);
+    left:0;
+    right:0;
+    z-index:2000;
+    border:1px solid var(--flat-border);
+    border-radius:10px;
+    background:var(--bg-base);
+    overflow:hidden;
+}
+
+.gitide-select.is-open .gitide-select-menu{
+    display:block;
+}
+
+.gitide-select-option{
+    width:100%;
+    text-align:left;
+    padding:10px 12px;
+    border:0;
+    background:transparent;
+    color:var(--text-main);
+}
+
+.gitide-select-option:hover,
+.gitide-select-option.is-selected{
+    background:var(--flat-active);
+}
+
+.gitide-select-icon{
+    font-size:11px;
+    opacity:.7;
 }
 
 @media (max-width: 980px) {
