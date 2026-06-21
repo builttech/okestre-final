@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -12,6 +12,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Custom CSS -->
     <link rel="stylesheet" href="/static/style.css?v=7">
+    <link rel="stylesheet" href="/static/theme.css?v=1">
     <link rel="stylesheet" href="/static/rebrand.css?v=2">
 </head>
 <body>
@@ -26,6 +27,10 @@
                 </div>
             </div>
             <div class="status-panel">
+                <button class="theme-toggle-btn" id="btn-theme-toggle" type="button" title="Alternar tema">
+                    <i class="fa-solid fa-moon"></i>
+                    <span id="theme-toggle-label">Dark</span>
+                </button>
                 <div class="status-item">
                     <span class="status-dot online"></span>
                     <span class="status-label">Servidor Ativo</span>
@@ -1005,5 +1010,6 @@ cloudflared tunnel --url http://localhost:8000</pre>
 
     <!-- Custom JavaScript -->
     <script src="/static/app.js?v=12"></script>
+    <script src="/static/theme-toggle.js?v=1"></script>
 </body>
 </html>
