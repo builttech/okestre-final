@@ -1635,6 +1635,163 @@ html[data-theme="light"]{
     margin:0!important;
 }
 
+/* Workspace Switcher */
+.workspace-switcher-native{
+    display:none!important;
+}
+
+.workspace-switcher{
+    position:relative;
+}
+
+.workspace-switcher-trigger{
+    width:100%;
+    height:72px;
+    min-height:72px;
+    padding:14px;
+    border-radius:18px;
+    border:1px solid var(--flat-border);
+    background:rgba(255,255,255,.02);
+    display:flex;
+    align-items:center;
+    gap:12px;
+    text-align:left;
+}
+
+.workspace-switcher-avatar{
+    width:34px;
+    height:34px;
+    border-radius:999px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:11px;
+    font-weight:700;
+    background:#000;
+    color:#fff;
+    flex-shrink:0;
+}
+
+.workspace-switcher-copy{
+    flex:1;
+    display:flex;
+    flex-direction:column;
+    gap:2px;
+}
+
+.workspace-switcher-copy strong{
+    font-size:15px;
+    color:var(--text-main);
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    display:block;
+    line-height:1.2;
+}
+
+.workspace-switcher-copy span{
+    font-size:13px;
+    color:var(--text-muted);
+    line-height:1.2;
+}
+
+.workspace-switcher-menu{
+    display:none;
+    margin-top:10px;
+    position:absolute;
+    top:calc(100% + 10px);
+    left:0;
+    right:0;
+    z-index:3000;
+    border:1px solid var(--flat-border);
+    border-radius:22px;
+    background:var(--bg-base);
+    padding:12px;
+}
+
+.workspace-switcher.is-open .workspace-switcher-menu{display:block;}
+
+.workspace-switcher-search{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:0 12px;
+    height:40px;
+    border:1px solid var(--flat-border);
+    border-radius:14px;
+    margin-bottom:12px;
+}
+
+.workspace-switcher-search input{
+    flex:1;
+    border:0;
+    background:transparent;
+    color:var(--text-main);
+}
+
+.workspace-switcher-option,
+.workspace-switcher-create{
+    width:100%;
+    border:0;
+    background:transparent;
+    display:flex;
+    align-items:center;
+    gap:12px;
+    min-height:58px;
+    padding:8px 10px;
+    border-radius:12px;
+}
+
+.workspace-switcher-option:hover{
+    background:rgba(255,255,255,.03);
+}
+
+.workspace-switcher-option.is-selected{
+    background:rgba(255,255,255,.04);
+    border:1px solid rgba(255,255,255,.06);
+}
+
+.workspace-switcher-check{margin-left:auto;opacity:0;}
+.workspace-switcher-option.is-selected .workspace-switcher-check{opacity:1;}
+
+.workspace-switcher-create{
+    margin-top:10px;
+    border-top:1px solid var(--flat-border);
+    border-radius:0;
+    padding-top:14px;
+}
+
+/* Workspace Switcher v1 */
+.sidebar-section .section-header h3{
+    letter-spacing:.12em!important;
+    font-size:11px!important;
+    color:var(--text-muted)!important;
+}
+
+.project-selector-row{
+    padding:0!important;
+}
+
+.project-selector-input{
+    height:68px!important;
+    border-radius:18px!important;
+    border:1px solid var(--flat-border)!important;
+    background:rgba(255,255,255,.02)!important;
+    padding:14px 18px!important;
+    font-size:16px!important;
+    font-weight:600!important;
+}
+
+.project-selector-row{
+    position:relative;
+    display:block!important;
+}
+
+.project-selector-row::after{
+    display:none!important;
+    content:none!important;
+}
+
 /* GitIDE Native Select */
 .gitide-select-original{
     position:absolute!important;
@@ -1694,6 +1851,500 @@ html[data-theme="light"]{
 .gitide-select-icon{
     font-size:11px;
     opacity:.7;
+}
+
+/* Global page layout standard — spacious rounded workspace */
+.tab-pane.active{
+    height:100%!important;
+    padding:24px!important;
+}
+
+.files-layout,
+.git-layout,
+.database-layout,
+.database-layout-rebrand,
+.logs-layout,
+.terminal-panel,
+.tokens-layout,
+.settings-dashboard-layout,
+.agent-layout{
+    width:100%!important;
+    height:100%!important;
+    max-width:none!important;
+    margin:0!important;
+    gap:24px!important;
+    padding:0!important;
+}
+
+.card,
+.file-tree-panel,
+.editor-panel,
+.db-explorer-sidebar,
+.db-editor-panel,
+.db-results-panel,
+.git-status-card,
+.git-operations-card,
+.git-console-card,
+.activity-logs-panel,
+.all-snapshots-panel,
+.tokens-sidebar-card,
+.tokens-content-panel,
+.settings-card,
+.agent-main-panel,
+.terminal-output,
+.terminal-input-wrapper{
+    border-radius:24px!important;
+    border:1px solid var(--flat-border)!important;
+    background:rgba(255,255,255,.018)!important;
+    box-shadow:none!important;
+    overflow:hidden!important;
+}
+
+.panel-header,
+.card-header{
+    padding:18px 20px!important;
+    border-bottom:1px solid var(--flat-border-soft)!important;
+    margin:0!important;
+}
+
+.card:not(.git-console-card),
+.db-editor-panel,
+.db-results-panel,
+.activity-logs-panel,
+.all-snapshots-panel,
+.tokens-content-panel,
+.settings-card{
+    padding:0!important;
+}
+
+/* Files page standard */
+.files-layout{
+    display:grid!important;
+    grid-template-columns:300px minmax(0,1fr)!important;
+}
+
+.file-tree-panel{
+    width:auto!important;
+    border-radius:24px!important;
+    border:1px solid var(--flat-border)!important;
+}
+
+.editor-panel{
+    border-radius:24px!important;
+}
+
+.editor-body-wrapper{
+    padding:20px!important;
+}
+
+/* Terminal page standard */
+.terminal-panel{
+    display:flex!important;
+    flex-direction:column!important;
+}
+
+.terminal-panel > .panel-header{
+    flex-shrink:0;
+}
+
+.terminal-output{
+    flex:1!important;
+    margin:24px 0!important;
+    border-radius:24px!important;
+}
+
+.terminal-input-wrapper{
+    flex-shrink:0!important;
+    border-radius:16px!important;
+}
+
+/* Git page standard */
+.git-layout{
+    grid-template-columns:360px minmax(0,1fr)!important;
+    grid-template-rows:minmax(210px,auto) 1fr!important;
+    grid-template-areas:'status console' 'deploy console'!important;
+}
+
+.git-status-card,
+.git-operations-card,
+.git-console-card{
+    border-radius:24px!important;
+    background:rgba(255,255,255,.018)!important;
+}
+
+.git-status-card,
+.git-operations-card{
+    padding:0!important;
+}
+
+.git-status-card #git-status-detail,
+.git-operations-card .card-body{
+    padding:20px!important;
+}
+
+.git-console-card .card-header{
+    padding:18px 20px!important;
+}
+
+#git-console-output{
+    border-radius:0!important;
+    border:0!important;
+}
+
+/* Database page standard */
+#tab-database.active{
+    padding:24px!important;
+}
+
+#tab-database .db-tabs-nav-rebrand,
+#tab-database .db-tabs-nav{
+    padding:0!important;
+    margin:0 0 16px!important;
+    border:0!important;
+}
+
+#tab-database .database-layout,
+#tab-database .database-layout-rebrand{
+    height:calc(100% - 50px)!important;
+    grid-template-columns:300px minmax(0,1fr)!important;
+    gap:24px!important;
+}
+
+#tab-database .db-explorer-sidebar,
+#tab-database .db-editor-panel,
+#tab-database .db-results-panel{
+    border-radius:24px!important;
+    border:1px solid var(--flat-border)!important;
+    background:rgba(255,255,255,.018)!important;
+}
+
+#tab-database .db-explorer-sidebar{
+    width:auto!important;
+    min-width:0!important;
+}
+
+#tab-database .db-content-area{
+    gap:24px!important;
+}
+
+#tab-database .db-editor-panel{
+    border-bottom:1px solid var(--flat-border)!important;
+}
+
+#tab-database .db-results-container{
+    margin:20px!important;
+    border:1px solid var(--flat-border)!important;
+    border-radius:18px!important;
+    background:rgba(255,255,255,.012)!important;
+}
+
+/* Logs/settings/tokens/agent standard */
+.logs-layout{
+    grid-template-columns:1fr 1fr!important;
+}
+
+.agent-main-panel-rebrand,
+.agent-main-panel{
+    border-radius:28px!important;
+}
+
+/* Workspace switcher polish */
+.sidebar::before{
+    display:none!important;
+    content:none!important;
+}
+
+.sidebar-section:first-child .section-header{
+    display:none!important;
+}
+
+.sidebar-section:first-child{
+    margin-top:4px!important;
+}
+
+.workspace-switcher-search{
+    height:38px!important;
+    border-color:rgba(255,255,255,.08)!important;
+    background:rgba(255,255,255,.018)!important;
+    border-radius:12px!important;
+}
+
+.workspace-switcher-search:focus-within{
+    border-color:rgba(255,255,255,.16)!important;
+    box-shadow:none!important;
+}
+
+.workspace-switcher-search input{
+    font-size:13px!important;
+    outline:none!important;
+}
+
+.workspace-switcher-option{
+    min-height:54px!important;
+    padding:8px 10px!important;
+}
+
+.workspace-switcher-option .workspace-switcher-copy{
+    align-items:flex-start!important;
+    text-align:left!important;
+}
+
+.workspace-switcher-option .workspace-switcher-copy strong{
+    font-size:14px!important;
+    font-weight:600!important;
+    line-height:1.15!important;
+    text-align:left!important;
+    width:100%!important;
+}
+
+.workspace-switcher-option .workspace-switcher-copy span{
+    font-size:12px!important;
+    color:var(--text-dark)!important;
+    text-align:left!important;
+    width:100%!important;
+}
+
+.workspace-switcher-option.is-selected{
+    background:rgba(255,255,255,.03)!important;
+    border:1px solid rgba(255,255,255,.045)!important;
+    border-radius:14px!important;
+}
+
+.workspace-switcher-create{
+    min-height:44px!important;
+    margin-top:12px!important;
+    padding:12px 10px 4px!important;
+    border-top:1px solid rgba(255,255,255,.075)!important;
+    color:var(--text-muted)!important;
+    font-weight:500!important;
+}
+
+.workspace-switcher-create:hover{
+    color:var(--text-main)!important;
+    background:transparent!important;
+}
+
+.workspace-switcher-menu{
+    padding:10px!important;
+    border-color:rgba(255,255,255,.075)!important;
+}
+
+/* Tokens / Design System panel refinement */
+#tab-tokens.active{
+    padding:24px!important;
+}
+
+.tokens-layout{
+    gap:24px!important;
+}
+
+.tokens-sidebar,
+.tokens-content-panel{
+    min-height:0!important;
+}
+
+.tokens-sidebar-card,
+.tokens-content-panel{
+    border-radius:24px!important;
+    background:rgba(255,255,255,.018)!important;
+    border:1px solid var(--flat-border)!important;
+    box-shadow:none!important;
+    overflow:hidden!important;
+}
+
+.tokens-sidebar-card .card-header-simple,
+.tokens-content-panel .panel-header-simple{
+    padding:16px 18px 10px!important;
+    margin:0!important;
+    border-bottom:1px solid var(--flat-border-soft)!important;
+}
+
+.tokens-sidebar-card .card-header-simple h5,
+.tokens-content-panel .panel-header-simple h4{
+    font-size:11px!important;
+    letter-spacing:.12em!important;
+    text-transform:uppercase!important;
+    color:var(--text-muted)!important;
+}
+
+.tokens-sidebar-body{
+    padding:10px!important;
+    display:flex!important;
+    flex-direction:column!important;
+    gap:8px!important;
+}
+
+.token-set-item,
+.token-theme-item,
+.tokens-theme-item,
+.tokens-set-item{
+    min-height:48px!important;
+    border-radius:14px!important;
+    border:1px solid var(--flat-border)!important;
+    background:transparent!important;
+    padding:0 12px!important;
+    display:flex!important;
+    align-items:center!important;
+    gap:10px!important;
+}
+
+.token-set-item:hover,
+.token-theme-item:hover,
+.tokens-theme-item:hover,
+.tokens-set-item:hover{
+    background:rgba(255,255,255,.025)!important;
+}
+
+.token-set-item.active,
+.token-theme-item.active,
+.tokens-theme-item.active,
+.tokens-set-item.active,
+.token-set-item:has(input:checked),
+.tokens-set-item:has(input:checked){
+    background:rgba(255,255,255,.035)!important;
+    border-color:rgba(255,255,255,.12)!important;
+}
+
+#tokens-themes-container select,
+#tokens-themes-container .select-input{
+    height:40px!important;
+    border-radius:12px!important;
+}
+
+#tokens-themes-container .btn,
+#tokens-themes-container button,
+#btn-theme-editor-save{
+    height:40px!important;
+    border-radius:12px!important;
+}
+
+#tokens-active-set-status,
+.badge{
+    background:rgba(255,255,255,.035)!important;
+    border:1px solid var(--flat-border)!important;
+    border-radius:999px!important;
+    padding:4px 9px!important;
+}
+
+.tokens-list-container{
+    padding:14px!important;
+}
+
+.token-category-header,
+.token-row{
+    border-radius:14px!important;
+    border:1px solid var(--flat-border)!important;
+    background:transparent!important;
+}
+
+.token-category-header:hover,
+.token-row:hover{
+    background:rgba(255,255,255,.025)!important;
+}
+
+/* GitIDE Checkbox */
+.gitide-checkbox-native{
+    display:none!important;
+}
+
+.gitide-checkbox{
+    width:18px;
+    height:18px;
+    border-radius:6px;
+    border:1px solid rgba(255,255,255,.18);
+    background:transparent;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    flex-shrink:0;
+}
+
+.gitide-checkbox i{
+    font-size:10px;
+    opacity:0;
+    transform:scale(.85);
+}
+
+.gitide-checkbox.is-checked{
+    background:rgba(255,255,255,.08);
+    border-color:rgba(255,255,255,.22);
+}
+
+.gitide-checkbox.is-checked i{
+    opacity:1;
+    transform:scale(1);
+}
+
+.gitide-checkbox:hover{
+    background:rgba(255,255,255,.03);
+}
+
+.gitide-checkbox:focus-visible{
+    outline:none;
+    border-color:rgba(255,255,255,.3);
+}
+
+/* Native checkbox styling — CSS only, no duplicated indicators */
+input[type="checkbox"]{
+    appearance:none!important;
+    -webkit-appearance:none!important;
+    width:18px!important;
+    height:18px!important;
+    margin:0!important;
+    border-radius:6px!important;
+    border:1px solid rgba(255,255,255,.18)!important;
+    background:transparent!important;
+    display:inline-grid!important;
+    place-content:center!important;
+    cursor:pointer!important;
+    flex:0 0 auto!important;
+}
+
+input[type="checkbox"]::before{
+    content:'✓';
+    font-size:12px;
+    line-height:1;
+    color:var(--bg-base);
+    opacity:0;
+    transform:scale(.75);
+}
+
+input[type="checkbox"]:checked{
+    background:var(--text-main)!important;
+    border-color:var(--text-main)!important;
+}
+
+input[type="checkbox"]:checked::before{
+    opacity:1;
+    transform:scale(1);
+}
+
+input[type="checkbox"]:hover{
+    border-color:rgba(255,255,255,.32)!important;
+}
+
+input[type="checkbox"]:focus-visible{
+    outline:none!important;
+    border-color:rgba(255,255,255,.42)!important;
+}
+
+.gitide-checkbox{
+    display:none!important;
+}
+
+.token-set-item input[type="checkbox"],
+.tokens-set-item input[type="checkbox"],
+.token-theme-item input[type="checkbox"],
+.tokens-theme-item input[type="checkbox"]{
+    margin-left:auto!important;
+}
+
+.token-set-item .fa-check,
+.tokens-set-item .fa-check,
+.token-theme-item .fa-check,
+.tokens-theme-item .fa-check{
+    display:none!important;
 }
 
 @media (max-width: 980px) {
