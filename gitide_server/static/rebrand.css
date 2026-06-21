@@ -773,6 +773,155 @@ textarea {
     letter-spacing:-0.03em;
 }
 
+/* Layout redesign v3: workspace views, less dashboard */
+.git-layout,
+.database-layout,
+.logs-layout,
+.terminal-panel,
+.tokens-layout,
+.settings-dashboard-layout,
+.agent-layout{
+    max-width:1440px;
+    margin:0 auto;
+}
+
+.git-layout{
+    display:grid!important;
+    grid-template-columns:minmax(280px,380px) 1fr!important;
+    grid-template-areas:
+        'status console'
+        'deploy console'!important;
+    align-items:stretch;
+    height:100%;
+    padding:28px!important;
+    gap:16px!important;
+}
+
+.git-status-card{grid-area:status;}
+.git-operations-card{grid-area:deploy;}
+.git-console-card{grid-area:console;}
+
+.git-status-card,
+.git-operations-card,
+.git-console-card{
+    border-radius:24px!important;
+    background:rgba(15,15,17,.78)!important;
+}
+
+.git-console-card{
+    min-height:0;
+    display:flex;
+    flex-direction:column;
+}
+
+.git-console-card .card-header{
+    flex-shrink:0;
+}
+
+#git-console-output{
+    flex:1!important;
+    height:auto!important;
+    min-height:420px;
+}
+
+.git-status-card .card-header,
+.git-operations-card .card-header,
+.git-console-card .card-header{
+    border-bottom:0!important;
+    padding-bottom:6px!important;
+}
+
+.git-status-card .card-header h4,
+.git-operations-card .card-header h4,
+.git-console-card .card-header h4{
+    font-size:15px!important;
+    letter-spacing:-.04em!important;
+}
+
+#git-status-detail{
+    margin-top:8px;
+    padding-top:14px;
+    border-top:1px solid var(--frame-border);
+}
+
+.git-deploy-section .inline-form{
+    display:grid!important;
+    grid-template-columns:1fr!important;
+    gap:10px!important;
+}
+
+#git-branch-input,
+#git-commit-msg{
+    min-height:42px!important;
+}
+
+#btn-git-deploy,
+#btn-git-pull{
+    width:100%;
+    justify-content:center;
+}
+
+.files-layout{
+    padding:18px!important;
+    gap:16px!important;
+}
+
+.file-tree-panel{
+    width:320px!important;
+}
+
+.editor-panel,
+.file-tree-panel{
+    border-radius:24px!important;
+}
+
+.database-layout-rebrand,
+.database-layout{
+    grid-template-columns:320px 1fr!important;
+    padding:18px!important;
+    gap:16px!important;
+}
+
+.db-editor-panel,
+.db-results-panel,
+.db-explorer-sidebar{
+    border-radius:24px!important;
+}
+
+.agent-main-panel-rebrand{
+    border-radius:28px!important;
+}
+
+.agent-chat-container-rebrand{
+    padding:28px!important;
+}
+
+.agent-chat-welcome-rebrand{
+    max-width:620px!important;
+    padding:42px!important;
+}
+
+.agent-chat-welcome-rebrand h3{
+    font-size:30px!important;
+}
+
+.card{
+    padding:18px!important;
+}
+
+.card-header{
+    margin-bottom:10px!important;
+}
+
+.content-area{
+    padding:0;
+}
+
+.content-area::before{
+    inset:18px;
+    border-radius:30px;
+}
+
 @media (max-width: 980px) {
     .sidebar { width: 236px; }
     .database-layout,
