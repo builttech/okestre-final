@@ -1,32 +1,39 @@
 /* --- VARIABLES & THEME --- */
 :root {
-    --bg-base: #0a0b0e;
-    --bg-surface: #12141c;
-    --bg-surface-glass: rgba(18, 20, 28, 0.75);
-    --bg-surface-hover: #1c1f2b;
-    --border-color: rgba(255, 255, 255, 0.08);
-    --border-color-glow: rgba(99, 102, 241, 0.35);
+    --bg-base: #0b0b0d;
+    --bg-canvas: #111113;
+    --bg-surface: #151517;
+    --bg-surface-glass: rgba(18, 18, 20, 0.82);
+    --bg-surface-hover: #222225;
+    --bg-elevated: #1b1b1f;
+    --border-color: rgba(255, 255, 255, 0.075);
+    --border-color-strong: rgba(255, 255, 255, 0.14);
+    --border-color-glow: rgba(0, 153, 255, 0.32);
     
-    --color-primary: #6366f1;         /* Indigo */
-    --color-primary-glow: rgba(99, 102, 241, 0.25);
-    --color-secondary: #8b5cf6;       /* Violet */
-    --color-success: #10b981;         /* Emerald */
-    --color-success-glow: rgba(16, 185, 129, 0.15);
-    --color-warning: #f59e0b;         /* Amber */
-    --color-danger: #ef4444;          /* Red */
+    --color-primary: #0099ff;
+    --color-primary-glow: rgba(0, 153, 255, 0.22);
+    --color-secondary: #7c3aed;
+    --color-success: #22c55e;
+    --color-success-glow: rgba(34, 197, 94, 0.16);
+    --color-warning: #f59e0b;
+    --color-danger: #ef4444;
     --color-danger-glow: rgba(239, 68, 68, 0.15);
     
-    --text-main: #f3f4f6;
-    --text-muted: #9ca3af;
-    --text-dark: #6b7280;
+    --text-main: #f5f5f7;
+    --text-muted: #a1a1aa;
+    --text-dark: #71717a;
+    --text-light: #f5f5f7;
     
     --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    --font-mono: 'Fira Code', 'Courier New', Courier, monospace;
+    --font-mono: 'Fira Code', 'SFMono-Regular', Consolas, monospace;
     
-    --sidebar-width: 290px;
-    --topbar-height: 70px;
-    --transition-speed: 0.25s;
-    --border-radius: 12px;
+    --sidebar-width: 278px;
+    --topbar-height: 52px;
+    --transition-speed: 0.18s;
+    --border-radius: 10px;
+    --radius-lg: 16px;
+    --radius-xl: 22px;
+    --shadow-panel: 0 18px 48px rgba(0, 0, 0, 0.32);
 }
 
 /* --- BASE STYLES --- */
@@ -72,14 +79,15 @@ body {
 /* --- TOPBAR --- */
 .topbar {
     height: var(--topbar-height);
-    background-color: var(--bg-surface-glass);
+    background: rgba(10,10,11,0.72);
     border-bottom: 1px solid var(--border-color);
-    backdrop-filter: blur(12px);
+    backdrop-filter: blur(24px);
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0 24px;
-    z-index: 10;
+    padding: 0 18px;
+    z-index: 20;
+    position: relative;
 }
 
 .brand {
@@ -179,12 +187,13 @@ body {
 /* --- SIDEBAR --- */
 .sidebar {
     width: var(--sidebar-width);
-    background-color: var(--bg-surface);
+    background: rgba(15,15,17,0.88);
     border-right: 1px solid var(--border-color);
     display: flex;
     flex-direction: column;
-    padding: 20px 16px;
+    padding: 14px 12px;
     justify-content: space-between;
+    backdrop-filter: blur(24px);
 }
 
 .sidebar-section {
@@ -220,29 +229,31 @@ body {
 
 .nav-item {
     background: transparent;
-    border: none;
+    border: 1px solid transparent;
     color: var(--text-muted);
-    padding: 12px 14px;
+    padding: 10px 12px;
     text-align: left;
-    border-radius: var(--border-radius);
-    font-size: 14px;
+    border-radius: 12px;
+    font-size: 13px;
     font-weight: 500;
     cursor: pointer;
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
     transition: all var(--transition-speed);
 }
 
 .nav-item:hover {
     color: var(--text-main);
-    background-color: var(--bg-surface-hover);
+    background: rgba(255,255,255,0.04);
+    border-color: var(--border-color);
 }
 
 .nav-item.active {
     color: #fff;
-    background-color: var(--color-primary);
-    box-shadow: 0 4px 12px var(--color-primary-glow);
+    background: rgba(255,255,255,0.06);
+    border-color: rgba(255,255,255,0.1);
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.03);
 }
 
 .sidebar-footer {
@@ -259,7 +270,7 @@ body {
     flex: 1;
     overflow-y: auto;
     position: relative;
-    background: radial-gradient(circle at 80% 20%, rgba(99, 102, 241, 0.05), transparent 60%);
+    background: linear-gradient(180deg, #0c0c0e 0%, #111113 100%);
 }
 
 .tab-pane {
