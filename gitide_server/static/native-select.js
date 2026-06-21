@@ -19,6 +19,13 @@
     select.setAttribute(ENHANCED_ATTR, 'true');
     select.classList.add('gitide-select-original');
 
+    if (select.id === 'project-selector') {
+      const bootValue = localStorage.getItem('selected_project_id') || localStorage.getItem('active_project_id');
+      if (bootValue && !select.value) {
+        select.value = bootValue;
+      }
+    }
+
     const wrapper = document.createElement('div');
     wrapper.className = 'gitide-select';
 
@@ -43,7 +50,38 @@
     wrapper.append(button, list);
     select.insertAdjacentElement('afterend', wrapper);
 
+    function ensureProjectSelection() {
+      if (select.id !== 'project-selector') return false;
+      if (select.value) return false;
+
+      const storedKeys = [
+        'selected_project_id',
+        'active_project_id',
+        'current_project_id',
+        'gitide_active_project_id',
+        'gitide_selected_project_id'
+      ];
+
+      const storedValue = storedKeys
+        .map((key) => localStorage.getItem(key))
+        .find(Boolean);
+
+      const targetOption = storedValue
+        ? Array.from(select.options).find((option) => option.value === storedValue)
+        : Array.from(select.options).find((option) => option.value);
+
+      if (!targetOption) return false;
+
+      select.value = targetOption.value;
+      Array.from(select.options).forEach((option) => {
+        option.selected = option.value === targetOption.value;
+      });
+      select.dispatchEvent(new Event('change', { bubbles: true }));
+      return true;
+    }
+
     function render() {
+      ensureProjectSelection();
       const selected = select.options[select.selectedIndex] || select.options[0];
       label.textContent = getOptionLabel(selected);
       list.innerHTML = '';
