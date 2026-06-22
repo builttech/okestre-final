@@ -98,6 +98,7 @@
             <button class="btn btn-primary" id="btn-copy-prompt-copy" type="button"><i data-lucide="copy"></i> Copiar Prompt</button>
             <button class="btn btn-secondary" id="btn-copy-project-context" type="button"><i data-lucide="file-text"></i> Copiar Contexto</button>
             <button class="btn btn-secondary" id="btn-refresh-prompt-copy" type="button"><i data-lucide="refresh-cw"></i> Atualizar</button>
+            <button class="btn btn-danger" id="btn-settings-delete-project" type="button"><i data-lucide="trash-2"></i> Deletar Projeto</button>
             <span class="prompt-copy-status" id="prompt-copy-status"></span>
           </div>
         </div>
@@ -121,6 +122,15 @@
       copyText(`Projeto ativo: ${projectName}\nID do projeto: ${projectId || 'não selecionado'}`)
         .then(() => setCopyStatus('Contexto copiado.'))
         .catch(() => setCopyStatus('Não foi possível copiar.'));
+    });
+
+    document.getElementById('btn-settings-delete-project')?.addEventListener('click', () => {
+      const legacyDeleteButton = document.getElementById('btn-delete-project');
+      if (legacyDeleteButton) {
+        legacyDeleteButton.click();
+        return;
+      }
+      setCopyStatus('Ação de deletar indisponível.');
     });
   }
 
