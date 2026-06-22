@@ -33,7 +33,7 @@
         <span class="workspace-switcher-avatar" aria-hidden="true">GI</span>
         <span class="workspace-switcher-copy">
           <strong class="workspace-switcher-title">Selecione um workspace</strong>
-          <span class="workspace-switcher-subtitle">Workspace ativo</span>
+          <span class="workspace-switcher-subtitle">Plano Agency</span>
         </span>
         <i data-lucide="chevron-down" class="workspace-switcher-chevron" aria-hidden="true"></i>
       </button>
