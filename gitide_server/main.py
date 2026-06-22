@@ -140,6 +140,10 @@ class CreateBranchRequest(BaseModel):
 class GitMergeRequest(BaseModel):
     branch: str = Field(..., description="Nome da branch a ser mesclada na branch ativa")
 
+class GitPushRequest(BaseModel):
+    branch: Optional[str] = Field(None, description="Nome da branch para dar push (opcional)")
+
+
 class GitPullRequestCreate(BaseModel):
     title: str = Field(..., description="Título do Pull Request")
     base: str = Field(..., description="Branch de destino (ex: main, master)")
@@ -169,13 +173,16 @@ def get_project_or_404(project_id: int, db: Session = Depends(get_db)) -> Projec
 @app.get("/api/info", tags=["Configuração"])
 def get_server_info():
     """Retorna informações públicas do servidor."""
+    import platform
     return {
         "status": "online",
         "api_key_path": CONFIG_PATH,
         "database_path": os.path.join(CONFIG_DIR, "gitide.db"),
         # Retornamos a chave apenas para o localhost Dashboard
-        "api_key": API_KEY
+        "api_key": API_KEY,
+        "os": platform.system()
     }
+
 
 # Projetos
 @app.get("/api/projects", tags=["Projetos"])
@@ -647,7 +654,49 @@ def git_merge_branch(req: GitMergeRequest,
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.post("/api/projects/{project_id}/git/push", tags=["Git Bridge"])
+def git_push(req: GitPushRequest,
+             project: Project = Depends(get_project_or_404),
+             db: Session = Depends(get_db),
+             _ = Depends(get_api_key)):
+    """Executa um Git push para enviar commits locais para o repositório remoto."""
+    try:
+        result = git_bridge.push_git(project.path, req.branch)
+        
+        log = ActivityLog(
+            project_id=project.id,
+            action_type="GIT_PUSH",
+            details=f"Git push executado na branch {req.branch or 'atual'}"
+        )
+        db.add(log)
+        db.commit()
+        
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/projects/{project_id}/git/merge/abort", tags=["Git Bridge"])
+def git_abort_merge(project: Project = Depends(get_project_or_404),
+                    db: Session = Depends(get_db),
+                    _ = Depends(get_api_key)):
+    """Aborta a mesclagem em andamento no repositório Git."""
+    try:
+        result = git_bridge.abort_merge(project.path)
+        
+        log = ActivityLog(
+            project_id=project.id,
+            action_type="GIT_MERGE_ABORT",
+            details="Mesclagem (merge) abortada pelo usuário"
+        )
+        db.add(log)
+        db.commit()
+        
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 import re
+
 
 def parse_github_remote(url: str):
     """Retorna (owner, repo) de uma URL de controle remoto do GitHub."""

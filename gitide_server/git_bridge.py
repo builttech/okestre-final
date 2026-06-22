@@ -328,4 +328,40 @@ def get_remote_url(project_path: str) -> str:
     except Exception:
         return ""
 
+def push_git(project_path: str, branch: str = None) -> dict:
+    """Dá push para o repositório remoto."""
+    repo = get_repo(project_path)
+    if not branch:
+        try:
+            branch = repo.active_branch.name
+        except TypeError:
+            branch = "main"
+            
+    try:
+        update_remote_url_with_token(repo)
+        origin = repo.remote(name="origin")
+        push_info = origin.push(refspec=f"{branch}:{branch}")
+        return {
+            "status": "success",
+            "action": "pushed",
+            "details": f"Push executado com sucesso na branch {branch}.",
+            "push_summary": [str(info.summary) for info in push_info]
+        }
+    except Exception as e:
+        raise RuntimeError(f"Erro ao dar push: {str(e)}")
+
+def abort_merge(project_path: str) -> dict:
+    """Aborta uma mesclagem em andamento (git merge --abort)."""
+    repo = get_repo(project_path)
+    try:
+        repo.git.merge(abort=True)
+        return {
+            "status": "success",
+            "action": "merge_aborted",
+            "details": "Mesclagem abortada com sucesso."
+        }
+    except Exception as e:
+        raise RuntimeError(f"Erro ao abortar mesclagem: {str(e)}")
+
+
 
