@@ -1,0 +1,133 @@
+/* Settings vertical tabs */
+.settings-dashboard-layout.gitide-settings-tabs-ready {
+    display: grid !important;
+    grid-template-columns: 240px minmax(0, 1fr) !important;
+    gap: 18px !important;
+    align-items: start;
+    max-width: 1180px !important;
+}
+
+.settings-tabs-sidebar {
+    position: sticky;
+    top: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px;
+    border: 1px solid var(--frame-border, var(--border-color));
+    border-radius: 20px;
+    background: rgba(15, 15, 17, 0.78);
+    box-shadow: var(--frame-shadow, 0 24px 70px rgba(0,0,0,0.38));
+}
+
+.settings-tabs-title {
+    padding: 6px 8px 8px;
+    color: var(--frame-muted, var(--text-muted));
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.settings-tab-button {
+    width: 100%;
+    min-height: 42px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 11px;
+    border: 1px solid transparent;
+    border-radius: 13px;
+    background: transparent;
+    color: var(--frame-muted, var(--text-muted));
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 650;
+    text-align: left;
+    transition: background 160ms ease, border-color 160ms ease, color 160ms ease, transform 160ms ease;
+}
+
+.settings-tab-button:hover,
+.settings-tab-button.is-active {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: var(--frame-border, var(--border-color));
+    color: var(--frame-text, var(--text-main));
+}
+
+.settings-tab-button:hover {
+    transform: translateY(-1px);
+}
+
+.settings-tab-button .lucide {
+    width: 16px;
+    height: 16px;
+}
+
+.settings-tabs-content {
+    min-width: 0;
+}
+
+.settings-tab-panel {
+    display: none;
+}
+
+.settings-tab-panel.is-active {
+    display: block;
+}
+
+.settings-tab-panel > .settings-card,
+.settings-tab-panel > .card {
+    width: 100%;
+    margin: 0 !important;
+}
+
+.prompt-copy-grid {
+    display: grid;
+    gap: 14px;
+}
+
+.prompt-copy-card {
+    padding: 22px !important;
+}
+
+.prompt-copy-preview {
+    min-height: 180px;
+    width: 100%;
+    padding: 14px;
+    border: 1px solid var(--frame-border, var(--border-color));
+    border-radius: 14px;
+    background: rgba(0, 0, 0, 0.30);
+    color: var(--frame-text, var(--text-main));
+    font-family: var(--font-mono);
+    font-size: 12px;
+    line-height: 1.65;
+    resize: vertical;
+    outline: none;
+}
+
+.prompt-copy-preview:focus {
+    border-color: rgba(0,153,255,0.55);
+    box-shadow: 0 0 0 3px rgba(0,153,255,0.12);
+}
+
+.prompt-copy-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+}
+
+.prompt-copy-status {
+    color: var(--frame-muted, var(--text-muted));
+    font-size: 12px;
+}
+
+@media (max-width: 920px) {
+    .settings-dashboard-layout.gitide-settings-tabs-ready {
+        grid-template-columns: 1fr !important;
+    }
+
+    .settings-tabs-sidebar {
+        position: static;
+    }
+}
