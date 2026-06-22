@@ -260,6 +260,14 @@ def list_branches(project_path: str) -> dict:
     """Retorna uma lista de todas as branches locais e remotas."""
     repo = get_repo(project_path)
     
+    # Tenta fazer o fetch para atualizar a lista de branches do servidor remoto
+    try:
+        update_remote_url_with_token(repo)
+        if len(repo.remotes) > 0:
+            repo.remotes.origin.fetch()
+    except Exception:
+        pass
+        
     try:
         current_branch = repo.active_branch.name if not repo.head.is_detached else "DETACHED"
     except (TypeError, AttributeError):
@@ -284,6 +292,7 @@ def list_branches(project_path: str) -> dict:
         "remote": list(dict.fromkeys(remote_branches)),
         "all": all_branches
     }
+
 
 def create_branch(project_path: str, branch_name: str) -> dict:
     """Cria uma nova branch e faz o checkout dela."""
