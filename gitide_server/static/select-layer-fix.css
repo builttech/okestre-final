@@ -1,0 +1,24 @@
+/* Layer fix for enhanced select dropdowns */
+.gitide-select {
+    position: relative;
+    z-index: 30;
+}
+
+.gitide-select.is-open {
+    z-index: 10000;
+}
+
+.gitide-select-menu {
+    z-index: 10001;
+}
+
+.git-layout,
+.git-operations-card,
+.git-operations-card .card-body,
+.git-deploy-section,
+.git-deploy-section .form-group,
+.git-deploy-section .inline-form,
+.form-group:has(.gitide-select.is-open),
+.inline-form:has(.gitide-select.is-open) {
+    overflow: visible;
+}
