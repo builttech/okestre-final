@@ -3938,7 +3938,7 @@ async function loadDocuments() {
     
     tbody.innerHTML = `
         <tr>
-            <td colspan="4" style="text-align: center; color: var(--text-muted); padding: 40px 0;">
+            <td colspan="3" style="text-align: center; color: var(--text-muted); padding: 40px 0;">
                 <i class="fa-solid fa-circle-notch fa-spin" style="font-size: 24px; margin-bottom: 8px;"></i><br>
                 Carregando documentos...
             </td>
@@ -3956,12 +3956,20 @@ async function loadDocuments() {
         if (documents.length === 0) {
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="4" style="text-align: center; color: var(--text-muted); padding: 40px 0;">
+                    <td colspan="3" style="text-align: center; color: var(--text-muted); padding: 40px 0;">
                         <i class="fa-solid fa-folder-open" style="font-size: 32px; display: block; margin-bottom: 12px;"></i>
                         Nenhum documento Word gerado ainda neste projeto.
                     </td>
                 </tr>
             `;
+            
+            // Oculta prévia e mostra vazio
+            const sheet = document.getElementById('document-preview-sheet');
+            const empty = document.getElementById('document-preview-empty');
+            const badge = document.getElementById('preview-filename-badge');
+            if (sheet) sheet.style.display = 'none';
+            if (empty) empty.style.display = 'flex';
+            if (badge) badge.style.display = 'none';
             return;
         }
         
@@ -3970,16 +3978,21 @@ async function loadDocuments() {
             const tr = document.createElement('tr');
             tr.style.borderBottom = '1px solid var(--border-color)';
             tr.style.fontSize = '13px';
+            tr.style.cursor = 'pointer';
             
             const sizeKB = (doc.size_bytes / 1024).toFixed(1);
-            const dateStr = new Date(doc.modified_at).toLocaleString();
+            
+            // Verifica se este documento é o ativo no estado
+            const isSelected = state.selectedDocumentFilename === doc.filename;
+            if (isSelected) {
+                tr.style.background = 'rgba(99, 102, 241, 0.1)';
+            }
             
             tr.innerHTML = `
-                <td style="padding: 12px 8px; color: var(--text-light); font-weight: 500;">
+                <td style="padding: 12px 8px; color: var(--text-light); font-weight: 500;" class="doc-name-cell">
                     <i class="fa-regular fa-file-word" style="color: var(--color-primary); margin-right: 6px;"></i> ${doc.filename}
                 </td>
                 <td style="padding: 12px 8px; color: var(--text-muted);">${sizeKB} KB</td>
-                <td style="padding: 12px 8px; color: var(--text-muted);">${dateStr}</td>
                 <td style="padding: 12px 8px; text-align: right;">
                     <button class="btn btn-sm btn-primary btn-download-doc" data-filename="${doc.filename}" style="padding: 4px 8px; font-size: 11px;">
                         <i class="fa-solid fa-download"></i> Baixar
@@ -3987,18 +4000,50 @@ async function loadDocuments() {
                 </td>
             `;
             
+            // Event listener para seleção/preview
+            const selectRow = () => {
+                tbody.querySelectorAll('tr').forEach(r => r.style.background = '');
+                tr.style.background = 'rgba(99, 102, 241, 0.1)';
+                state.selectedDocumentFilename = doc.filename;
+                loadDocumentPreview(doc.filename);
+            };
+            
+            tr.querySelector('.doc-name-cell').addEventListener('click', selectRow);
+            
             // Event listener para download
             tr.querySelector('.btn-download-doc').addEventListener('click', (e) => {
+                e.stopPropagation(); // Impede seleção da linha
                 const filename = e.currentTarget.getAttribute('data-filename');
                 downloadDocumentFile(filename);
             });
             
             tbody.appendChild(tr);
         });
+        
+        // Seleciona o primeiro por padrão caso não tenha seleção ativa válida
+        let docToSelect = documents[0];
+        if (state.selectedDocumentFilename) {
+            const found = documents.find(d => d.filename === state.selectedDocumentFilename);
+            if (found) docToSelect = found;
+        }
+        
+        if (docToSelect) {
+            state.selectedDocumentFilename = docToSelect.filename;
+            loadDocumentPreview(docToSelect.filename);
+            
+            // Destaca a linha correspondente
+            const rows = tbody.querySelectorAll('tr');
+            documents.forEach((d, idx) => {
+                if (d.filename === docToSelect.filename && rows[idx]) {
+                    rows[idx].style.background = 'rgba(99, 102, 241, 0.1)';
+                }
+            });
+        }
+        
     } catch (err) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="4" style="text-align: center; color: var(--color-danger); padding: 40px 0;">
+                <td colspan="3" style="text-align: center; color: var(--color-danger); padding: 40px 0;">
                     <i class="fa-solid fa-triangle-exclamation" style="font-size: 32px; display: block; margin-bottom: 12px;"></i>
                     Erro ao listar documentos: ${err.message}
                 </td>
@@ -4134,6 +4179,222 @@ async function handleDocumentUpload(e) {
             uploadBtn.disabled = false;
             uploadBtn.innerHTML = originalText;
         }
+    }
+}
+
+async function loadDocumentPreview(filename) {
+    if (!state.activeProjectId) return;
+    
+    const sheet = document.getElementById('document-preview-sheet');
+    const empty = document.getElementById('document-preview-empty');
+    const badge = document.getElementById('preview-filename-badge');
+    
+    if (!sheet || !empty) return;
+    
+    sheet.style.display = 'block';
+    empty.style.display = 'none';
+    
+    if (badge) {
+        badge.textContent = filename;
+        badge.style.display = 'inline-block';
+    }
+    
+    sheet.innerHTML = `
+        <div style="display: flex; justify-content: center; align-items: center; min-height: 200px; color: #475569;">
+            <i class="fa-solid fa-circle-notch fa-spin" style="font-size: 32px; margin-right: 12px; color: #4F46E5;"></i>
+            <span>Processando prévia do documento...</span>
+        </div>
+    `;
+    
+    try {
+        const res = await fetch(`/api/projects/${state.activeProjectId}/documents/${encodeURIComponent(filename)}/preview`);
+        const data = await res.json();
+        
+        if (!res.ok) {
+            throw new Error(data.detail || 'Erro ao carregar prévia');
+        }
+        
+        renderDocumentPreview(data);
+    } catch (err) {
+        sheet.innerHTML = `
+            <div style="color: #ef4444; padding: 20px; text-align: center;">
+                <i class="fa-solid fa-triangle-exclamation" style="font-size: 32px; margin-bottom: 12px;"></i>
+                <p style="font-weight: bold;">Erro ao carregar prévia:</p>
+                <p style="font-size: 13px;">${err.message}</p>
+            </div>
+        `;
+    }
+}
+
+function renderDocumentPreview(data) {
+    const sheet = document.getElementById('document-preview-sheet');
+    if (!sheet) return;
+    
+    sheet.innerHTML = '';
+    
+    // 1. Título do Documento
+    const titleEl = document.createElement('h1');
+    titleEl.textContent = data.title || 'Documento';
+    titleEl.style.fontFamily = 'Arial, sans-serif';
+    titleEl.style.fontSize = '26px';
+    titleEl.style.fontWeight = 'bold';
+    titleEl.style.color = '#4F46E5'; // Indigo
+    titleEl.style.margin = '0 0 4px 0';
+    sheet.appendChild(titleEl);
+    
+    // Linha divisória
+    const divider = document.createElement('div');
+    divider.style.width = '100%';
+    divider.style.height = '4px';
+    divider.style.background = '#4F46E5';
+    divider.style.marginBottom = '20px';
+    sheet.appendChild(divider);
+    
+    // Metadados
+    const meta = document.createElement('p');
+    meta.style.fontFamily = 'Calibri, sans-serif';
+    meta.style.fontSize = '9pt';
+    meta.style.color = '#475569'; // Slate
+    meta.style.fontStyle = 'italic';
+    meta.style.margin = '0 0 24px 0';
+    meta.style.lineHeight = '1.4';
+    meta.innerHTML = `Data de Geração: ${new Date().toLocaleString()}<br>Gerado via: Agente GitIDE`;
+    sheet.appendChild(meta);
+    
+    // 2. Seções
+    if (data.sections && data.sections.length > 0) {
+        data.sections.forEach(sec => {
+            // Se houver heading, renderiza
+            if (sec.heading && sec.heading.trim() !== '') {
+                const headingEl = document.createElement('h2');
+                headingEl.textContent = sec.heading.trim();
+                headingEl.style.fontFamily = 'Arial, sans-serif';
+                headingEl.style.fontSize = '16px';
+                headingEl.style.fontWeight = 'bold';
+                headingEl.style.color = '#4F46E5';
+                headingEl.style.marginTop = '24px';
+                headingEl.style.marginBottom = '8px';
+                sheet.appendChild(headingEl);
+            }
+            
+            if (!sec.text || sec.text.trim() === '') return;
+            
+            const type = (sec.type || 'paragraph').toLowerCase().trim();
+            
+            if (type === 'paragraph') {
+                const p = document.createElement('p');
+                p.textContent = sec.text;
+                p.style.fontFamily = 'Calibri, sans-serif';
+                p.style.fontSize = '11pt';
+                p.style.color = '#374151';
+                p.style.lineHeight = '1.15';
+                p.style.marginBottom = '12px';
+                sheet.appendChild(p);
+                
+            } else if (type === 'bullet') {
+                const ul = document.createElement('ul');
+                ul.style.paddingLeft = '20px';
+                ul.style.marginBottom = '12px';
+                ul.style.listStyleType = 'disc';
+                
+                const lines = sec.text.split('\n');
+                lines.forEach(line => {
+                    const cleanLine = line.trim().replace(/^[-*]\s+/, '');
+                    if (cleanLine) {
+                        const li = document.createElement('li');
+                        li.textContent = cleanLine;
+                        li.style.fontFamily = 'Calibri, sans-serif';
+                        li.style.fontSize = '11pt';
+                        li.style.color = '#374151';
+                        li.style.marginBottom = '4px';
+                        ul.appendChild(li);
+                    }
+                });
+                sheet.appendChild(ul);
+                
+            } else if (type === 'highlight') {
+                const callout = document.createElement('div');
+                callout.style.background = '#F8FAFC';
+                callout.style.borderLeft = '4.5px solid #4F46E5';
+                callout.style.padding = '12px 16px';
+                callout.style.marginBottom = '16px';
+                callout.style.borderRadius = '2px';
+                
+                const p = document.createElement('p');
+                p.textContent = sec.text;
+                p.style.fontFamily = 'Calibri, sans-serif';
+                p.style.fontSize = '10.5pt';
+                p.style.color = '#475569';
+                p.style.fontStyle = 'italic';
+                p.style.margin = '0';
+                p.style.lineHeight = '1.4';
+                callout.appendChild(p);
+                sheet.appendChild(callout);
+                
+            } else if (type === 'code') {
+                const pre = document.createElement('pre');
+                pre.style.background = '#F1F5F9';
+                pre.style.padding = '12px';
+                pre.style.borderRadius = '4px';
+                pre.style.overflowX = 'auto';
+                pre.style.marginBottom = '16px';
+                pre.style.border = '1px solid #E2E8F0';
+                
+                const code = document.createElement('code');
+                code.textContent = sec.text;
+                code.style.fontFamily = 'Consolas, monospace';
+                code.style.fontSize = '9.5pt';
+                code.style.color = '#1E293B';
+                pre.appendChild(code);
+                sheet.appendChild(pre);
+                
+            } else if (type === 'table') {
+                try {
+                    const matrix = JSON.parse(sec.text);
+                    if (Array.isArray(matrix) && matrix.length > 0) {
+                        const table = document.createElement('table');
+                        table.style.width = '100%';
+                        table.style.borderCollapse = 'collapse';
+                        table.style.marginBottom = '16px';
+                        table.style.fontFamily = 'Calibri, sans-serif';
+                        table.style.fontSize = '10pt';
+                        
+                        matrix.forEach((rowData, rIdx) => {
+                            const tr = document.createElement('tr');
+                            const isHeader = rIdx === 0;
+                            
+                            rowData.forEach(cellVal => {
+                                const cell = document.createElement(isHeader ? 'th' : 'td');
+                                cell.textContent = cellVal;
+                                cell.style.border = '1px solid #CBD5E1';
+                                cell.style.padding = '8px';
+                                
+                                if (isHeader) {
+                                    cell.style.background = '#4F46E5';
+                                    cell.style.color = '#ffffff';
+                                    cell.style.fontWeight = 'bold';
+                                    cell.style.textAlign = 'center';
+                                } else {
+                                    cell.style.color = '#374151';
+                                    if (rIdx % 2 === 1) {
+                                        cell.style.background = '#F8FAFC';
+                                    }
+                                }
+                                tr.appendChild(cell);
+                            });
+                            table.appendChild(tr);
+                        });
+                        sheet.appendChild(table);
+                    }
+                } catch (err) {
+                    const fallback = document.createElement('p');
+                    fallback.textContent = `[Tabela: ${sec.text}]`;
+                    fallback.style.color = '#ef4444';
+                    fallback.style.fontStyle = 'italic';
+                    sheet.appendChild(fallback);
+                }
+            }
+        });
     }
 }
 

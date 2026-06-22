@@ -683,8 +683,10 @@ cloudflared tunnel --url http://localhost:8000</pre>
 
                 <!-- TAB: DOCUMENTS -->
                 <div id="tab-documents" class="tab-pane">
-                    <div class="documents-layout" style="display: flex; flex-direction: column; gap: 20px; height: 100%; min-height: 0; padding: 20px;">
-                        <div class="card" style="flex: 1; display: flex; flex-direction: column; min-width: 0; height: 100%; overflow: hidden; padding: 20px;">
+                    <div class="documents-layout" style="display: flex; gap: 20px; height: 100%; min-height: 0; padding: 20px; flex-direction: row;">
+                        
+                        <!-- Painel Esquerdo: Lista de Documentos -->
+                        <div class="card" style="flex: 1.2; display: flex; flex-direction: column; min-width: 0; height: 100%; overflow: hidden; padding: 20px;">
                             
                             <!-- Header da área de documentos -->
                             <div class="panel-header-simple" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 14px; margin-bottom: 20px; flex-shrink: 0;">
@@ -693,15 +695,15 @@ cloudflared tunnel --url http://localhost:8000</pre>
                                         <i class="fa-solid fa-file-word"></i>
                                     </div>
                                     <div>
-                                        <h3 style="margin: 0; font-size: 16px; font-weight: 600; color: var(--text-light);">Documentação Nativa (Microsoft Word)</h3>
-                                        <p style="font-size: 12px; color: var(--text-muted); margin: 0; margin-top: 2px;">Criação e exportação de relatórios, propostas e especificações técnicas.</p>
+                                        <h3 style="margin: 0; font-size: 16px; font-weight: 600; color: var(--text-light);">Documentação Word</h3>
+                                        <p style="font-size: 12px; color: var(--text-muted); margin: 0; margin-top: 2px;">Geração e envio de relatórios técnicos (.docx).</p>
                                     </div>
                                 </div>
                                 <div style="display: flex; gap: 10px;">
-                                    <button class="btn btn-secondary" id="btn-refresh-documents"><i class="fa-solid fa-rotate"></i> Recarregar</button>
-                                    <button class="btn btn-secondary" id="btn-upload-document"><i class="fa-solid fa-cloud-arrow-up"></i> Subir Documento</button>
+                                    <button class="btn btn-secondary btn-sm" id="btn-refresh-documents" title="Recarregar lista"><i class="fa-solid fa-rotate"></i></button>
+                                    <button class="btn btn-secondary btn-sm" id="btn-upload-document"><i class="fa-solid fa-cloud-arrow-up"></i> Upload</button>
                                     <input type="file" id="input-upload-document" accept=".docx" style="display: none;">
-                                    <button class="btn btn-primary" id="btn-generate-test-doc"><i class="fa-solid fa-file-circle-plus"></i> Gerar Documento de Teste</button>
+                                    <button class="btn btn-primary btn-sm" id="btn-generate-test-doc"><i class="fa-solid fa-file-circle-plus"></i> Test Doc</button>
                                 </div>
                             </div>
 
@@ -712,14 +714,13 @@ cloudflared tunnel --url http://localhost:8000</pre>
                                         <tr style="border-bottom: 2px solid var(--border-color); font-weight: 600; color: var(--text-light); font-size: 13px;">
                                             <th style="padding: 12px 8px;">Nome do Arquivo</th>
                                             <th style="padding: 12px 8px;">Tamanho</th>
-                                            <th style="padding: 12px 8px;">Última Modificação</th>
                                             <th style="padding: 12px 8px; text-align: right;">Ações</th>
                                         </tr>
                                     </thead>
                                     <tbody id="documents-table-body">
                                         <!-- Preenchido via JS -->
                                         <tr>
-                                            <td colspan="4" style="text-align: center; color: var(--text-muted); padding: 40px 0;">
+                                            <td colspan="3" style="text-align: center; color: var(--text-muted); padding: 40px 0;">
                                                 <i class="fa-solid fa-folder-open" style="font-size: 32px; display: block; margin-bottom: 12px;"></i>
                                                 Nenhum documento Word gerado ainda neste projeto.
                                             </td>
@@ -727,8 +728,30 @@ cloudflared tunnel --url http://localhost:8000</pre>
                                     </tbody>
                                 </table>
                             </div>
-
                         </div>
+
+                        <!-- Painel Direito: Visualizador A4 -->
+                        <div class="card" style="flex: 1; display: flex; flex-direction: column; min-width: 0; height: 100%; overflow: hidden; padding: 20px;">
+                            <div class="panel-header-simple" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 14px; margin-bottom: 20px; flex-shrink: 0;">
+                                <h4 style="margin: 0; font-size: 14px; font-weight: 600; color: var(--text-light); display: flex; align-items: center; gap: 8px;">
+                                    <i class="fa-solid fa-eye"></i> Prévia do Documento (Visualização A4)
+                                </h4>
+                                <span id="preview-filename-badge" class="badge" style="font-size: 11px; padding: 3px 8px; border-radius: 4px; background: rgba(255,255,255,0.05); color: var(--text-muted); display: none;"></span>
+                            </div>
+                            
+                            <div style="flex: 1; overflow-y: auto; display: flex; justify-content: center; background: rgba(0,0,0,0.25); padding: 20px; border-radius: 8px; min-height: 0;">
+                                <!-- Folha A4 Realista -->
+                                <div id="document-preview-sheet" style="display: none; width: 100%; max-width: 800px; min-height: 842px; height: fit-content; background: #ffffff; color: #1e293b; padding: 40px 50px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); border-radius: 4px; font-family: Calibri, sans-serif; box-sizing: border-box; text-align: left;">
+                                    <!-- Preenchido dinamicamente -->
+                                </div>
+                                
+                                <div id="document-preview-empty" style="display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--text-muted); gap: 12px; margin: auto; text-align: center; padding: 40px 20px;">
+                                    <i class="fa-solid fa-file-invoice" style="font-size: 48px; color: var(--color-primary); opacity: 0.5;"></i>
+                                    <span>Selecione um documento na tabela para visualizar a prévia em tempo real</span>
+                                </div>
+                            </div>
+                        </div>
+
                     </div>
                 </div>
             </main>

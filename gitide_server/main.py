@@ -24,7 +24,7 @@ from fastapi.responses import StreamingResponse
 from typing import List
 
 import requests
-from gitide_server.documents import generate_docx
+from gitide_server.documents import generate_docx, parse_docx_to_json
 
 # Cria diretórios e inicializa o DB
 init_db()
@@ -1083,6 +1083,15 @@ def create_word_document(
         sections_list = [sec.model_dump() for sec in req.sections]
         result = generate_docx(project.path, req.title, sections_list)
         
+        # Salva o arquivo JSON de metadados correspondente para carregamento rápido do preview
+        json_filename = result["filename"].replace(".docx", ".json")
+        json_filepath = os.path.join(project.path, ".documents", json_filename)
+        with open(json_filepath, "w", encoding="utf-8") as f:
+            json.dump({
+                "title": req.title,
+                "sections": sections_list
+            }, f, indent=4, ensure_ascii=False)
+        
         # Log da ação no banco de dados
         log = ActivityLog(
             project_id=project.id,
@@ -1180,6 +1189,31 @@ def download_document(filename: str, project: Project = Depends(get_project_or_4
         filename=filename,
         media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
     )
+
+@app.get("/api/projects/{project_id}/documents/{filename}/preview", tags=["Documentos"])
+def preview_document(filename: str, project: Project = Depends(get_project_or_404)):
+    """Retorna a estrutura JSON do documento (parágrafos, tabelas, etc.) para visualização na UI."""
+    if ".." in filename or "/" in filename or "\\" in filename:
+        raise HTTPException(status_code=400, detail="Nome de arquivo inválido.")
+        
+    docx_filepath = os.path.join(project.path, ".documents", filename)
+    if not os.path.exists(docx_filepath):
+        raise HTTPException(status_code=404, detail="Documento não encontrado.")
+        
+    # Caminho alternativo do JSON cache
+    json_filepath = docx_filepath.replace(".docx", ".json")
+    if os.path.exists(json_filepath):
+        try:
+            with open(json_filepath, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            pass
+            
+    # Se não houver cache de JSON, analisa o .docx de forma heurística
+    try:
+        return parse_docx_to_json(docx_filepath)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao processar prévia do documento: {str(e)}")
 
 # --- ENDPOINTS DO AGENTE IA NATIVO ---
 

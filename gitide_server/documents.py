@@ -239,3 +239,106 @@ def generate_docx(project_path: str, title: str, sections: list) -> dict:
         "created_at": datetime.now().isoformat(),
         "size_bytes": os.path.getsize(filepath)
     }
+
+def parse_docx_to_json(filepath: str) -> dict:
+    """
+    Analisa um arquivo .docx e reconstrói sua estrutura em um JSON
+    compatível com a criação (para prévia em tempo real).
+    """
+    from docx.oxml.ns import qn
+    from docx.text.paragraph import Paragraph
+    from docx.table import Table
+
+    doc = Document(filepath)
+    sections = []
+    title = "Documento"
+    
+    body_element = doc.element.body
+    is_first_paragraph = True
+    
+    for child in body_element.iterchildren():
+        if child.tag.endswith('p'):
+            # É um parágrafo
+            p = Paragraph(child, doc)
+            text = p.text.strip()
+            if not text:
+                continue
+                
+            # Verifica se é o título do documento (heurística do primeiro parágrafo)
+            if is_first_paragraph:
+                is_first_paragraph = False
+                if p.style.name == 'Title' or (p.runs and p.runs[0].font.size and p.runs[0].font.size.pt > 20):
+                    title = text
+                    continue
+            
+            # Subtítulos / Títulos de seção
+            if p.style.name.startswith('Heading') or (p.runs and p.runs[0].bold and p.runs[0].font.size and p.runs[0].font.size.pt >= 14):
+                sections.append({
+                    "heading": text,
+                    "text": "",
+                    "type": "paragraph"
+                })
+                continue
+            
+            # Se for um item de lista
+            sec_type = "paragraph"
+            if p.style.name.startswith('List Bullet') or p.style.name.startswith('List'):
+                sec_type = "bullet"
+                
+            # Adiciona ao texto da última seção se ela não tiver conteúdo, ou cria nova
+            if sections and sections[-1]["text"] == "" and sections[-1]["type"] == "paragraph" and sec_type == "paragraph":
+                sections[-1]["text"] = text
+            else:
+                sections.append({
+                    "heading": "",
+                    "text": text,
+                    "type": sec_type
+                })
+                
+        elif child.tag.endswith('tbl'):
+            # É uma tabela
+            t = Table(child, doc)
+            if len(t.rows) == 1 and len(t.columns) == 1:
+                # Callout ou Code
+                cell = t.rows[0].cells[0]
+                text = cell.text.strip()
+                
+                sec_type = "highlight"
+                # Heurística para detectar bloco de código pelo background ou fonte Consolas
+                tcPr = cell._tc.get_or_add_tcPr()
+                shd = tcPr.find(qn('w:shd'))
+                if shd is not None:
+                    fill = shd.get(qn('w:fill'))
+                    if fill == "F1F5F9": # slate-100 (código)
+                        sec_type = "code"
+                
+                # Se houver runs, verifica fonte Consolas
+                if cell.paragraphs and cell.paragraphs[0].runs:
+                    font_name = cell.paragraphs[0].runs[0].font.name
+                    if font_name == "Consolas":
+                        sec_type = "code"
+                        
+                sections.append({
+                    "heading": "",
+                    "text": text,
+                    "type": sec_type
+                })
+            else:
+                # Tabela de dados normal
+                table_data = []
+                for row in t.rows:
+                    row_data = [cell.text.strip() for cell in row.cells]
+                    # Ignora linhas totalmente vazias de preenchimento do Word
+                    if any(row_data):
+                        table_data.append(row_data)
+                
+                sections.append({
+                    "heading": "",
+                    "text": json.dumps(table_data),
+                    "type": "table"
+                })
+                
+    return {
+        "title": title,
+        "sections": sections
+    }
