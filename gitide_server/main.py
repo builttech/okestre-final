@@ -1313,11 +1313,56 @@ from fastapi.openapi.utils import get_openapi
 def custom_openapi():
     if app.openapi_schema:
         return app.openapi_schema
+        
+    # Filtra as rotas para expor menos de 30 operações para o GPT Action (evita erro de limite do ChatGPT)
+    exclude_prefixes = [
+        "/api/github/auth",
+        "/api/github/repos",
+        "/api/agent/config",
+        "/api/system/dirs",
+    ]
+    exclude_suffixes = [
+        "/rollback",
+        "/diff",
+        "/logs",
+        "/snapshots",
+        "/git/token",
+        "/git/merge/abort",
+        "/documents/{filename}/preview",
+        "/documents/upload",
+        "/agent/run",
+    ]
+    
+    filtered_routes = []
+    for route in app.routes:
+        path = getattr(route, "path", "")
+        should_exclude = False
+        
+        # Filtra por prefixo
+        for prefix in exclude_prefixes:
+            if path.startswith(prefix):
+                should_exclude = True
+                break
+                
+        if not should_exclude:
+            # Filtra por sufixo
+            for suffix in exclude_suffixes:
+                if path.endswith(suffix):
+                    should_exclude = True
+                    break
+                    
+        # Filtra a rota raiz do Dashboard
+        if path == "/":
+            should_exclude = True
+            
+        if not should_exclude:
+            filtered_routes.append(route)
+            
     openapi_schema = get_openapi(
         title="GitIDE API",
         version="1.0.0",
         description="Interface para GPT Actions interagirem livremente com código, comandos e bancos de dados locais.",
-        routes=app.routes,
+        routes=filtered_routes,
     )
     
     # Configura o servidor padrão (URL fixa do Pinggy)
