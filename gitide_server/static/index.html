@@ -20,7 +20,7 @@
     <link rel="stylesheet" href="/static/settings-tabs.css?v=1">
     <script src="/static/lucide-bootstrap.js"></script>
     <script defer src="/static/ui/workspace-switcher.js?v=2"></script>
-    <script defer src="/static/settings-tabs.js?v=2"></script>
+    <script defer src="/static/settings-tabs.js?v=3"></script>
     <script defer src="/static/sidebar-workspace-footer.js?v=1"></script>
     <script defer src="/static/navigation-unlock.js?v=2"></script>
 </head>
@@ -552,6 +552,16 @@ cloudflared tunnel --url http://localhost:8000</pre>
                                         <div class="token-container" style="display: flex; gap: 8px; margin-top: 8px;">
                                             <input type="text" id="api-token-full-view" class="text-input" readonly value="Carregando Token..." style="flex: 1; font-size: 12px;">
                                             <button class="btn btn-primary" id="btn-copy-token-settings" style="padding: 6px 12px; font-size: 12px;"><i class="fa-solid fa-copy"></i> Copiar Token</button>
+                                        </div>
+                                    </li>
+                                    <li style="font-size: 13px; line-height: 1.4;">
+                                        <strong>Configure as Instruções do GPT (GPT Instructions):</strong>
+                                        <p style="margin: 4px 0; color: var(--text-muted);">Copie as instruções abaixo e cole no campo <strong>Instructions</strong> do seu Custom GPT no ChatGPT para guiar a IA de forma segura:</p>
+                                        <div class="generated-command-container" style="background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); padding: 12px; border-radius: 8px; font-family: var(--font-mono); font-size: 11.5px; line-height: 1.4; word-break: break-word; position: relative; margin-top: 8px;">
+                                            <pre id="gpt-custom-instructions-text" style="white-space: pre-wrap; margin: 0; color: var(--text-light); max-height: 150px; overflow-y: auto;">Você é um Agente de Engenharia de Software conectado ao computador local do usuário via GitIDE.
+Antes de realizar qualquer tarefa de leitura, escrita ou execução de comandos, você DEVE verificar se existe o arquivo 'GPT_INSTRUCTIONS.md' na raiz do workspace do projeto atual (usando o endpoint de leitura de arquivos).
+Se o arquivo existir, leia e siga rigorosamente todas as diretrizes, fases de análise e o protocolo de execução contidos nele. Sempre elabore um plano de implementação detalhado em Markdown e aguarde a aprovação do usuário antes de modificar códigos ou rodar deploys.</pre>
+                                            <button type="button" class="btn btn-secondary btn-sm" id="btn-copy-gpt-custom-instructions" style="margin-top: 8px; padding: 6px 12px; font-size: 12px;"><i class="fa-solid fa-copy"></i> Copiar Instruções</button>
                                         </div>
                                     </li>
                                 </ol>

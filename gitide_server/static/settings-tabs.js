@@ -19,7 +19,12 @@
       '',
       'Use sempre o ID de projeto acima em todas as chamadas de API do GitIDE.',
       'Exemplo: /api/projects/' + (projectId || '{project_id}') + '/...',
-      token ? `Token GitIDE: ${token}` : ''
+      token ? `Token GitIDE: ${token}` : '',
+      '',
+      '--- DIRETRIZES DO CUSTOM GPT ---',
+      'Você é um Agente de Engenharia de Software conectado ao computador local do usuário via GitIDE.',
+      'Antes de realizar qualquer tarefa de leitura, escrita ou execução de comandos, você DEVE verificar se existe o arquivo \'GPT_INSTRUCTIONS.md\' na raiz do workspace do projeto atual (usando o endpoint de leitura de arquivos).',
+      'Se o arquivo existir, leia e siga rigorosamente todas as diretrizes, fases de análise e o protocolo de execução contidos nele. Sempre elabore um plano de implementação detalhado em Markdown e aguarde a aprovação do usuário antes de modificar códigos ou rodar deploys.'
     ].filter(Boolean).join('\n');
   }
 
@@ -131,6 +136,13 @@
         return;
       }
       setCopyStatus('Ação de deletar indisponível.');
+    });
+
+    document.getElementById('btn-copy-gpt-custom-instructions')?.addEventListener('click', () => {
+      const text = document.getElementById('gpt-custom-instructions-text')?.textContent || '';
+      copyText(text)
+        .then(() => alert('Instruções do Custom GPT copiadas com sucesso!'))
+        .catch(() => alert('Não foi possível copiar as instruções.'));
     });
   }
 
