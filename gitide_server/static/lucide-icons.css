@@ -1,0 +1,19 @@
+/* Lucide icon sizing and alignment */
+.lucide,
+.lucide-icon {
+    width: 16px;
+    height: 16px;
+    stroke-width: 2;
+    flex-shrink: 0;
+}
+
+.section-header h3 .lucide,
+.nav-item .lucide,
+.btn-icon .lucide {
+    width: 16px;
+    height: 16px;
+}
+
+.btn-icon .lucide {
+    display: block;
+}
