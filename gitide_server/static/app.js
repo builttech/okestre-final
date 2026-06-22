@@ -3839,7 +3839,13 @@ function updateGitGeneratedCommand() {
     }
     
     // Limpa a URL de origin caso já tenha token
-    let cleanUrl = state.activeProjectRemoteUrl || '';
+    let cleanUrl = '';
+    if (state.activeProject && state.activeProject.git_remote) {
+        cleanUrl = state.activeProject.git_remote;
+    } else {
+        cleanUrl = state.activeProjectRemoteUrl || '';
+    }
+    
     if (cleanUrl.includes('@')) {
         const prefix = cleanUrl.startsWith('https://') ? 'https://' : 'http://';
         const remainder = cleanUrl.substring(prefix.length);
@@ -3847,6 +3853,7 @@ function updateGitGeneratedCommand() {
             cleanUrl = prefix + remainder.split('@')[1];
         }
     }
+
     
     let displayUrl = cleanUrl || 'https://github.com/usuario/repositorio.git';
     let authUrl = displayUrl;
