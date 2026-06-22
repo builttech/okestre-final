@@ -315,3 +315,30 @@
 .workspace-account-popover .workspace-switcher-create {
     margin-top: 4px;
 }
+
+.main-layout,
+.sidebar,
+.sidebar-footer,
+.sidebar-workspace-footer-section,
+.project-selector-wrapper,
+.workspace-switcher,
+.workspace-switcher-menu {
+    overflow: visible !important;
+}
+
+.sidebar,
+.sidebar-footer,
+.sidebar-workspace-footer-section {
+    position: relative;
+    z-index: 100;
+}
+
+.workspace-switcher.is-open,
+.workspace-switcher.is-switching-org {
+    z-index: 30000;
+}
+
+.workspace-account-popover,
+.workspace-account-org-submenu {
+    z-index: 30001;
+}
