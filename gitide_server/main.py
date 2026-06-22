@@ -974,6 +974,18 @@ def github_auth_status():
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Falha ao checar status do GitHub: {str(e)}")
 
+@app.post("/api/github/auth/token", tags=["GitHub Auth"])
+def github_auth_set_token(req: GitSetTokenRequest):
+    """Configura manualmente o token de acesso global do GitHub (PAT)."""
+    token = req.token.strip()
+    if not token:
+        raise HTTPException(status_code=400, detail="O token não pode estar vazio.")
+    
+    conf = get_config()
+    conf["github_access_token"] = token
+    save_config(conf)
+    return {"status": "success"}
+
 @app.post("/api/github/auth/logout", tags=["GitHub Auth"])
 def github_auth_logout():
     """Desconecta a conta do GitHub e apaga o token salvo."""

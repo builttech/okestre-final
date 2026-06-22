@@ -1457,6 +1457,7 @@ function setupEventListeners() {
     document.getElementById('btn-github-connect').addEventListener('click', startGitHubDeviceFlow);
     document.getElementById('btn-copy-github-code').addEventListener('click', copyGitHubCode);
     document.getElementById('btn-github-logout').addEventListener('click', logoutGitHub);
+    document.getElementById('btn-save-github-pat').addEventListener('click', saveGitHubPat);
 
     // 3.1. Tab Navigation Events
     document.querySelectorAll('.modal-tab-btn').forEach(btn => {
@@ -2443,6 +2444,42 @@ async function logoutGitHub() {
         checkGitHubStatus();
     } catch (err) {
         console.error('Erro ao desconectar do GitHub:', err);
+    }
+}
+
+async function saveGitHubPat() {
+    const input = document.getElementById('github-pat-input');
+    const token = input.value.trim();
+    if (!token) {
+        alert('Por favor, insira o token clássico (PAT) do GitHub.');
+        return;
+    }
+    
+    const btn = document.getElementById('btn-save-github-pat');
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Conectando...';
+    
+    try {
+        const res = await fetch('/api/github/auth/token', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: token })
+        });
+        
+        const data = await res.json();
+        if (res.status === 200 && data.status === 'success') {
+            input.value = '';
+            alert('Token do GitHub (PAT) conectado e salvo com sucesso!');
+            checkGitHubStatus();
+        } else {
+            alert(`Erro ao salvar token: ${data.detail || 'Erro desconhecido'}`);
+        }
+    } catch (err) {
+        alert(`Erro de conexão ao salvar token: ${err.message}`);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
     }
 }
 

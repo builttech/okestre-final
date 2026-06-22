@@ -827,6 +827,18 @@ Se o arquivo existir, leia e siga rigorosamente todas as diretrizes, fases de an
                                 Waiting for user authorization...
                             </div>
                         </div>
+
+                        <!-- SEÇÃO DE LOGIN ALTERNATIVO VIA PAT -->
+                        <div class="github-pat-section" style="margin-top: 24px; border-top: 1px dashed var(--border-color); padding-top: 16px;">
+                            <h6 style="margin: 0 0 8px 0; font-size: 12px; font-weight: 500; color: var(--text-light);">Ou use um Personal Access Token (PAT):</h6>
+                            <div style="display: flex; gap: 8px;">
+                                <input type="password" id="github-pat-input" class="text-input" placeholder="ghp_... ou github_pat_..." style="flex: 1; font-size: 12px; padding: 8px 10px; border-radius: 6px;">
+                                <button type="button" class="btn btn-primary" id="btn-save-github-pat" style="padding: 8px 12px; font-size: 12px; font-weight: 500; white-space: nowrap; border-radius: 6px;"><i class="fa-solid fa-key"></i> Conectar PAT</button>
+                            </div>
+                            <p style="margin: 6px 0 0 0; font-size: 11px; color: var(--text-muted); line-height: 1.4;">
+                                Necessário se sua conta possuir restrições para autorizar o App OAuth. Gere um token com permissão de <strong>repo</strong> em <a href="https://github.com/settings/tokens" target="_blank" style="color: var(--color-primary); text-decoration: none; font-weight: 500;">Configurações do GitHub</a>.
+                            </p>
+                        </div>
                     </div>
 
                     <!-- Logged in state -->
