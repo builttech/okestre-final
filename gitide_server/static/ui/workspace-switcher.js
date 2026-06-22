@@ -2,7 +2,7 @@
   const SELECTOR_ID = 'project-selector';
 
   function optionLabel(option) {
-    return option ? (option.textContent || option.value || '').trim() : '-- Selecione um Projeto --';
+    return option ? (option.textContent || option.value || '').trim() : 'Selecione um workspace';
   }
 
   function closeMenu(root) {
@@ -10,6 +10,12 @@
     root.classList.remove('is-open');
     const trigger = root.querySelector('.workspace-switcher-trigger');
     if (trigger) trigger.setAttribute('aria-expanded', 'false');
+  }
+
+  function refreshIcons() {
+    if (typeof window.refreshLucideIcons === 'function') {
+      window.refreshLucideIcons();
+    }
   }
 
   function buildWorkspaceSwitcher() {
@@ -26,20 +32,21 @@
       <button class="workspace-switcher-trigger" type="button" aria-haspopup="listbox" aria-expanded="false">
         <span class="workspace-switcher-avatar" aria-hidden="true">GI</span>
         <span class="workspace-switcher-copy">
-          <strong class="workspace-switcher-title">-- Selecione um Projeto --</strong>
-          <span class="workspace-switcher-subtitle">Projeto ativo</span>
+          <strong class="workspace-switcher-title">Selecione um workspace</strong>
+          <span class="workspace-switcher-subtitle">Workspace ativo</span>
         </span>
-        <i class="fa-solid fa-chevron-down workspace-switcher-chevron" aria-hidden="true"></i>
+        <i data-lucide="chevron-down" class="workspace-switcher-chevron" aria-hidden="true"></i>
       </button>
       <div class="workspace-switcher-menu" role="listbox">
+        <div class="workspace-switcher-kicker">Switch workspace</div>
         <div class="workspace-switcher-search">
-          <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
-          <input type="text" placeholder="Buscar workspace..." autocomplete="off">
+          <i data-lucide="search" aria-hidden="true"></i>
+          <input type="text" placeholder="Search workspace..." autocomplete="off">
         </div>
         <div class="workspace-switcher-options"></div>
         <button class="workspace-switcher-create" type="button">
-          <i class="fa-solid fa-plus" aria-hidden="true"></i>
-          <span>Criar workspace</span>
+          <i data-lucide="plus" aria-hidden="true"></i>
+          <span>Create workspace</span>
         </button>
       </div>
     `;
@@ -48,17 +55,23 @@
 
     const trigger = root.querySelector('.workspace-switcher-trigger');
     const title = root.querySelector('.workspace-switcher-title');
+    const subtitle = root.querySelector('.workspace-switcher-subtitle');
     const avatar = root.querySelector('.workspace-switcher-avatar');
     const optionsBox = root.querySelector('.workspace-switcher-options');
     const searchInput = root.querySelector('.workspace-switcher-search input');
     const createButton = root.querySelector('.workspace-switcher-create');
 
     function initials(text) {
-      const clean = (text || 'GI').replace(/[^a-z0-9\s-]/gi, '').trim();
-      if (!clean) return 'GI';
+      const clean = (text || 'WO').replace(/[^a-z0-9\s-]/gi, '').trim();
+      if (!clean) return 'WO';
       const parts = clean.split(/[\s-]+/).filter(Boolean);
       if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
       return (parts[0][0] + parts[1][0]).toUpperCase();
+    }
+
+    function workspaceSubtitle(option) {
+      if (!option || !option.value) return 'Plano Agency';
+      return option.dataset.subtitle || option.dataset.path || 'Plano Agency';
     }
 
     function getActiveOption() {
@@ -79,6 +92,7 @@
       const selected = getActiveOption();
       const text = optionLabel(selected);
       title.textContent = text;
+      subtitle.textContent = workspaceSubtitle(selected);
       avatar.textContent = initials(text);
     }
 
@@ -89,22 +103,24 @@
       Array.from(select.options).forEach((option) => {
         if (!option.value) return;
         const text = optionLabel(option);
-        if (filter && !text.toLowerCase().includes(filter)) return;
+        const detail = workspaceSubtitle(option);
+        const searchable = `${text} ${detail}`.toLowerCase();
+        if (filter && !searchable.includes(filter)) return;
 
         const item = document.createElement('button');
         item.type = 'button';
         item.className = 'workspace-switcher-option';
         item.setAttribute('role', 'option');
-        item.setAttribute('aria-selected', option.selected ? 'true' : 'false');
+        item.setAttribute('aria-selected', option.selected || option.value === select.value ? 'true' : 'false');
         if (option.selected || option.value === select.value) item.classList.add('is-selected');
 
         item.innerHTML = `
           <span class="workspace-switcher-avatar" aria-hidden="true">${initials(text)}</span>
           <span class="workspace-switcher-copy">
             <strong>${text}</strong>
-            <span>Workspace</span>
+            <span>${detail}</span>
           </span>
-          <i class="fa-solid fa-check workspace-switcher-check" aria-hidden="true"></i>
+          <i data-lucide="check" class="workspace-switcher-check" aria-hidden="true"></i>
         `;
 
         item.addEventListener('click', () => {
@@ -125,6 +141,8 @@
         empty.textContent = 'Nenhum workspace encontrado.';
         optionsBox.appendChild(empty);
       }
+
+      refreshIcons();
     }
 
     function openMenu() {
@@ -169,12 +187,9 @@
       if (event.key === 'Escape') closeMenu(root);
     });
 
-    window.setInterval(() => {
-      syncTitle();
-    }, 1000);
-
     syncTitle();
     renderOptions('');
+    refreshIcons();
   }
 
   if (document.readyState === 'loading') {
