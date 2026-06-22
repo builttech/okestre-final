@@ -211,28 +211,62 @@ def create_project(project_in: ProjectCreate, db: Session = Depends(get_db)):
     # Se a pasta não existir, cria
     os.makedirs(project_in.path, exist_ok=True)
 
-    # Verifica se já está cadastrado
+    # Verifica se já está cadastrado com o mesmo caminho
     existing = db.query(Project).filter(Project.path == project_in.path).first()
     if existing:
-        return {"status": "success", "message": "Projeto já cadastrado", "project": existing}
+        project_data = {
+            "id": existing.id,
+            "name": existing.name,
+            "path": existing.path,
+            "git_remote": existing.git_remote,
+            "created_at": existing.created_at.isoformat() if existing.created_at else None
+        }
+        return {"status": "success", "message": "Projeto já cadastrado", "project": project_data}
+        
+    # Verifica se o nome já está em uso por outro caminho
+    existing_name = db.query(Project).filter(Project.name == project_in.name).first()
+    if existing_name:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Já existe um projeto cadastrado com o nome '{project_in.name}' no caminho '{existing_name.path}'."
+        )
         
     clone_status = None
     # Se foi fornecido um remoto Git, realiza a clonagem ou vinculação
     if project_in.git_remote:
-        # Se a pasta estiver vazia, clona
-        if not os.listdir(project_in.path):
+        # Se a pasta estiver vazia (ou tiver apenas arquivos ocultos), clona
+        is_empty = True
+        try:
+            if any(not f.startswith('.') for f in os.listdir(project_in.path)):
+                is_empty = False
+        except Exception:
+            pass
+
+        if is_empty:
             try:
                 git_bridge.clone_git(project_in.git_remote, project_in.path)
                 clone_status = "cloned"
             except Exception as e:
-                clone_status = f"failed_clone: {str(e)}"
+                # Se falhar a clonagem, remove a pasta criada (se vazia)
+                try:
+                    if os.path.exists(project_in.path) and not os.listdir(project_in.path):
+                        os.rmdir(project_in.path)
+                except Exception:
+                    pass
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Falha ao clonar repositório Git: {str(e)}"
+                )
         else:
             # Se não estiver vazia, apenas tenta inicializar e vincular o remoto
             try:
                 git_bridge.init_git(project_in.path, project_in.git_remote)
                 clone_status = "linked"
-            except Exception:
-                clone_status = "skipped_not_empty"
+            except Exception as e:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Pasta de destino não está vazia e falhou ao vincular repositório Git: {str(e)}"
+                )
                 
     db_project = Project(
         name=project_in.name,
@@ -256,7 +290,15 @@ def create_project(project_in: ProjectCreate, db: Session = Depends(get_db)):
     db.add(log)
     db.commit()
     
-    return {"status": "success", "project": db_project, "git_clone_status": clone_status}
+    project_data = {
+        "id": db_project.id,
+        "name": db_project.name,
+        "path": db_project.path,
+        "git_remote": db_project.git_remote,
+        "created_at": db_project.created_at.isoformat() if db_project.created_at else None
+    }
+    
+    return {"status": "success", "project": project_data, "git_clone_status": clone_status}
 
 @app.delete("/api/projects/{project_id}", tags=["Projetos"])
 def delete_project(project_id: int, db: Session = Depends(get_db)):

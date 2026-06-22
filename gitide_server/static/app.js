@@ -2211,7 +2211,13 @@ async function executeProjectImport(name, path, remoteUrl) {
             })
         });
         
-        const data = await res.json();
+        let data;
+        try {
+            data = await res.json();
+        } catch (jsonErr) {
+            const errText = await res.text();
+            throw new Error(errText || `Erro do servidor (Status: ${res.status})`);
+        }
         
         if (res.status === 200 && data.status === 'success') {
             document.getElementById('modal-project').classList.remove('active');
@@ -2233,7 +2239,7 @@ async function executeProjectImport(name, path, remoteUrl) {
             alert(`Erro ao importar projeto: ${data.detail || 'Verifique se a pasta já existe ou se as informações estão corretas.'}`);
         }
     } catch (err) {
-        alert(`Falha de conexão ao importar projeto: ${err.message}`);
+        alert(`Falha ao importar projeto: ${err.message}`);
     } finally {
         importBtn.disabled = false;
         importBtn.innerHTML = originalText;

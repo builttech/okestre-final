@@ -11,7 +11,7 @@ os.makedirs(DATABASE_DIR, exist_ok=True)
 DATABASE_PATH = os.path.join(DATABASE_DIR, "gitide.db")
 
 engine = create_engine(f"sqlite:///{DATABASE_PATH}", echo=False)
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, expire_on_commit=False, bind=engine)
 
 class Base(DeclarativeBase):
     pass

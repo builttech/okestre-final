@@ -104,11 +104,13 @@ def clone_git(remote_url: str, target_path: str) -> dict:
         
     os.makedirs(abs_path, exist_ok=True)
     try:
-        repo = Repo.clone_from(remote_url, abs_path)
+        token = get_github_token()
+        auth_url = get_authenticated_git_url(remote_url, token)
+        repo = Repo.clone_from(auth_url, abs_path)
         return {
             "status": "success",
             "action": "cloned",
-            "current_branch": repo.active_branch.name,
+            "current_branch": repo.active_branch.name if not repo.head.is_detached else "DETACHED",
             "commit": repo.head.commit.hexsha
         }
     except GitCommandError as e:
