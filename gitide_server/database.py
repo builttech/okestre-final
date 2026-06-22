@@ -53,6 +53,10 @@ class Project(Base):
                 return possible_path
         return val
 
+    @path.expression
+    def path(cls):
+        return cls._path
+
     @path.setter
     def path(self, value: str):
         self._path = value
