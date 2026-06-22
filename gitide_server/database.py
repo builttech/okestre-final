@@ -16,14 +16,46 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 class Base(DeclarativeBase):
     pass
 
+from sqlalchemy.ext.hybrid import hybrid_property
+
 class Project(Base):
     __tablename__ = "projects"
 
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
-    path: Mapped[str] = mapped_column(String(500), nullable=False)
+    
+    # Mapeia a coluna 'path' para o atributo interno '_path'
+    _path: Mapped[str] = mapped_column("path", String(500), nullable=False)
+    
     git_remote: Mapped[str | None] = mapped_column(String(500), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    @hybrid_property
+    def path(self) -> str:
+        val = self._path
+        # Se for Linux (POSIX) mas o caminho cadastrado no banco for do Windows, mapeia para /workspace
+        if os.name != 'nt':
+            if '\\' in val or (len(val) > 1 and val[1] == ':'):
+                normalized = val.replace('\\', '/')
+                project_name = normalized.split('/')[-1]
+                if project_name.lower() == '.workspace':
+                    return "/workspace"
+                
+                possible_path = f"/workspace/{project_name}"
+                if os.path.exists(possible_path):
+                    return possible_path
+                
+                # Fallback para caminho relativo
+                relative = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", project_name))
+                if os.path.exists(relative):
+                    return relative
+                    
+                return possible_path
+        return val
+
+    @path.setter
+    def path(self, value: str):
+        self._path = value
 
     # Relacionamentos
     logs: Mapped[list["ActivityLog"]] = relationship(back_populates="project", cascade="all, delete-orphan")

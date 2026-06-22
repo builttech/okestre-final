@@ -1001,7 +1001,11 @@ async function initGitRepo() {
             }
             loadGitStatus();
         } else {
-            appendGitConsole(`Erro ao inicializar Git: ${data.detail}`, true);
+            let errorMsg = data.detail;
+            if (typeof errorMsg === 'object') {
+                errorMsg = JSON.stringify(errorMsg);
+            }
+            appendGitConsole(`Erro ao inicializar Git: ${errorMsg || 'Erro desconhecido'}`, true);
         }
         
     } catch (err) {
