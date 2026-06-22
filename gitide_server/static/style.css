@@ -1166,6 +1166,11 @@ textarea:focus {
     overflow-y: auto;
 }
 
+.git-status-card {
+    position: relative;
+    z-index: 5;
+}
+
 .card {
     background: var(--bg-surface);
     border: 1px solid var(--border-color);
@@ -1808,6 +1813,7 @@ textarea:focus {
     position: relative;
     display: inline-flex;
     align-items: center;
+    z-index: 10;
 }
 .dropdown-trigger {
     display: inline-flex;
