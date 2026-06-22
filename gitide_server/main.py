@@ -617,10 +617,11 @@ def git_deploy(deploy_in: GitDeployRequest,
         raise HTTPException(status_code=500, detail=f"Erro ao realizar deploy via Git: {str(e)}")
 
 @app.get("/api/projects/{project_id}/git/branches", tags=["Git Bridge"])
-def git_list_branches(project: Project = Depends(get_project_or_404)):
+def git_list_branches(fetch: bool = Query(False, description="Forçar git fetch antes de listar"),
+                      project: Project = Depends(get_project_or_404)):
     """Lista as branches locais e remotas do repositório Git."""
     try:
-        return git_bridge.list_branches(project.path)
+        return git_bridge.list_branches(project.path, force_fetch=fetch)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

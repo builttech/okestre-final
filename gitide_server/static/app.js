@@ -786,10 +786,11 @@ async function runSqlQuery() {
 }
 
 // --- GIT BRIDGE ---
-async function loadGitStatus() {
+async function loadGitStatus(forceFetch = false) {
     const container = document.getElementById('git-status-detail');
     const initPanel = document.getElementById('git-init-panel');
     const deployPanel = document.getElementById('git-deploy-panel');
+    const shouldFetch = forceFetch === true;
     
     try {
         const res = await fetch(`/api/projects/${state.activeProjectId}/git/status`);
@@ -809,7 +810,7 @@ async function loadGitStatus() {
         initPanel.style.display = 'none';
         deployPanel.style.display = 'block';
         
-        await loadGitBranches(status.current_branch);
+        await loadGitBranches(status.current_branch, shouldFetch);
         state.activeProjectRemoteUrl = status.remote_url || '';
         updateGitGeneratedCommand();
         
@@ -885,7 +886,7 @@ async function loadGitStatus() {
             document.getElementById('btn-dropdown-refresh-branches').addEventListener('click', (e) => {
                 e.stopPropagation();
                 closeAllDropdowns();
-                loadGitStatus();
+                loadGitStatus(true);
             });
             
             document.getElementById('btn-dropdown-git-pull').addEventListener('click', (e) => {
@@ -924,12 +925,13 @@ async function loadGitStatus() {
     }
 }
 
-async function loadGitBranches(currentBranch) {
+async function loadGitBranches(currentBranch, forceFetch = false) {
     const branchSelect = document.getElementById('git-branch-input');
     if (!branchSelect) return;
 
     try {
-        const res = await fetch(`/api/projects/${state.activeProjectId}/git/branches`);
+        const url = `/api/projects/${state.activeProjectId}/git/branches` + (forceFetch ? '?fetch=true' : '');
+        const res = await fetch(url);
         const data = await res.json();
         if (data.status === 'success') {
             const currentSelected = currentBranch || data.current_branch || 'main';
