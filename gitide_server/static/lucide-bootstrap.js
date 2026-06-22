@@ -1,6 +1,13 @@
 (function () {
-  function refreshLucideIcons() {
+  let scheduled = false;
+
+  function refreshLucideIcons(root) {
     if (!window.lucide || typeof window.lucide.createIcons !== 'function') return;
+
+    const scope = root && root.querySelectorAll ? root : document;
+    const pendingIcons = scope.querySelectorAll('[data-lucide]:not(svg)');
+    if (!pendingIcons.length) return;
+
     window.lucide.createIcons({
       attrs: {
         'stroke-width': 2,
@@ -9,20 +16,36 @@
     });
   }
 
-  window.refreshLucideIcons = refreshLucideIcons;
+  function scheduleRefresh(root) {
+    if (scheduled) return;
+    scheduled = true;
+
+    window.requestAnimationFrame(() => {
+      scheduled = false;
+      refreshLucideIcons(root);
+    });
+  }
+
+  window.refreshLucideIcons = function () {
+    scheduleRefresh(document);
+  };
 
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', refreshLucideIcons);
+    document.addEventListener('DOMContentLoaded', () => scheduleRefresh(document));
   } else {
-    refreshLucideIcons();
+    scheduleRefresh(document);
   }
 
   const observer = new MutationObserver((mutations) => {
-    if (!mutations.some((mutation) => Array.from(mutation.addedNodes).some((node) => node.nodeType === 1 && (node.matches?.('[data-lucide]') || node.querySelector?.('[data-lucide]'))))) {
-      return;
-    }
+    const hasNewLucidePlaceholder = mutations.some((mutation) =>
+      Array.from(mutation.addedNodes).some((node) =>
+        node.nodeType === 1 &&
+        node.tagName !== 'svg' &&
+        (node.matches?.('[data-lucide]:not(svg)') || node.querySelector?.('[data-lucide]:not(svg)'))
+      )
+    );
 
-    refreshLucideIcons();
+    if (hasNewLucidePlaceholder) scheduleRefresh(document);
   });
 
   observer.observe(document.documentElement, { childList: true, subtree: true });
