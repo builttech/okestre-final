@@ -73,12 +73,12 @@
         <div class="workspace-account-divider"></div>
 
         <button class="workspace-account-item" type="button" data-workspace-action="project-settings" role="menuitem">
-          <i data-lucide="building-2" aria-hidden="true"></i>
-          <span>Organization settings</span>
+          <i data-lucide="settings" aria-hidden="true"></i>
+          <span>Configurações</span>
         </button>
         <button class="workspace-account-item" type="button" data-workspace-action="profile-settings" role="menuitem">
           <i data-lucide="circle-user-round" aria-hidden="true"></i>
-          <span>Profile settings</span>
+          <span>Perfil</span>
         </button>
 
         <div class="workspace-account-divider"></div>
