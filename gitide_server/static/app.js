@@ -1967,6 +1967,12 @@ function setupEventListeners() {
     if (refreshDocsBtn) {
         refreshDocsBtn.addEventListener('click', loadDocuments);
     }
+    const uploadDocBtn = document.getElementById('btn-upload-document');
+    const uploadDocInput = document.getElementById('input-upload-document');
+    if (uploadDocBtn && uploadDocInput) {
+        uploadDocBtn.addEventListener('click', () => uploadDocInput.click());
+        uploadDocInput.addEventListener('change', handleDocumentUpload);
+    }
     const generateTestDocBtn = document.getElementById('btn-generate-test-doc');
     if (generateTestDocBtn) {
         generateTestDocBtn.addEventListener('click', generateTestDocument);
@@ -4077,6 +4083,57 @@ async function generateTestDocument() {
     } finally {
         btn.disabled = false;
         btn.innerHTML = originalText;
+    }
+}
+
+async function handleDocumentUpload(e) {
+    if (!state.activeProjectId) return;
+    const fileInput = e.target;
+    if (!fileInput.files || fileInput.files.length === 0) return;
+    
+    const file = fileInput.files[0];
+    if (!file.name.endsWith('.docx')) {
+        alert('Por favor, envie apenas arquivos com extensão .docx (Word).');
+        fileInput.value = '';
+        return;
+    }
+    
+    const uploadBtn = document.getElementById('btn-upload-document');
+    let originalText = '';
+    if (uploadBtn) {
+        originalText = uploadBtn.innerHTML;
+        uploadBtn.disabled = true;
+        uploadBtn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> Enviando...`;
+    }
+    
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    try {
+        const res = await fetch(`/api/projects/${state.activeProjectId}/documents/upload`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${state.apiKey}`
+            },
+            body: formData
+        });
+        
+        const data = await res.json();
+        
+        if (!res.ok) {
+            throw new Error(data.detail || 'Erro ao realizar upload');
+        }
+        
+        alert(`Documento "${data.filename}" enviado com sucesso!`);
+        loadDocuments();
+    } catch (err) {
+        alert(`Erro ao enviar documento: ${err.message}`);
+    } finally {
+        fileInput.value = '';
+        if (uploadBtn) {
+            uploadBtn.disabled = false;
+            uploadBtn.innerHTML = originalText;
+        }
     }
 }
 

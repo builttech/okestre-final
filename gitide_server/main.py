@@ -7,7 +7,7 @@ import string
 from typing import Optional
 from datetime import datetime
 
-from fastapi import FastAPI, Depends, HTTPException, Security, status, Query, Response
+from fastapi import FastAPI, Depends, HTTPException, Security, status, Query, Response, UploadFile, File
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
@@ -1095,6 +1095,50 @@ def create_word_document(
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro ao gerar documento Word: {str(e)}")
+
+@app.post("/api/projects/{project_id}/documents/upload", tags=["Documentos"])
+def upload_document(
+    project_id: int,
+    file: UploadFile = File(...),
+    project: Project = Depends(get_project_or_404),
+    db: Session = Depends(get_db),
+    _ = Depends(get_api_key)
+):
+    """Realiza o upload de um documento Word (.docx) no diretório .documents do projeto."""
+    if not file.filename.endswith(".docx"):
+        raise HTTPException(status_code=400, detail="Somente arquivos .docx (Word) são permitidos.")
+        
+    docs_dir = os.path.join(project.path, ".documents")
+    os.makedirs(docs_dir, exist_ok=True)
+    
+    # Previne directory traversal no nome do arquivo
+    safe_filename = os.path.basename(file.filename)
+    filepath = os.path.join(docs_dir, safe_filename)
+    
+    try:
+        # Lê o conteúdo do upload
+        contents = file.file.read()
+        
+        with open(filepath, "wb") as f:
+            f.write(contents)
+            
+        # Log da ação no banco de dados
+        log = ActivityLog(
+            project_id=project.id,
+            action_type="DOCUMENT_UPLOADED",
+            details=f"Documento Word enviado: {safe_filename}"
+        )
+        db.add(log)
+        db.commit()
+        
+        return {
+            "status": "success",
+            "filename": safe_filename,
+            "filepath": filepath,
+            "size_bytes": os.path.getsize(filepath)
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao salvar arquivo: {str(e)}")
 
 @app.get("/api/projects/{project_id}/documents", tags=["Documentos"])
 def list_documents(project: Project = Depends(get_project_or_404)):
