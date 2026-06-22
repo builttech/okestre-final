@@ -375,7 +375,7 @@
                                         <input type="text" id="git-commit-msg" class="text-input" placeholder="ex: feat: add dashboard module, fix api endpoint">
                                     </div>
                                     <div class="form-group inline-form">
-                                         <select id="git-branch-input" class="select-input" style="flex: 1; min-width: 150px;"></select>
+                                         <select id="git-branch-input" class="select-input" data-no-native-select="true" style="flex: 1; min-width: 150px;"></select>
                                          <button class="btn btn-primary" id="btn-git-deploy"><i class="fa-solid fa-rocket"></i> Commitar e Fazer Deploy (Push)</button>
                                          <button class="btn btn-secondary" id="btn-git-pull"><i class="fa-solid fa-cloud-arrow-down"></i> Sincronizar (Pull)</button>
                                      </div>
@@ -1012,6 +1012,7 @@ cloudflared tunnel --url http://localhost:8000</pre>
     <script src="/static/app.js?v=12"></script>
     <script src="/static/theme-toggle.js?v=1"></script>
     <script src="/static/workspace-switcher.js?v=1"></script>
+    <script src="/static/git-branch-switcher.js?v=1"></script>
     <script src="/static/native-select.js?v=1"></script>
 </body>
 </html>
