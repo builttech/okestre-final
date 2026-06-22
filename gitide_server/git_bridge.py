@@ -38,6 +38,21 @@ def update_remote_url_with_token(repo: Repo):
         url = origin.url
         token = get_github_token()
         if token and ("github.com" in url):
+            # Detecta se a URL já possui credenciais configuradas
+            has_credentials = False
+            current_token = ""
+            if "@" in url:
+                prefix = "https://" if url.startswith("https://") else "http://"
+                remainder = url[len(prefix):]
+                if "@" in remainder:
+                    has_credentials = True
+                    current_token = remainder.split("@", 1)[0]
+            
+            # Se já possui credenciais e elas não foram geradas pelo OAuth do GitIDE (não começam com gho_),
+            # não sobrescrevemos para respeitar a configuração manual do usuário (PAT ghp_...)
+            if has_credentials and not current_token.startswith("gho_"):
+                return
+                
             auth_url = get_authenticated_git_url(url, token)
             if url != auth_url:
                 origin.set_url(auth_url)
@@ -89,11 +104,13 @@ def clone_git(remote_url: str, target_path: str) -> dict:
         
     os.makedirs(abs_path, exist_ok=True)
     try:
-        repo = Repo.clone_from(remote_url, abs_path)
+        token = get_github_token()
+        auth_url = get_authenticated_git_url(remote_url, token)
+        repo = Repo.clone_from(auth_url, abs_path)
         return {
             "status": "success",
             "action": "cloned",
-            "current_branch": repo.active_branch.name,
+            "current_branch": repo.active_branch.name if not repo.head.is_detached else "DETACHED",
             "commit": repo.head.commit.hexsha
         }
     except GitCommandError as e:
@@ -256,17 +273,18 @@ def pull_git(project_path: str, branch: str = None) -> dict:
     except GitCommandError as e:
         raise RuntimeError(f"Falha ao rodar git pull: {e.stderr or str(e)}")
 
-def list_branches(project_path: str) -> dict:
+def list_branches(project_path: str, force_fetch: bool = False) -> dict:
     """Retorna uma lista de todas as branches locais e remotas."""
     repo = get_repo(project_path)
     
-    # Tenta fazer o fetch para atualizar a lista de branches do servidor remoto
-    try:
-        update_remote_url_with_token(repo)
-        if len(repo.remotes) > 0:
-            repo.remotes.origin.fetch()
-    except Exception:
-        pass
+    # Tenta fazer o fetch para atualizar a lista de branches do servidor remoto apenas se solicitado
+    if force_fetch:
+        try:
+            update_remote_url_with_token(repo)
+            if len(repo.remotes) > 0:
+                repo.remotes.origin.fetch()
+        except Exception:
+            pass
         
     try:
         current_branch = repo.active_branch.name if not repo.head.is_detached else "DETACHED"

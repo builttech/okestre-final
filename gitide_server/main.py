@@ -7,7 +7,7 @@ import string
 from typing import Optional
 from datetime import datetime
 
-from fastapi import FastAPI, Depends, HTTPException, Security, status, Query, Response
+from fastapi import FastAPI, Depends, HTTPException, Security, status, Query, Response, UploadFile, File
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
@@ -24,6 +24,7 @@ from fastapi.responses import StreamingResponse
 from typing import List
 
 import requests
+from gitide_server.documents import generate_docx, parse_docx_to_json
 
 # Cria diretórios e inicializa o DB
 init_db()
@@ -160,6 +161,15 @@ class AgentConfigInput(BaseModel):
 class AgentChatRequest(BaseModel):
     prompt: str
 
+class DocumentSection(BaseModel):
+    heading: Optional[str] = Field("", description="Título da seção")
+    text: str = Field(..., description="Conteúdo de texto da seção")
+    type: str = Field("paragraph", description="Tipo de formatação (paragraph, bullet, highlight, code, table)")
+
+class DocumentCreateRequest(BaseModel):
+    title: str = Field(..., description="Título principal do documento")
+    sections: List[DocumentSection] = Field(..., description="Lista de seções ordenadas do documento")
+
 
 
 # Dependência para buscar projeto do DB
@@ -201,28 +211,62 @@ def create_project(project_in: ProjectCreate, db: Session = Depends(get_db)):
     # Se a pasta não existir, cria
     os.makedirs(project_in.path, exist_ok=True)
 
-    # Verifica se já está cadastrado
+    # Verifica se já está cadastrado com o mesmo caminho
     existing = db.query(Project).filter(Project.path == project_in.path).first()
     if existing:
-        return {"status": "success", "message": "Projeto já cadastrado", "project": existing}
+        project_data = {
+            "id": existing.id,
+            "name": existing.name,
+            "path": existing.path,
+            "git_remote": existing.git_remote,
+            "created_at": existing.created_at.isoformat() if existing.created_at else None
+        }
+        return {"status": "success", "message": "Projeto já cadastrado", "project": project_data}
+        
+    # Verifica se o nome já está em uso por outro caminho
+    existing_name = db.query(Project).filter(Project.name == project_in.name).first()
+    if existing_name:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Já existe um projeto cadastrado com o nome '{project_in.name}' no caminho '{existing_name.path}'."
+        )
         
     clone_status = None
     # Se foi fornecido um remoto Git, realiza a clonagem ou vinculação
     if project_in.git_remote:
-        # Se a pasta estiver vazia, clona
-        if not os.listdir(project_in.path):
+        # Se a pasta estiver vazia (ou tiver apenas arquivos ocultos), clona
+        is_empty = True
+        try:
+            if any(not f.startswith('.') for f in os.listdir(project_in.path)):
+                is_empty = False
+        except Exception:
+            pass
+
+        if is_empty:
             try:
                 git_bridge.clone_git(project_in.git_remote, project_in.path)
                 clone_status = "cloned"
             except Exception as e:
-                clone_status = f"failed_clone: {str(e)}"
+                # Se falhar a clonagem, remove a pasta criada (se vazia)
+                try:
+                    if os.path.exists(project_in.path) and not os.listdir(project_in.path):
+                        os.rmdir(project_in.path)
+                except Exception:
+                    pass
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Falha ao clonar repositório Git: {str(e)}"
+                )
         else:
             # Se não estiver vazia, apenas tenta inicializar e vincular o remoto
             try:
                 git_bridge.init_git(project_in.path, project_in.git_remote)
                 clone_status = "linked"
-            except Exception:
-                clone_status = "skipped_not_empty"
+            except Exception as e:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Pasta de destino não está vazia e falhou ao vincular repositório Git: {str(e)}"
+                )
                 
     db_project = Project(
         name=project_in.name,
@@ -246,7 +290,15 @@ def create_project(project_in: ProjectCreate, db: Session = Depends(get_db)):
     db.add(log)
     db.commit()
     
-    return {"status": "success", "project": db_project, "git_clone_status": clone_status}
+    project_data = {
+        "id": db_project.id,
+        "name": db_project.name,
+        "path": db_project.path,
+        "git_remote": db_project.git_remote,
+        "created_at": db_project.created_at.isoformat() if db_project.created_at else None
+    }
+    
+    return {"status": "success", "project": project_data, "git_clone_status": clone_status}
 
 @app.delete("/api/projects/{project_id}", tags=["Projetos"])
 def delete_project(project_id: int, db: Session = Depends(get_db)):
@@ -607,10 +659,11 @@ def git_deploy(deploy_in: GitDeployRequest,
         raise HTTPException(status_code=500, detail=f"Erro ao realizar deploy via Git: {str(e)}")
 
 @app.get("/api/projects/{project_id}/git/branches", tags=["Git Bridge"])
-def git_list_branches(project: Project = Depends(get_project_or_404)):
+def git_list_branches(fetch: bool = Query(False, description="Forçar git fetch antes de listar"),
+                      project: Project = Depends(get_project_or_404)):
     """Lista as branches locais e remotas do repositório Git."""
     try:
-        return git_bridge.list_branches(project.path)
+        return git_bridge.list_branches(project.path, force_fetch=fetch)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -921,6 +974,18 @@ def github_auth_status():
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Falha ao checar status do GitHub: {str(e)}")
 
+@app.post("/api/github/auth/token", tags=["GitHub Auth"])
+def github_auth_set_token(req: GitSetTokenRequest):
+    """Configura manualmente o token de acesso global do GitHub (PAT)."""
+    token = req.token.strip()
+    if not token:
+        raise HTTPException(status_code=400, detail="O token não pode estar vazio.")
+    
+    conf = get_config()
+    conf["github_access_token"] = token
+    save_config(conf)
+    return {"status": "success"}
+
 @app.post("/api/github/auth/logout", tags=["GitHub Auth"])
 def github_auth_logout():
     """Desconecta a conta do GitHub e apaga o token salvo."""
@@ -1059,6 +1124,152 @@ def rollback_snapshot(snapshot_id: int,
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+# --- ENDPOINTS DE DOCUMENTOS ---
+
+@app.post("/api/projects/{project_id}/documents/word", tags=["Documentos"])
+def create_word_document(
+    req: DocumentCreateRequest,
+    project: Project = Depends(get_project_or_404),
+    db: Session = Depends(get_db),
+    _ = Depends(get_api_key)
+):
+    """Gera um documento Word (.docx) no diretório .documents do projeto."""
+    try:
+        sections_list = [sec.model_dump() for sec in req.sections]
+        result = generate_docx(project.path, req.title, sections_list)
+        
+        # Salva o arquivo JSON de metadados correspondente para carregamento rápido do preview
+        json_filename = result["filename"].replace(".docx", ".json")
+        json_filepath = os.path.join(project.path, ".documents", json_filename)
+        with open(json_filepath, "w", encoding="utf-8") as f:
+            json.dump({
+                "title": req.title,
+                "sections": sections_list
+            }, f, indent=4, ensure_ascii=False)
+        
+        # Log da ação no banco de dados
+        log = ActivityLog(
+            project_id=project.id,
+            action_type="DOCUMENT_GENERATED",
+            details=f"Documento Word gerado: {result.get('filename')}"
+        )
+        db.add(log)
+        db.commit()
+        
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao gerar documento Word: {str(e)}")
+
+@app.post("/api/projects/{project_id}/documents/upload", tags=["Documentos"])
+def upload_document(
+    project_id: int,
+    file: UploadFile = File(...),
+    project: Project = Depends(get_project_or_404),
+    db: Session = Depends(get_db),
+    _ = Depends(get_api_key)
+):
+    """Realiza o upload de um documento Word (.docx) no diretório .documents do projeto."""
+    if not file.filename.endswith(".docx"):
+        raise HTTPException(status_code=400, detail="Somente arquivos .docx (Word) são permitidos.")
+        
+    docs_dir = os.path.join(project.path, ".documents")
+    os.makedirs(docs_dir, exist_ok=True)
+    
+    # Previne directory traversal no nome do arquivo
+    safe_filename = os.path.basename(file.filename)
+    filepath = os.path.join(docs_dir, safe_filename)
+    
+    try:
+        # Lê o conteúdo do upload
+        contents = file.file.read()
+        
+        with open(filepath, "wb") as f:
+            f.write(contents)
+            
+        # Log da ação no banco de dados
+        log = ActivityLog(
+            project_id=project.id,
+            action_type="DOCUMENT_UPLOADED",
+            details=f"Documento Word enviado: {safe_filename}"
+        )
+        db.add(log)
+        db.commit()
+        
+        return {
+            "status": "success",
+            "filename": safe_filename,
+            "filepath": filepath,
+            "size_bytes": os.path.getsize(filepath)
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao salvar arquivo: {str(e)}")
+
+@app.get("/api/projects/{project_id}/documents", tags=["Documentos"])
+def list_documents(project: Project = Depends(get_project_or_404)):
+    """Lista todos os documentos Word (.docx) gerados no diretório .documents do projeto."""
+    docs_dir = os.path.join(project.path, ".documents")
+    if not os.path.exists(docs_dir):
+        return []
+    
+    documents = []
+    try:
+        for entry in os.scandir(docs_dir):
+            if entry.is_file() and entry.name.endswith(".docx"):
+                stat = entry.stat()
+                documents.append({
+                    "filename": entry.name,
+                    "filepath": entry.path,
+                    "size_bytes": stat.st_size,
+                    "modified_at": datetime.fromtimestamp(stat.st_mtime).isoformat()
+                })
+        # Ordena pelos mais recentes
+        documents.sort(key=lambda x: x["modified_at"], reverse=True)
+        return documents
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao listar documentos: {str(e)}")
+
+@app.get("/api/projects/{project_id}/documents/{filename}/download", tags=["Documentos"])
+def download_document(filename: str, project: Project = Depends(get_project_or_404)):
+    """Faz o download do documento Word especificado."""
+    # Garante segurança de caminho impedindo navegação de diretório
+    if ".." in filename or "/" in filename or "\\" in filename:
+        raise HTTPException(status_code=400, detail="Nome de arquivo inválido.")
+        
+    filepath = os.path.join(project.path, ".documents", filename)
+    if not os.path.exists(filepath):
+        raise HTTPException(status_code=404, detail="Documento não encontrado.")
+        
+    return FileResponse(
+        path=filepath,
+        filename=filename,
+        media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    )
+
+@app.get("/api/projects/{project_id}/documents/{filename}/preview", tags=["Documentos"])
+def preview_document(filename: str, project: Project = Depends(get_project_or_404)):
+    """Retorna a estrutura JSON do documento (parágrafos, tabelas, etc.) para visualização na UI."""
+    if ".." in filename or "/" in filename or "\\" in filename:
+        raise HTTPException(status_code=400, detail="Nome de arquivo inválido.")
+        
+    docx_filepath = os.path.join(project.path, ".documents", filename)
+    if not os.path.exists(docx_filepath):
+        raise HTTPException(status_code=404, detail="Documento não encontrado.")
+        
+    # Caminho alternativo do JSON cache
+    json_filepath = docx_filepath.replace(".docx", ".json")
+    if os.path.exists(json_filepath):
+        try:
+            with open(json_filepath, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            pass
+            
+    # Se não houver cache de JSON, analisa o .docx de forma heurística
+    try:
+        return parse_docx_to_json(docx_filepath)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao processar prévia do documento: {str(e)}")
+
 # --- ENDPOINTS DO AGENTE IA NATIVO ---
 
 @app.get("/api/agent/config", tags=["Agente IA"])
@@ -1157,18 +1368,63 @@ from fastapi.openapi.utils import get_openapi
 def custom_openapi():
     if app.openapi_schema:
         return app.openapi_schema
+        
+    # Filtra as rotas para expor menos de 30 operações para o GPT Action (evita erro de limite do ChatGPT)
+    exclude_prefixes = [
+        "/api/github/auth",
+        "/api/github/repos",
+        "/api/agent/config",
+        "/api/system/dirs",
+    ]
+    exclude_suffixes = [
+        "/rollback",
+        "/diff",
+        "/logs",
+        "/snapshots",
+        "/git/token",
+        "/git/merge/abort",
+        "/documents/{filename}/preview",
+        "/documents/upload",
+        "/agent/run",
+    ]
+    
+    filtered_routes = []
+    for route in app.routes:
+        path = getattr(route, "path", "")
+        should_exclude = False
+        
+        # Filtra por prefixo
+        for prefix in exclude_prefixes:
+            if path.startswith(prefix):
+                should_exclude = True
+                break
+                
+        if not should_exclude:
+            # Filtra por sufixo
+            for suffix in exclude_suffixes:
+                if path.endswith(suffix):
+                    should_exclude = True
+                    break
+                    
+        # Filtra a rota raiz do Dashboard
+        if path == "/":
+            should_exclude = True
+            
+        if not should_exclude:
+            filtered_routes.append(route)
+            
     openapi_schema = get_openapi(
         title="GitIDE API",
         version="1.0.0",
         description="Interface para GPT Actions interagirem livremente com código, comandos e bancos de dados locais.",
-        routes=app.routes,
+        routes=filtered_routes,
     )
     
-    # Configura o servidor padrão (URL fixa do Pinggy)
+    # Configura o servidor padrão (URL padrão)
     openapi_schema["servers"] = [
         {
-            "url": "https://gitide.a.pinggy.link",
-            "description": "Servidor local GitIDE via Cloudflare Tunnel"
+            "url": "https://ide.builtt.com.br",
+            "description": "Servidor local GitIDE"
         }
     ]
     

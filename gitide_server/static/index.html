@@ -20,9 +20,9 @@
     <link rel="stylesheet" href="/static/settings-tabs.css?v=1">
     <script src="/static/lucide-bootstrap.js"></script>
     <script defer src="/static/ui/workspace-switcher.js?v=2"></script>
-    <script defer src="/static/settings-tabs.js?v=2"></script>
+    <script defer src="/static/settings-tabs.js?v=3"></script>
     <script defer src="/static/sidebar-workspace-footer.js?v=1"></script>
-    <script defer src="/static/navigation-unlock.js?v=1"></script>
+    <script defer src="/static/navigation-unlock.js?v=2"></script>
 </head>
 <body>
     <div class="app-container">
@@ -91,6 +91,9 @@
                     </button>
                     <button class="nav-item" data-tab="tab-agent">
                         <i data-lucide="bot"></i> Agente IA Nativo
+                    </button>
+                    <button class="nav-item" data-tab="tab-documents">
+                        <i data-lucide="file-text"></i> Documentos (Word)
                     </button>
                 </nav>
 
@@ -551,6 +554,16 @@ cloudflared tunnel --url http://localhost:8000</pre>
                                             <button class="btn btn-primary" id="btn-copy-token-settings" style="padding: 6px 12px; font-size: 12px;"><i class="fa-solid fa-copy"></i> Copiar Token</button>
                                         </div>
                                     </li>
+                                    <li style="font-size: 13px; line-height: 1.4;">
+                                        <strong>Configure as Instruções do GPT (GPT Instructions):</strong>
+                                        <p style="margin: 4px 0; color: var(--text-muted);">Copie as instruções abaixo e cole no campo <strong>Instructions</strong> do seu Custom GPT no ChatGPT para guiar a IA de forma segura:</p>
+                                        <div class="generated-command-container" style="background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); padding: 12px; border-radius: 8px; font-family: var(--font-mono); font-size: 11.5px; line-height: 1.4; word-break: break-word; position: relative; margin-top: 8px;">
+                                            <pre id="gpt-custom-instructions-text" style="white-space: pre-wrap; margin: 0; color: var(--text-light); max-height: 150px; overflow-y: auto;">Você é um Agente de Engenharia de Software conectado ao computador local do usuário via GitIDE.
+Antes de realizar qualquer tarefa de leitura, escrita ou execução de comandos, você DEVE verificar se existe o arquivo 'GPT_INSTRUCTIONS.md' na raiz do workspace do projeto atual (usando o endpoint de leitura de arquivos).
+Se o arquivo existir, leia e siga rigorosamente todas as diretrizes, fases de análise e o protocolo de execução contidos nele. Sempre elabore um plano de implementação detalhado em Markdown e aguarde a aprovação do usuário antes de modificar códigos ou rodar deploys.</pre>
+                                            <button type="button" class="btn btn-secondary btn-sm" id="btn-copy-gpt-custom-instructions" style="margin-top: 8px; padding: 6px 12px; font-size: 12px;"><i class="fa-solid fa-copy"></i> Copiar Instruções</button>
+                                        </div>
+                                    </li>
                                 </ol>
                             </div>
                         </div>
@@ -677,6 +690,80 @@ cloudflared tunnel --url http://localhost:8000</pre>
                         </div>
                     </div>
                 </div>
+
+                <!-- TAB: DOCUMENTS -->
+                <div id="tab-documents" class="tab-pane">
+                    <div class="documents-layout" style="display: flex; gap: 20px; height: 100%; min-height: 0; padding: 20px; flex-direction: row;">
+                        
+                        <!-- Painel Esquerdo: Lista de Documentos -->
+                        <div class="card" style="flex: 1.2; display: flex; flex-direction: column; min-width: 0; height: 100%; overflow: hidden; padding: 20px;">
+                            
+                            <!-- Header da área de documentos -->
+                            <div class="panel-header-simple" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 14px; margin-bottom: 20px; flex-shrink: 0;">
+                                <div style="display: flex; align-items: center; gap: 12px;">
+                                    <div style="background: rgba(99, 102, 241, 0.15); border: 1px solid rgba(99, 102, 241, 0.25); width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: var(--color-primary); font-size: 18px;">
+                                        <i class="fa-solid fa-file-word"></i>
+                                    </div>
+                                    <div>
+                                        <h3 style="margin: 0; font-size: 16px; font-weight: 600; color: var(--text-light);">Documentação Word</h3>
+                                        <p style="font-size: 12px; color: var(--text-muted); margin: 0; margin-top: 2px;">Geração e envio de relatórios técnicos (.docx).</p>
+                                    </div>
+                                </div>
+                                <div style="display: flex; gap: 10px;">
+                                    <button class="btn btn-secondary btn-sm" id="btn-refresh-documents" title="Recarregar lista"><i class="fa-solid fa-rotate"></i></button>
+                                    <button class="btn btn-secondary btn-sm" id="btn-upload-document"><i class="fa-solid fa-cloud-arrow-up"></i> Upload</button>
+                                    <input type="file" id="input-upload-document" accept=".docx" style="display: none;">
+                                    <button class="btn btn-primary btn-sm" id="btn-generate-test-doc"><i class="fa-solid fa-file-circle-plus"></i> Test Doc</button>
+                                </div>
+                            </div>
+
+                            <!-- Listagem de Documentos -->
+                            <div style="flex: 1; overflow-y: auto; min-height: 200px;">
+                                <table class="table" style="width: 100%; border-collapse: collapse; text-align: left;">
+                                    <thead>
+                                        <tr style="border-bottom: 2px solid var(--border-color); font-weight: 600; color: var(--text-light); font-size: 13px;">
+                                            <th style="padding: 12px 8px;">Nome do Arquivo</th>
+                                            <th style="padding: 12px 8px;">Tamanho</th>
+                                            <th style="padding: 12px 8px; text-align: right;">Ações</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="documents-table-body">
+                                        <!-- Preenchido via JS -->
+                                        <tr>
+                                            <td colspan="3" style="text-align: center; color: var(--text-muted); padding: 40px 0;">
+                                                <i class="fa-solid fa-folder-open" style="font-size: 32px; display: block; margin-bottom: 12px;"></i>
+                                                Nenhum documento Word gerado ainda neste projeto.
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Painel Direito: Visualizador A4 -->
+                        <div class="card" style="flex: 1; display: flex; flex-direction: column; min-width: 0; height: 100%; overflow: hidden; padding: 20px;">
+                            <div class="panel-header-simple" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 14px; margin-bottom: 20px; flex-shrink: 0;">
+                                <h4 style="margin: 0; font-size: 14px; font-weight: 600; color: var(--text-light); display: flex; align-items: center; gap: 8px;">
+                                    <i class="fa-solid fa-eye"></i> Prévia do Documento (Visualização A4)
+                                </h4>
+                                <span id="preview-filename-badge" class="badge" style="font-size: 11px; padding: 3px 8px; border-radius: 4px; background: rgba(255,255,255,0.05); color: var(--text-muted); display: none;"></span>
+                            </div>
+                            
+                            <div style="flex: 1; overflow-y: auto; display: flex; justify-content: center; background: rgba(0,0,0,0.25); padding: 20px; border-radius: 8px; min-height: 0;">
+                                <!-- Folha A4 Realista -->
+                                <div id="document-preview-sheet" style="display: none; width: 100%; max-width: 800px; min-height: 842px; height: fit-content; background: #ffffff; color: #1e293b; padding: 40px 50px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); border-radius: 4px; font-family: Calibri, sans-serif; box-sizing: border-box; text-align: left;">
+                                    <!-- Preenchido dinamicamente -->
+                                </div>
+                                
+                                <div id="document-preview-empty" style="display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--text-muted); gap: 12px; margin: auto; text-align: center; padding: 40px 20px;">
+                                    <i class="fa-solid fa-file-invoice" style="font-size: 48px; color: var(--color-primary); opacity: 0.5;"></i>
+                                    <span>Selecione um documento na tabela para visualizar a prévia em tempo real</span>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
             </main>
         </div>
     </div>
@@ -739,6 +826,18 @@ cloudflared tunnel --url http://localhost:8000</pre>
                             <div class="github-auth-status" id="github-auth-status">
                                 Waiting for user authorization...
                             </div>
+                        </div>
+
+                        <!-- SEÇÃO DE LOGIN ALTERNATIVO VIA PAT -->
+                        <div class="github-pat-section" style="margin-top: 24px; border-top: 1px dashed var(--border-color); padding-top: 16px;">
+                            <h6 style="margin: 0 0 8px 0; font-size: 12px; font-weight: 500; color: var(--text-light);">Ou use um Personal Access Token (PAT):</h6>
+                            <div style="display: flex; gap: 8px;">
+                                <input type="password" id="github-pat-input" class="text-input" placeholder="ghp_... ou github_pat_..." style="flex: 1; font-size: 12px; padding: 8px 10px; border-radius: 6px;">
+                                <button type="button" class="btn btn-primary" id="btn-save-github-pat" style="padding: 8px 12px; font-size: 12px; font-weight: 500; white-space: nowrap; border-radius: 6px;"><i class="fa-solid fa-key"></i> Conectar PAT</button>
+                            </div>
+                            <p style="margin: 6px 0 0 0; font-size: 11px; color: var(--text-muted); line-height: 1.4;">
+                                Necessário se sua conta possuir restrições para autorizar o App OAuth. Gere um token com permissão de <strong>repo</strong> em <a href="https://github.com/settings/tokens" target="_blank" style="color: var(--color-primary); text-decoration: none; font-weight: 500;">Configurações do GitHub</a>.
+                            </p>
                         </div>
                     </div>
 

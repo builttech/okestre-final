@@ -229,6 +229,8 @@ function switchTab(tabId) {
         } else if (tabId === 'tab-database') {
             loadDbTables();
             loadProjectDbCredentials();
+        } else if (tabId === 'tab-documents') {
+            loadDocuments();
         }
     }
 }
@@ -784,10 +786,11 @@ async function runSqlQuery() {
 }
 
 // --- GIT BRIDGE ---
-async function loadGitStatus() {
+async function loadGitStatus(forceFetch = false) {
     const container = document.getElementById('git-status-detail');
     const initPanel = document.getElementById('git-init-panel');
     const deployPanel = document.getElementById('git-deploy-panel');
+    const shouldFetch = forceFetch === true;
     
     try {
         const res = await fetch(`/api/projects/${state.activeProjectId}/git/status`);
@@ -807,7 +810,7 @@ async function loadGitStatus() {
         initPanel.style.display = 'none';
         deployPanel.style.display = 'block';
         
-        await loadGitBranches(status.current_branch);
+        await loadGitBranches(status.current_branch, shouldFetch);
         state.activeProjectRemoteUrl = status.remote_url || '';
         updateGitGeneratedCommand();
         
@@ -883,7 +886,7 @@ async function loadGitStatus() {
             document.getElementById('btn-dropdown-refresh-branches').addEventListener('click', (e) => {
                 e.stopPropagation();
                 closeAllDropdowns();
-                loadGitStatus();
+                loadGitStatus(true);
             });
             
             document.getElementById('btn-dropdown-git-pull').addEventListener('click', (e) => {
@@ -922,12 +925,13 @@ async function loadGitStatus() {
     }
 }
 
-async function loadGitBranches(currentBranch) {
+async function loadGitBranches(currentBranch, forceFetch = false) {
     const branchSelect = document.getElementById('git-branch-input');
     if (!branchSelect) return;
 
     try {
-        const res = await fetch(`/api/projects/${state.activeProjectId}/git/branches`);
+        const url = `/api/projects/${state.activeProjectId}/git/branches` + (forceFetch ? '?fetch=true' : '');
+        const res = await fetch(url);
         const data = await res.json();
         if (data.status === 'success') {
             const currentSelected = currentBranch || data.current_branch || 'main';
@@ -999,7 +1003,11 @@ async function initGitRepo() {
             }
             loadGitStatus();
         } else {
-            appendGitConsole(`Erro ao inicializar Git: ${data.detail}`, true);
+            let errorMsg = data.detail;
+            if (typeof errorMsg === 'object') {
+                errorMsg = JSON.stringify(errorMsg);
+            }
+            appendGitConsole(`Erro ao inicializar Git: ${errorMsg || 'Erro desconhecido'}`, true);
         }
         
     } catch (err) {
@@ -1449,6 +1457,7 @@ function setupEventListeners() {
     document.getElementById('btn-github-connect').addEventListener('click', startGitHubDeviceFlow);
     document.getElementById('btn-copy-github-code').addEventListener('click', copyGitHubCode);
     document.getElementById('btn-github-logout').addEventListener('click', logoutGitHub);
+    document.getElementById('btn-save-github-pat').addEventListener('click', saveGitHubPat);
 
     // 3.1. Tab Navigation Events
     document.querySelectorAll('.modal-tab-btn').forEach(btn => {
@@ -1959,6 +1968,22 @@ function setupEventListeners() {
     if (runGitCmdBtn) {
         runGitCmdBtn.addEventListener('click', runGitSetTokenAPI);
     }
+    
+    // 12. Documentos Word
+    const refreshDocsBtn = document.getElementById('btn-refresh-documents');
+    if (refreshDocsBtn) {
+        refreshDocsBtn.addEventListener('click', loadDocuments);
+    }
+    const uploadDocBtn = document.getElementById('btn-upload-document');
+    const uploadDocInput = document.getElementById('input-upload-document');
+    if (uploadDocBtn && uploadDocInput) {
+        uploadDocBtn.addEventListener('click', () => uploadDocInput.click());
+        uploadDocInput.addEventListener('change', handleDocumentUpload);
+    }
+    const generateTestDocBtn = document.getElementById('btn-generate-test-doc');
+    if (generateTestDocBtn) {
+        generateTestDocBtn.addEventListener('click', generateTestDocument);
+    }
 }
 
 // --- IMPORT APP TABBED MODAL FUNCTIONS ---
@@ -2186,8 +2211,13 @@ async function executeProjectImport(name, path, remoteUrl) {
                 git_remote: remoteUrl
             })
         });
-        
-        const data = await res.json();
+        const text = await res.text();
+        let data;
+        try {
+            data = JSON.parse(text);
+        } catch (jsonErr) {
+            throw new Error(text || `Erro do servidor (Status: ${res.status})`);
+        }
         
         if (res.status === 200 && data.status === 'success') {
             document.getElementById('modal-project').classList.remove('active');
@@ -2209,7 +2239,7 @@ async function executeProjectImport(name, path, remoteUrl) {
             alert(`Erro ao importar projeto: ${data.detail || 'Verifique se a pasta já existe ou se as informações estão corretas.'}`);
         }
     } catch (err) {
-        alert(`Falha de conexão ao importar projeto: ${err.message}`);
+        alert(`Falha ao importar projeto: ${err.message}`);
     } finally {
         importBtn.disabled = false;
         importBtn.innerHTML = originalText;
@@ -2413,6 +2443,42 @@ async function logoutGitHub() {
         checkGitHubStatus();
     } catch (err) {
         console.error('Erro ao desconectar do GitHub:', err);
+    }
+}
+
+async function saveGitHubPat() {
+    const input = document.getElementById('github-pat-input');
+    const token = input.value.trim();
+    if (!token) {
+        alert('Por favor, insira o token clássico (PAT) do GitHub.');
+        return;
+    }
+    
+    const btn = document.getElementById('btn-save-github-pat');
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Conectando...';
+    
+    try {
+        const res = await fetch('/api/github/auth/token', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: token })
+        });
+        
+        const data = await res.json();
+        if (res.status === 200 && data.status === 'success') {
+            input.value = '';
+            alert('Token do GitHub (PAT) conectado e salvo com sucesso!');
+            checkGitHubStatus();
+        } else {
+            alert(`Erro ao salvar token: ${data.detail || 'Erro desconhecido'}`);
+        }
+    } catch (err) {
+        alert(`Erro de conexão ao salvar token: ${err.message}`);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
     }
 }
 
@@ -3907,6 +3973,476 @@ async function runGitSetTokenAPI() {
     } catch (err) {
         appendGitConsole(`Erro ao configurar token: ${err.message}`, true);
         alert(`Erro ao configurar token: ${err.message}`);
+    }
+}
+
+// --- SISTEMA DE DOCUMENTOS WORD ---
+
+async function loadDocuments() {
+    if (!state.activeProjectId) return;
+    
+    const tbody = document.getElementById('documents-table-body');
+    if (!tbody) return;
+    
+    tbody.innerHTML = `
+        <tr>
+            <td colspan="3" style="text-align: center; color: var(--text-muted); padding: 40px 0;">
+                <i class="fa-solid fa-circle-notch fa-spin" style="font-size: 24px; margin-bottom: 8px;"></i><br>
+                Carregando documentos...
+            </td>
+        </tr>
+    `;
+    
+    try {
+        const res = await fetch(`/api/projects/${state.activeProjectId}/documents`);
+        const documents = await res.json();
+        
+        if (!res.ok) {
+            throw new Error(documents.detail || 'Erro ao carregar documentos');
+        }
+        
+        if (documents.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="3" style="text-align: center; color: var(--text-muted); padding: 40px 0;">
+                        <i class="fa-solid fa-folder-open" style="font-size: 32px; display: block; margin-bottom: 12px;"></i>
+                        Nenhum documento Word gerado ainda neste projeto.
+                    </td>
+                </tr>
+            `;
+            
+            // Oculta prévia e mostra vazio
+            const sheet = document.getElementById('document-preview-sheet');
+            const empty = document.getElementById('document-preview-empty');
+            const badge = document.getElementById('preview-filename-badge');
+            if (sheet) sheet.style.display = 'none';
+            if (empty) empty.style.display = 'flex';
+            if (badge) badge.style.display = 'none';
+            return;
+        }
+        
+        tbody.innerHTML = '';
+        documents.forEach(doc => {
+            const tr = document.createElement('tr');
+            tr.style.borderBottom = '1px solid var(--border-color)';
+            tr.style.fontSize = '13px';
+            tr.style.cursor = 'pointer';
+            
+            const sizeKB = (doc.size_bytes / 1024).toFixed(1);
+            
+            // Verifica se este documento é o ativo no estado
+            const isSelected = state.selectedDocumentFilename === doc.filename;
+            if (isSelected) {
+                tr.style.background = 'rgba(99, 102, 241, 0.1)';
+            }
+            
+            tr.innerHTML = `
+                <td style="padding: 12px 8px; color: var(--text-light); font-weight: 500;" class="doc-name-cell">
+                    <i class="fa-regular fa-file-word" style="color: var(--color-primary); margin-right: 6px;"></i> ${doc.filename}
+                </td>
+                <td style="padding: 12px 8px; color: var(--text-muted);">${sizeKB} KB</td>
+                <td style="padding: 12px 8px; text-align: right;">
+                    <button class="btn btn-sm btn-primary btn-download-doc" data-filename="${doc.filename}" style="padding: 4px 8px; font-size: 11px;">
+                        <i class="fa-solid fa-download"></i> Baixar
+                    </button>
+                </td>
+            `;
+            
+            // Event listener para seleção/preview
+            const selectRow = () => {
+                tbody.querySelectorAll('tr').forEach(r => r.style.background = '');
+                tr.style.background = 'rgba(99, 102, 241, 0.1)';
+                state.selectedDocumentFilename = doc.filename;
+                loadDocumentPreview(doc.filename);
+            };
+            
+            tr.querySelector('.doc-name-cell').addEventListener('click', selectRow);
+            
+            // Event listener para download
+            tr.querySelector('.btn-download-doc').addEventListener('click', (e) => {
+                e.stopPropagation(); // Impede seleção da linha
+                const filename = e.currentTarget.getAttribute('data-filename');
+                downloadDocumentFile(filename);
+            });
+            
+            tbody.appendChild(tr);
+        });
+        
+        // Seleciona o primeiro por padrão caso não tenha seleção ativa válida
+        let docToSelect = documents[0];
+        if (state.selectedDocumentFilename) {
+            const found = documents.find(d => d.filename === state.selectedDocumentFilename);
+            if (found) docToSelect = found;
+        }
+        
+        if (docToSelect) {
+            state.selectedDocumentFilename = docToSelect.filename;
+            loadDocumentPreview(docToSelect.filename);
+            
+            // Destaca a linha correspondente
+            const rows = tbody.querySelectorAll('tr');
+            documents.forEach((d, idx) => {
+                if (d.filename === docToSelect.filename && rows[idx]) {
+                    rows[idx].style.background = 'rgba(99, 102, 241, 0.1)';
+                }
+            });
+        }
+        
+    } catch (err) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="3" style="text-align: center; color: var(--color-danger); padding: 40px 0;">
+                    <i class="fa-solid fa-triangle-exclamation" style="font-size: 32px; display: block; margin-bottom: 12px;"></i>
+                    Erro ao listar documentos: ${err.message}
+                </td>
+            </tr>
+        `;
+    }
+}
+
+async function downloadDocumentFile(filename) {
+    if (!state.activeProjectId) return;
+    try {
+        const url = `/api/projects/${state.activeProjectId}/documents/${encodeURIComponent(filename)}/download`;
+        
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+    } catch (err) {
+        alert(`Erro ao fazer download: ${err.message}`);
+    }
+}
+
+async function generateTestDocument() {
+    if (!state.activeProjectId) return;
+    
+    const btn = document.getElementById('btn-generate-test-doc');
+    if (!btn) return;
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> Gerando...`;
+    
+    try {
+        const docPayload = {
+            title: "Especificação Técnica - Projeto " + state.activeProject.name,
+            sections: [
+                {
+                    heading: "1. Introdução",
+                    text: "Este documento apresenta a especificação técnica e de arquitetura do projeto. O escopo contempla a análise de código, controle de versão nativo integrado com o Git, e integração de ferramentas avançadas.",
+                    type: "paragraph"
+                },
+                {
+                    heading: "2. Destaques do Projeto",
+                    text: "Desenvolvimento rápido utilizando Python e FastAPI.\\nBanco de dados local leve com suporte a migrações em tempo real.\\nDesign moderno com suporte a tokens customizados.",
+                    type: "bullet"
+                },
+                {
+                    heading: "3. Nota Importante",
+                    text: "Certifique-se de que todas as dependências estão devidamente instaladas executando 'pip install -r requirements.txt' antes de iniciar o servidor em ambiente de homologação ou produção.",
+                    type: "highlight"
+                },
+                {
+                    heading: "4. Exemplo de Código do Endpoint",
+                    text: "@app.get(\\\"/api/info\\\")\\ndef get_server_info():\\n    return {\\\"status\\\": \\\"online\\\", \\\"version\\\": \\\"1.0.0\\\"}",
+                    type: "code"
+                },
+                {
+                    heading: "5. Tabela de Versões e Status",
+                    text: '[["Componente", "Versão", "Status"], ["FastAPI", "0.110.0", "Homologado"], ["Python-docx", "1.1.0", "Adicionado"], ["SQLite", "3.x", "Ativo"]]',
+                    type: "table"
+                }
+            ]
+        };
+        
+        const res = await fetch(`/api/projects/${state.activeProjectId}/documents/word`, {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify(docPayload)
+        });
+        
+        const data = await res.json();
+        
+        if (!res.ok) {
+            throw new Error(data.detail || 'Erro ao gerar o documento');
+        }
+        
+        alert(`Documento "${data.filename}" gerado com sucesso!`);
+        loadDocuments();
+    } catch (err) {
+        alert(`Erro ao gerar documento de teste: ${err.message}`);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+    }
+}
+
+async function handleDocumentUpload(e) {
+    if (!state.activeProjectId) return;
+    const fileInput = e.target;
+    if (!fileInput.files || fileInput.files.length === 0) return;
+    
+    const file = fileInput.files[0];
+    if (!file.name.endsWith('.docx')) {
+        alert('Por favor, envie apenas arquivos com extensão .docx (Word).');
+        fileInput.value = '';
+        return;
+    }
+    
+    const uploadBtn = document.getElementById('btn-upload-document');
+    let originalText = '';
+    if (uploadBtn) {
+        originalText = uploadBtn.innerHTML;
+        uploadBtn.disabled = true;
+        uploadBtn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> Enviando...`;
+    }
+    
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    try {
+        const res = await fetch(`/api/projects/${state.activeProjectId}/documents/upload`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${state.apiKey}`
+            },
+            body: formData
+        });
+        
+        const data = await res.json();
+        
+        if (!res.ok) {
+            throw new Error(data.detail || 'Erro ao realizar upload');
+        }
+        
+        alert(`Documento "${data.filename}" enviado com sucesso!`);
+        loadDocuments();
+    } catch (err) {
+        alert(`Erro ao enviar documento: ${err.message}`);
+    } finally {
+        fileInput.value = '';
+        if (uploadBtn) {
+            uploadBtn.disabled = false;
+            uploadBtn.innerHTML = originalText;
+        }
+    }
+}
+
+async function loadDocumentPreview(filename) {
+    if (!state.activeProjectId) return;
+    
+    const sheet = document.getElementById('document-preview-sheet');
+    const empty = document.getElementById('document-preview-empty');
+    const badge = document.getElementById('preview-filename-badge');
+    
+    if (!sheet || !empty) return;
+    
+    sheet.style.display = 'block';
+    empty.style.display = 'none';
+    
+    if (badge) {
+        badge.textContent = filename;
+        badge.style.display = 'inline-block';
+    }
+    
+    sheet.innerHTML = `
+        <div style="display: flex; justify-content: center; align-items: center; min-height: 200px; color: #475569;">
+            <i class="fa-solid fa-circle-notch fa-spin" style="font-size: 32px; margin-right: 12px; color: #4F46E5;"></i>
+            <span>Processando prévia do documento...</span>
+        </div>
+    `;
+    
+    try {
+        const res = await fetch(`/api/projects/${state.activeProjectId}/documents/${encodeURIComponent(filename)}/preview`);
+        const data = await res.json();
+        
+        if (!res.ok) {
+            throw new Error(data.detail || 'Erro ao carregar prévia');
+        }
+        
+        renderDocumentPreview(data);
+    } catch (err) {
+        sheet.innerHTML = `
+            <div style="color: #ef4444; padding: 20px; text-align: center;">
+                <i class="fa-solid fa-triangle-exclamation" style="font-size: 32px; margin-bottom: 12px;"></i>
+                <p style="font-weight: bold;">Erro ao carregar prévia:</p>
+                <p style="font-size: 13px;">${err.message}</p>
+            </div>
+        `;
+    }
+}
+
+function renderDocumentPreview(data) {
+    const sheet = document.getElementById('document-preview-sheet');
+    if (!sheet) return;
+    
+    sheet.innerHTML = '';
+    
+    // 1. Título do Documento
+    const titleEl = document.createElement('h1');
+    titleEl.textContent = data.title || 'Documento';
+    titleEl.style.fontFamily = 'Arial, sans-serif';
+    titleEl.style.fontSize = '26px';
+    titleEl.style.fontWeight = 'bold';
+    titleEl.style.color = '#4F46E5'; // Indigo
+    titleEl.style.margin = '0 0 4px 0';
+    sheet.appendChild(titleEl);
+    
+    // Linha divisória
+    const divider = document.createElement('div');
+    divider.style.width = '100%';
+    divider.style.height = '4px';
+    divider.style.background = '#4F46E5';
+    divider.style.marginBottom = '20px';
+    sheet.appendChild(divider);
+    
+    // Metadados
+    const meta = document.createElement('p');
+    meta.style.fontFamily = 'Calibri, sans-serif';
+    meta.style.fontSize = '9pt';
+    meta.style.color = '#475569'; // Slate
+    meta.style.fontStyle = 'italic';
+    meta.style.margin = '0 0 24px 0';
+    meta.style.lineHeight = '1.4';
+    meta.innerHTML = `Data de Geração: ${new Date().toLocaleString()}<br>Gerado via: Agente GitIDE`;
+    sheet.appendChild(meta);
+    
+    // 2. Seções
+    if (data.sections && data.sections.length > 0) {
+        data.sections.forEach(sec => {
+            // Se houver heading, renderiza
+            if (sec.heading && sec.heading.trim() !== '') {
+                const headingEl = document.createElement('h2');
+                headingEl.textContent = sec.heading.trim();
+                headingEl.style.fontFamily = 'Arial, sans-serif';
+                headingEl.style.fontSize = '16px';
+                headingEl.style.fontWeight = 'bold';
+                headingEl.style.color = '#4F46E5';
+                headingEl.style.marginTop = '24px';
+                headingEl.style.marginBottom = '8px';
+                sheet.appendChild(headingEl);
+            }
+            
+            if (!sec.text || sec.text.trim() === '') return;
+            
+            const type = (sec.type || 'paragraph').toLowerCase().trim();
+            
+            if (type === 'paragraph') {
+                const p = document.createElement('p');
+                p.textContent = sec.text;
+                p.style.fontFamily = 'Calibri, sans-serif';
+                p.style.fontSize = '11pt';
+                p.style.color = '#374151';
+                p.style.lineHeight = '1.15';
+                p.style.marginBottom = '12px';
+                sheet.appendChild(p);
+                
+            } else if (type === 'bullet') {
+                const ul = document.createElement('ul');
+                ul.style.paddingLeft = '20px';
+                ul.style.marginBottom = '12px';
+                ul.style.listStyleType = 'disc';
+                
+                const lines = sec.text.split('\n');
+                lines.forEach(line => {
+                    const cleanLine = line.trim().replace(/^[-*]\s+/, '');
+                    if (cleanLine) {
+                        const li = document.createElement('li');
+                        li.textContent = cleanLine;
+                        li.style.fontFamily = 'Calibri, sans-serif';
+                        li.style.fontSize = '11pt';
+                        li.style.color = '#374151';
+                        li.style.marginBottom = '4px';
+                        ul.appendChild(li);
+                    }
+                });
+                sheet.appendChild(ul);
+                
+            } else if (type === 'highlight') {
+                const callout = document.createElement('div');
+                callout.style.background = '#F8FAFC';
+                callout.style.borderLeft = '4.5px solid #4F46E5';
+                callout.style.padding = '12px 16px';
+                callout.style.marginBottom = '16px';
+                callout.style.borderRadius = '2px';
+                
+                const p = document.createElement('p');
+                p.textContent = sec.text;
+                p.style.fontFamily = 'Calibri, sans-serif';
+                p.style.fontSize = '10.5pt';
+                p.style.color = '#475569';
+                p.style.fontStyle = 'italic';
+                p.style.margin = '0';
+                p.style.lineHeight = '1.4';
+                callout.appendChild(p);
+                sheet.appendChild(callout);
+                
+            } else if (type === 'code') {
+                const pre = document.createElement('pre');
+                pre.style.background = '#F1F5F9';
+                pre.style.padding = '12px';
+                pre.style.borderRadius = '4px';
+                pre.style.overflowX = 'auto';
+                pre.style.marginBottom = '16px';
+                pre.style.border = '1px solid #E2E8F0';
+                
+                const code = document.createElement('code');
+                code.textContent = sec.text;
+                code.style.fontFamily = 'Consolas, monospace';
+                code.style.fontSize = '9.5pt';
+                code.style.color = '#1E293B';
+                pre.appendChild(code);
+                sheet.appendChild(pre);
+                
+            } else if (type === 'table') {
+                try {
+                    const matrix = JSON.parse(sec.text);
+                    if (Array.isArray(matrix) && matrix.length > 0) {
+                        const table = document.createElement('table');
+                        table.style.width = '100%';
+                        table.style.borderCollapse = 'collapse';
+                        table.style.marginBottom = '16px';
+                        table.style.fontFamily = 'Calibri, sans-serif';
+                        table.style.fontSize = '10pt';
+                        
+                        matrix.forEach((rowData, rIdx) => {
+                            const tr = document.createElement('tr');
+                            const isHeader = rIdx === 0;
+                            
+                            rowData.forEach(cellVal => {
+                                const cell = document.createElement(isHeader ? 'th' : 'td');
+                                cell.textContent = cellVal;
+                                cell.style.border = '1px solid #CBD5E1';
+                                cell.style.padding = '8px';
+                                
+                                if (isHeader) {
+                                    cell.style.background = '#4F46E5';
+                                    cell.style.color = '#ffffff';
+                                    cell.style.fontWeight = 'bold';
+                                    cell.style.textAlign = 'center';
+                                } else {
+                                    cell.style.color = '#374151';
+                                    if (rIdx % 2 === 1) {
+                                        cell.style.background = '#F8FAFC';
+                                    }
+                                }
+                                tr.appendChild(cell);
+                            });
+                            table.appendChild(tr);
+                        });
+                        sheet.appendChild(table);
+                    }
+                } catch (err) {
+                    const fallback = document.createElement('p');
+                    fallback.textContent = `[Tabela: ${sec.text}]`;
+                    fallback.style.color = '#ef4444';
+                    fallback.style.fontStyle = 'italic';
+                    sheet.appendChild(fallback);
+                }
+            }
+        });
     }
 }
 
