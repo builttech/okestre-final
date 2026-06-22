@@ -38,6 +38,21 @@ def update_remote_url_with_token(repo: Repo):
         url = origin.url
         token = get_github_token()
         if token and ("github.com" in url):
+            # Detecta se a URL já possui credenciais configuradas
+            has_credentials = False
+            current_token = ""
+            if "@" in url:
+                prefix = "https://" if url.startswith("https://") else "http://"
+                remainder = url[len(prefix):]
+                if "@" in remainder:
+                    has_credentials = True
+                    current_token = remainder.split("@", 1)[0]
+            
+            # Se já possui credenciais e elas não foram geradas pelo OAuth do GitIDE (não começam com gho_),
+            # não sobrescrevemos para respeitar a configuração manual do usuário (PAT ghp_...)
+            if has_credentials and not current_token.startswith("gho_"):
+                return
+                
             auth_url = get_authenticated_git_url(url, token)
             if url != auth_url:
                 origin.set_url(auth_url)
