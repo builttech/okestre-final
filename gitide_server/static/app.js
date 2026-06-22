@@ -2211,13 +2211,12 @@ async function executeProjectImport(name, path, remoteUrl) {
                 git_remote: remoteUrl
             })
         });
-        
+        const text = await res.text();
         let data;
         try {
-            data = await res.json();
+            data = JSON.parse(text);
         } catch (jsonErr) {
-            const errText = await res.text();
-            throw new Error(errText || `Erro do servidor (Status: ${res.status})`);
+            throw new Error(text || `Erro do servidor (Status: ${res.status})`);
         }
         
         if (res.status === 200 && data.status === 'success') {
