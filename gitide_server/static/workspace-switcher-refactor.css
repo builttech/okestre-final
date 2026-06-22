@@ -121,10 +121,35 @@
     white-space: nowrap;
 }
 
+.workspace-switcher-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.workspace-switcher-copy-btn {
+    width: 28px;
+    height: 28px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: 0;
+    border-radius: 8px;
+    color: var(--frame-muted, var(--text-muted));
+    cursor: pointer;
+}
+
+.workspace-switcher-copy-btn:hover {
+    background: rgba(255,255,255,0.06);
+    color: var(--frame-text, var(--text-main));
+}
+
 .workspace-switcher-chevron,
 .workspace-switcher-check,
 .workspace-switcher-search .lucide,
-.workspace-switcher-create .lucide {
+.workspace-switcher-create .lucide,
+.workspace-switcher-copy-btn .lucide {
     width: 16px;
     height: 16px;
     color: var(--frame-muted, var(--text-muted));

@@ -35,7 +35,12 @@
           <strong class="workspace-switcher-title">Selecione um workspace</strong>
           <span class="workspace-switcher-subtitle">Plano Agency</span>
         </span>
-        <i data-lucide="chevron-down" class="workspace-switcher-chevron" aria-hidden="true"></i>
+        <span class="workspace-switcher-actions">
+          <button class="workspace-switcher-copy-btn" type="button" title="Copiar informações do workspace" aria-label="Copiar informações do workspace">
+            <i data-lucide="copy" aria-hidden="true"></i>
+          </button>
+          <i data-lucide="chevron-down" class="workspace-switcher-chevron" aria-hidden="true"></i>
+        </span>
       </button>
       <div class="workspace-switcher-menu" role="listbox">
         <div class="workspace-switcher-kicker">Switch workspace</div>
@@ -60,6 +65,7 @@
     const optionsBox = root.querySelector('.workspace-switcher-options');
     const searchInput = root.querySelector('.workspace-switcher-search input');
     const createButton = root.querySelector('.workspace-switcher-create');
+    const copyButton = root.querySelector('.workspace-switcher-copy-btn');
 
     function initials(text) {
       const clean = (text || 'WO').replace(/[^a-z0-9\s-]/gi, '').trim();
@@ -166,6 +172,15 @@
       closeMenu(root);
       const addButton = document.getElementById('btn-new-project') || document.getElementById('btn-state-new-project');
       if (addButton) addButton.click();
+    });
+
+    copyButton?.addEventListener('click', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      const legacyCopyButton = document.getElementById('btn-copy-project-gpt-info');
+      if (legacyCopyButton) {
+        legacyCopyButton.click();
+      }
     });
 
     select.addEventListener('change', () => {
