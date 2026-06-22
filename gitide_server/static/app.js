@@ -35,6 +35,22 @@ async function initApp() {
         const infoData = await infoRes.json();
         
         state.apiKey = infoData.api_key;
+        state.os = infoData.os;
+        state.apiKeyPath = infoData.api_key_path;
+        
+        // Ajusta caminhos padrão se for Linux (VM/Docker)
+        const isLinux = state.os === 'Linux' || (state.apiKeyPath && state.apiKeyPath.startsWith('/'));
+        if (isLinux) {
+            state.os = 'Linux';
+            const listDestInput = document.getElementById('github-list-dest-path');
+            if (listDestInput) {
+                listDestInput.value = '/workspace';
+            }
+            const urlDestInput = document.getElementById('github-url-dest-path');
+            if (urlDestInput) {
+                urlDestInput.placeholder = 'ex: /workspace/meu-app';
+            }
+        }
         
         // Exibe token na barra superior e nas configurações
         document.getElementById('api-token-preview').textContent = state.apiKey.substring(0, 8) + '...';
@@ -1155,6 +1171,12 @@ async function openDirectoryBrowser(targetInputId) {
         const input = document.getElementById(targetInputId);
         startPath = input ? input.value.trim() : '';
     }
+    
+    // Normaliza para /workspace se for Linux e o caminho for vazio ou Windows
+    if (state.os === 'Linux' && (!startPath || startPath.includes('\\') || startPath.includes(':'))) {
+        startPath = '/workspace';
+    }
+    
     await loadBrowserDirectories(startPath);
 }
 
@@ -2060,7 +2082,11 @@ async function handleFooterImport() {
         
         let destPath = document.getElementById('github-url-dest-path').value.trim();
         if (!destPath) {
-            destPath = `C:\\Users\\augus\\.workspace\\${projectName}`;
+            if (state.os === 'Linux') {
+                destPath = `/workspace/${projectName}`;
+            } else {
+                destPath = `C:\\Users\\augus\\.workspace\\${projectName}`;
+            }
         }
         
         await executeProjectImport(projectName, destPath, repoUrl);

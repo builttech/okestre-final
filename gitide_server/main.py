@@ -169,13 +169,16 @@ def get_project_or_404(project_id: int, db: Session = Depends(get_db)) -> Projec
 @app.get("/api/info", tags=["Configuração"])
 def get_server_info():
     """Retorna informações públicas do servidor."""
+    import platform
     return {
         "status": "online",
         "api_key_path": CONFIG_PATH,
         "database_path": os.path.join(CONFIG_DIR, "gitide.db"),
         # Retornamos a chave apenas para o localhost Dashboard
-        "api_key": API_KEY
+        "api_key": API_KEY,
+        "os": platform.system()
     }
+
 
 # Projetos
 @app.get("/api/projects", tags=["Projetos"])
