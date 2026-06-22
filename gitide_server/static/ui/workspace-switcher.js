@@ -25,8 +25,23 @@
   }
 
   function activateTab(tabId) {
+    if (typeof window.gitideActivateTab === 'function') {
+      window.gitideActivateTab(tabId);
+      return;
+    }
+
     const navButton = document.querySelector(`[data-tab="${tabId}"]`);
-    if (navButton) navButton.click();
+    if (navButton) {
+      navButton.click();
+      return;
+    }
+
+    document.querySelectorAll('.tab-pane').forEach((pane) => {
+      pane.classList.toggle('active', pane.id === tabId);
+    });
+
+    const noProjectState = document.getElementById('no-project-state');
+    if (noProjectState) noProjectState.classList.remove('active');
   }
 
   function buildWorkspaceSwitcher() {
