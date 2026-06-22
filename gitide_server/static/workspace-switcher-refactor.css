@@ -1,0 +1,253 @@
+/* Workspace switcher refactor */
+.sidebar .section-header {
+    margin-bottom: 8px;
+}
+
+.sidebar .section-header h3 {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--frame-muted, var(--text-muted));
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase !important;
+}
+
+.sidebar .section-header h3 .lucide {
+    width: 15px;
+    height: 15px;
+}
+
+.sidebar .section-header > div {
+    display: none !important;
+}
+
+.project-selector-wrapper {
+    display: block !important;
+    position: relative;
+    margin-top: 8px;
+}
+
+#project-selector.workspace-switcher-native {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
+
+#btn-copy-project-gpt-info {
+    display: none !important;
+}
+
+.workspace-switcher {
+    position: relative;
+    width: 100%;
+    z-index: 50;
+}
+
+.workspace-switcher.is-open {
+    z-index: 20000;
+}
+
+.workspace-switcher-trigger {
+    width: 100%;
+    min-height: 66px;
+    display: grid;
+    grid-template-columns: 34px minmax(0, 1fr) 18px;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    background: rgba(255, 255, 255, 0.045);
+    border: 1px solid var(--frame-border, var(--border-color));
+    border-radius: 18px;
+    color: var(--frame-text, var(--text-main));
+    cursor: pointer;
+    text-align: left;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.045), 0 14px 34px rgba(0, 0, 0, 0.18);
+    transition: background 160ms ease, border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+}
+
+.workspace-switcher-trigger:hover,
+.workspace-switcher.is-open .workspace-switcher-trigger {
+    background: rgba(255, 255, 255, 0.065);
+    border-color: var(--frame-border-strong, rgba(255, 255, 255, 0.15));
+    transform: translateY(-1px);
+}
+
+.workspace-switcher-avatar {
+    width: 32px;
+    height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    background: #050505;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    border: 1px solid rgba(255, 255, 255, 0.10);
+    flex-shrink: 0;
+}
+
+.workspace-switcher-copy {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 1px;
+}
+
+.workspace-switcher-title,
+.workspace-switcher-copy strong {
+    overflow: hidden;
+    color: var(--frame-text, var(--text-main));
+    font-size: 13px;
+    font-weight: 750;
+    letter-spacing: -0.025em;
+    line-height: 1.25;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.workspace-switcher-subtitle,
+.workspace-switcher-copy span {
+    overflow: hidden;
+    color: var(--frame-muted, var(--text-muted));
+    font-size: 12px;
+    line-height: 1.25;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.workspace-switcher-chevron,
+.workspace-switcher-check,
+.workspace-switcher-search .lucide,
+.workspace-switcher-create .lucide {
+    width: 16px;
+    height: 16px;
+    color: var(--frame-muted, var(--text-muted));
+}
+
+.workspace-switcher-menu {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: calc(100% + 8px);
+    display: none;
+    padding: 8px;
+    border: 1px solid var(--frame-border-strong, rgba(255, 255, 255, 0.15));
+    border-radius: 18px;
+    background: rgba(18, 18, 20, 0.96);
+    backdrop-filter: blur(22px);
+    box-shadow: 0 28px 80px rgba(0, 0, 0, 0.46), inset 0 1px 0 rgba(255, 255, 255, 0.045);
+}
+
+.workspace-switcher.is-open .workspace-switcher-menu {
+    display: block;
+}
+
+.workspace-switcher-search {
+    min-height: 38px;
+    display: grid;
+    grid-template-columns: 16px minmax(0, 1fr);
+    align-items: center;
+    gap: 8px;
+    padding: 0 10px;
+    margin-bottom: 8px;
+    background: rgba(0, 0, 0, 0.26);
+    border: 1px solid var(--frame-border, var(--border-color));
+    border-radius: 12px;
+}
+
+.workspace-switcher-search input {
+    width: 100%;
+    min-width: 0;
+    background: transparent;
+    border: 0;
+    outline: 0;
+    color: var(--frame-text, var(--text-main));
+    font: inherit;
+    font-size: 13px;
+}
+
+.workspace-switcher-search input::placeholder {
+    color: var(--frame-muted, var(--text-muted));
+}
+
+.workspace-switcher-options {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    max-height: 230px;
+    overflow-y: auto;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--frame-border, var(--border-color));
+}
+
+.workspace-switcher-option {
+    width: 100%;
+    min-height: 46px;
+    display: grid;
+    grid-template-columns: 30px minmax(0, 1fr) 18px;
+    align-items: center;
+    gap: 9px;
+    padding: 7px 8px;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 12px;
+    color: var(--frame-text, var(--text-main));
+    cursor: pointer;
+    text-align: left;
+}
+
+.workspace-switcher-option:hover,
+.workspace-switcher-option.is-selected {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: var(--frame-border, var(--border-color));
+}
+
+.workspace-switcher-option .workspace-switcher-avatar {
+    width: 28px;
+    height: 28px;
+    font-size: 10px;
+}
+
+.workspace-switcher-check {
+    opacity: 0;
+    color: var(--color-primary);
+}
+
+.workspace-switcher-option.is-selected .workspace-switcher-check {
+    opacity: 1;
+}
+
+.workspace-switcher-empty {
+    padding: 14px 8px;
+    color: var(--frame-muted, var(--text-muted));
+    font-size: 12px;
+    text-align: center;
+}
+
+.workspace-switcher-create {
+    width: 100%;
+    min-height: 42px;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 8px;
+    padding: 8px 10px;
+    background: transparent;
+    border: 0;
+    border-radius: 12px;
+    color: var(--frame-text, var(--text-main));
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 650;
+    text-align: left;
+}
+
+.workspace-switcher-create:hover {
+    background: rgba(255, 255, 255, 0.06);
+}
