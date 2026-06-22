@@ -33,12 +33,12 @@
         <span class="workspace-switcher-avatar" aria-hidden="true">GI</span>
         <span class="workspace-switcher-copy">
           <strong class="workspace-switcher-title">Selecione um workspace</strong>
-          <span class="workspace-switcher-subtitle">Plano Agency</span>
+          <span class="workspace-switcher-subtitle">Workspace</span>
         </span>
         <span class="workspace-switcher-actions">
-          <button class="workspace-switcher-copy-btn" type="button" title="Copiar informações do workspace" aria-label="Copiar informações do workspace">
+          <span class="workspace-switcher-copy-btn" role="button" tabindex="0" title="Copiar informações do workspace" aria-label="Copiar informações do workspace">
             <i data-lucide="copy" aria-hidden="true"></i>
-          </button>
+          </span>
           <i data-lucide="chevron-down" class="workspace-switcher-chevron" aria-hidden="true"></i>
         </span>
       </button>
@@ -46,12 +46,12 @@
         <div class="workspace-switcher-kicker">Switch workspace</div>
         <div class="workspace-switcher-search">
           <i data-lucide="search" aria-hidden="true"></i>
-          <input type="text" placeholder="Search workspace..." autocomplete="off">
+          <input type="text" placeholder="Buscar workspace..." autocomplete="off">
         </div>
         <div class="workspace-switcher-options"></div>
         <button class="workspace-switcher-create" type="button">
           <i data-lucide="plus" aria-hidden="true"></i>
-          <span>Create workspace</span>
+          <span>Criar workspace</span>
         </button>
       </div>
     `;
@@ -76,8 +76,8 @@
     }
 
     function workspaceSubtitle(option) {
-      if (!option || !option.value) return 'Plano Agency';
-      return option.dataset.subtitle || option.dataset.path || 'Plano Agency';
+      if (!option || !option.value) return 'Workspace';
+      return option.dataset.subtitle || option.dataset.path || 'Workspace';
     }
 
     function getActiveOption() {
@@ -100,6 +100,20 @@
       title.textContent = text;
       subtitle.textContent = workspaceSubtitle(selected);
       avatar.textContent = initials(text);
+    }
+
+    function runCopyAction() {
+      const legacyCopyButton = document.getElementById('btn-copy-project-gpt-info');
+      if (legacyCopyButton) {
+        legacyCopyButton.click();
+        return;
+      }
+
+      const selected = getActiveOption();
+      const text = optionLabel(selected);
+      const value = selected?.value || '';
+      const copyText = `Projeto ativo: ${text}\nID do projeto: ${value}`;
+      navigator.clipboard?.writeText(copyText);
     }
 
     function renderOptions(filterValue) {
@@ -177,10 +191,14 @@
     copyButton?.addEventListener('click', (event) => {
       event.preventDefault();
       event.stopPropagation();
-      const legacyCopyButton = document.getElementById('btn-copy-project-gpt-info');
-      if (legacyCopyButton) {
-        legacyCopyButton.click();
-      }
+      runCopyAction();
+    });
+
+    copyButton?.addEventListener('keydown', (event) => {
+      if (event.key !== 'Enter' && event.key !== ' ') return;
+      event.preventDefault();
+      event.stopPropagation();
+      runCopyAction();
     });
 
     select.addEventListener('change', () => {
