@@ -229,6 +229,8 @@ function switchTab(tabId) {
         } else if (tabId === 'tab-database') {
             loadDbTables();
             loadProjectDbCredentials();
+        } else if (tabId === 'tab-documents') {
+            loadDocuments();
         }
     }
 }
@@ -1958,6 +1960,16 @@ function setupEventListeners() {
     const runGitCmdBtn = document.getElementById('btn-run-generated-git-cmd');
     if (runGitCmdBtn) {
         runGitCmdBtn.addEventListener('click', runGitSetTokenAPI);
+    }
+    
+    // 12. Documentos Word
+    const refreshDocsBtn = document.getElementById('btn-refresh-documents');
+    if (refreshDocsBtn) {
+        refreshDocsBtn.addEventListener('click', loadDocuments);
+    }
+    const generateTestDocBtn = document.getElementById('btn-generate-test-doc');
+    if (generateTestDocBtn) {
+        generateTestDocBtn.addEventListener('click', generateTestDocument);
     }
 }
 
@@ -3907,6 +3919,164 @@ async function runGitSetTokenAPI() {
     } catch (err) {
         appendGitConsole(`Erro ao configurar token: ${err.message}`, true);
         alert(`Erro ao configurar token: ${err.message}`);
+    }
+}
+
+// --- SISTEMA DE DOCUMENTOS WORD ---
+
+async function loadDocuments() {
+    if (!state.activeProjectId) return;
+    
+    const tbody = document.getElementById('documents-table-body');
+    if (!tbody) return;
+    
+    tbody.innerHTML = `
+        <tr>
+            <td colspan="4" style="text-align: center; color: var(--text-muted); padding: 40px 0;">
+                <i class="fa-solid fa-circle-notch fa-spin" style="font-size: 24px; margin-bottom: 8px;"></i><br>
+                Carregando documentos...
+            </td>
+        </tr>
+    `;
+    
+    try {
+        const res = await fetch(`/api/projects/${state.activeProjectId}/documents`);
+        const documents = await res.json();
+        
+        if (!res.ok) {
+            throw new Error(documents.detail || 'Erro ao carregar documentos');
+        }
+        
+        if (documents.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="4" style="text-align: center; color: var(--text-muted); padding: 40px 0;">
+                        <i class="fa-solid fa-folder-open" style="font-size: 32px; display: block; margin-bottom: 12px;"></i>
+                        Nenhum documento Word gerado ainda neste projeto.
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+        
+        tbody.innerHTML = '';
+        documents.forEach(doc => {
+            const tr = document.createElement('tr');
+            tr.style.borderBottom = '1px solid var(--border-color)';
+            tr.style.fontSize = '13px';
+            
+            const sizeKB = (doc.size_bytes / 1024).toFixed(1);
+            const dateStr = new Date(doc.modified_at).toLocaleString();
+            
+            tr.innerHTML = `
+                <td style="padding: 12px 8px; color: var(--text-light); font-weight: 500;">
+                    <i class="fa-regular fa-file-word" style="color: var(--color-primary); margin-right: 6px;"></i> ${doc.filename}
+                </td>
+                <td style="padding: 12px 8px; color: var(--text-muted);">${sizeKB} KB</td>
+                <td style="padding: 12px 8px; color: var(--text-muted);">${dateStr}</td>
+                <td style="padding: 12px 8px; text-align: right;">
+                    <button class="btn btn-sm btn-primary btn-download-doc" data-filename="${doc.filename}" style="padding: 4px 8px; font-size: 11px;">
+                        <i class="fa-solid fa-download"></i> Baixar
+                    </button>
+                </td>
+            `;
+            
+            // Event listener para download
+            tr.querySelector('.btn-download-doc').addEventListener('click', (e) => {
+                const filename = e.currentTarget.getAttribute('data-filename');
+                downloadDocumentFile(filename);
+            });
+            
+            tbody.appendChild(tr);
+        });
+    } catch (err) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="4" style="text-align: center; color: var(--color-danger); padding: 40px 0;">
+                    <i class="fa-solid fa-triangle-exclamation" style="font-size: 32px; display: block; margin-bottom: 12px;"></i>
+                    Erro ao listar documentos: ${err.message}
+                </td>
+            </tr>
+        `;
+    }
+}
+
+async function downloadDocumentFile(filename) {
+    if (!state.activeProjectId) return;
+    try {
+        const url = `/api/projects/${state.activeProjectId}/documents/${encodeURIComponent(filename)}/download`;
+        
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+    } catch (err) {
+        alert(`Erro ao fazer download: ${err.message}`);
+    }
+}
+
+async function generateTestDocument() {
+    if (!state.activeProjectId) return;
+    
+    const btn = document.getElementById('btn-generate-test-doc');
+    if (!btn) return;
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> Gerando...`;
+    
+    try {
+        const docPayload = {
+            title: "Especificação Técnica - Projeto " + state.activeProject.name,
+            sections: [
+                {
+                    heading: "1. Introdução",
+                    text: "Este documento apresenta a especificação técnica e de arquitetura do projeto. O escopo contempla a análise de código, controle de versão nativo integrado com o Git, e integração de ferramentas avançadas.",
+                    type: "paragraph"
+                },
+                {
+                    heading: "2. Destaques do Projeto",
+                    text: "Desenvolvimento rápido utilizando Python e FastAPI.\\nBanco de dados local leve com suporte a migrações em tempo real.\\nDesign moderno com suporte a tokens customizados.",
+                    type: "bullet"
+                },
+                {
+                    heading: "3. Nota Importante",
+                    text: "Certifique-se de que todas as dependências estão devidamente instaladas executando 'pip install -r requirements.txt' antes de iniciar o servidor em ambiente de homologação ou produção.",
+                    type: "highlight"
+                },
+                {
+                    heading: "4. Exemplo de Código do Endpoint",
+                    text: "@app.get(\\\"/api/info\\\")\\ndef get_server_info():\\n    return {\\\"status\\\": \\\"online\\\", \\\"version\\\": \\\"1.0.0\\\"}",
+                    type: "code"
+                },
+                {
+                    heading: "5. Tabela de Versões e Status",
+                    text: '[["Componente", "Versão", "Status"], ["FastAPI", "0.110.0", "Homologado"], ["Python-docx", "1.1.0", "Adicionado"], ["SQLite", "3.x", "Ativo"]]',
+                    type: "table"
+                }
+            ]
+        };
+        
+        const res = await fetch(`/api/projects/${state.activeProjectId}/documents/word`, {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify(docPayload)
+        });
+        
+        const data = await res.json();
+        
+        if (!res.ok) {
+            throw new Error(data.detail || 'Erro ao gerar o documento');
+        }
+        
+        alert(`Documento "${data.filename}" gerado com sucesso!`);
+        loadDocuments();
+    } catch (err) {
+        alert(`Erro ao gerar documento de teste: ${err.message}`);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
     }
 }
 

@@ -24,6 +24,7 @@ from fastapi.responses import StreamingResponse
 from typing import List
 
 import requests
+from gitide_server.documents import generate_docx
 
 # Cria diretórios e inicializa o DB
 init_db()
@@ -159,6 +160,15 @@ class AgentConfigInput(BaseModel):
 
 class AgentChatRequest(BaseModel):
     prompt: str
+
+class DocumentSection(BaseModel):
+    heading: Optional[str] = Field("", description="Título da seção")
+    text: str = Field(..., description="Conteúdo de texto da seção")
+    type: str = Field("paragraph", description="Tipo de formatação (paragraph, bullet, highlight, code, table)")
+
+class DocumentCreateRequest(BaseModel):
+    title: str = Field(..., description="Título principal do documento")
+    sections: List[DocumentSection] = Field(..., description="Lista de seções ordenadas do documento")
 
 
 
@@ -1058,6 +1068,74 @@ def rollback_snapshot(snapshot_id: int,
         raise HTTPException(status_code=404, detail=str(ve))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+# --- ENDPOINTS DE DOCUMENTOS ---
+
+@app.post("/api/projects/{project_id}/documents/word", tags=["Documentos"])
+def create_word_document(
+    req: DocumentCreateRequest,
+    project: Project = Depends(get_project_or_404),
+    db: Session = Depends(get_db),
+    _ = Depends(get_api_key)
+):
+    """Gera um documento Word (.docx) no diretório .documents do projeto."""
+    try:
+        sections_list = [sec.model_dump() for sec in req.sections]
+        result = generate_docx(project.path, req.title, sections_list)
+        
+        # Log da ação no banco de dados
+        log = ActivityLog(
+            project_id=project.id,
+            action_type="DOCUMENT_GENERATED",
+            details=f"Documento Word gerado: {result.get('filename')}"
+        )
+        db.add(log)
+        db.commit()
+        
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao gerar documento Word: {str(e)}")
+
+@app.get("/api/projects/{project_id}/documents", tags=["Documentos"])
+def list_documents(project: Project = Depends(get_project_or_404)):
+    """Lista todos os documentos Word (.docx) gerados no diretório .documents do projeto."""
+    docs_dir = os.path.join(project.path, ".documents")
+    if not os.path.exists(docs_dir):
+        return []
+    
+    documents = []
+    try:
+        for entry in os.scandir(docs_dir):
+            if entry.is_file() and entry.name.endswith(".docx"):
+                stat = entry.stat()
+                documents.append({
+                    "filename": entry.name,
+                    "filepath": entry.path,
+                    "size_bytes": stat.st_size,
+                    "modified_at": datetime.fromtimestamp(stat.st_mtime).isoformat()
+                })
+        # Ordena pelos mais recentes
+        documents.sort(key=lambda x: x["modified_at"], reverse=True)
+        return documents
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao listar documentos: {str(e)}")
+
+@app.get("/api/projects/{project_id}/documents/{filename}/download", tags=["Documentos"])
+def download_document(filename: str, project: Project = Depends(get_project_or_404)):
+    """Faz o download do documento Word especificado."""
+    # Garante segurança de caminho impedindo navegação de diretório
+    if ".." in filename or "/" in filename or "\\" in filename:
+        raise HTTPException(status_code=400, detail="Nome de arquivo inválido.")
+        
+    filepath = os.path.join(project.path, ".documents", filename)
+    if not os.path.exists(filepath):
+        raise HTTPException(status_code=404, detail="Documento não encontrado.")
+        
+    return FileResponse(
+        path=filepath,
+        filename=filename,
+        media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    )
 
 # --- ENDPOINTS DO AGENTE IA NATIVO ---
 

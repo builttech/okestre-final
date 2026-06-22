@@ -54,7 +54,7 @@ def load_agent_config():
         "provider": "gemini",
         "model": "gemini-1.5-pro",
         "api_key": "",
-        "enabled_tools": ["read_file", "write_file", "patch_file", "execute_command", "execute_db_query", "git_status", "git_branches", "git_deploy"]
+        "enabled_tools": ["read_file", "write_file", "patch_file", "execute_command", "execute_db_query", "git_status", "git_branches", "git_deploy", "generate_word_document"]
     }
 
 def save_agent_config(config_data):
@@ -268,6 +268,23 @@ def execute_agent_tool(db: Session, project: Project, tool_name: str, args: dict
             res = git_bridge.deploy_git(project.path, commit_msg, branch)
             return json.dumps(res)
             
+        elif tool_name == "generate_word_document":
+            title = args.get("title")
+            sections = args.get("sections", [])
+            
+            from gitide_server.documents import generate_docx
+            res = generate_docx(project.path, title, sections)
+            
+            log = ActivityLog(
+                project_id=project.id,
+                action_type="DOCUMENT_GENERATED",
+                details=f"[Agente] Documento Word gerado: {res.get('filename')}"
+            )
+            db.add(log)
+            db.commit()
+            
+            return json.dumps(res)
+            
         else:
             return json.dumps({"status": "error", "message": f"Ferramenta desconhecida: {tool_name}"})
             
@@ -306,6 +323,8 @@ def run_agent_loop(db: Session, project: Project, config: dict, user_prompt: str
         tool_desc.append("- `git_branches()`: Lista as branches do repositório.")
     if "git_deploy" in enabled_tools:
         tool_desc.append("- `git_deploy(commit_message: str, branch: Optional[str])`: Adiciona, comita e envia arquivos para o GitHub.")
+    if "generate_word_document" in enabled_tools:
+        tool_desc.append("- `generate_word_document(title: str, sections: List[dict])`: Gera um documento Word (.docx) estruturado sob .documents. Cada seção tem: 'heading' (opcional), 'text' (obrigatório) e 'type' ('paragraph', 'bullet', 'highlight', 'code' ou 'table').")
 
     system_prompt = DEFAULT_SYSTEM_PROMPT + "\n\nFERRAMENTAS DISPONÍVEIS:\n" + "\n".join(tool_desc)
     

@@ -92,6 +92,9 @@
                     <button class="nav-item" data-tab="tab-agent">
                         <i data-lucide="bot"></i> Agente IA Nativo
                     </button>
+                    <button class="nav-item" data-tab="tab-documents">
+                        <i data-lucide="file-text"></i> Documentos (Word)
+                    </button>
                 </nav>
 
                 <!-- Footer Info -->
@@ -674,6 +677,55 @@ cloudflared tunnel --url http://localhost:8000</pre>
                                     GitIDE AI uses advanced LLMs and can occasionally hallucinate. Verify critical code.
                                 </div>
                             </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB: DOCUMENTS -->
+                <div id="tab-documents" class="tab-pane">
+                    <div class="documents-layout" style="display: flex; flex-direction: column; gap: 20px; height: 100%; min-height: 0; padding: 20px;">
+                        <div class="card" style="flex: 1; display: flex; flex-direction: column; min-width: 0; height: 100%; overflow: hidden; padding: 20px;">
+                            
+                            <!-- Header da área de documentos -->
+                            <div class="panel-header-simple" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 14px; margin-bottom: 20px; flex-shrink: 0;">
+                                <div style="display: flex; align-items: center; gap: 12px;">
+                                    <div style="background: rgba(99, 102, 241, 0.15); border: 1px solid rgba(99, 102, 241, 0.25); width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: var(--color-primary); font-size: 18px;">
+                                        <i class="fa-solid fa-file-word"></i>
+                                    </div>
+                                    <div>
+                                        <h3 style="margin: 0; font-size: 16px; font-weight: 600; color: var(--text-light);">Documentação Nativa (Microsoft Word)</h3>
+                                        <p style="font-size: 12px; color: var(--text-muted); margin: 0; margin-top: 2px;">Criação e exportação de relatórios, propostas e especificações técnicas.</p>
+                                    </div>
+                                </div>
+                                <div style="display: flex; gap: 10px;">
+                                    <button class="btn btn-secondary" id="btn-refresh-documents"><i class="fa-solid fa-rotate"></i> Recarregar</button>
+                                    <button class="btn btn-primary" id="btn-generate-test-doc"><i class="fa-solid fa-file-circle-plus"></i> Gerar Documento de Teste</button>
+                                </div>
+                            </div>
+
+                            <!-- Listagem de Documentos -->
+                            <div style="flex: 1; overflow-y: auto; min-height: 200px;">
+                                <table class="table" style="width: 100%; border-collapse: collapse; text-align: left;">
+                                    <thead>
+                                        <tr style="border-bottom: 2px solid var(--border-color); font-weight: 600; color: var(--text-light); font-size: 13px;">
+                                            <th style="padding: 12px 8px;">Nome do Arquivo</th>
+                                            <th style="padding: 12px 8px;">Tamanho</th>
+                                            <th style="padding: 12px 8px;">Última Modificação</th>
+                                            <th style="padding: 12px 8px; text-align: right;">Ações</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="documents-table-body">
+                                        <!-- Preenchido via JS -->
+                                        <tr>
+                                            <td colspan="4" style="text-align: center; color: var(--text-muted); padding: 40px 0;">
+                                                <i class="fa-solid fa-folder-open" style="font-size: 32px; display: block; margin-bottom: 12px;"></i>
+                                                Nenhum documento Word gerado ainda neste projeto.
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
                         </div>
                     </div>
                 </div>
