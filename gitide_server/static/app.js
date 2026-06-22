@@ -818,12 +818,16 @@ async function loadGitStatus() {
                             <i class="fa-solid fa-chevron-down" style="font-size: 10px; color: var(--text-muted);"></i>
                         </button>
                         <div class="dropdown-menu" id="branch-actions-menu" style="position: absolute; top: 100%; left: 8px; z-index: 1000;">
+                            <button type="button" class="dropdown-item" id="btn-dropdown-git-checkout"><i class="fa-solid fa-right-to-bracket"></i> Checkout branch</button>
                             <button type="button" class="dropdown-item" id="btn-dropdown-create-branch"><i class="fa-solid fa-plus"></i> Create new branch</button>
                             <button type="button" class="dropdown-item" id="btn-dropdown-refresh-branches"><i class="fa-solid fa-arrows-rotate"></i> Refresh branches</button>
-                            <button type="button" class="dropdown-item" id="btn-dropdown-git-pull"><i class="fa-solid fa-code-pull-request"></i> Git pull</button>
+                            <button type="button" class="dropdown-item" id="btn-dropdown-git-pull"><i class="fa-solid fa-cloud-arrow-down"></i> Git pull</button>
+                            <button type="button" class="dropdown-item" id="btn-dropdown-git-push"><i class="fa-solid fa-cloud-arrow-up"></i> Git push</button>
                             <button type="button" class="dropdown-item" id="btn-dropdown-git-merge"><i class="fa-solid fa-code-merge"></i> Git merge</button>
+                            <button type="button" class="dropdown-item" id="btn-dropdown-git-abort-merge" style="color: var(--color-danger);"><i class="fa-solid fa-ban"></i> Abort merge</button>
                             <button type="button" class="dropdown-item" id="btn-dropdown-git-pr"><i class="fa-solid fa-code-pull-request"></i> Criar Pull Request</button>
                         </div>
+
                     </span>
                 </p>
                 <p><strong>Status do Repositório:</strong> ${status.is_clean ? '<span style="color: var(--color-success)">Limpo (Sem alterações pendentes)</span>' : '<span style="color: var(--color-warning)">Alterações não commitadas</span>'}</p>
@@ -862,6 +866,12 @@ async function loadGitStatus() {
                 }
             });
             
+            document.getElementById('btn-dropdown-git-checkout').addEventListener('click', (e) => {
+                e.stopPropagation();
+                closeAllDropdowns();
+                openCheckoutModal();
+            });
+
             document.getElementById('btn-dropdown-create-branch').addEventListener('click', (e) => {
                 e.stopPropagation();
                 closeAllDropdowns();
@@ -879,11 +889,23 @@ async function loadGitStatus() {
                 closeAllDropdowns();
                 runGitPull();
             });
+
+            document.getElementById('btn-dropdown-git-push').addEventListener('click', (e) => {
+                e.stopPropagation();
+                closeAllDropdowns();
+                runGitPush();
+            });
             
             document.getElementById('btn-dropdown-git-merge').addEventListener('click', (e) => {
                 e.stopPropagation();
                 closeAllDropdowns();
                 openMergeModal();
+            });
+
+            document.getElementById('btn-dropdown-git-abort-merge').addEventListener('click', (e) => {
+                e.stopPropagation();
+                closeAllDropdowns();
+                runGitAbortMerge();
             });
             
             document.getElementById('btn-dropdown-git-pr').addEventListener('click', (e) => {
@@ -1606,6 +1628,13 @@ function setupEventListeners() {
         btn.addEventListener('click', () => closeCustomModal('modal-merge'));
     });
     document.getElementById('btn-merge-confirm').addEventListener('click', runGitMerge);
+    
+    // Checkout Dialog Close & Confirm Events
+    document.querySelectorAll('.checkout-close').forEach(btn => {
+        btn.addEventListener('click', () => closeCustomModal('modal-checkout'));
+    });
+    document.getElementById('btn-checkout-confirm').addEventListener('click', runGitCheckout);
+
     
     // 7.5. Ações do Design System (Tokens)
     document.getElementById('btn-add-token-set').addEventListener('click', openCreateSetModal);
@@ -3619,4 +3648,130 @@ async function sendPromptToAgent(e) {
         promptInput.focus();
     }
 }
+
+function openCheckoutModal() {
+    if (!state.activeProjectId) return;
+    
+    const selector = document.getElementById('checkout-branch-selector');
+    selector.innerHTML = '<option value="">Carregando branches...</option>';
+    
+    openCustomModal('modal-checkout');
+    
+    fetch(`/api/projects/${state.activeProjectId}/git/branches`, {
+        headers: getHeaders()
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.status === 'success') {
+            const current = data.current_branch || 'main';
+            selector.innerHTML = '';
+            
+            // Lista todas as branches disponíveis
+            const branches = data.all || [];
+            if (branches.length === 0) {
+                selector.innerHTML = '<option value="">Nenhuma branch disponível</option>';
+                return;
+            }
+            
+            branches.forEach(b => {
+                const opt = document.createElement('option');
+                opt.value = b;
+                opt.textContent = b === current ? `${b} (ativa)` : b;
+                selector.appendChild(opt);
+            });
+            selector.value = current;
+        } else {
+            selector.innerHTML = '<option value="">Erro ao carregar lista de branches</option>';
+        }
+    })
+    .catch(err => {
+        console.error('Erro ao listar branches:', err);
+        selector.innerHTML = '<option value="">Erro ao carregar lista de branches</option>';
+    });
+}
+
+async function runGitCheckout() {
+    const selector = document.getElementById('checkout-branch-selector');
+    const selectedBranch = selector.value;
+    if (!selectedBranch) return;
+    
+    closeCustomModal('modal-checkout');
+    
+    appendGitConsole(`Alternando para a branch "${selectedBranch}"...`);
+    try {
+        const res = await fetch(`/api/projects/${state.activeProjectId}/git/branches`, {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify({ name: selectedBranch })
+        });
+        
+        if (!res.ok) {
+            throw new Error(await res.text());
+        }
+        
+        const data = await res.json();
+        appendGitConsole(`Alternado para a branch "${selectedBranch}" com sucesso!`);
+        loadGitStatus();
+    } catch (err) {
+        appendGitConsole(`Erro ao alternar para a branch: ${err.message}`, true);
+        alert(`Erro ao alternar para a branch: ${err.message}`);
+        loadGitStatus();
+    }
+}
+
+async function runGitPush() {
+    if (!state.activeProjectId) return;
+    
+    appendGitConsole(`Iniciando Git Push...`);
+    try {
+        const res = await fetch(`/api/projects/${state.activeProjectId}/git/push`, {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify({ branch: null })
+        });
+        
+        const data = await res.json();
+        
+        if (!res.ok) {
+            throw new Error(data.detail || 'Erro desconhecido');
+        }
+        
+        appendGitConsole(`Git Push executado com sucesso!\n${data.details || ''}`);
+        alert('Git Push executado com sucesso!');
+        loadGitStatus();
+    } catch (err) {
+        appendGitConsole(`Erro ao executar Git Push: ${err.message}`, true);
+        alert(`Erro ao executar Git Push: ${err.message}`);
+    }
+}
+
+async function runGitAbortMerge() {
+    if (!state.activeProjectId) return;
+    
+    if (!confirm('Tem certeza que deseja abortar a mesclagem em andamento? Todas as alterações não resolvidas do merge serão descartadas.')) {
+        return;
+    }
+    
+    appendGitConsole(`Abortando mesclagem (git merge --abort)...`);
+    try {
+        const res = await fetch(`/api/projects/${state.activeProjectId}/git/merge/abort`, {
+            method: 'POST',
+            headers: getHeaders()
+        });
+        
+        const data = await res.json();
+        
+        if (!res.ok) {
+            throw new Error(data.detail || 'Erro desconhecido');
+        }
+        
+        appendGitConsole(`Mesclagem abortada com sucesso!`);
+        alert('Mesclagem abortada com sucesso!');
+        loadGitStatus();
+    } catch (err) {
+        appendGitConsole(`Erro ao abortar mesclagem: ${err.message}`, true);
+        alert(`Erro ao abortar mesclagem: ${err.message}`);
+    }
+}
+
 

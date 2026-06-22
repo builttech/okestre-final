@@ -856,6 +856,28 @@ cloudflared tunnel --url http://localhost:8000</pre>
         </div>
     </div>
 
+    <!-- MODAL: CHECKOUT BRANCH -->
+    <div class="modal-backdrop" id="modal-checkout">
+        <div class="modal-card" style="max-width: 450px;">
+            <div class="modal-header">
+                <h3>Checkout Branch</h3>
+                <button class="btn-icon modal-close checkout-close"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body" style="padding: 20px; display: flex; flex-direction: column; gap: 14px;">
+                <p style="font-size: 13px; color: var(--text-muted); margin: 0;">Selecione a branch para a qual deseja alternar:</p>
+                <div class="form-group" style="display: flex; flex-direction: column; gap: 6px;">
+                    <label for="checkout-branch-selector">Selecionar Branch:</label>
+                    <select id="checkout-branch-selector" class="select-input">
+                        <option value="">Carregando branches...</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary checkout-close" id="btn-checkout-cancel">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="btn-checkout-confirm">Checkout</button>
+            </div>
+        </div>
+    </div>
 
     <!-- MODAL: THEME EDITOR -->
     <div class="modal-backdrop" id="modal-theme-editor">
