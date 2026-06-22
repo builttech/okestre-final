@@ -1365,11 +1365,11 @@ def custom_openapi():
         routes=filtered_routes,
     )
     
-    # Configura o servidor padrão (URL fixa do Pinggy)
+    # Configura o servidor padrão (URL padrão)
     openapi_schema["servers"] = [
         {
-            "url": "https://gitide.a.pinggy.link",
-            "description": "Servidor local GitIDE via Cloudflare Tunnel"
+            "url": "https://ide.builtt.com.br",
+            "description": "Servidor local GitIDE"
         }
     ]
     
