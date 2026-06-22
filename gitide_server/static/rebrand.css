@@ -2360,24 +2360,22 @@ input[type="checkbox"]:focus-visible{
 .git-branch-option.is-selected .git-branch-check{opacity:1;}
 
 /* Git view cleanup: disable broken branch switcher duplicate, normalize deploy controls */
-.git-branch-switcher{
-    display:none!important;
-}
-
 #git-branch-input,
 #git-branch-input.git-branch-native{
-    display:inline-flex!important;
-    appearance:none!important;
-    -webkit-appearance:none!important;
+    display:inline-block!important;
+    appearance:auto!important;
+    -webkit-appearance:menulist!important;
     min-width:110px!important;
     height:34px!important;
-    padding:0 32px 0 12px!important;
+    padding:0 8px!important;
     border-radius:12px!important;
     border:1px solid var(--flat-border)!important;
     background:rgba(255,255,255,.025)!important;
     color:var(--text-main)!important;
     font-size:13px!important;
     font-weight:600!important;
+    pointer-events:auto!important;
+    opacity:1!important;
 }
 
 #git-branch-input:focus{
