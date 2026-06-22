@@ -104,6 +104,13 @@ def get_git_status(project_path: str) -> dict:
     try:
         repo = get_repo(project_path)
         
+        # Busca a URL remota de origin
+        remote_url = ""
+        try:
+            remote_url = repo.remotes.origin.url
+        except Exception:
+            pass
+
         # Verifica se é um repositório vazio (sem commits)
         if len(repo.refs) == 0 or not repo.head.is_valid():
             return {
@@ -113,7 +120,8 @@ def get_git_status(project_path: str) -> dict:
                 "modified": [],
                 "deleted": [],
                 "staged": [],
-                "current_branch": "main"  # Git default
+                "current_branch": "main",  # Git default
+                "remote_url": remote_url
             }
 
         untracked = repo.untracked_files
@@ -135,7 +143,8 @@ def get_git_status(project_path: str) -> dict:
             "modified": modified,
             "deleted": deleted,
             "staged": staged,
-            "is_clean": not any([untracked, modified, deleted, staged])
+            "is_clean": not any([untracked, modified, deleted, staged]),
+            "remote_url": remote_url
         }
     except ValueError:
         return {
@@ -146,7 +155,8 @@ def get_git_status(project_path: str) -> dict:
             "modified": [],
             "deleted": [],
             "staged": [],
-            "is_clean": True
+            "is_clean": True,
+            "remote_url": ""
         }
     except Exception as e:
         return {
@@ -362,6 +372,27 @@ def abort_merge(project_path: str) -> dict:
         }
     except Exception as e:
         raise RuntimeError(f"Erro ao abortar mesclagem: {str(e)}")
+
+def set_remote_token(project_path: str, token: str) -> dict:
+    """Configura o Personal Access Token (PAT) na URL de origin do Git."""
+    repo = get_repo(project_path)
+    try:
+        origin = repo.remote(name="origin")
+        url = origin.url
+        if not url:
+            raise ValueError("O repositório não possui um controle remoto 'origin' configurado.")
+            
+        # Reconstrói a URL injetando o token
+        auth_url = get_authenticated_git_url(url, token)
+        origin.set_url(auth_url)
+        return {
+            "status": "success",
+            "new_url": auth_url.split("@")[-1] if "@" in auth_url else auth_url,
+            "details": "Token configurado com sucesso no controle remoto origin."
+        }
+    except Exception as e:
+        raise RuntimeError(f"Erro ao configurar token: {str(e)}")
+
 
 
 

@@ -808,6 +808,8 @@ async function loadGitStatus() {
         deployPanel.style.display = 'block';
         
         await loadGitBranches(status.current_branch);
+        state.activeProjectRemoteUrl = status.remote_url || '';
+        updateGitGeneratedCommand();
         
         let html = `
             <div class="git-status-info" style="margin-bottom: 14px;">
@@ -1913,6 +1915,49 @@ function setupEventListeners() {
                 alert('Visualizando diferenças...');
             }
         });
+    }
+
+    // Ações do Painel de Autenticação Git (PAT Token)
+    const patInput = document.getElementById('git-pat-token-input');
+    if (patInput) {
+        patInput.addEventListener('input', updateGitGeneratedCommand);
+    }
+    
+    const togglePatBtn = document.getElementById('btn-toggle-pat-visibility');
+    if (togglePatBtn) {
+        togglePatBtn.addEventListener('click', () => {
+            const input = document.getElementById('git-pat-token-input');
+            const icon = togglePatBtn.querySelector('i');
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.className = 'fa-solid fa-eye-slash';
+            } else {
+                input.type = 'password';
+                icon.className = 'fa-solid fa-eye';
+            }
+        });
+    }
+    
+    const copyGitCmdBtn = document.getElementById('btn-copy-generated-git-cmd');
+    if (copyGitCmdBtn) {
+        copyGitCmdBtn.addEventListener('click', () => {
+            const text = document.getElementById('git-generated-command-text').textContent;
+            navigator.clipboard.writeText(text).then(() => {
+                const icon = copyGitCmdBtn.querySelector('i');
+                const originalClass = icon.className;
+                icon.className = 'fa-solid fa-check';
+                icon.style.color = 'var(--color-success)';
+                setTimeout(() => {
+                    icon.className = originalClass;
+                    icon.style.color = '';
+                }, 2000);
+            });
+        });
+    }
+    
+    const runGitCmdBtn = document.getElementById('btn-run-generated-git-cmd');
+    if (runGitCmdBtn) {
+        runGitCmdBtn.addEventListener('click', runGitSetTokenAPI);
     }
 }
 
@@ -3773,5 +3818,90 @@ async function runGitAbortMerge() {
         alert(`Erro ao abortar mesclagem: ${err.message}`);
     }
 }
+
+function updateGitGeneratedCommand() {
+    const patInput = document.getElementById('git-pat-token-input');
+    const cmdText = document.getElementById('git-generated-command-text');
+    const copyBtn = document.getElementById('btn-copy-generated-git-cmd');
+    const runBtn = document.getElementById('btn-run-generated-git-cmd');
+    
+    if (!patInput || !cmdText || !copyBtn || !runBtn) return;
+    
+    // Remove <> e espaços
+    const token = patInput.value.replace(/[<> ]/g, '');
+    
+    if (!token) {
+        cmdText.textContent = 'Digite o token acima para gerar o comando...';
+        cmdText.style.color = 'var(--text-muted)';
+        copyBtn.style.display = 'none';
+        runBtn.disabled = true;
+        return;
+    }
+    
+    // Limpa a URL de origin caso já tenha token
+    let cleanUrl = state.activeProjectRemoteUrl || '';
+    if (cleanUrl.includes('@')) {
+        const prefix = cleanUrl.startsWith('https://') ? 'https://' : 'http://';
+        const remainder = cleanUrl.substring(prefix.length);
+        if (remainder.includes('@')) {
+            cleanUrl = prefix + remainder.split('@')[1];
+        }
+    }
+    
+    let displayUrl = cleanUrl || 'https://github.com/usuario/repositorio.git';
+    let authUrl = displayUrl;
+    
+    if (displayUrl.startsWith('https://github.com/')) {
+        authUrl = displayUrl.replace('https://github.com/', `https://${token}@github.com/`);
+    } else if (displayUrl.startsWith('http://github.com/')) {
+        authUrl = displayUrl.replace('http://github.com/', `http://${token}@github.com/`);
+    }
+    
+    cmdText.textContent = `git remote set-url origin ${authUrl}`;
+    cmdText.style.color = 'var(--color-primary)';
+    copyBtn.style.display = 'block';
+    runBtn.disabled = false;
+}
+
+async function runGitSetTokenAPI() {
+    if (!state.activeProjectId) return;
+    
+    const patInput = document.getElementById('git-pat-token-input');
+    if (!patInput) return;
+    
+    const token = patInput.value.replace(/[<> ]/g, '');
+    if (!token) {
+        alert('Digite um token de acesso válido.');
+        return;
+    }
+    
+    appendGitConsole(`Configurando Personal Access Token no repositório local...`);
+    try {
+        const res = await fetch(`/api/projects/${state.activeProjectId}/git/token`, {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify({ token: token })
+        });
+        
+        const data = await res.json();
+        
+        if (!res.ok) {
+            throw new Error(data.detail || 'Erro desconhecido');
+        }
+        
+        appendGitConsole(`Token configurado com sucesso!`);
+        alert('Token de acesso configurado com sucesso no controle remoto!');
+        
+        // Limpa o input do token por privacidade
+        patInput.value = '';
+        updateGitGeneratedCommand();
+        
+        loadGitStatus();
+    } catch (err) {
+        appendGitConsole(`Erro ao configurar token: ${err.message}`, true);
+        alert(`Erro ao configurar token: ${err.message}`);
+    }
+}
+
 
 

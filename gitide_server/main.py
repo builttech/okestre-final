@@ -143,6 +143,8 @@ class GitMergeRequest(BaseModel):
 class GitPushRequest(BaseModel):
     branch: Optional[str] = Field(None, description="Nome da branch para dar push (opcional)")
 
+class GitSetTokenRequest(BaseModel):
+    token: str = Field(..., description="Personal Access Token do GitHub")
 
 class GitPullRequestCreate(BaseModel):
     title: str = Field(..., description="Título do Pull Request")
@@ -695,7 +697,29 @@ def git_abort_merge(project: Project = Depends(get_project_or_404),
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.post("/api/projects/{project_id}/git/token", tags=["Git Bridge"])
+def git_set_token(req: GitSetTokenRequest,
+                  project: Project = Depends(get_project_or_404),
+                  db: Session = Depends(get_db),
+                  _ = Depends(get_api_key)):
+    """Configura o token de acesso GitHub na URL remota de origin."""
+    try:
+        result = git_bridge.set_remote_token(project.path, req.token)
+        
+        log = ActivityLog(
+            project_id=project.id,
+            action_type="GIT_TOKEN_SET",
+            details="Token do GitHub configurado na URL remota de origin."
+        )
+        db.add(log)
+        db.commit()
+        
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 import re
+
 
 
 def parse_github_remote(url: str):

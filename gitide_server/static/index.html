@@ -377,6 +377,26 @@
                             </div>
                         </div>
 
+                        <div class="git-credentials-card card" style="margin-top: 14px;">
+                            <div class="card-header">
+                                <h4><i class="fa-solid fa-key"></i> Autenticação com Token (Personal Access Token)</h4>
+                            </div>
+                            <div class="card-body" style="padding: 16px; display: flex; flex-direction: column; gap: 12px;">
+                                <p style="font-size: 13px; color: var(--text-muted); margin: 0;">Insira seu Token do GitHub para gerar e aplicar o comando de autenticação no repositório ativo:</p>
+                                <div style="display: flex; gap: 10px; align-items: center;">
+                                    <input type="password" id="git-pat-token-input" class="text-input" placeholder="ghp_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX" style="flex: 1;">
+                                    <button class="btn btn-secondary" id="btn-toggle-pat-visibility" type="button" style="padding: 8px 12px;"><i class="fa-solid fa-eye"></i></button>
+                                </div>
+                                <div class="generated-command-container" style="background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); padding: 12px; border-radius: 8px; font-family: var(--font-mono); font-size: 12px; word-break: break-all; position: relative;">
+                                    <span id="git-generated-command-text" style="color: var(--text-muted);">Digite o token acima para gerar o comando...</span>
+                                    <button type="button" class="btn-icon-copy" id="btn-copy-generated-git-cmd" title="Copiar Comando" style="position: absolute; right: 10px; top: 10px; display: none;"><i class="fa-regular fa-clipboard"></i></button>
+                                </div>
+                                <div style="display: flex; gap: 10px;">
+                                    <button class="btn btn-primary" id="btn-run-generated-git-cmd" disabled><i class="fa-solid fa-circle-play"></i> Executar Comando no Terminal</button>
+                                </div>
+                            </div>
+                        </div>
+
                         <div class="git-console-card card">
                             <div class="card-header">
                                 <h4>Console Git Output</h4>
