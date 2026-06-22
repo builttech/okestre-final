@@ -7,7 +7,7 @@
 
   function closeMenu(root) {
     if (!root) return;
-    root.classList.remove('is-open');
+    root.classList.remove('is-open', 'is-switching-org');
     const trigger = root.querySelector('.workspace-switcher-trigger');
     if (trigger) trigger.setAttribute('aria-expanded', 'false');
   }
@@ -18,6 +18,17 @@
     }
   }
 
+  function getTokenPreview() {
+    const fullToken = document.getElementById('api-token-full-view')?.value || '';
+    const previewToken = document.getElementById('api-token-preview')?.textContent || '';
+    return (fullToken && !fullToken.includes('Carregando')) ? fullToken : previewToken;
+  }
+
+  function activateTab(tabId) {
+    const navButton = document.querySelector(`[data-tab="${tabId}"]`);
+    if (navButton) navButton.click();
+  }
+
   function buildWorkspaceSwitcher() {
     const select = document.getElementById(SELECTOR_ID);
     if (!select || select.dataset.workspaceSwitcherReady === 'true') return;
@@ -26,32 +37,74 @@
     select.classList.add('workspace-switcher-native');
 
     const root = document.createElement('div');
-    root.className = 'workspace-switcher';
+    root.className = 'workspace-switcher workspace-account-menu';
 
     root.innerHTML = `
-      <button class="workspace-switcher-trigger" type="button" aria-haspopup="listbox" aria-expanded="false">
+      <button class="workspace-switcher-trigger" type="button" aria-haspopup="menu" aria-expanded="false">
         <span class="workspace-switcher-avatar" aria-hidden="true">GI</span>
         <span class="workspace-switcher-copy">
           <strong class="workspace-switcher-title">Selecione um workspace</strong>
-          <span class="workspace-switcher-subtitle">Workspace</span>
+          <span class="workspace-switcher-subtitle">Organization</span>
         </span>
-        <span class="workspace-switcher-actions">
-          <span class="workspace-switcher-copy-btn" role="button" tabindex="0" title="Copiar informações do workspace" aria-label="Copiar informações do workspace">
-            <i data-lucide="copy" aria-hidden="true"></i>
-          </span>
-          <i data-lucide="chevron-down" class="workspace-switcher-chevron" aria-hidden="true"></i>
-        </span>
+        <i data-lucide="chevron-down" class="workspace-switcher-chevron" aria-hidden="true"></i>
       </button>
-      <div class="workspace-switcher-menu" role="listbox">
-        <div class="workspace-switcher-kicker">Switch workspace</div>
-        <div class="workspace-switcher-search">
-          <i data-lucide="search" aria-hidden="true"></i>
-          <input type="text" placeholder="Buscar workspace..." autocomplete="off">
+      <div class="workspace-switcher-menu workspace-account-popover" role="menu">
+        <div class="workspace-account-email" id="workspace-account-email">GitIDE Workspace</div>
+
+        <div class="workspace-account-mode-row" aria-label="Preferências rápidas">
+          <button class="workspace-account-mode-btn is-active" type="button" title="Modo desktop"><i data-lucide="monitor"></i></button>
+          <button class="workspace-account-mode-btn" type="button" title="Tema claro"><i data-lucide="sun"></i></button>
+          <button class="workspace-account-mode-btn" type="button" title="Tema escuro"><i data-lucide="moon"></i></button>
         </div>
-        <div class="workspace-switcher-options"></div>
-        <button class="workspace-switcher-create" type="button">
-          <i data-lucide="plus" aria-hidden="true"></i>
-          <span>Criar workspace</span>
+
+        <div class="workspace-account-divider"></div>
+
+        <button class="workspace-account-org-row" type="button" role="menuitem" aria-expanded="false">
+          <span class="workspace-switcher-avatar" aria-hidden="true">GI</span>
+          <span class="workspace-switcher-copy">
+            <strong class="workspace-account-org-title">Selecione um workspace</strong>
+            <span>Organization</span>
+          </span>
+          <i data-lucide="chevron-right" class="workspace-account-chevron" aria-hidden="true"></i>
+        </button>
+
+        <div class="workspace-switcher-options workspace-account-org-submenu" role="listbox"></div>
+
+        <div class="workspace-account-divider"></div>
+
+        <button class="workspace-account-item" type="button" data-workspace-action="project-settings" role="menuitem">
+          <i data-lucide="building-2" aria-hidden="true"></i>
+          <span>Organization settings</span>
+        </button>
+        <button class="workspace-account-item" type="button" data-workspace-action="profile-settings" role="menuitem">
+          <i data-lucide="circle-user-round" aria-hidden="true"></i>
+          <span>Profile settings</span>
+        </button>
+
+        <div class="workspace-account-divider"></div>
+
+        <button class="workspace-account-item" type="button" data-workspace-action="copy-context" role="menuitem">
+          <i data-lucide="copy" aria-hidden="true"></i>
+          <span>Copy project context</span>
+        </button>
+        <button class="workspace-account-item" type="button" data-workspace-action="developer-docs" role="menuitem">
+          <i data-lucide="book-open" aria-hidden="true"></i>
+          <span>Developer docs</span>
+        </button>
+        <button class="workspace-account-item" type="button" data-workspace-action="terms" role="menuitem">
+          <i data-lucide="file-text" aria-hidden="true"></i>
+          <span>Terms & policies</span>
+        </button>
+        <button class="workspace-account-item" type="button" data-workspace-action="help" role="menuitem">
+          <i data-lucide="life-buoy" aria-hidden="true"></i>
+          <span>Help</span>
+        </button>
+
+        <div class="workspace-account-divider"></div>
+
+        <button class="workspace-account-item workspace-account-item-danger" type="button" data-workspace-action="logout" role="menuitem">
+          <i data-lucide="log-out" aria-hidden="true"></i>
+          <span>Log out</span>
         </button>
       </div>
     `;
@@ -62,10 +115,10 @@
     const title = root.querySelector('.workspace-switcher-title');
     const subtitle = root.querySelector('.workspace-switcher-subtitle');
     const avatar = root.querySelector('.workspace-switcher-avatar');
+    const orgTitle = root.querySelector('.workspace-account-org-title');
+    const orgRow = root.querySelector('.workspace-account-org-row');
     const optionsBox = root.querySelector('.workspace-switcher-options');
-    const searchInput = root.querySelector('.workspace-switcher-search input');
-    const createButton = root.querySelector('.workspace-switcher-create');
-    const copyButton = root.querySelector('.workspace-switcher-copy-btn');
+    const emailLabel = root.querySelector('#workspace-account-email');
 
     function initials(text) {
       const clean = (text || 'WO').replace(/[^a-z0-9\s-]/gi, '').trim();
@@ -76,8 +129,8 @@
     }
 
     function workspaceSubtitle(option) {
-      if (!option || !option.value) return 'Workspace';
-      return option.dataset.subtitle || option.dataset.path || 'Workspace';
+      if (!option || !option.value) return 'Organization';
+      return option.dataset.subtitle || option.dataset.path || 'Organization';
     }
 
     function getActiveOption() {
@@ -97,9 +150,13 @@
     function syncTitle() {
       const selected = getActiveOption();
       const text = optionLabel(selected);
+      const detail = workspaceSubtitle(selected);
       title.textContent = text;
-      subtitle.textContent = workspaceSubtitle(selected);
+      subtitle.textContent = detail;
+      orgTitle.textContent = text;
       avatar.textContent = initials(text);
+      root.querySelector('.workspace-account-org-row .workspace-switcher-avatar').textContent = initials(text);
+      emailLabel.textContent = getTokenPreview() || 'GitIDE Workspace';
     }
 
     function runCopyAction() {
@@ -116,20 +173,17 @@
       navigator.clipboard?.writeText(copyText);
     }
 
-    function renderOptions(filterValue) {
-      const filter = (filterValue || '').toLowerCase();
+    function renderOptions() {
       optionsBox.innerHTML = '';
 
       Array.from(select.options).forEach((option) => {
         if (!option.value) return;
         const text = optionLabel(option);
         const detail = workspaceSubtitle(option);
-        const searchable = `${text} ${detail}`.toLowerCase();
-        if (filter && !searchable.includes(filter)) return;
 
         const item = document.createElement('button');
         item.type = 'button';
-        item.className = 'workspace-switcher-option';
+        item.className = 'workspace-switcher-option workspace-account-org-option';
         item.setAttribute('role', 'option');
         item.setAttribute('aria-selected', option.selected || option.value === select.value ? 'true' : 'false');
         if (option.selected || option.value === select.value) item.classList.add('is-selected');
@@ -143,12 +197,13 @@
           <i data-lucide="check" class="workspace-switcher-check" aria-hidden="true"></i>
         `;
 
-        item.addEventListener('click', () => {
+        item.addEventListener('click', (event) => {
+          event.stopPropagation();
           select.value = option.value;
           Array.from(select.options).forEach((opt) => { opt.selected = opt.value === option.value; });
           select.dispatchEvent(new Event('change', { bubbles: true }));
           syncTitle();
-          renderOptions(searchInput.value);
+          renderOptions();
           closeMenu(root);
         });
 
@@ -162,6 +217,18 @@
         optionsBox.appendChild(empty);
       }
 
+      const createButton = document.createElement('button');
+      createButton.type = 'button';
+      createButton.className = 'workspace-switcher-create workspace-account-org-create';
+      createButton.innerHTML = '<i data-lucide="plus" aria-hidden="true"></i><span>Create workspace</span>';
+      createButton.addEventListener('click', (event) => {
+        event.stopPropagation();
+        closeMenu(root);
+        const addButton = document.getElementById('btn-new-project') || document.getElementById('btn-state-new-project');
+        if (addButton) addButton.click();
+      });
+      optionsBox.appendChild(createButton);
+
       refreshIcons();
     }
 
@@ -171,8 +238,8 @@
       });
       root.classList.add('is-open');
       trigger.setAttribute('aria-expanded', 'true');
-      renderOptions(searchInput.value);
-      window.setTimeout(() => searchInput.focus(), 0);
+      renderOptions();
+      syncTitle();
     }
 
     trigger.addEventListener('click', (event) => {
@@ -180,35 +247,56 @@
       root.classList.contains('is-open') ? closeMenu(root) : openMenu();
     });
 
-    searchInput.addEventListener('input', () => renderOptions(searchInput.value));
-
-    createButton.addEventListener('click', () => {
-      closeMenu(root);
-      const addButton = document.getElementById('btn-new-project') || document.getElementById('btn-state-new-project');
-      if (addButton) addButton.click();
+    orgRow.addEventListener('click', (event) => {
+      event.stopPropagation();
+      root.classList.toggle('is-switching-org');
+      orgRow.setAttribute('aria-expanded', root.classList.contains('is-switching-org') ? 'true' : 'false');
+      renderOptions();
     });
 
-    copyButton?.addEventListener('click', (event) => {
-      event.preventDefault();
-      event.stopPropagation();
-      runCopyAction();
-    });
+    root.querySelectorAll('[data-workspace-action]').forEach((button) => {
+      button.addEventListener('click', (event) => {
+        event.stopPropagation();
+        const action = button.dataset.workspaceAction;
 
-    copyButton?.addEventListener('keydown', (event) => {
-      if (event.key !== 'Enter' && event.key !== ' ') return;
-      event.preventDefault();
-      event.stopPropagation();
-      runCopyAction();
+        if (action === 'copy-context') {
+          runCopyAction();
+          closeMenu(root);
+          return;
+        }
+
+        if (action === 'project-settings' || action === 'profile-settings') {
+          closeMenu(root);
+          activateTab('tab-settings');
+          return;
+        }
+
+        if (action === 'developer-docs') {
+          window.open('/openapi.json', '_blank', 'noopener,noreferrer');
+          closeMenu(root);
+          return;
+        }
+
+        if (action === 'terms' || action === 'help') {
+          closeMenu(root);
+          activateTab('tab-settings');
+          return;
+        }
+
+        if (action === 'logout') {
+          closeMenu(root);
+        }
+      });
     });
 
     select.addEventListener('change', () => {
       syncTitle();
-      renderOptions(searchInput.value);
+      renderOptions();
     });
 
     const observer = new MutationObserver(() => {
       syncTitle();
-      renderOptions(searchInput.value);
+      renderOptions();
     });
     observer.observe(select, { childList: true, subtree: true, attributes: true, attributeFilter: ['selected', 'disabled'] });
 
@@ -221,7 +309,7 @@
     });
 
     syncTitle();
-    renderOptions('');
+    renderOptions();
     refreshIcons();
   }
 
