@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt-BR" data-theme="dark">
+<html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -12,8 +12,6 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Custom CSS -->
     <link rel="stylesheet" href="/static/style.css?v=7">
-    <link rel="stylesheet" href="/static/theme.css?v=1">
-    <link rel="stylesheet" href="/static/rebrand.css?v=2">
 </head>
 <body>
     <div class="app-container">
@@ -27,10 +25,6 @@
                 </div>
             </div>
             <div class="status-panel">
-                <button class="theme-toggle-btn" id="btn-theme-toggle" type="button" title="Alternar tema">
-                    <i class="fa-solid fa-moon"></i>
-                    <span id="theme-toggle-label">Dark</span>
-                </button>
                 <div class="status-item">
                     <span class="status-dot online"></span>
                     <span class="status-label">Servidor Ativo</span>
@@ -51,16 +45,16 @@
                 <div class="sidebar-section">
                     <div class="section-header">
                         <h3><i class="fa-solid fa-folder-open"></i> Projetos</h3>
-                        <div class="section-actions">
+                        <div style="display: flex; gap: 4px;">
                             <button class="btn-icon" id="btn-new-project" title="Novo Projeto"><i class="fa-solid fa-plus"></i></button>
-                            <button class="btn-icon is-danger is-hidden" id="btn-delete-project" title="Remover Projeto Ativo"><i class="fa-solid fa-trash-can"></i></button>
+                            <button class="btn-icon" id="btn-delete-project" title="Remover Projeto Ativo" style="color: var(--color-danger); display: none;"><i class="fa-solid fa-trash-can"></i></button>
                         </div>
                     </div>
-                    <div class="project-selector-wrapper project-selector-row">
-                        <select id="project-selector" class="select-input project-selector-input" data-no-native-select="true">
+                    <div class="project-selector-wrapper" style="display: flex; gap: 8px; align-items: center;">
+                        <select id="project-selector" class="select-input" style="flex: 1;">
                             <option value="">Carregando projetos...</option>
                         </select>
-                        <button class="btn-icon is-hidden" id="btn-copy-project-gpt-info" title="Copiar ID e instruções para o GPT"><i class="fa-solid fa-robot"></i></button>
+                        <button class="btn-icon" id="btn-copy-project-gpt-info" title="Copiar ID e instruções para o GPT" style="display: none;"><i class="fa-solid fa-robot"></i></button>
                     </div>
                 </div>
 
@@ -90,11 +84,11 @@
                 </nav>
 
                 <!-- Footer Info -->
-                <div class="sidebar-footer sidebar-footer-stack">
-                    <button class="nav-item footer-settings-btn" data-tab="tab-settings" id="btn-footer-settings">
+                <div class="sidebar-footer" style="display: flex; flex-direction: column; gap: 8px; padding-top: 12px; margin-top: auto;">
+                    <button class="nav-item" data-tab="tab-settings" id="btn-footer-settings" style="width: 100%; box-sizing: border-box; justify-content: center; font-size: 13px; padding: 10px; margin-bottom: 4px;">
                         <i class="fa-solid fa-gears"></i> Configurações
                     </button>
-                    <div class="sidebar-meta-row">
+                    <div style="display: flex; justify-content: space-between; font-size: 10px; color: var(--text-dark); padding: 0 4px; width: 100%; box-sizing: border-box;">
                         <span class="version">Versão 1.0.0</span>
                         <span class="author">Antigravity Coding</span>
                     </div>
@@ -135,7 +129,7 @@
                                 </div>
                             </div>
                             <div class="editor-body-wrapper">
-                                <div class="editor-meta is-hidden" id="editor-meta">
+                                <div class="editor-meta" id="editor-meta" style="display: none;">
                                     <span>Tamanho: <strong id="meta-size">0 KB</strong></span>
                                     <span>Última modificação: <strong id="meta-mtime">-</strong></span>
                                 </div>
@@ -145,7 +139,7 @@
                                 </div>
                             </div>
                             <!-- File Snapshots Timeline -->
-                            <div class="file-snapshots-drawer is-hidden" id="file-snapshots-drawer">
+                            <div class="file-snapshots-drawer" id="file-snapshots-drawer" style="display: none;">
                                 <div class="drawer-header">
                                     <h5><i class="fa-solid fa-history"></i> Snapshots Locais deste Arquivo</h5>
                                 </div>
@@ -180,7 +174,7 @@
                 <!-- TAB: DATABASE -->
                 <div id="tab-database" class="tab-pane">
                     <!-- Database Sub-tabs Navigation -->
-                    <div class="db-tabs-nav db-tabs-nav-rebrand">
+                    <div class="db-tabs-nav" style="display: flex; gap: 8px; border-bottom: 1px solid var(--border-color); margin-bottom: 20px; padding: 20px 20px 2px 20px; flex-shrink: 0;">
                         <button class="db-tab-btn active" data-db-subtab="db-subtab-explorer" style="background: none; border: none; padding: 10px 16px; border-bottom: 2px solid var(--color-primary); color: var(--text-light); font-weight: 600; cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 8px; transition: all var(--transition-speed);">
                             <i class="fa-solid fa-database"></i> Consultar Base (Query/Explorer)
                         </button>
@@ -190,11 +184,11 @@
                     </div>
 
                     <!-- Sub-tab 1: Explorer & Query -->
-                    <div id="db-subtab-explorer" class="db-subtab-pane db-subtab-pane-active">
-                        <div class="database-layout database-layout-rebrand">
+                    <div id="db-subtab-explorer" class="db-subtab-pane" style="display: block; flex: 1; min-height: 0;">
+                        <div class="database-layout" style="height: 100%; padding: 0 20px 20px 20px;">
                             <!-- Sidebar Explorer -->
                             <div class="db-explorer-sidebar card">
-                                <div class="panel-header-simple db-panel-header">
+                                <div class="panel-header-simple" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; margin-bottom: 16px;">
                                     <h5 style="font-size: 11px; font-weight: 700; letter-spacing: 0.1em; color: var(--text-muted); margin: 0; text-transform: uppercase;">DB EXPLORER</h5>
                                     <button class="btn-icon-sm" id="btn-db-refresh" title="Recarregar Tabelas" style="background: none; border: none; color: var(--text-muted); cursor: pointer;"><i class="fa-solid fa-rotate"></i></button>
                                 </div>
@@ -202,7 +196,7 @@
                                     <span class="status-dot offline" id="db-status-dot"></span>
                                     <span id="db-status-text" style="color: var(--text-muted);">Não conectado</span>
                                 </div>
-                                <div class="db-tables-container db-tables-list-rebrand" id="db-tables-list">
+                                <div class="db-tables-container" id="db-tables-list" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 6px;">
                                     <p class="placeholder-text" style="padding: 20px 0; font-size: 12px; text-align: center; color: var(--text-dark);">Insira as credenciais do banco e conecte.</p>
                                 </div>
                             </div>
@@ -362,7 +356,7 @@
                                 <h4><i class="fa-solid fa-cloud-arrow-up"></i> Ações e Deploy Automático</h4>
                             </div>
                             <div class="card-body">
-                                <div class="git-init-section" id="git-init-panel" class="is-hidden">
+                                <div class="git-init-section" id="git-init-panel" style="display: none;">
                                     <p class="warning-text"><i class="fa-solid fa-circle-exclamation"></i> Este projeto não está inicializado como um repositório Git ou não possui arquivos commados.</p>
                                     <div class="form-group inline-form">
                                         <input type="text" id="git-remote-url-input" class="text-input" placeholder="https://github.com/usuario/repositorio.git (Opcional)">
@@ -375,7 +369,7 @@
                                         <input type="text" id="git-commit-msg" class="text-input" placeholder="ex: feat: add dashboard module, fix api endpoint">
                                     </div>
                                     <div class="form-group inline-form">
-                                         <select id="git-branch-input" class="select-input" data-no-native-select="true" style="flex: 1; min-width: 150px;"></select>
+                                         <select id="git-branch-input" class="select-input" style="flex: 1; min-width: 150px;"></select>
                                          <button class="btn btn-primary" id="btn-git-deploy"><i class="fa-solid fa-rocket"></i> Commitar e Fazer Deploy (Push)</button>
                                          <button class="btn btn-secondary" id="btn-git-pull"><i class="fa-solid fa-cloud-arrow-down"></i> Sincronizar (Pull)</button>
                                      </div>
@@ -575,13 +569,13 @@ cloudflared tunnel --url http://localhost:8000</pre>
 
                 <!-- TAB: AGENT -->
                 <div id="tab-agent" class="tab-pane">
-                    <div class="agent-layout agent-layout-rebrand">
+                    <div class="agent-layout" style="display: flex; gap: 20px; height: 100%; min-height: 0;">
                         <!-- Coluna Única: Chat & Monitor de Raciocínio (Largura Total) -->
-                        <div class="agent-main-panel card agent-main-panel-rebrand">
+                        <div class="agent-main-panel card" style="flex: 1; display: flex; flex-direction: column; min-width: 0; height: 100%; overflow: hidden;">
                             
                             <!-- Cabeçalho do Chat -->
-                            <div class="agent-chat-header agent-chat-header-rebrand">
-                                <div class="agent-header-group">
+                            <div class="agent-chat-header" style="display: flex; justify-content: space-between; align-items: center; padding: 14px 20px; border-bottom: 1px solid var(--border-color); background: rgba(0,0,0,0.15); flex-shrink: 0;">
+                                <div style="display: flex; align-items: center; gap: 12px;">
                                     <div style="background: rgba(99, 102, 241, 0.15); border: 1px solid rgba(99, 102, 241, 0.25); width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: var(--color-primary); font-size: 18px;">
                                         <i class="fa-solid fa-robot"></i>
                                     </div>
@@ -604,7 +598,7 @@ cloudflared tunnel --url http://localhost:8000</pre>
                             </div>
 
                             <!-- Monitor de Raciocínio (Pensamentos em tempo real) -->
-                            <div class="agent-reasoning-monitor agent-reasoning-monitor-rebrand is-hidden" id="agent-monitor">
+                            <div class="agent-reasoning-monitor" id="agent-monitor" style="display: none; padding: 14px; background: rgba(0,0,0,0.2); border-bottom: 1px solid var(--border-color); flex-shrink: 0; max-height: 150px; overflow-y: auto; font-family: monospace; font-size: 12px; color: var(--text-muted);">
                                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; font-weight: bold; color: var(--color-primary);">
                                     <span><i class="fa-solid fa-brain fa-pulse"></i> FLUXO DE RACIOCÍNIO DO AGENTE (PENSAMENTO & AÇÃO)</span>
                                     <button id="btn-clear-agent-monitor" style="background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 10px;" type="button"><i class="fa-solid fa-trash"></i></button>
@@ -615,8 +609,8 @@ cloudflared tunnel --url http://localhost:8000</pre>
                             </div>
                             
                             <!-- Área de Chat Histórico -->
-                            <div class="agent-chat-container agent-chat-container-rebrand" id="agent-chat-history">
-                                <div class="agent-chat-welcome agent-chat-welcome-rebrand">
+                            <div class="agent-chat-container" id="agent-chat-history" style="flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; background: rgba(0,0,0,0.05);">
+                                <div class="agent-chat-welcome" style="text-align: center; color: var(--text-muted); margin: auto; max-width: 480px; padding: 20px;">
                                     <i class="fa-solid fa-robot" style="font-size: 48px; color: var(--color-primary); margin-bottom: 14px;"></i>
                                     <h3>Olá! Eu sou o Agente IA Local do GitIDE</h3>
                                     <p style="font-size: 13px; margin-top: 8px;">Dê-me um objetivo e eu usarei as ferramentas locais (Arquivos, Git, Terminal, SQL) para resolver de forma autônoma. Configure sua chave API nas <a href="#" id="link-welcome-settings" style="color: var(--color-primary); text-decoration: underline;">Configurações</a> para começar.</p>
@@ -624,7 +618,7 @@ cloudflared tunnel --url http://localhost:8000</pre>
                             </div>
                             
                             <!-- Ações Rápidas (Explain, Bugs, Tests, Refactor) -->
-                            <div class="agent-quick-actions agent-quick-actions-rebrand">
+                            <div class="agent-quick-actions" style="display: flex; gap: 10px; padding: 12px 20px; background: transparent; flex-shrink: 0; flex-wrap: wrap; border-top: 1px solid var(--border-color);">
                                 <button class="quick-action-btn" data-action="explain" style="display: flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: 8px; padding: 8px 14px; font-size: 12px; color: var(--text-light); cursor: pointer; transition: all 0.2s;">
                                     <i class="fa-solid fa-file-invoice"></i> Explain this file
                                 </button>
@@ -640,7 +634,7 @@ cloudflared tunnel --url http://localhost:8000</pre>
                             </div>
 
                             <!-- Input do prompt -->
-                            <form class="agent-input-wrapper agent-input-wrapper-rebrand" id="agent-chat-form">
+                            <form class="agent-input-wrapper" id="agent-chat-form" style="display: flex; align-items: center; gap: 12px; padding: 12px 20px 20px 20px; background: rgba(0,0,0,0.1); flex-shrink: 0; flex-direction: column;">
                                 <div style="display: flex; align-items: center; gap: 12px; width: 100%; max-width: 100%; background: rgba(0, 0, 0, 0.2); border: 1px solid var(--border-color); border-radius: 30px; padding: 6px 16px;">
                                     <button type="button" style="background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 16px;"><i class="fa-solid fa-paperclip"></i></button>
                                     <input type="text" id="agent-user-prompt" class="text-input" placeholder="O que deseja que o agente faça? (ex: 'Crie um teste unitário para vcs.py')" style="flex: 1; background: transparent; border: none; outline: none; padding: 8px 0; color: var(--text-light); font-size: 13px;" autocomplete="off" disabled>
@@ -660,7 +654,7 @@ cloudflared tunnel --url http://localhost:8000</pre>
 
     <!-- MODAL: ADD NEW PROJECT -->
     <div class="modal-backdrop" id="modal-project">
-        <div class="modal-card modal-card-md">
+        <div class="modal-card" style="max-width: 600px;">
             <div class="modal-header" style="flex-direction: column; align-items: flex-start; gap: 4px; position: relative;">
                 <h3 style="font-size: 18px;">Importar App</h3>
                 <p style="font-size: 13px; color: var(--text-muted); margin: 0;">Importe um app existente de uma pasta local ou clone do Github.</p>
@@ -700,14 +694,14 @@ cloudflared tunnel --url http://localhost:8000</pre>
                 <!-- Tab Content: GitHub Repositories List -->
                 <div class="modal-tab-content" data-tab-content="github-list">
                     <!-- Logged out state / Authentication flow -->
-                    <div id="github-auth-section" class="is-hidden">
+                    <div id="github-auth-section" style="display: none;">
                         <div style="display: flex; justify-content: center; margin: 16px 0;">
                             <button type="button" class="github-connect-btn" id="btn-github-connect">
                                 <i class="fa-brands fa-github"></i> Connect to GitHub <i class="fa-solid fa-circle-notch fa-spin spinner" id="github-connect-spinner" style="display: none; margin-left: 8px;"></i>
                             </button>
                         </div>
                         
-                        <div class="github-auth-card" id="github-auth-card" class="is-hidden">
+                        <div class="github-auth-card" id="github-auth-card" style="display: none;">
                             <h5>GitHub Connection</h5>
                             <ol class="github-auth-steps">
                                 <li>Go to: <a href="https://github.com/login/device" target="_blank" id="github-device-link">https://github.com/login/device</a></li>
@@ -720,7 +714,7 @@ cloudflared tunnel --url http://localhost:8000</pre>
                     </div>
 
                     <!-- Logged in state -->
-                    <div id="github-repos-section" class="is-hidden">
+                    <div id="github-repos-section" style="display: none;">
                         <div class="github-profile-bar">
                             <div class="github-user-info">
                                 <img id="github-avatar" src="" alt="Avatar" class="github-avatar">
@@ -795,7 +789,7 @@ cloudflared tunnel --url http://localhost:8000</pre>
 
     <!-- MODAL: BROWSE DIRECTORY -->
     <div class="modal-backdrop" id="modal-dir-browser">
-        <div class="modal-card modal-card-md">
+        <div class="modal-card" style="max-width: 600px;">
             <div class="modal-header">
                 <h3>Selecionar Pasta Local</h3>
                 <button class="btn-icon dir-browser-close"><i class="fa-solid fa-xmark"></i></button>
@@ -824,7 +818,7 @@ cloudflared tunnel --url http://localhost:8000</pre>
 
     <!-- MODAL: CONFIRM DIALOG -->
     <div class="modal-backdrop" id="modal-confirm">
-        <div class="modal-card modal-card-sm">
+        <div class="modal-card" style="max-width: 450px;">
             <div class="modal-header">
                 <h3 id="confirm-title">Confirmar Ação</h3>
                 <button class="btn-icon confirm-close"><i class="fa-solid fa-xmark"></i></button>
@@ -841,7 +835,7 @@ cloudflared tunnel --url http://localhost:8000</pre>
 
     <!-- MODAL: MERGE BRANCH -->
     <div class="modal-backdrop" id="modal-merge">
-        <div class="modal-card modal-card-sm">
+        <div class="modal-card" style="max-width: 450px;">
             <div class="modal-header">
                 <h3>Mesclar Branch (Git Merge)</h3>
                 <button class="btn-icon modal-close merge-close"><i class="fa-solid fa-xmark"></i></button>
@@ -862,10 +856,32 @@ cloudflared tunnel --url http://localhost:8000</pre>
         </div>
     </div>
 
+    <!-- MODAL: CHECKOUT BRANCH -->
+    <div class="modal-backdrop" id="modal-checkout">
+        <div class="modal-card" style="max-width: 450px;">
+            <div class="modal-header">
+                <h3>Checkout Branch</h3>
+                <button class="btn-icon modal-close checkout-close"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body" style="padding: 20px; display: flex; flex-direction: column; gap: 14px;">
+                <p style="font-size: 13px; color: var(--text-muted); margin: 0;">Selecione a branch para a qual deseja alternar:</p>
+                <div class="form-group" style="display: flex; flex-direction: column; gap: 6px;">
+                    <label for="checkout-branch-selector">Selecionar Branch:</label>
+                    <select id="checkout-branch-selector" class="select-input">
+                        <option value="">Carregando branches...</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary checkout-close" id="btn-checkout-cancel">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="btn-checkout-confirm">Checkout</button>
+            </div>
+        </div>
+    </div>
 
     <!-- MODAL: THEME EDITOR -->
     <div class="modal-backdrop" id="modal-theme-editor">
-        <div class="modal-card modal-card-sm">
+        <div class="modal-card" style="max-width: 450px;">
             <div class="modal-header">
                 <h3 id="theme-modal-title">Criar Tema</h3>
                 <button class="btn-icon theme-editor-close"><i class="fa-solid fa-xmark"></i></button>
@@ -896,7 +912,7 @@ cloudflared tunnel --url http://localhost:8000</pre>
 
     <!-- MODAL: SET EDITOR -->
     <div class="modal-backdrop" id="modal-set-editor">
-        <div class="modal-card modal-card-sm">
+        <div class="modal-card" style="max-width: 450px;">
             <div class="modal-header">
                 <h3>Criar Token Set</h3>
                 <button class="btn-icon set-editor-close"><i class="fa-solid fa-xmark"></i></button>
@@ -1010,8 +1026,5 @@ cloudflared tunnel --url http://localhost:8000</pre>
 
     <!-- Custom JavaScript -->
     <script src="/static/app.js?v=12"></script>
-    <script src="/static/theme-toggle.js?v=1"></script>
-    <script src="/static/workspace-switcher.js?v=1"></script>
-    <script src="/static/native-select.js?v=1"></script>
 </body>
 </html>
