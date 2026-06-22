@@ -2421,6 +2421,48 @@ input[type="checkbox"]:focus-visible{
     margin-top:0!important;
 }
 
+/* Git branch actions */
+.git-branch-select-native-hidden{
+    display:none!important;
+}
+
+.git-branch-status-pill{
+    display:inline-flex;
+    align-items:center;
+    min-height:34px;
+    padding:0 12px;
+    border-radius:12px;
+    border:1px solid var(--flat-border);
+    background:rgba(255,255,255,.025);
+    font-weight:600;
+    color:var(--text-main);
+}
+
+.git-branch-actions-list{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+    margin-top:12px;
+}
+
+.git-branch-action-btn{
+    height:40px;
+    padding:0 14px;
+    border-radius:12px;
+    border:1px solid var(--flat-border);
+    background:rgba(255,255,255,.02);
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+}
+
+.git-branch-action-btn.is-active{
+    background:rgba(255,255,255,.06);
+}
+
+.git-branch-action-check{display:none;}
+.git-branch-action-btn.is-active .git-branch-action-check{display:inline-block;}
+
 @media (max-width: 980px) {
     .sidebar { width: 236px; }
     .database-layout,
