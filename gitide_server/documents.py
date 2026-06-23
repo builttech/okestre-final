@@ -7,12 +7,12 @@ from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.oxml import parse_xml
 from docx.oxml.ns import nsdecls
 
-# Cores do Tema Corporate (Indigo/Slate)
-COLOR_PRIMARY = RGBColor(79, 70, 229)    # #4F46E5 - Indigo
-COLOR_SECONDARY = RGBColor(71, 85, 105)  # #475569 - Slate
-COLOR_TEXT = RGBColor(55, 65, 81)        # #374151 - Dark Gray
-COLOR_LIGHT_BG = "F8FAFC"                # Slate-50 hex
-COLOR_BORDER = "CBD5E1"                  # Slate-300 hex
+# Cores do Tema Corporate (Clean Black & White / Gray)
+COLOR_PRIMARY = RGBColor(0, 0, 0)        # Preto puro para títulos
+COLOR_SECONDARY = RGBColor(75, 85, 99)  # Cinza escuro para metadados/legendas (#4B5563)
+COLOR_TEXT = RGBColor(17, 24, 39)        # Quase preto para o texto principal (#111827)
+COLOR_LIGHT_BG = "F9FAFB"                # Cinza muito claro (#F9FAFB)
+COLOR_BORDER = "D1D5DB"                  # Cinza claro para bordas (#D1D5DB)
 
 def set_cell_background(cell, color_hex):
     """Define a cor de fundo de uma célula da tabela usando XML do Word."""
@@ -20,11 +20,11 @@ def set_cell_background(cell, color_hex):
     cell._tc.get_or_add_tcPr().append(parse_xml(shading_xml))
 
 def set_callout_borders(cell, border_color_hex):
-    """Define borda esquerda espessa e remove as outras bordas (estilo Callout)."""
+    """Define borda esquerda mais fina e remove as outras bordas (estilo Callout)."""
     borders_xml = f'''
     <w:tcBorders {nsdecls("w")}>
         <w:top w:val="none"/>
-        <w:left w:val="single" w:sz="36" w:space="0" w:color="{border_color_hex}"/>
+        <w:left w:val="single" w:sz="12" w:space="0" w:color="{border_color_hex}"/>
         <w:bottom w:val="none"/>
         <w:right w:val="none"/>
     </w:tcBorders>
@@ -62,22 +62,22 @@ def generate_docx(project_path: str, title: str, sections: list) -> dict:
     title_p = doc.add_paragraph()
     title_p.alignment = WD_ALIGN_PARAGRAPH.LEFT
     title_run = title_p.add_run(title)
-    format_run(title_run, font_name="Arial", size_pt=26, color=COLOR_PRIMARY, bold=True)
+    format_run(title_run, font_name="Arial", size_pt=20, color=COLOR_PRIMARY, bold=True)
     title_p.paragraph_format.space_after = Pt(4)
     
     # Linha divisória colorida abaixo do título
     divider_table = doc.add_table(rows=1, cols=1)
     divider_cell = divider_table.rows[0].cells[0]
-    set_cell_background(divider_cell, "4F46E5")
+    set_cell_background(divider_cell, "000000")
     # Reduz altura da linha
-    divider_table.rows[0].height = Pt(4)
-    doc.add_paragraph().paragraph_format.space_after = Pt(20) # Espaço
+    divider_table.rows[0].height = Pt(1.5)
+    doc.add_paragraph().paragraph_format.space_after = Pt(16) # Espaço
     
     # --- METADADOS ---
     meta_p = doc.add_paragraph()
     meta_run = meta_p.add_run(f"Data de Geração: {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}\nGerado via: Agente GitIDE")
-    format_run(meta_run, font_name="Calibri", size_pt=9, color=COLOR_SECONDARY, italic=True)
-    meta_p.paragraph_format.space_after = Pt(24)
+    format_run(meta_run, font_name="Calibri", size_pt=8.5, color=COLOR_SECONDARY, italic=True)
+    meta_p.paragraph_format.space_after = Pt(20)
     
     # --- SEÇÕES ---
     for sec in sections:
@@ -89,9 +89,9 @@ def generate_docx(project_path: str, title: str, sections: list) -> dict:
         if heading_text:
             h_p = doc.add_paragraph()
             h_run = h_p.add_run(heading_text)
-            format_run(h_run, font_name="Arial", size_pt=16, color=COLOR_PRIMARY, bold=True)
-            h_p.paragraph_format.space_before = Pt(18)
-            h_p.paragraph_format.space_after = Pt(8)
+            format_run(h_run, font_name="Arial", size_pt=13, color=COLOR_PRIMARY, bold=True)
+            h_p.paragraph_format.space_before = Pt(14)
+            h_p.paragraph_format.space_after = Pt(6)
             h_p.paragraph_format.keep_with_next = True
             
         # 2. Adiciona o conteúdo com base no tipo
@@ -101,9 +101,9 @@ def generate_docx(project_path: str, title: str, sections: list) -> dict:
         if sec_type == "paragraph":
             p = doc.add_paragraph()
             run = p.add_run(body_text)
-            format_run(run, font_name="Calibri", size_pt=11, color=COLOR_TEXT)
+            format_run(run, font_name="Calibri", size_pt=10, color=COLOR_TEXT)
             p.paragraph_format.line_spacing = 1.15
-            p.paragraph_format.space_after = Pt(10)
+            p.paragraph_format.space_after = Pt(8)
             
         elif sec_type == "bullet":
             # Suporta múltiplas linhas separadas por quebra de linha como múltiplos itens de lista
@@ -114,8 +114,8 @@ def generate_docx(project_path: str, title: str, sections: list) -> dict:
                     line = line[2:]
                 p = doc.add_paragraph(style='List Bullet')
                 run = p.add_run(line)
-                format_run(run, font_name="Calibri", size_pt=11, color=COLOR_TEXT)
-                p.paragraph_format.space_after = Pt(4)
+                format_run(run, font_name="Calibri", size_pt=10, color=COLOR_TEXT)
+                p.paragraph_format.space_after = Pt(3)
                 
         elif sec_type == "highlight":
             # Caixa de destaque (Callout box): tabela de 1 célula com borda esquerda
@@ -125,45 +125,55 @@ def generate_docx(project_path: str, title: str, sections: list) -> dict:
             
             cell = tbl.rows[0].cells[0]
             set_cell_background(cell, COLOR_LIGHT_BG)
-            set_callout_borders(cell, "4F46E5") # Borda Indigo
+            set_callout_borders(cell, "9CA3AF") # Borda cinza neutro
             
             # Espaçamento interno da célula
             p = cell.paragraphs[0]
             p.paragraph_format.left_indent = Inches(0.15)
             p.paragraph_format.right_indent = Inches(0.15)
-            p.paragraph_format.space_before = Pt(8)
-            p.paragraph_format.space_after = Pt(8)
+            p.paragraph_format.space_before = Pt(6)
+            p.paragraph_format.space_after = Pt(6)
             
             run = p.add_run(body_text)
-            format_run(run, font_name="Calibri", size_pt=10.5, color=COLOR_SECONDARY, italic=True)
+            format_run(run, font_name="Calibri", size_pt=9.5, color=COLOR_SECONDARY, italic=True)
             
             # Espaço após a tabela
             space_p = doc.add_paragraph()
-            space_p.paragraph_format.space_before = Pt(6)
-            space_p.paragraph_format.space_after = Pt(6)
+            space_p.paragraph_format.space_before = Pt(4)
+            space_p.paragraph_format.space_after = Pt(4)
             
         elif sec_type == "code":
-            # Bloco de código: caixa cinza claro com fonte monoespaçada
+            # Bloco de código: caixa cinza claro com fonte monoespaçada e bordas finas cinzas
             tbl = doc.add_table(rows=1, cols=1)
             tbl.autofit = False
             tbl.columns[0].width = Inches(6.5)
             
             cell = tbl.rows[0].cells[0]
-            set_cell_background(cell, "F1F5F9") # slate-100
+            set_cell_background(cell, "F9FAFB") # gray-50
+            
+            borders_xml = f'''
+            <w:tcBorders {nsdecls("w")}>
+                <w:top w:val="single" w:sz="4" w:space="0" w:color="E5E7EB"/>
+                <w:left w:val="single" w:sz="4" w:space="0" w:color="E5E7EB"/>
+                <w:bottom w:val="single" w:sz="4" w:space="0" w:color="E5E7EB"/>
+                <w:right w:val="single" w:sz="4" w:space="0" w:color="E5E7EB"/>
+            </w:tcBorders>
+            '''
+            cell._tc.get_or_add_tcPr().append(parse_xml(borders_xml))
             
             p = cell.paragraphs[0]
             p.paragraph_format.left_indent = Inches(0.1)
             p.paragraph_format.right_indent = Inches(0.1)
-            p.paragraph_format.space_before = Pt(6)
-            p.paragraph_format.space_after = Pt(6)
+            p.paragraph_format.space_before = Pt(5)
+            p.paragraph_format.space_after = Pt(5)
             
             run = p.add_run(body_text)
-            format_run(run, font_name="Consolas", size_pt=9.5, color=RGBColor(30, 41, 59))
+            format_run(run, font_name="Consolas", size_pt=9, color=RGBColor(55, 65, 81))
             
             # Espaço após a tabela
             space_p = doc.add_paragraph()
-            space_p.paragraph_format.space_before = Pt(6)
-            space_p.paragraph_format.space_after = Pt(6)
+            space_p.paragraph_format.space_before = Pt(4)
+            space_p.paragraph_format.space_after = Pt(4)
             
         elif sec_type == "table":
             # Tenta converter o texto JSON em tabela. Espera uma matriz de dados:
@@ -185,9 +195,9 @@ def generate_docx(project_path: str, title: str, sections: list) -> dict:
                     
                     # Estilo da linha
                     if is_header:
-                        row.height = Pt(24)
-                    else:
                         row.height = Pt(20)
+                    else:
+                        row.height = Pt(18)
                         
                     for c_idx, cell_val in enumerate(row_data):
                         if c_idx >= cols_count:
@@ -196,31 +206,31 @@ def generate_docx(project_path: str, title: str, sections: list) -> dict:
                         
                         # Alinhamento e espaçamento interno
                         p = cell.paragraphs[0]
-                        p.paragraph_format.space_before = Pt(4)
-                        p.paragraph_format.space_after = Pt(4)
+                        p.paragraph_format.space_before = Pt(3)
+                        p.paragraph_format.space_after = Pt(3)
                         
                         run = p.add_run(str(cell_val))
                         
                         if is_header:
-                            set_cell_background(cell, "4F46E5") # Cabeçalho Indigo
-                            format_run(run, font_name="Arial", size_pt=10, color=RGBColor(255, 255, 255), bold=True)
+                            set_cell_background(cell, "374151") # Cabeçalho cinza escuro
+                            format_run(run, font_name="Arial", size_pt=9.5, color=RGBColor(255, 255, 255), bold=True)
                             p.alignment = WD_ALIGN_PARAGRAPH.CENTER
                         else:
                             # Linhas alternadas em cinza claro para legibilidade
                             if r_idx % 2 == 1:
                                 set_cell_background(cell, COLOR_LIGHT_BG)
-                            format_run(run, font_name="Calibri", size_pt=10, color=COLOR_TEXT)
+                            format_run(run, font_name="Calibri", size_pt=9.5, color=COLOR_TEXT)
                             
                 # Espaço após a tabela
                 space_p = doc.add_paragraph()
-                space_p.paragraph_format.space_after = Pt(12)
+                space_p.paragraph_format.space_after = Pt(10)
                 
             except Exception as e:
                 # Fallback em caso de falha no parser do JSON
                 p = doc.add_paragraph()
                 run = p.add_run(f"[Tabela inválida: {body_text}]")
-                format_run(run, font_name="Calibri", size_pt=11, color=RGBColor(239, 68, 68), italic=True)
-                p.paragraph_format.space_after = Pt(10)
+                format_run(run, font_name="Calibri", size_pt=10, color=RGBColor(239, 68, 68), italic=True)
+                p.paragraph_format.space_after = Pt(8)
                 
     # --- SALVAMENTO ---
     # Normaliza o título para o nome do arquivo
