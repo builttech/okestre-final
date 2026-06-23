@@ -2245,6 +2245,22 @@ textarea:focus {
     to { opacity: 1; transform: translateY(0); }
 }
 
+/* Fix nested flexbox scroll bug in Files tab */
+#tab-files.active {
+    display: flex !important;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+}
+
+.files-layout,
+.file-tree-panel,
+.editor-panel,
+.editor-body-wrapper,
+.editor-container {
+    min-height: 0;
+}
+
 
 
 
