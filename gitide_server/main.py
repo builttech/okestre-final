@@ -1,4 +1,5 @@
 import os
+import shutil
 import json
 import secrets
 import subprocess
@@ -268,6 +269,17 @@ def create_project(project_in: ProjectCreate, db: Session = Depends(get_db)):
                     detail=f"Pasta de destino não está vazia e falhou ao vincular repositório Git: {str(e)}"
                 )
                 
+    # Garante que o arquivo GPT_INSTRUCTIONS.md existe na raiz do projeto
+    gpt_instructions_dest = os.path.join(project_in.path, "GPT_INSTRUCTIONS.md")
+    if not os.path.exists(gpt_instructions_dest):
+        server_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        gpt_instructions_src = os.path.join(server_root, "GPT_INSTRUCTIONS.md")
+        if os.path.exists(gpt_instructions_src):
+            try:
+                shutil.copy2(gpt_instructions_src, gpt_instructions_dest)
+            except Exception as e:
+                print(f"Erro ao copiar GPT_INSTRUCTIONS.md para o workspace: {str(e)}")
+
     db_project = Project(
         name=project_in.name,
         path=project_in.path,
