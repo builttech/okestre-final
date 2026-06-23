@@ -334,20 +334,28 @@ def read_file(filepath: str = Query(..., description="Caminho relativo do arquiv
         lines = content.split('\n')
         total_lines = len(lines)
         
-        # Determina os limites
-        s_line = start_line or 1
-        e_line = end_line or total_lines
+        # Limite máximo de linhas por leitura para evitar estourar o limite de resposta do ChatGPT (100KB)
+        MAX_READ_LINES = 250
         
         warning = None
-        # Capping automático se não especificado e muito grande
+        s_line = start_line or 1
+        
+        # Determina o e_line com base no limite
         if start_line is None and end_line is None:
-            if total_lines > 1000:
-                e_line = 1000
-                warning = f"O arquivo possui {total_lines} linhas. Para evitar erros de tamanho de resposta, foram retornadas apenas as primeiras 1000 linhas. Use start_line e end_line para ler trechos específicos."
+            e_line = min(MAX_READ_LINES, total_lines)
+            if total_lines > MAX_READ_LINES:
+                warning = f"O arquivo possui {total_lines} linhas. Para evitar erros de limite de tamanho de resposta do ChatGPT, foram retornadas apenas as primeiras {MAX_READ_LINES} linhas. Use os parâmetros start_line e end_line para paginar e ler trechos específicos."
         elif end_line is None:
-            e_line = min(s_line + 999, total_lines)
+            e_line = min(s_line + MAX_READ_LINES - 1, total_lines)
             if e_line < total_lines:
-                warning = f"Leitura parcial limitada a 1000 linhas a partir da linha {s_line}. O arquivo possui {total_lines} linhas no total."
+                warning = f"Leitura limitada a {MAX_READ_LINES} linhas a partir da linha {s_line}. O arquivo possui {total_lines} linhas no total. Use paginação solicitando lotes adicionais (ex: start_line={e_line + 1})."
+        else:
+            requested_lines = end_line - s_line + 1
+            if requested_lines > MAX_READ_LINES:
+                e_line = s_line + MAX_READ_LINES - 1
+                warning = f"A faixa solicitada ({requested_lines} linhas) excede o limite recomendado. Retornando apenas {MAX_READ_LINES} linhas a partir da linha {s_line}. Use paginação (ex: start_line={e_line + 1}) para ler o restante do arquivo."
+            else:
+                e_line = min(end_line, total_lines)
                 
         # Garante limites válidos
         s_line = max(1, min(s_line, total_lines))
