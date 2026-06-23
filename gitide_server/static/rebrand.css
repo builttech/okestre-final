@@ -295,6 +295,16 @@ textarea {
     box-shadow: 0 10px 30px rgba(0,153,255,0.24), inset 0 1px 0 rgba(255,255,255,0.2) !important;
 }
 
+.btn-danger {
+    background: linear-gradient(180deg, var(--color-danger) 0%, var(--color-danger) 100%) !important;
+    color: #fff !important;
+    border: 1px solid rgba(255,255,255,0.14) !important;
+}
+
+.btn-danger:hover {
+    box-shadow: 0 10px 30px rgba(255,95,87,0.24), inset 0 1px 0 rgba(255,255,255,0.2) !important;
+}
+
 .btn-secondary,
 .quick-action-btn,
 .modal-tab-btn,

@@ -1290,6 +1290,42 @@ def preview_document(filename: str, project: Project = Depends(get_project_or_40
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro ao processar prévia do documento: {str(e)}")
 
+@app.delete("/api/projects/{project_id}/documents/{filename}", tags=["Documentos"])
+def delete_document(
+    filename: str,
+    project: Project = Depends(get_project_or_404),
+    db: Session = Depends(get_db),
+    _ = Depends(get_api_key)
+):
+    """Deleta o documento Word especificado e seu arquivo JSON de preview correspondente."""
+    if ".." in filename or "/" in filename or "\\" in filename:
+        raise HTTPException(status_code=400, detail="Nome de arquivo inválido.")
+        
+    docx_filepath = os.path.join(project.path, ".documents", filename)
+    if not os.path.exists(docx_filepath):
+        raise HTTPException(status_code=404, detail="Documento não encontrado.")
+        
+    try:
+        os.remove(docx_filepath)
+        
+        # Deleta também o JSON correspondente se existir
+        json_filepath = docx_filepath.replace(".docx", ".json")
+        if os.path.exists(json_filepath):
+            os.remove(json_filepath)
+            
+        # Log da ação no banco de dados
+        log = ActivityLog(
+            project_id=project.id,
+            action_type="DOCUMENT_DELETED",
+            details=f"Documento Word deletado: {filename}"
+        )
+        db.add(log)
+        db.commit()
+        
+        return {"status": "success", "message": "Documento deletado com sucesso."}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao deletar documento: {str(e)}")
+
 # --- ENDPOINTS DO AGENTE IA NATIVO ---
 
 @app.get("/api/agent/config", tags=["Agente IA"])

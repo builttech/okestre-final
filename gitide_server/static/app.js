@@ -4041,9 +4041,12 @@ async function loadDocuments() {
                     <i class="fa-regular fa-file-word" style="color: var(--color-primary); margin-right: 6px;"></i> ${doc.filename}
                 </td>
                 <td style="padding: 12px 8px; color: var(--text-muted);">${sizeKB} KB</td>
-                <td style="padding: 12px 8px; text-align: right;">
+                <td style="padding: 12px 8px; text-align: right; display: flex; gap: 6px; justify-content: flex-end;">
                     <button class="btn btn-sm btn-primary btn-download-doc" data-filename="${doc.filename}" style="padding: 4px 8px; font-size: 11px;">
                         <i class="fa-solid fa-download"></i> Baixar
+                    </button>
+                    <button class="btn btn-sm btn-danger btn-delete-doc" data-filename="${doc.filename}" style="padding: 4px 8px; font-size: 11px;">
+                        <i class="fa-solid fa-trash-can"></i> Excluir
                     </button>
                 </td>
             `;
@@ -4063,6 +4066,13 @@ async function loadDocuments() {
                 e.stopPropagation(); // Impede seleção da linha
                 const filename = e.currentTarget.getAttribute('data-filename');
                 downloadDocumentFile(filename);
+            });
+            
+            // Event listener para exclusão
+            tr.querySelector('.btn-delete-doc').addEventListener('click', (e) => {
+                e.stopPropagation(); // Impede seleção da linha
+                const filename = e.currentTarget.getAttribute('data-filename');
+                deleteDocumentFile(filename);
             });
             
             tbody.appendChild(tr);
@@ -4113,6 +4123,32 @@ async function downloadDocumentFile(filename) {
         document.body.removeChild(a);
     } catch (err) {
         alert(`Erro ao fazer download: ${err.message}`);
+    }
+}
+
+async function deleteDocumentFile(filename) {
+    if (!state.activeProjectId) return;
+    if (!confirm(`Tem certeza que deseja excluir o documento "${filename}"?`)) return;
+    
+    try {
+        const res = await fetch(`/api/projects/${state.activeProjectId}/documents/${encodeURIComponent(filename)}`, {
+            method: 'DELETE',
+            headers: getHeaders()
+        });
+        
+        const data = await res.json();
+        if (!res.ok) {
+            throw new Error(data.detail || 'Erro ao excluir o documento');
+        }
+        
+        // Se o documento excluído for o que estava selecionado no estado, limpa a seleção
+        if (state.selectedDocumentFilename === filename) {
+            state.selectedDocumentFilename = null;
+        }
+        
+        loadDocuments();
+    } catch (err) {
+        alert(`Erro ao excluir documento: ${err.message}`);
     }
 }
 
