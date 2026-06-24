@@ -4381,27 +4381,27 @@ function renderDocumentPreview(data) {
     const titleEl = document.createElement('h1');
     titleEl.textContent = data.title || 'Documento';
     titleEl.style.fontFamily = 'Arial, sans-serif';
-    titleEl.style.fontSize = '26px';
+    titleEl.style.fontSize = '20px';
     titleEl.style.fontWeight = 'bold';
-    titleEl.style.color = '#4F46E5'; // Indigo
+    titleEl.style.color = '#000000'; // Black
     titleEl.style.margin = '0 0 4px 0';
     sheet.appendChild(titleEl);
     
     // Linha divisória
     const divider = document.createElement('div');
     divider.style.width = '100%';
-    divider.style.height = '4px';
-    divider.style.background = '#4F46E5';
-    divider.style.marginBottom = '20px';
+    divider.style.height = '1.5px';
+    divider.style.background = '#000000';
+    divider.style.marginBottom = '16px';
     sheet.appendChild(divider);
     
     // Metadados
     const meta = document.createElement('p');
     meta.style.fontFamily = 'Calibri, sans-serif';
-    meta.style.fontSize = '9pt';
-    meta.style.color = '#475569'; // Slate
+    meta.style.fontSize = '8.5pt';
+    meta.style.color = '#4B5563'; // Gray-600
     meta.style.fontStyle = 'italic';
-    meta.style.margin = '0 0 24px 0';
+    meta.style.margin = '0 0 20px 0';
     meta.style.lineHeight = '1.4';
     meta.innerHTML = `Data de Geração: ${new Date().toLocaleString()}<br>Gerado via: Agente GitIDE`;
     sheet.appendChild(meta);
@@ -4414,11 +4414,11 @@ function renderDocumentPreview(data) {
                 const headingEl = document.createElement('h2');
                 headingEl.textContent = sec.heading.trim();
                 headingEl.style.fontFamily = 'Arial, sans-serif';
-                headingEl.style.fontSize = '16px';
+                headingEl.style.fontSize = '13px';
                 headingEl.style.fontWeight = 'bold';
-                headingEl.style.color = '#4F46E5';
-                headingEl.style.marginTop = '24px';
-                headingEl.style.marginBottom = '8px';
+                headingEl.style.color = '#000000';
+                headingEl.style.marginTop = '14px';
+                headingEl.style.marginBottom = '6px';
                 sheet.appendChild(headingEl);
             }
             
@@ -4430,16 +4430,16 @@ function renderDocumentPreview(data) {
                 const p = document.createElement('p');
                 p.textContent = sec.text;
                 p.style.fontFamily = 'Calibri, sans-serif';
-                p.style.fontSize = '11pt';
-                p.style.color = '#374151';
+                p.style.fontSize = '10pt';
+                p.style.color = '#111827';
                 p.style.lineHeight = '1.15';
-                p.style.marginBottom = '12px';
+                p.style.marginBottom = '8px';
                 sheet.appendChild(p);
                 
             } else if (type === 'bullet') {
                 const ul = document.createElement('ul');
                 ul.style.paddingLeft = '20px';
-                ul.style.marginBottom = '12px';
+                ul.style.marginBottom = '8px';
                 ul.style.listStyleType = 'disc';
                 
                 const lines = sec.text.split('\n');
@@ -4449,9 +4449,9 @@ function renderDocumentPreview(data) {
                         const li = document.createElement('li');
                         li.textContent = cleanLine;
                         li.style.fontFamily = 'Calibri, sans-serif';
-                        li.style.fontSize = '11pt';
-                        li.style.color = '#374151';
-                        li.style.marginBottom = '4px';
+                        li.style.fontSize = '10pt';
+                        li.style.color = '#111827';
+                        li.style.marginBottom = '3px';
                         ul.appendChild(li);
                     }
                 });
@@ -4459,17 +4459,17 @@ function renderDocumentPreview(data) {
                 
             } else if (type === 'highlight') {
                 const callout = document.createElement('div');
-                callout.style.background = '#F8FAFC';
-                callout.style.borderLeft = '4.5px solid #4F46E5';
-                callout.style.padding = '12px 16px';
-                callout.style.marginBottom = '16px';
+                callout.style.background = '#F9FAFB';
+                callout.style.borderLeft = '1.5px solid #9CA3AF';
+                callout.style.padding = '8px 12px';
+                callout.style.marginBottom = '12px';
                 callout.style.borderRadius = '2px';
                 
                 const p = document.createElement('p');
                 p.textContent = sec.text;
                 p.style.fontFamily = 'Calibri, sans-serif';
-                p.style.fontSize = '10.5pt';
-                p.style.color = '#475569';
+                p.style.fontSize = '9.5pt';
+                p.style.color = '#4B5563';
                 p.style.fontStyle = 'italic';
                 p.style.margin = '0';
                 p.style.lineHeight = '1.4';
@@ -4478,18 +4478,18 @@ function renderDocumentPreview(data) {
                 
             } else if (type === 'code') {
                 const pre = document.createElement('pre');
-                pre.style.background = '#F1F5F9';
-                pre.style.padding = '12px';
+                pre.style.background = '#F9FAFB';
+                pre.style.padding = '10px';
                 pre.style.borderRadius = '4px';
                 pre.style.overflowX = 'auto';
-                pre.style.marginBottom = '16px';
-                pre.style.border = '1px solid #E2E8F0';
+                pre.style.marginBottom = '12px';
+                pre.style.border = '1px solid #E5E7EB';
                 
                 const code = document.createElement('code');
                 code.textContent = sec.text;
                 code.style.fontFamily = 'Consolas, monospace';
-                code.style.fontSize = '9.5pt';
-                code.style.color = '#1E293B';
+                code.style.fontSize = '9pt';
+                code.style.color = '#374151';
                 pre.appendChild(code);
                 sheet.appendChild(pre);
                 
@@ -4500,9 +4500,9 @@ function renderDocumentPreview(data) {
                         const table = document.createElement('table');
                         table.style.width = '100%';
                         table.style.borderCollapse = 'collapse';
-                        table.style.marginBottom = '16px';
+                        table.style.marginBottom = '12px';
                         table.style.fontFamily = 'Calibri, sans-serif';
-                        table.style.fontSize = '10pt';
+                        table.style.fontSize = '9.5pt';
                         
                         matrix.forEach((rowData, rIdx) => {
                             const tr = document.createElement('tr');
@@ -4511,18 +4511,18 @@ function renderDocumentPreview(data) {
                             rowData.forEach(cellVal => {
                                 const cell = document.createElement(isHeader ? 'th' : 'td');
                                 cell.textContent = cellVal;
-                                cell.style.border = '1px solid #CBD5E1';
-                                cell.style.padding = '8px';
+                                cell.style.border = '1px solid #D1D5DB';
+                                cell.style.padding = '6px';
                                 
                                 if (isHeader) {
-                                    cell.style.background = '#4F46E5';
+                                    cell.style.background = '#374151';
                                     cell.style.color = '#ffffff';
                                     cell.style.fontWeight = 'bold';
                                     cell.style.textAlign = 'center';
                                 } else {
-                                    cell.style.color = '#374151';
+                                    cell.style.color = '#111827';
                                     if (rIdx % 2 === 1) {
-                                        cell.style.background = '#F8FAFC';
+                                        cell.style.background = '#F9FAFB';
                                     }
                                 }
                                 tr.appendChild(cell);
