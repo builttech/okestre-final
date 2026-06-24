@@ -928,6 +928,13 @@ Se o arquivo existir, leia e siga rigorosamente todas as diretrizes, fases de an
                     <div id="dir-browser-drives" style="display: flex; gap: 6px;"></div>
                     <div id="dir-browser-breadcrumbs" style="display: flex; gap: 4px; font-size: 13px; color: var(--text-muted); align-items: center; overflow-x: auto; white-space: nowrap; flex: 1;"></div>
                 </div>
+                <!-- Create Folder Section -->
+                <div class="dir-browser-create-folder" style="display: flex; gap: 8px; align-items: center; margin-top: 4px; margin-bottom: 4px; flex-shrink: 0;">
+                    <input type="text" id="dir-browser-new-folder-name" class="text-input" placeholder="Criar nova pasta..." style="flex: 1; padding: 6px 10px; font-size: 13px; height: 32px !important; min-height: 32px !important; line-height: 20px;">
+                    <button type="button" class="btn btn-sm btn-secondary" id="btn-dir-browser-create-folder" style="padding: 6px 12px; font-size: 13px; height: 32px !important; min-height: 32px !important; display: flex; align-items: center; gap: 6px; white-space: nowrap;">
+                        <i class="fa-solid fa-folder-plus"></i> Criar Pasta
+                    </button>
+                </div>
                 <!-- Directories List -->
                 <div id="dir-browser-list" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; min-height: 200px; background: rgba(0,0,0,0.2); padding: 8px; border-radius: 8px; border: 1px solid var(--border-color);">
                     <!-- Preenchido via JS -->

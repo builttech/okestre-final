@@ -171,6 +171,10 @@ class DocumentCreateRequest(BaseModel):
     title: str = Field(..., description="Título principal do documento")
     sections: List[DocumentSection] = Field(..., description="Lista de seções ordenadas do documento")
 
+class CreateDirectoryRequest(BaseModel):
+    parent_path: str = Field(..., description="Caminho do diretório pai")
+    name: str = Field(..., description="Nome da nova pasta a ser criada")
+
 
 
 # Dependência para buscar projeto do DB
@@ -1397,6 +1401,34 @@ def browse_directories(path: Optional[str] = None):
         }
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Não foi possível ler o diretório: {str(e)}")
+
+@app.post("/api/system/dirs", tags=["Sistema"])
+def create_directory(req: CreateDirectoryRequest):
+    """Cria uma nova pasta no caminho especificado."""
+    # Sanitize/normalize parent_path
+    parent = os.path.abspath(req.parent_path)
+    if not os.path.exists(parent):
+        raise HTTPException(status_code=400, detail="Diretório pai não existe.")
+    
+    # Sanitize folder name
+    # Previne path traversal
+    folder_name = os.path.basename(req.name).strip()
+    if not folder_name or folder_name in (".", "..") or "/" in req.name or "\\" in req.name:
+        raise HTTPException(status_code=400, detail="Nome de pasta inválido.")
+        
+    new_dir_path = os.path.join(parent, folder_name)
+    if os.path.exists(new_dir_path):
+        raise HTTPException(status_code=400, detail=f"Já existe uma pasta ou arquivo com o nome '{folder_name}' neste caminho.")
+        
+    try:
+        os.makedirs(new_dir_path, exist_ok=True)
+        return {
+            "status": "success", 
+            "message": f"Pasta '{folder_name}' criada com sucesso.",
+            "path": new_dir_path
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao criar pasta: {str(e)}")
 
 # Servir Frontend do Dashboard
 # Serviremos o index.html na raiz e montaremos os estáticos

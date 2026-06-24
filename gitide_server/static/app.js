@@ -1195,6 +1195,9 @@ async function openDirectoryBrowser(targetInputId) {
     const modal = document.getElementById('modal-dir-browser');
     modal.classList.add('active');
     
+    const inputFolder = document.getElementById('dir-browser-new-folder-name');
+    if (inputFolder) inputFolder.value = '';
+    
     // Inicia no caminho já digitado ou vazio (home)
     let startPath = '';
     if (targetInputId === 'local-selected-path') {
@@ -1348,6 +1351,57 @@ async function loadBrowserDirectories(path) {
     }
 }
 
+async function handleCreateFolderBrowser() {
+    const input = document.getElementById('dir-browser-new-folder-name');
+    if (!input) return;
+    const folderName = input.value.trim();
+    if (!folderName) {
+        alert('Por favor, digite o nome da pasta.');
+        return;
+    }
+    
+    const parentPath = state.currentBrowserPath;
+    if (!parentPath) return;
+    
+    const btn = document.getElementById('btn-dir-browser-create-folder');
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> Criando...`;
+    
+    try {
+        const res = await fetch('/api/system/dirs', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                parent_path: parentPath,
+                name: folderName
+            })
+        });
+        
+        const data = await res.json();
+        
+        if (!res.ok) {
+            throw new Error(data.detail || 'Erro ao criar pasta');
+        }
+        
+        // Limpa input
+        input.value = '';
+        
+        // Recarrega o diretório atual para mostrar a nova pasta criada
+        await loadBrowserDirectories(parentPath);
+        
+        // Alerta opcional de sucesso
+        alert(data.message || 'Pasta criada com sucesso!');
+    } catch (err) {
+        alert(`Erro: ${err.message}`);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+    }
+}
+
 function confirmDirectorySelection() {
     if (state.dirBrowserTargetInput === 'local-selected-path') {
         const path = state.currentBrowserPath;
@@ -1498,6 +1552,13 @@ function setupEventListeners() {
         btn.addEventListener('click', closeDirectoryBrowser);
     });
     document.getElementById('btn-dir-browser-confirm').addEventListener('click', confirmDirectorySelection);
+    document.getElementById('btn-dir-browser-create-folder').addEventListener('click', handleCreateFolderBrowser);
+    document.getElementById('dir-browser-new-folder-name').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            handleCreateFolderBrowser();
+        }
+    });
 
     // 3.7. Deletar/Remover Projeto Ativo
     document.getElementById('btn-delete-project').addEventListener('click', async () => {
