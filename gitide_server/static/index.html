@@ -716,6 +716,20 @@ Se o arquivo existir, leia e siga rigorosamente todas as diretrizes, fases de an
                                     <button class="btn btn-primary btn-sm" id="btn-generate-test-doc"><i class="fa-solid fa-file-circle-plus"></i> Test Doc</button>
                                 </div>
                             </div>
+                            
+                            <!-- Info banner / Prompt copy helper -->
+                            <div style="background: rgba(99, 102, 241, 0.08); border: 1px solid rgba(99, 102, 241, 0.16); padding: 12px 16px; border-radius: 8px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-shrink: 0;">
+                                <div style="display: flex; gap: 10px; align-items: flex-start; text-align: left;">
+                                    <i class="fa-solid fa-circle-info" style="color: var(--color-primary); font-size: 16px; margin-top: 2px;"></i>
+                                    <div>
+                                        <p style="margin: 0; font-size: 13px; font-weight: 500; color: var(--text-light);">Instruções para o Custom GPT</p>
+                                        <p style="margin: 0; font-size: 12px; color: var(--text-muted); margin-top: 2px;">Copie a instrução e cole no ChatGPT para forçá-lo a criar/editar os arquivos Word no GitIDE em vez de responder em texto corrido.</p>
+                                    </div>
+                                </div>
+                                <button type="button" class="btn btn-secondary btn-sm" id="btn-copy-doc-prompt-instructions" style="white-space: nowrap; display: flex; align-items: center; gap: 6px; padding: 6px 12px; min-height: 32px !important;">
+                                    <i class="fa-regular fa-copy"></i> Copiar Prompt
+                                </button>
+                            </div>
 
                             <!-- Listagem de Documentos -->
                             <div style="flex: 1; overflow-y: auto; min-height: 200px;">

@@ -71,6 +71,11 @@ Após cada implementação, o agente deve obrigatoriamente:
 4. **Portabilidade de OS:**
    - Prever que o código pode rodar tanto em Windows quanto em Linux (Docker/VM). Mapear caminhos de diretório de forma relativa ou tratá-los de forma dinâmica no código.
 
+5. **Criação e Edição de Documentos (Relatórios/Manuais/Documentação):**
+   - Sempre que o usuário solicitar a criação, revisão ou atualização de qualquer documentação (como Especificações Técnicas, Manuais de Integração ou Relatórios de Teste), você **DEVE** utilizar o endpoint `POST /api/projects/{project_id}/documents/word` para persistir o documento fisicamente em formato Word (.docx).
+   - **NUNCA** exiba o conteúdo da documentação diretamente no chat do ChatGPT como markdown ou texto corrido. O usuário precisa do arquivo físico gerado no workspace.
+   - Utilize a estrutura de `sections` (seções) com formatações apropriadas (`paragraph`, `bullet`, `highlight`, `code`, `table`). Para tabelas, envie a matriz de dados como string JSON (ex: `[["Header1", "Header2"], ["Val1", "Val2"]]`).
+
 ---
 
 ## 💬 Exemplo de Prompt Inicial para Configurar no ChatGPT (Custom GPT)
@@ -79,5 +84,7 @@ Após cada implementação, o agente deve obrigatoriamente:
 ```text
 Você é um Agente de Engenharia de Software conectado ao computador local do usuário via GitIDE. 
 Antes de realizar qualquer tarefa de leitura, escrita ou execução de comandos, você DEVE verificar se existe o arquivo 'GPT_INSTRUCTIONS.md' na raiz do workspace do projeto atual (ou usar o endpoint correspondente para ler seu conteúdo).
-Leia e siga rigorosamente as diretrizes, fases de análise e o protocolo de execução contidos no arquivo 'GPT_INSTRUCTIONS.md'. Sempre crie um plano de implementação detalhado e aguarde a aprovação do usuário antes de modificar códigos ou rodar deploys.
+Leia e siga rigorosamente as diretrizes, fases de análise, regras de geração de documentos e o protocolo de execução contidos no arquivo 'GPT_INSTRUCTIONS.md'.
+Sempre que for solicitado a criar, atualizar ou editar qualquer documentação técnica, manual ou relatório, você DEVE utilizar o endpoint 'POST /api/projects/{project_id}/documents/word' para gerar o arquivo Word (.docx) real no projeto, nunca escrevendo a documentação em texto puro no chat.
+Sempre crie um plano de implementação detalhado e aguarde a aprovação do usuário antes de modificar códigos ou rodar deploys.
 ```

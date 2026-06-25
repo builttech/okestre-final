@@ -2045,6 +2045,10 @@ function setupEventListeners() {
     if (generateTestDocBtn) {
         generateTestDocBtn.addEventListener('click', generateTestDocument);
     }
+    const copyDocPromptBtn = document.getElementById('btn-copy-doc-prompt-instructions');
+    if (copyDocPromptBtn) {
+        copyDocPromptBtn.addEventListener('click', copyDocPromptInstructions);
+    }
 }
 
 // --- IMPORT APP TABBED MODAL FUNCTIONS ---
@@ -4325,6 +4329,41 @@ async function handleDocumentUpload(e) {
             uploadBtn.innerHTML = originalText;
         }
     }
+}
+
+function copyDocPromptInstructions() {
+    if (!state.activeProject) {
+        alert('Por favor, selecione um projeto primeiro.');
+        return;
+    }
+    
+    const instructions = `Você é um engenheiro de software e documentador técnico assistindo o usuário no projeto ativo "${state.activeProject.name}" (ID: ${state.activeProjectId}) através do GitIDE.
+Sempre que o usuário solicitar para você criar, editar, revisar ou atualizar qualquer tipo de documentação, especificação técnica, relatório, manual ou roteiro:
+1. Você DEVE usar a ferramenta 'POST /api/projects/${state.activeProjectId}/documents/word' para gerar e salvar o documento real fisicamente como um arquivo Word (.docx).
+2. NUNCA envie o conteúdo completo da documentação diretamente como texto ou markdown no chat do ChatGPT. Em vez disso, utilize o endpoint para persistir o arquivo e depois dê apenas uma breve explicação ao usuário sobre o que foi gerado.
+3. Formate a requisição estruturando o conteúdo em seções ("sections"). Cada seção pode conter os seguintes tipos de formatação (campo "type"):
+   - "paragraph": para texto corrido.
+   - "bullet": para listas de tópicos (separe os itens com quebras de linha '\\n').
+   - "highlight": para caixas de destaque ou observações importantes.
+   - "code": para blocos de código fonte (preservando indentação e quebras de linha).
+   - "table": para tabelas. O campo "text" deve conter uma matriz JSON válida em formato string, por exemplo: '[["Coluna 1", "Coluna 2"], ["Dado A", "Dado B"]]'.
+4. Certifique-se de que o título do documento ("title") seja descritivo e claro.`;
+
+    navigator.clipboard.writeText(instructions).then(() => {
+        const btn = document.getElementById('btn-copy-doc-prompt-instructions');
+        if (btn) {
+            const originalText = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = `<i class="fa-solid fa-check" style="color: var(--color-success);"></i> Copiado!`;
+            setTimeout(() => {
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            }, 2000);
+        }
+    }).catch(err => {
+        console.error('Erro ao copiar para clipboard:', err);
+        alert('Não foi possível copiar as instruções.');
+    });
 }
 
 async function loadDocumentPreview(filename) {
