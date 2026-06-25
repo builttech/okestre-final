@@ -8,7 +8,7 @@ import string
 from typing import Optional
 from datetime import datetime
 
-from fastapi import FastAPI, Depends, HTTPException, Security, status, Query, Response, UploadFile, File
+from fastapi import FastAPI, Request, Depends, HTTPException, Security, status, Query, Response, UploadFile, File
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
@@ -17,7 +17,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
-from gitide_server.database import init_db, get_db, Project, ActivityLog, FileSnapshot
+from gitide_server.database import init_db, get_db, Project, ActivityLog, FileSnapshot, PendingCommand
 import gitide_server.vcs as vcs
 import gitide_server.git_bridge as git_bridge
 import gitide_server.agent as agent
@@ -494,6 +494,7 @@ def delete_file(filepath: str = Query(..., description="Caminho relativo do arqu
 # Execução de Comandos
 @app.post("/api/projects/{project_id}/execute", tags=["Execução"])
 def execute_command(cmd_in: CommandExecute, 
+                    request: Request,
                     project: Project = Depends(get_project_or_404),
                     db: Session = Depends(get_db),
                     _ = Depends(get_api_key)):
@@ -501,6 +502,53 @@ def execute_command(cmd_in: CommandExecute,
     Executa um comando de terminal (Shell) dentro da pasta do projeto.
     Requer autenticação Bearer Token para chamadas externas.
     """
+    # 1. Verifica a origem do comando (dashboard local vs ChatGPT Action externa)
+    is_dashboard = request.headers.get("x-gitide-source") == "dashboard"
+    
+    # Se não for do dashboard (for externo/ChatGPT), aplica controle de aprovação manual
+    if not is_dashboard:
+        cmd_str = cmd_in.command.strip()
+        
+        # Verifica se o comando já foi aprovado pelo usuário no painel
+        approval = db.query(PendingCommand).filter(
+            PendingCommand.project_id == project.id,
+            PendingCommand.command == cmd_str,
+            PendingCommand.status == "approved"
+        ).first()
+        
+        if approval:
+            # Consome a aprovação para que não possa ser reexecutado indevidamente
+            db.delete(approval)
+            db.commit()
+        else:
+            # Verifica se já está na fila como pendente
+            pending = db.query(PendingCommand).filter(
+                PendingCommand.project_id == project.id,
+                PendingCommand.command == cmd_str,
+                PendingCommand.status == "pending"
+            ).first()
+            
+            if not pending:
+                pending = PendingCommand(
+                    project_id=project.id,
+                    command=cmd_str,
+                    status="pending"
+                )
+                db.add(pending)
+                db.commit()
+                db.refresh(pending)
+            
+            # Retorna status pendente de aprovação
+            return {
+                "status": "pending_approval",
+                "command_id": pending.id,
+                "message": (
+                    f"A execução do comando '{cmd_str}' foi retida por motivos de segurança e requer aprovação manual. "
+                    "Por favor, peça ao usuário para aprovar a execução deste comando no painel Web do GitIDE. "
+                    "Assim que o usuário aprovar, ele te avisará no chat para que você execute o comando novamente."
+                )
+            }
+
     # Registra a execução no log
     log = ActivityLog(
         project_id=project.id,
@@ -548,6 +596,51 @@ def execute_command(cmd_in: CommandExecute,
         log.details += f"\n[ERRO: {str(e)}]"
         db.commit()
         raise HTTPException(status_code=500, detail=f"Erro ao executar comando: {str(e)}")
+
+@app.get("/api/projects/{project_id}/execute/pending", tags=["Execução"])
+def list_pending_commands(project: Project = Depends(get_project_or_404),
+                          db: Session = Depends(get_db),
+                          _ = Depends(get_api_key)):
+    """Lista todos os comandos pendentes de aprovação para o projeto."""
+    commands = db.query(PendingCommand).filter(
+        PendingCommand.project_id == project.id,
+        PendingCommand.status == "pending"
+    ).all()
+    return [{"id": c.id, "command": c.command, "status": c.status, "created_at": c.created_at.isoformat()} for c in commands]
+
+@app.post("/api/projects/{project_id}/execute/pending/{command_id}/approve", tags=["Execução"])
+def approve_pending_command(command_id: int,
+                            project: Project = Depends(get_project_or_404),
+                            db: Session = Depends(get_db),
+                            _ = Depends(get_api_key)):
+    """Aprova um comando pendente de execução."""
+    cmd = db.query(PendingCommand).filter(
+        PendingCommand.id == command_id,
+        PendingCommand.project_id == project.id
+    ).first()
+    if not cmd:
+        raise HTTPException(status_code=404, detail="Comando pendente não encontrado.")
+    
+    cmd.status = "approved"
+    db.commit()
+    return {"status": "success", "message": "Comando aprovado com sucesso."}
+
+@app.post("/api/projects/{project_id}/execute/pending/{command_id}/reject", tags=["Execução"])
+def reject_pending_command(command_id: int,
+                           project: Project = Depends(get_project_or_404),
+                           db: Session = Depends(get_db),
+                           _ = Depends(get_api_key)):
+    """Rejeita um comando pendente de execução."""
+    cmd = db.query(PendingCommand).filter(
+        PendingCommand.id == command_id,
+        PendingCommand.project_id == project.id
+    ).first()
+    if not cmd:
+        raise HTTPException(status_code=404, detail="Comando pendente não encontrado.")
+    
+    cmd.status = "rejected"
+    db.commit()
+    return {"status": "success", "message": "Comando rejeitado com sucesso."}
 
 # Banco de Dados do Projeto
 @app.post("/api/projects/{project_id}/db/query", tags=["Banco de Dados"])

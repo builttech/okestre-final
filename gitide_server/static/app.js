@@ -82,7 +82,8 @@ async function initApp() {
 function getHeaders() {
     return {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${state.apiKey}`
+        'Authorization': `Bearer ${state.apiKey}`,
+        'X-GitIDE-Source': 'dashboard'
     };
 }
 
@@ -179,6 +180,12 @@ function selectProject(projectId) {
 
 // --- ABAS ---
 function switchTab(tabId) {
+    // Cancela polling de comandos pendentes ao mudar de aba
+    if (window.pendingCommandsInterval) {
+        clearInterval(window.pendingCommandsInterval);
+        window.pendingCommandsInterval = null;
+    }
+
     state.activeTab = tabId;
     localStorage.setItem('gitide_active_tab', tabId);
     
@@ -234,6 +241,9 @@ function switchTab(tabId) {
             loadProjectDbCredentials();
         } else if (tabId === 'tab-documents') {
             loadDocuments();
+        } else if (tabId === 'tab-terminal') {
+            loadPendingCommands();
+            startPendingCommandsPolling();
         }
     }
 }
@@ -4885,5 +4895,116 @@ function setupCustomSelect(select) {
 function syncCustomSelectValue(select, wrapper) {
     if (wrapper && typeof wrapper.syncValue === 'function') {
         wrapper.syncValue();
+    }
+}
+
+// --- PENDING COMMANDS APPROVAL ---
+
+async function loadPendingCommands() {
+    if (!state.activeProjectId) return;
+    
+    const panel = document.getElementById('pending-commands-panel');
+    const list = document.getElementById('pending-commands-list');
+    if (!panel || !list) return;
+    
+    try {
+        const res = await fetch(`/api/projects/${state.activeProjectId}/execute/pending`, {
+            headers: getHeaders()
+        });
+        const data = await res.json();
+        
+        if (data && data.length > 0) {
+            panel.style.display = 'block';
+            list.innerHTML = '';
+            
+            data.forEach(cmd => {
+                const item = document.createElement('div');
+                item.className = 'pending-command-item';
+                item.style.display = 'flex';
+                item.style.justifyContent = 'space-between';
+                item.style.alignItems = 'center';
+                item.style.background = 'rgba(255,255,255,0.02)';
+                item.style.border = '1px solid var(--border-color)';
+                item.style.borderRadius = '6px';
+                item.style.padding = '10px 14px';
+                
+                const dateStr = new Date(cmd.created_at).toLocaleString('pt-BR');
+                
+                item.innerHTML = `
+                    <div style="display: flex; flex-direction: column; gap: 4px; min-width: 0; flex: 1; text-align: left;">
+                        <span style="font-family: var(--font-mono); font-size: 13px; color: var(--text-light); word-break: break-all;">${cmd.command}</span>
+                        <span style="font-size: 11px; color: var(--text-dark);">Recebido em: ${dateStr}</span>
+                    </div>
+                    <div style="display: flex; gap: 8px; flex-shrink: 0; margin-left: 14px;">
+                        <button class="btn btn-sm" id="btn-approve-${cmd.id}" style="background: var(--color-success); border-color: rgba(255,255,255,0.05); min-height: 28px !important; padding: 4px 10px; font-size: 12px; cursor: pointer; color: white;">
+                            <i class="fa-solid fa-check"></i> Permitir
+                        </button>
+                        <button class="btn btn-sm" id="btn-reject-${cmd.id}" style="background: var(--color-danger); border-color: rgba(255,255,255,0.05); min-height: 28px !important; padding: 4px 10px; font-size: 12px; cursor: pointer; color: white;">
+                            <i class="fa-solid fa-xmark"></i> Rejeitar
+                        </button>
+                    </div>
+                `;
+                
+                list.appendChild(item);
+                
+                // Event listeners
+                document.getElementById(`btn-approve-${cmd.id}`).addEventListener('click', () => approveCommand(cmd.id));
+                document.getElementById(`btn-reject-${cmd.id}`).addEventListener('click', () => rejectCommand(cmd.id));
+            });
+        } else {
+            panel.style.display = 'none';
+        }
+    } catch (err) {
+        console.error('Erro ao buscar comandos pendentes:', err);
+    }
+}
+
+function startPendingCommandsPolling() {
+    if (window.pendingCommandsInterval) {
+        clearInterval(window.pendingCommandsInterval);
+    }
+    window.pendingCommandsInterval = setInterval(() => {
+        if (state.activeTab === 'tab-terminal' && state.activeProjectId) {
+            loadPendingCommands();
+        } else {
+            clearInterval(window.pendingCommandsInterval);
+            window.pendingCommandsInterval = null;
+        }
+    }, 4000);
+}
+
+async function approveCommand(commandId) {
+    if (!state.activeProjectId) return;
+    try {
+        const res = await fetch(`/api/projects/${state.activeProjectId}/execute/pending/${commandId}/approve`, {
+            method: 'POST',
+            headers: getHeaders()
+        });
+        const data = await res.json();
+        if (data.status === 'success') {
+            loadPendingCommands();
+        } else {
+            alert(`Erro ao aprovar comando: ${data.detail}`);
+        }
+    } catch (err) {
+        alert(`Erro ao aprovar comando: ${err.message}`);
+    }
+}
+
+async function rejectCommand(commandId) {
+    if (!state.activeProjectId) return;
+    try {
+        const res = await fetch(`/api/projects/${state.activeProjectId}/execute/pending/${commandId}/reject`, {
+            method: 'POST',
+            headers: getHeaders()
+        });
+        const data = await res.json();
+        if (data.status === 'success') {
+            loadPendingCommands();
+        } else {
+            alert(`Erro ao rejeitar comando: ${data.detail}`);
+        }
+    } catch (err) {
+        alert(`Erro ao rejeitar comando: ${err.message}`);
     }
 }

@@ -166,6 +166,16 @@
                 <!-- TAB: TERMINAL -->
                 <div id="tab-terminal" class="tab-pane">
                     <div class="terminal-panel">
+                        <!-- Pending Commands Card -->
+                        <div id="pending-commands-panel" style="display: none; background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.2); border-radius: 8px; padding: 16px; margin-bottom: 16px; flex-shrink: 0;">
+                            <h5 style="margin: 0 0 10px 0; color: var(--color-warning); font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 8px;">
+                                <i class="fa-solid fa-shield-halved"></i> Solicitações de Execução Externas Pendentes
+                            </h5>
+                            <div id="pending-commands-list" style="display: flex; flex-direction: column; gap: 10px;">
+                                <!-- Dynamically populated -->
+                            </div>
+                        </div>
+
                         <div class="panel-header">
                             <h4><i class="fa-solid fa-terminal"></i> Terminal Integrado</h4>
                             <div class="terminal-actions">
