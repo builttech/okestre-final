@@ -7,7 +7,7 @@ import string
 from typing import Optional
 from datetime import datetime
 
-from fastapi import FastAPI, Depends, HTTPException, Security, status, Query, Response
+from fastapi import FastAPI, Depends, HTTPException, Security, status, Query, Response, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
@@ -16,7 +16,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
-from gitide_server.database import init_db, get_db, Project, ActivityLog, FileSnapshot
+from gitide_server.database import init_db, get_db, Project, ActivityLog, FileSnapshot, PendingCommand
 import gitide_server.vcs as vcs
 import gitide_server.git_bridge as git_bridge
 import gitide_server.agent as agent
@@ -416,13 +416,56 @@ def delete_file(filepath: str = Query(..., description="Caminho relativo do arqu
 # Execução de Comandos
 @app.post("/api/projects/{project_id}/execute", tags=["Execução"])
 def execute_command(cmd_in: CommandExecute, 
+                    request: Request,
                     project: Project = Depends(get_project_or_404),
                     db: Session = Depends(get_db),
                     _ = Depends(get_api_key)):
     """
     Executa um comando de terminal (Shell) dentro da pasta do projeto.
     Requer autenticação Bearer Token para chamadas externas.
+    Se a requisição for externa, exige aprovação prévia do usuário via Dashboard.
     """
+    is_dashboard = request.headers.get("x-gitide-source") == "dashboard" or request.headers.get("X-GitIDE-Source") == "dashboard"
+    
+    if not is_dashboard:
+        # Verifica se o comando já foi aprovado
+        pending = db.query(PendingCommand).filter(
+            PendingCommand.project_id == project.id,
+            PendingCommand.command == cmd_in.command,
+            PendingCommand.status == "approved"
+        ).first()
+        
+        if pending:
+            # Consome a aprovação
+            pending.status = "executed"
+            db.commit()
+        else:
+            # Verifica se já existe um pendente idêntico para evitar duplicados
+            existing = db.query(PendingCommand).filter(
+                PendingCommand.project_id == project.id,
+                PendingCommand.command == cmd_in.command,
+                PendingCommand.status == "pending"
+            ).first()
+            
+            if not existing:
+                new_cmd = PendingCommand(
+                    project_id=project.id,
+                    command=cmd_in.command,
+                    status="pending"
+                )
+                db.add(new_cmd)
+                db.commit()
+                db.refresh(new_cmd)
+                cmd_id = new_cmd.id
+            else:
+                cmd_id = existing.id
+                
+            return {
+                "status": "pending_approval",
+                "command_id": cmd_id,
+                "message": f"Comando '{cmd_in.command}' retido para aprovação de segurança. Por favor, aprove o comando com ID {cmd_id} no painel do GitIDE para permitir sua execução."
+            }
+
     # Registra a execução no log
     log = ActivityLog(
         project_id=project.id,
@@ -470,6 +513,50 @@ def execute_command(cmd_in: CommandExecute,
         log.details += f"\n[ERRO: {str(e)}]"
         db.commit()
         raise HTTPException(status_code=500, detail=f"Erro ao executar comando: {str(e)}")
+
+@app.get("/api/projects/{project_id}/execute/pending", tags=["Execução"])
+def list_pending_commands(project_id: int, 
+                          db: Session = Depends(get_db),
+                          _ = Depends(get_api_key)):
+    """Lista todos os comandos pendentes de aprovação para o projeto."""
+    cmds = db.query(PendingCommand).filter(
+        PendingCommand.project_id == project_id,
+        PendingCommand.status == "pending"
+    ).order_by(PendingCommand.created_at.desc()).all()
+    return cmds
+
+@app.post("/api/projects/{project_id}/execute/pending/{command_id}/approve", tags=["Execução"])
+def approve_command(project_id: int, 
+                    command_id: int, 
+                    db: Session = Depends(get_db),
+                    _ = Depends(get_api_key)):
+    """Aprova um comando retido, permitindo que a próxima chamada o execute."""
+    cmd = db.query(PendingCommand).filter(
+        PendingCommand.id == command_id,
+        PendingCommand.project_id == project_id
+    ).first()
+    if not cmd:
+        raise HTTPException(status_code=404, detail="Comando não encontrado.")
+    cmd.status = "approved"
+    db.commit()
+    return {"status": "success", "message": "Comando aprovado com sucesso."}
+
+@app.post("/api/projects/{project_id}/execute/pending/{command_id}/reject", tags=["Execução"])
+def reject_command(project_id: int, 
+                    command_id: int, 
+                    db: Session = Depends(get_db),
+                    _ = Depends(get_api_key)):
+    """Rejeita um comando retido."""
+    cmd = db.query(PendingCommand).filter(
+        PendingCommand.id == command_id,
+        PendingCommand.project_id == project_id
+    ).first()
+    if not cmd:
+        raise HTTPException(status_code=404, detail="Comando não encontrado.")
+    cmd.status = "rejected"
+    db.commit()
+    return {"status": "success", "message": "Comando rejeitado com sucesso."}
+
 
 # Banco de Dados do Projeto
 @app.post("/api/projects/{project_id}/db/query", tags=["Banco de Dados"])

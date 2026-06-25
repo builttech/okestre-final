@@ -1,8 +1,45 @@
 import os
 import hashlib
+import fnmatch
 from datetime import datetime
 from sqlalchemy.orm import Session
 from gitide_server.database import Project, FileSnapshot, ActivityLog
+
+def load_gitideignore(project_path: str) -> list[str]:
+    ignore_file = os.path.join(project_path, ".gitideignore")
+    patterns = []
+    if os.path.exists(ignore_file):
+        try:
+            with open(ignore_file, 'r', encoding='utf-8') as f:
+                for line in f:
+                    line = line.strip()
+                    if line and not line.startswith('#'):
+                        patterns.append(line)
+        except Exception:
+            pass
+    return patterns
+
+def is_ignored(filepath: str, patterns: list[str]) -> bool:
+    # Normalize filepath to use forward slashes for matching and strip leading/trailing slashes
+    filepath = filepath.replace('\\', '/').strip('/')
+    
+    # Always ignore .gitideignore itself to prevent external read/write access
+    if filepath == ".gitideignore":
+        return True
+        
+    for pattern in patterns:
+        pattern = pattern.strip().replace('\\', '/').strip('/')
+        if not pattern:
+            continue
+            
+        if '/' in pattern:
+            if fnmatch.fnmatchcase(filepath, pattern) or fnmatch.fnmatchcase(filepath, pattern + "/*"):
+                return True
+        else:
+            parts = filepath.split('/')
+            if any(fnmatch.fnmatchcase(part, pattern) for part in parts):
+                return True
+    return False
 
 def get_safe_path(project_path: str, filepath: str) -> str:
     """
@@ -44,6 +81,7 @@ def list_project_files(project_path: str) -> list[dict]:
     }
     ignore_extensions = {'.pyc', '.pyo', '.pyd', '.db', '.sqlite', '.sqlite3', '.zip', '.tar', '.gz'}
     
+    patterns = load_gitideignore(abs_project_path)
     file_list = []
     
     for root, dirs, files in os.walk(abs_project_path):
@@ -58,12 +96,15 @@ def list_project_files(project_path: str) -> list[dict]:
             full_path = os.path.join(root, file)
             rel_path = os.path.relpath(full_path, abs_project_path).replace('\\', '/')
             
+            if is_ignored(rel_path, patterns):
+                continue
+                
             try:
                 stat = os.stat(full_path)
                 file_list.append({
-                    "path": rel_path,
-                    "size": stat.st_size,
-                    "last_modified": datetime.fromtimestamp(stat.st_mtime).isoformat()
+                     "path": rel_path,
+                     "size": stat.st_size,
+                     "last_modified": datetime.fromtimestamp(stat.st_mtime).isoformat()
                 })
             except Exception:
                 # Ignora arquivos que não podem ser lidos (ex: bloqueados pelo SO)
@@ -74,6 +115,11 @@ def list_project_files(project_path: str) -> list[dict]:
 def read_project_file(project_path: str, filepath: str) -> str:
     """Lê o conteúdo de um arquivo no projeto."""
     full_path = get_safe_path(project_path, filepath)
+    rel_path = os.path.relpath(full_path, os.path.abspath(project_path)).replace('\\', '/')
+    patterns = load_gitideignore(project_path)
+    if is_ignored(rel_path, patterns):
+        raise ValueError("Acesso negado: o arquivo está na lista de ignorados (.gitideignore)")
+        
     if not os.path.exists(full_path):
         raise FileNotFoundError(f"Arquivo não encontrado: {filepath}")
     if os.path.isdir(full_path):
@@ -89,7 +135,11 @@ def write_project_file(db: Session, project: Project, filepath: str, content: st
     no banco de dados antes/depois da escrita para controle de versão.
     """
     full_path = get_safe_path(project.path, filepath)
-    
+    rel_path = os.path.relpath(full_path, os.path.abspath(project.path)).replace('\\', '/')
+    patterns = load_gitideignore(project.path)
+    if is_ignored(rel_path, patterns):
+        raise ValueError("Acesso negado: o arquivo está na lista de ignorados (.gitideignore)")
+        
     # Cria os diretórios pais se não existirem
     os.makedirs(os.path.dirname(full_path), exist_ok=True)
     
@@ -133,6 +183,11 @@ def delete_project_file(db: Session, project: Project, filepath: str, activity_l
     para permitir que seja restaurado posteriormente.
     """
     full_path = get_safe_path(project.path, filepath)
+    rel_path = os.path.relpath(full_path, os.path.abspath(project.path)).replace('\\', '/')
+    patterns = load_gitideignore(project.path)
+    if is_ignored(rel_path, patterns):
+        raise ValueError("Acesso negado: o arquivo está na lista de ignorados (.gitideignore)")
+        
     if not os.path.exists(full_path):
         raise FileNotFoundError(f"Arquivo não encontrado para exclusão: {filepath}")
         
@@ -171,6 +226,10 @@ def rollback_project_file(db: Session, project: Project, snapshot_id: int) -> di
     
     if not snapshot:
         raise ValueError(f"Snapshot ID {snapshot_id} não encontrado para este projeto.")
+        
+    patterns = load_gitideignore(project.path)
+    if is_ignored(snapshot.filepath, patterns):
+        raise ValueError("Acesso negado: o arquivo está na lista de ignorados (.gitideignore)")
         
     full_path = get_safe_path(project.path, snapshot.filepath)
     os.makedirs(os.path.dirname(full_path), exist_ok=True)
@@ -281,6 +340,10 @@ def patch_project_file(db: Session, project: Project, filepath: str, target_cont
     Substitui um trecho específico de um arquivo.
     Lança ValueError se as condições de busca/substituição não forem atendidas.
     """
+    patterns = load_gitideignore(project.path)
+    if is_ignored(filepath, patterns):
+        raise ValueError("Acesso negado: o arquivo está na lista de ignorados (.gitideignore)")
+        
     content = read_project_file(project.path, filepath)
     occurrences = content.count(target_content)
     

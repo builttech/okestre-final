@@ -26,6 +26,13 @@ const state = {
 document.addEventListener('DOMContentLoaded', () => {
     initApp();
     setupEventListeners();
+    
+    // Polling periódico para comandos pendentes de segurança
+    setInterval(() => {
+        if (state.activeProjectId) {
+            loadPendingCommands();
+        }
+    }, 5000);
 });
 
 async function initApp() {
@@ -79,7 +86,8 @@ async function initApp() {
 function getHeaders() {
     return {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${state.apiKey}`
+        'Authorization': `Bearer ${state.apiKey}`,
+        'X-GitIDE-Source': 'dashboard'
     };
 }
 
@@ -229,6 +237,8 @@ function switchTab(tabId) {
         } else if (tabId === 'tab-database') {
             loadDbTables();
             loadProjectDbCredentials();
+        } else if (tabId === 'tab-terminal') {
+            loadPendingCommands();
         }
     }
 }
@@ -589,6 +599,141 @@ async function runTerminalCommand(e) {
     } finally {
         btn.disabled = false;
         output.scrollTop = output.scrollHeight;
+    }
+}
+
+// --- COMANDOS PENDENTES ---
+async function loadPendingCommands() {
+    if (!state.activeProjectId) {
+        const panel = document.getElementById('pending-commands-panel');
+        if (panel) panel.style.display = 'none';
+        return;
+    }
+    try {
+        const res = await fetch(`/api/projects/${state.activeProjectId}/execute/pending`, {
+            headers: getHeaders()
+        });
+        if (!res.ok) throw new Error('Falha ao carregar comandos pendentes');
+        const commands = await res.json();
+        
+        const panel = document.getElementById('pending-commands-panel');
+        const countSpan = document.getElementById('pending-commands-count');
+        const listDiv = document.getElementById('pending-commands-list');
+        
+        if (!panel || !countSpan || !listDiv) return;
+        
+        if (commands && commands.length > 0) {
+            panel.style.display = 'block';
+            countSpan.textContent = commands.length;
+            
+            listDiv.innerHTML = '';
+            commands.forEach(cmd => {
+                const item = document.createElement('div');
+                item.className = 'pending-command-item';
+                item.style.display = 'flex';
+                item.style.justifyContent = 'space-between';
+                item.style.alignItems = 'center';
+                item.style.padding = '10px 12px';
+                item.style.background = 'rgba(255, 255, 255, 0.03)';
+                item.style.border = '1px solid var(--border-color)';
+                item.style.borderRadius = 'var(--border-radius, 8px)';
+                item.style.marginBottom = '6px';
+                item.style.width = '100%';
+                item.style.boxSizing = 'border-box';
+                
+                const info = document.createElement('div');
+                info.style.flex = '1';
+                info.style.marginRight = '12px';
+                
+                const cmdText = document.createElement('code');
+                cmdText.textContent = cmd.command;
+                cmdText.style.background = 'rgba(0,0,0,0.3)';
+                cmdText.style.padding = '4px 8px';
+                cmdText.style.borderRadius = '4px';
+                cmdText.style.display = 'block';
+                cmdText.style.fontFamily = 'monospace';
+                cmdText.style.wordBreak = 'break-all';
+                cmdText.style.color = '#f59e0b';
+                
+                const dateText = document.createElement('span');
+                const date = new Date(cmd.created_at + 'Z');
+                dateText.textContent = `Solicitado em: ${date.toLocaleString()}`;
+                dateText.style.fontSize = '11px';
+                dateText.style.color = '#94a3b8';
+                dateText.style.display = 'block';
+                dateText.style.marginTop = '4px';
+                
+                info.appendChild(cmdText);
+                info.appendChild(dateText);
+                
+                const actions = document.createElement('div');
+                actions.style.display = 'flex';
+                actions.style.gap = '8px';
+                
+                const btnApprove = document.createElement('button');
+                btnApprove.className = 'btn btn-sm btn-success';
+                btnApprove.style.backgroundColor = '#10b981';
+                btnApprove.style.color = '#fff';
+                btnApprove.style.border = 'none';
+                btnApprove.style.padding = '6px 12px';
+                btnApprove.style.borderRadius = '4px';
+                btnApprove.style.cursor = 'pointer';
+                btnApprove.innerHTML = '<i class="fa-solid fa-check"></i> Aprovar';
+                btnApprove.onclick = () => handleApproveCommand(cmd.id);
+                
+                const btnReject = document.createElement('button');
+                btnReject.className = 'btn btn-sm btn-danger';
+                btnReject.style.backgroundColor = '#ef4444';
+                btnReject.style.color = '#fff';
+                btnReject.style.border = 'none';
+                btnReject.style.padding = '6px 12px';
+                btnReject.style.borderRadius = '4px';
+                btnReject.style.cursor = 'pointer';
+                btnReject.innerHTML = '<i class="fa-solid fa-xmark"></i> Rejeitar';
+                btnReject.onclick = () => handleRejectCommand(cmd.id);
+                
+                actions.appendChild(btnApprove);
+                actions.appendChild(btnReject);
+                
+                item.appendChild(info);
+                item.appendChild(actions);
+                listDiv.appendChild(item);
+            });
+        } else {
+            panel.style.display = 'none';
+            countSpan.textContent = '0';
+            listDiv.innerHTML = '';
+        }
+    } catch (err) {
+        console.error('Erro ao listar comandos pendentes:', err);
+    }
+}
+
+async function handleApproveCommand(id) {
+    if (!state.activeProjectId) return;
+    try {
+        const res = await fetch(`/api/projects/${state.activeProjectId}/execute/pending/${id}/approve`, {
+            method: 'POST',
+            headers: getHeaders()
+        });
+        if (!res.ok) throw new Error('Erro ao aprovar comando');
+        await loadPendingCommands();
+    } catch (err) {
+        alert(err.message);
+    }
+}
+
+async function handleRejectCommand(id) {
+    if (!state.activeProjectId) return;
+    try {
+        const res = await fetch(`/api/projects/${state.activeProjectId}/execute/pending/${id}/reject`, {
+            method: 'POST',
+            headers: getHeaders()
+        });
+        if (!res.ok) throw new Error('Erro ao rejeitar comando');
+        await loadPendingCommands();
+    } catch (err) {
+        alert(err.message);
     }
 }
 

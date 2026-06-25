@@ -169,6 +169,17 @@
                             <button type="submit" class="btn btn-primary" id="btn-run-cmd"><i class="fa-solid fa-play"></i></button>
                         </form>
                     </div>
+
+                    <!-- PANEL DE COMANDOS PENDENTES -->
+                    <div id="pending-commands-panel" class="terminal-panel" style="margin-top: 20px; display: none;">
+                        <div class="panel-header" style="border-bottom: 1px solid var(--border-color); padding-bottom: 10px; display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                            <h4 style="display: flex; align-items: center; gap: 8px; margin: 0;"><i class="fa-solid fa-shield-halved" style="color: #f59e0b;"></i> Solicitações de Comando Pendentes</h4>
+                            <span class="badge" id="pending-commands-count" style="background-color: #f59e0b; color: #0f172a; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: bold;">0</span>
+                        </div>
+                        <div id="pending-commands-list" style="padding: 15px; display: flex; flex-direction: column; gap: 10px; max-height: 250px; overflow-y: auto; width: 100%;">
+                            <!-- Os comandos pendentes serão listados aqui -->
+                        </div>
+                    </div>
                 </div>
 
                 <!-- TAB: DATABASE -->
