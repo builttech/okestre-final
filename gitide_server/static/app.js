@@ -816,6 +816,13 @@ function renderDbTablesList(rows) {
     rows.forEach(row => {
         const tableName = row.table_name || Object.values(row)[0];
         
+        const wrapper = document.createElement('div');
+        wrapper.className = 'db-table-wrapper';
+        wrapper.style.display = 'flex';
+        wrapper.style.flexDirection = 'column';
+        wrapper.style.width = '100%';
+        wrapper.style.marginBottom = '6px';
+        
         const item = document.createElement('div');
         item.className = 'db-table-item';
         item.setAttribute('data-table', tableName);
@@ -825,21 +832,199 @@ function renderDbTablesList(rows) {
                 <i class="fa-solid fa-table"></i>
                 <span title="${tableName}">${tableName}</span>
             </div>
-            <i class="fa-solid fa-chevron-right" style="font-size: 10px; color: var(--text-dark);"></i>
+            <i class="fa-solid fa-chevron-right db-chevron" style="font-size: 10px; color: var(--text-dark); transition: transform 0.2s;"></i>
         `;
         
-        item.addEventListener('click', () => {
-            document.querySelectorAll('.db-table-item').forEach(i => i.classList.remove('active'));
-            item.classList.add('active');
+        const schemaPanel = document.createElement('div');
+        schemaPanel.className = 'db-table-schema-panel';
+        schemaPanel.style.display = 'none';
+        schemaPanel.style.padding = '10px 12px';
+        schemaPanel.style.background = 'rgba(0, 0, 0, 0.2)';
+        schemaPanel.style.borderLeft = '2px solid var(--color-primary, #6366f1)';
+        schemaPanel.style.borderRadius = '0 0 var(--border-radius, 8px) var(--border-radius, 8px)';
+        schemaPanel.style.borderTop = 'none';
+        schemaPanel.style.fontSize = '11px';
+        schemaPanel.style.marginTop = '-1px';
+        schemaPanel.style.borderRight = '1px solid var(--border-color)';
+        schemaPanel.style.borderBottom = '1px solid var(--border-color)';
+        
+        item.addEventListener('click', (e) => {
+            const isCurrentlyActive = item.classList.contains('active');
             
-            const textarea = document.getElementById('db-sql-textarea');
-            textarea.value = `SELECT * FROM ${tableName} LIMIT 50;`;
+            // Colapsa e limpa todos os outros
+            document.querySelectorAll('.db-table-item').forEach(i => {
+                i.classList.remove('active');
+                const chev = i.querySelector('.db-chevron');
+                if (chev) chev.style.transform = '';
+            });
+            document.querySelectorAll('.db-table-schema-panel').forEach(panel => {
+                panel.style.display = 'none';
+            });
             
-            runSqlQuery();
+            if (!isCurrentlyActive) {
+                item.classList.add('active');
+                const chev = item.querySelector('.db-chevron');
+                if (chev) chev.style.transform = 'rotate(90deg)';
+                schemaPanel.style.display = 'block';
+                
+                // Carrega estrutura de colunas e ações
+                loadTableSchema(tableName, schemaPanel);
+                
+                // Configura query inicial e executa
+                const textarea = document.getElementById('db-sql-textarea');
+                textarea.value = `SELECT * FROM ${tableName} LIMIT 50;`;
+                runSqlQuery();
+            }
         });
         
-        container.appendChild(item);
+        wrapper.appendChild(item);
+        wrapper.appendChild(schemaPanel);
+        container.appendChild(wrapper);
     });
+}
+
+async function loadTableSchema(tableName, schemaContainer) {
+    const dbType = document.getElementById('db-type-select').value;
+    const connStr = document.getElementById('db-conn-input').value.trim();
+    
+    schemaContainer.innerHTML = '<div style="color: var(--text-dark); padding: 4px 0;"><i class="fa-solid fa-circle-notch fa-spin"></i> Carregando estrutura...</div>';
+    
+    let schemaQuery = '';
+    if (dbType === 'sqlite') {
+        schemaQuery = `PRAGMA table_info("${tableName}");`;
+    } else if (dbType === 'postgresql') {
+        schemaQuery = `SELECT column_name, data_type, is_nullable FROM information_schema.columns WHERE table_name = '${tableName}' ORDER BY ordinal_position;`;
+    } else if (dbType === 'mysql') {
+        schemaQuery = `SELECT column_name, data_type, is_nullable FROM information_schema.columns WHERE table_name = '${tableName}' AND table_schema = DATABASE() ORDER BY ordinal_position;`;
+    }
+    
+    try {
+        const res = await fetch(`/api/projects/${state.activeProjectId}/db/query`, {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify({
+                db_type: dbType,
+                connection_string: connStr,
+                query: schemaQuery
+            })
+        });
+        const data = await res.json();
+        if (res.status !== 200 || data.status !== 'success') {
+            throw new Error(data.detail || 'Falha ao carregar colunas');
+        }
+        
+        schemaContainer.innerHTML = '';
+        
+        // 1. Linha de Ações Rápidas
+        const actionsRow = document.createElement('div');
+        actionsRow.className = 'db-table-actions';
+        actionsRow.style.display = 'flex';
+        actionsRow.style.gap = '6px';
+        actionsRow.style.marginBottom = '10px';
+        
+        const btnSelect = document.createElement('button');
+        btnSelect.className = 'btn btn-secondary';
+        btnSelect.style.fontSize = '10px';
+        btnSelect.style.padding = '4px 8px';
+        btnSelect.style.flex = '1';
+        btnSelect.style.cursor = 'pointer';
+        btnSelect.innerHTML = '<i class="fa-solid fa-table-list"></i> SELECT 100';
+        btnSelect.onclick = (e) => {
+            e.stopPropagation();
+            const textarea = document.getElementById('db-sql-textarea');
+            textarea.value = `SELECT * FROM ${tableName} LIMIT 100;`;
+            runSqlQuery();
+        };
+        
+        const btnCount = document.createElement('button');
+        btnCount.className = 'btn btn-secondary';
+        btnCount.style.fontSize = '10px';
+        btnCount.style.padding = '4px 8px';
+        btnCount.style.flex = '1';
+        btnCount.style.cursor = 'pointer';
+        btnCount.innerHTML = '<i class="fa-solid fa-calculator"></i> COUNT(*)';
+        btnCount.onclick = (e) => {
+            e.stopPropagation();
+            const textarea = document.getElementById('db-sql-textarea');
+            textarea.value = `SELECT COUNT(*) AS total FROM ${tableName};`;
+            runSqlQuery();
+        };
+        
+        actionsRow.appendChild(btnSelect);
+        actionsRow.appendChild(btnCount);
+        schemaContainer.appendChild(actionsRow);
+        
+        // 2. Cabeçalho de Colunas
+        const colsHeader = document.createElement('div');
+        colsHeader.style.display = 'flex';
+        colsHeader.style.justifyContent = 'space-between';
+        colsHeader.style.color = '#94a3b8';
+        colsHeader.style.fontSize = '10px';
+        colsHeader.style.fontWeight = 'bold';
+        colsHeader.style.borderBottom = '1px solid rgba(255,255,255,0.05)';
+        colsHeader.style.paddingBottom = '3px';
+        colsHeader.style.marginBottom = '6px';
+        colsHeader.innerHTML = '<span>Coluna</span><span>Tipo</span>';
+        schemaContainer.appendChild(colsHeader);
+        
+        const listWrapper = document.createElement('div');
+        listWrapper.style.display = 'flex';
+        listWrapper.style.flexDirection = 'column';
+        listWrapper.style.gap = '4px';
+        
+        data.rows.forEach(col => {
+            let colName = '';
+            let colType = '';
+            let isPk = false;
+            let isNullable = true;
+            
+            if (dbType === 'sqlite') {
+                colName = col.name;
+                colType = col.type.toLowerCase();
+                isPk = col.pk === 1 || col.pk === true;
+                isNullable = col.notnull === 0 || col.notnull === false;
+            } else {
+                colName = col.column_name || col.COLUMN_NAME;
+                colType = (col.data_type || col.DATA_TYPE || '').toLowerCase();
+                const nullVal = col.is_nullable || col.IS_NULLABLE;
+                isNullable = nullVal === 'YES' || nullVal === 'yes' || nullVal === true;
+            }
+            
+            const colRow = document.createElement('div');
+            colRow.style.display = 'flex';
+            colRow.style.justifyContent = 'space-between';
+            colRow.style.alignItems = 'center';
+            colRow.style.fontSize = '11px';
+            colRow.style.color = '#e2e8f0';
+            
+            const leftCol = document.createElement('div');
+            leftCol.style.display = 'flex';
+            leftCol.style.alignItems = 'center';
+            leftCol.style.gap = '4px';
+            
+            if (isPk) {
+                leftCol.innerHTML = '<i class="fa-solid fa-key" style="color: #eab308; font-size: 9px;" title="Chave Primária"></i> ' + `<strong>${colName}</strong>`;
+            } else {
+                leftCol.innerHTML = '<i class="fa-solid fa-columns" style="color: #94a3b8; font-size: 9px;"></i> ' + `<span>${colName}</span>`;
+            }
+            
+            const rightCol = document.createElement('span');
+            rightCol.style.color = '#94a3b8';
+            rightCol.style.fontSize = '10px';
+            rightCol.textContent = colType + (isNullable ? '' : '!');
+            if (!isNullable) {
+                rightCol.title = 'NOT NULL';
+            }
+            
+            colRow.appendChild(leftCol);
+            colRow.appendChild(rightCol);
+            listWrapper.appendChild(colRow);
+        });
+        
+        schemaContainer.appendChild(listWrapper);
+    } catch (err) {
+        schemaContainer.innerHTML = `<div style="color: var(--color-danger); padding: 4px 0;">Erro: ${err.message}</div>`;
+    }
 }
 
 // --- BANCO DE DADOS BROWSER ---
