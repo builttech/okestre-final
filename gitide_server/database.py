@@ -93,6 +93,18 @@ class FileSnapshot(Base):
     project: Mapped["Project"] = relationship(back_populates="snapshots")
     activity_log: Mapped["ActivityLog | None"] = relationship(back_populates="snapshots")
 
+class PendingCommand(Base):
+    __tablename__ = "pending_commands"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    project_id: Mapped[int] = mapped_column(ForeignKey("projects.id", ondelete="CASCADE"), nullable=False)
+    command: Mapped[str] = mapped_column(Text, nullable=False)
+    status: Mapped[str] = mapped_column(String(20), default="pending")  # pending, approved, rejected, executed
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    # Relacionamento
+    project: Mapped["Project"] = relationship()
+
 def init_db():
     Base.metadata.create_all(bind=engine)
 
