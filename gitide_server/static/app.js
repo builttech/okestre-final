@@ -1969,21 +1969,39 @@ function cleanupGitBranchSelectArtifacts() {
     const branchSelect = document.getElementById('git-branch-input');
     if (!branchSelect) return;
 
-    branchSelect.removeAttribute('data-gitide-select-enhanced');
-    branchSelect.classList.remove('gitide-select-original', 'git-branch-native', 'git-branch-select-native-hidden');
+    branchSelect.classList.remove('git-branch-native', 'git-branch-select-native-hidden');
 
     const field = branchSelect.closest('.git-deploy-branch-field');
     if (!field) return;
 
-    field.querySelectorAll('.gitide-select, .custom-select-container, .git-branch-switcher').forEach(wrapper => {
+    field.querySelectorAll('.custom-select-container, .git-branch-switcher').forEach(wrapper => {
         if (!wrapper.contains(branchSelect)) {
             wrapper.remove();
         }
     });
+
+    const gitideWrappers = Array.from(field.querySelectorAll('.gitide-select'));
+    gitideWrappers.slice(1).forEach(wrapper => wrapper.remove());
 }
 
 function syncGitBranchCustomSelect() {
     cleanupGitBranchSelectArtifacts();
+
+    const branchSelect = document.getElementById('git-branch-input');
+    const wrapper = branchSelect?.nextElementSibling;
+    if (!branchSelect || !wrapper || !wrapper.classList.contains('gitide-select')) return;
+
+    const selected = branchSelect.options[branchSelect.selectedIndex] || branchSelect.options[0];
+    const label = wrapper.querySelector('.gitide-select-value');
+    if (label && selected) {
+        label.textContent = selected.textContent.trim() || selected.value;
+    }
+
+    wrapper.querySelectorAll('.gitide-select-option').forEach(option => {
+        const isSelected = option.dataset.value === branchSelect.value;
+        option.classList.toggle('is-selected', isSelected);
+        option.setAttribute('aria-selected', isSelected ? 'true' : 'false');
+    });
 }
 
 function getGitDeployBranchValue() {
@@ -2049,6 +2067,7 @@ async function loadGitBranches(currentBranch, forceFetch = false) {
             
             const devOption = findGitBranchOption(branchSelect, 'dev');
             branchSelect.value = devOption ? devOption.value : fallbackBranch;
+            branchSelect.dispatchEvent(new Event('change', { bubbles: true }));
             syncGitBranchCustomSelect();
         }
     } catch (err) {

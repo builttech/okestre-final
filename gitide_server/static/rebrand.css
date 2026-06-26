@@ -3295,16 +3295,37 @@ input[type="checkbox"]:focus-visible{
     opacity:.8;
 }
 
-/* Git deploy branch select: single native field */
+/* Git deploy branch select: single GitIDE custom field */
 #tab-git .git-deploy-branch-field{
     overflow:visible!important;
 }
 
-#tab-git .git-deploy-branch-field #git-branch-input{
-    position:relative!important;
+#tab-git .git-deploy-branch-field #git-branch-input.gitide-select-original{
+    position:absolute!important;
+    width:1px!important;
+    height:1px!important;
+    min-width:0!important;
+    min-height:0!important;
+    opacity:0!important;
+    pointer-events:none!important;
+}
+
+#tab-git .git-deploy-branch-field > #git-branch-input:not(.gitide-select-original){
+    position:absolute!important;
+    opacity:0!important;
+    pointer-events:none!important;
+}
+
+#tab-git .git-deploy-branch-field > .gitide-select{
     display:block!important;
     width:100%!important;
     min-width:0!important;
+    position:relative!important;
+    z-index:5;
+}
+
+#tab-git .git-deploy-branch-field .gitide-select-trigger{
+    width:100%!important;
     height:46px!important;
     min-height:46px!important;
     padding:0 14px!important;
@@ -3314,19 +3335,46 @@ input[type="checkbox"]:focus-visible{
     color:var(--text-main)!important;
     font-size:14px!important;
     font-weight:700!important;
-    opacity:1!important;
-    pointer-events:auto!important;
-    appearance:auto!important;
-    -webkit-appearance:menulist!important;
     box-shadow:none!important;
 }
 
-#tab-git .git-deploy-branch-field #git-branch-input:focus{
+#tab-git .git-deploy-branch-field .gitide-select.is-open .gitide-select-trigger,
+#tab-git .git-deploy-branch-field .gitide-select-trigger:focus-visible{
     outline:none!important;
     border-color:color-mix(in srgb, var(--color-primary) 38%, var(--frame-border))!important;
 }
 
-#tab-git .git-deploy-branch-field > .gitide-select,
+#tab-git .git-deploy-branch-field .gitide-select-menu{
+    width:100%!important;
+    max-height:220px!important;
+    overflow:auto!important;
+    margin-top:8px!important;
+    padding:6px!important;
+    border-radius:14px!important;
+    border:1px solid var(--frame-border-strong)!important;
+    background:var(--bg-base)!important;
+    box-shadow:0 18px 40px rgba(0,0,0,.42)!important;
+    z-index:7000!important;
+}
+
+#tab-git .git-deploy-branch-field .gitide-select-option{
+    min-height:36px!important;
+    width:100%!important;
+    padding:8px 10px!important;
+    border:0!important;
+    border-radius:10px!important;
+    background:transparent!important;
+    color:var(--text-main)!important;
+    font-size:13px!important;
+    font-weight:650!important;
+    cursor:pointer!important;
+}
+
+#tab-git .git-deploy-branch-field .gitide-select-option:hover,
+#tab-git .git-deploy-branch-field .gitide-select-option.is-selected{
+    background:var(--theme-db-row-active)!important;
+}
+
 #tab-git .git-deploy-branch-field > .custom-select-container,
 #tab-git .git-deploy-branch-field > .git-branch-switcher{
     display:none!important;
