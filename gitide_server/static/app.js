@@ -1648,7 +1648,12 @@ async function deleteSelectedGridRows() {
     }
 }
 
+function clearGitStatusFileList() {
+    document.querySelectorAll('#git-status-detail .git-files-list').forEach(list => list.remove());
+}
+
 function renderGitChangedFiles(status) {
+    clearGitStatusFileList();
     const container = document.getElementById('git-changed-files-list');
     if (!container) return;
 
@@ -1764,6 +1769,7 @@ async function loadGitStatus(forceFetch = false) {
         `;
         
         container.innerHTML = html;
+        clearGitStatusFileList();
         renderGitChangedFiles(status);
         
         const dropdownBtn = document.getElementById('btn-branch-actions');
@@ -1906,6 +1912,14 @@ function switchGitSidePanelTab(tabName) {
 
     if (tabName === 'graph') {
         loadGitGraph();
+    }
+
+    if (tabName === 'files') {
+        const filesContainer = document.getElementById('git-changed-files-list');
+        const needsRefresh = !filesContainer || filesContainer.textContent.includes('Nenhuma alteração carregada ainda');
+        if (needsRefresh) {
+            loadGitStatus();
+        }
     }
 }
 

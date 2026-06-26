@@ -3213,6 +3213,10 @@ input[type="checkbox"]:focus-visible{
 }
 
 /* Git changed files side tab */
+#tab-git #git-status-detail .git-files-list{
+    display:none!important;
+}
+
 #tab-git .git-changed-files-list{
     flex:1!important;
     min-height:0!important;
