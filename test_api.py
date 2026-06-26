@@ -187,12 +187,12 @@ class TestGitIDEVCS(unittest.TestCase):
         self.assertIn("config/local.json", patterns)
         
         # 3. Testa is_ignored
-        self.assertTrue(vcs.is_ignored(".gitideignore", patterns))
-        self.assertTrue(vcs.is_ignored(".env", patterns))
-        self.assertTrue(vcs.is_ignored("src/.env", patterns))
-        self.assertTrue(vcs.is_ignored("secrets/pass.txt", patterns))
-        self.assertTrue(vcs.is_ignored("config/local.json", patterns))
-        self.assertFalse(vcs.is_ignored("src/main.py", patterns))
+        self.assertTrue(vcs.is_ignored(self.project.path, ".gitideignore"))
+        self.assertTrue(vcs.is_ignored(self.project.path, ".env"))
+        self.assertTrue(vcs.is_ignored(self.project.path, "src/.env"))
+        self.assertTrue(vcs.is_ignored(self.project.path, "secrets/pass.txt"))
+        self.assertTrue(vcs.is_ignored(self.project.path, "config/local.json"))
+        self.assertFalse(vcs.is_ignored(self.project.path, "src/main.py"))
         
         # 4. Testa list_project_files (arquivos ignorados não devem aparecer)
         os.makedirs(os.path.join(self.test_dir, "src"), exist_ok=True)
