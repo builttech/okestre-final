@@ -2854,30 +2854,8 @@ function setupEventListeners() {
         updateTokenEditorFormFields(e.target.value);
     });
     
-    document.getElementById('git-branch-input').addEventListener('change', async (e) => {
-        const selectedBranch = e.target.value;
-        if (!selectedBranch) return;
-        
-        appendGitConsole(`Alternando para a branch "${selectedBranch}"...`);
-        try {
-            const res = await fetch(`/api/projects/${state.activeProjectId}/git/branches`, {
-                method: 'POST',
-                headers: getHeaders(),
-                body: JSON.stringify({ name: selectedBranch })
-            });
-            
-            if (!res.ok) {
-                throw new Error(await res.text());
-            }
-            
-            const data = await res.json();
-            appendGitConsole(`Alternado para a branch "${selectedBranch}" com sucesso!`);
-            loadGitStatus();
-        } catch (err) {
-            appendGitConsole(`Erro ao alternar para a branch: ${err.message}`, true);
-            alert(`Erro ao alternar para a branch: ${err.message}`);
-            loadGitStatus();
-        }
+    document.getElementById('git-branch-input').addEventListener('change', () => {
+        syncGitBranchCustomSelect();
     });
     
     // 8. Logs
