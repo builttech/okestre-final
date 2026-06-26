@@ -2199,14 +2199,100 @@ html[data-theme="light"]{
     gap:8px!important;
 }
 
+#tab-database #db-type-select,
 #tab-database #db-type-select.gitide-select-original,
 #tab-database .db-config-row select.gitide-select-original{
-    display:none!important;
+    position:absolute!important;
+    width:1px!important;
+    height:1px!important;
+    min-width:0!important;
+    min-height:0!important;
+    opacity:0!important;
+    pointer-events:none!important;
+}
+
+#tab-database .db-type-select-shell{
+    position:relative;
+    width:100%;
+    min-width:0;
+    z-index:20;
+}
+
+#tab-database .db-type-select-trigger{
+    width:100%;
+    min-height:46px;
+    padding:0 14px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    border-radius:14px;
+    border:1px solid var(--frame-border);
+    background:rgba(255,255,255,.035);
+    color:var(--text-main);
+    font-family:var(--font-sans);
+    font-size:14px;
+    font-weight:700;
+    cursor:pointer;
+}
+
+#tab-database .db-type-select-trigger:focus-visible,
+#tab-database .db-type-select-shell.is-open .db-type-select-trigger{
+    outline:none;
+    border-color:color-mix(in srgb, var(--color-primary) 40%, var(--frame-border));
+}
+
+#tab-database .db-type-select-value{
+    min-width:0;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+}
+
+#tab-database .db-type-select-menu{
+    display:none;
+    position:absolute;
+    top:calc(100% + 8px);
+    left:0;
+    width:100%;
+    padding:6px;
+    border-radius:14px;
+    border:1px solid var(--frame-border-strong);
+    background:var(--bg-base);
+    box-shadow:0 18px 40px rgba(0,0,0,.42);
+    z-index:9000;
+}
+
+#tab-database .db-type-select-shell.is-open .db-type-select-menu{
+    display:flex;
+    flex-direction:column;
+    gap:4px;
+}
+
+#tab-database .db-type-select-option{
+    width:100%;
+    min-height:36px;
+    padding:8px 10px;
+    border:0;
+    border-radius:10px;
+    background:transparent;
+    color:var(--text-main);
+    font-family:var(--font-sans);
+    font-size:13px;
+    font-weight:650;
+    text-align:left;
+    cursor:pointer;
+}
+
+#tab-database .db-type-select-option:hover,
+#tab-database .db-type-select-option.is-selected{
+    background:var(--theme-db-row-active);
 }
 
 #tab-database .db-config-row .gitide-select,
 #tab-database .db-config-row .gitide-select-trigger,
-#tab-database .db-config-row .text-input{
+#tab-database .db-config-row .text-input,
+#tab-database .db-config-row .db-type-select-shell{
     width:100%!important;
     min-width:0!important;
 }
