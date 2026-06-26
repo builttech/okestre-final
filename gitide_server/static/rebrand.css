@@ -2061,6 +2061,257 @@ html[data-theme="light"]{
     background:rgba(255,255,255,.012)!important;
 }
 
+/* Database query/explorer layout refinement */
+#tab-database.active{
+    padding:22px!important;
+    overflow:hidden!important;
+}
+
+#tab-database .db-tabs-nav{
+    display:flex!important;
+    align-items:center!important;
+    gap:10px!important;
+    padding:0!important;
+    margin:0 0 16px!important;
+    border-bottom:1px solid var(--frame-border)!important;
+    flex-shrink:0!important;
+}
+
+#tab-database .db-tab-btn{
+    min-height:40px!important;
+    padding:0 12px!important;
+    border-bottom:2px solid transparent!important;
+    color:var(--text-muted)!important;
+    font-size:13px!important;
+    font-weight:650!important;
+}
+
+#tab-database .db-tab-btn.active{
+    color:var(--text-main)!important;
+    border-bottom-color:var(--text-main)!important;
+}
+
+#tab-database #db-subtab-explorer{
+    height:calc(100% - 58px)!important;
+    min-height:0!important;
+    padding:0!important;
+    overflow:hidden!important;
+}
+
+#tab-database #db-subtab-explorer .database-layout{
+    display:grid!important;
+    grid-template-columns:minmax(260px,300px) minmax(0,1fr)!important;
+    gap:22px!important;
+    height:100%!important;
+    min-height:0!important;
+    padding:0!important;
+    overflow:hidden!important;
+    align-items:stretch!important;
+}
+
+#tab-database .db-explorer-sidebar,
+#tab-database .db-editor-panel,
+#tab-database .db-results-panel{
+    border-radius:24px!important;
+    border:1px solid var(--frame-border)!important;
+    background:rgba(255,255,255,.018)!important;
+    box-shadow:none!important;
+}
+
+#tab-database .db-explorer-sidebar{
+    height:100%!important;
+    min-height:0!important;
+    padding:0!important;
+    overflow:hidden!important;
+}
+
+#tab-database .db-explorer-sidebar .panel-header-simple{
+    min-height:52px!important;
+    padding:16px 18px!important;
+    margin:0!important;
+    border-bottom:1px solid var(--frame-border)!important;
+}
+
+#tab-database .db-explorer-sidebar .panel-header-simple h5{
+    color:var(--text-main)!important;
+    font-size:11px!important;
+    line-height:1.2!important;
+}
+
+#tab-database .db-conn-status{
+    margin:0!important;
+    padding:18px!important;
+    border-bottom:1px solid var(--frame-border)!important;
+}
+
+#tab-database .db-tables-container{
+    min-height:0!important;
+    margin:14px!important;
+    padding:12px!important;
+    border-radius:18px!important;
+    border:1px solid var(--frame-border)!important;
+    background:rgba(0,0,0,.18)!important;
+    overflow:auto!important;
+}
+
+#tab-database .db-content-area{
+    min-height:0!important;
+    height:100%!important;
+    gap:16px!important;
+    overflow:hidden!important;
+}
+
+#tab-database .db-editor-panel{
+    flex:0 0 auto!important;
+    padding:0!important;
+    gap:0!important;
+    overflow:visible!important;
+}
+
+#tab-database .db-editor-panel .panel-header,
+#tab-database .db-results-panel .panel-header{
+    min-height:54px!important;
+    padding:16px 20px!important;
+    margin:0!important;
+    border-bottom:1px solid var(--frame-border)!important;
+}
+
+#tab-database .db-editor-panel .panel-header h4,
+#tab-database .db-results-panel .panel-header h4{
+    margin:0!important;
+    color:var(--text-main)!important;
+    font-size:14px!important;
+    font-weight:750!important;
+}
+
+#tab-database .db-config-row{
+    display:grid!important;
+    grid-template-columns:minmax(220px,.9fr) minmax(280px,1.6fr)!important;
+    gap:14px!important;
+    width:100%!important;
+    padding:18px 20px 0!important;
+    box-sizing:border-box!important;
+}
+
+#tab-database .db-config-row > div{
+    min-width:0!important;
+    flex:unset!important;
+    gap:8px!important;
+}
+
+#tab-database #db-type-select.gitide-select-original,
+#tab-database .db-config-row select.gitide-select-original{
+    display:none!important;
+}
+
+#tab-database .db-config-row .gitide-select,
+#tab-database .db-config-row .gitide-select-trigger,
+#tab-database .db-config-row .text-input{
+    width:100%!important;
+    min-width:0!important;
+}
+
+#tab-database .db-config-row .gitide-select-trigger,
+#tab-database .db-config-row .text-input{
+    min-height:46px!important;
+    border-radius:14px!important;
+}
+
+#tab-database .db-query-wrapper{
+    padding:16px 20px 0!important;
+}
+
+#tab-database #db-sql-textarea{
+    width:100%!important;
+    min-height:118px!important;
+    height:118px!important;
+    padding:16px!important;
+    border-radius:16px!important;
+    resize:vertical!important;
+    box-sizing:border-box!important;
+}
+
+#tab-database .db-actions{
+    display:flex!important;
+    flex-wrap:wrap!important;
+    gap:10px!important;
+    padding:18px 20px 20px!important;
+}
+
+#tab-database .db-actions .btn{
+    min-height:44px!important;
+    border-radius:14px!important;
+    padding:0 18px!important;
+}
+
+#tab-database .db-results-panel{
+    flex:1!important;
+    min-height:0!important;
+    padding:0!important;
+}
+
+#tab-database .db-results-panel .panel-header{
+    flex-shrink:0!important;
+    gap:12px!important;
+}
+
+#tab-database .db-results-tabs{
+    display:flex!important;
+    gap:8px!important;
+    flex-wrap:wrap!important;
+}
+
+#tab-database .db-results-tab-btn{
+    min-height:34px!important;
+    padding:0 10px!important;
+    border-radius:10px!important;
+    border-bottom:0!important;
+}
+
+#tab-database .db-results-tab-btn.active{
+    background:var(--theme-db-row-active)!important;
+    color:var(--text-main)!important;
+}
+
+#tab-database .db-results-container,
+#tab-database .db-grid-editor-container{
+    min-height:0!important;
+    margin:16px!important;
+}
+
+#tab-database .db-results-container{
+    border-radius:18px!important;
+    border:1px solid var(--frame-border)!important;
+    background:rgba(0,0,0,.18)!important;
+}
+
+@media (max-width: 1120px){
+    #tab-database #db-subtab-explorer .database-layout{
+        grid-template-columns:1fr!important;
+        overflow:auto!important;
+    }
+
+    #tab-database .db-explorer-sidebar{
+        min-height:260px!important;
+        height:auto!important;
+    }
+}
+
+@media (max-width: 760px){
+    #tab-database.active{
+        padding:14px!important;
+    }
+
+    #tab-database .db-config-row{
+        grid-template-columns:1fr!important;
+    }
+
+    #tab-database .db-actions .btn{
+        width:100%!important;
+        justify-content:center!important;
+    }
+}
+
 /* Logs/settings/tokens/agent standard */
 .logs-layout{
     grid-template-columns:1fr 1fr!important;
