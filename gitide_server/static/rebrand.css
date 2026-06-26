@@ -4327,6 +4327,28 @@ input[type="checkbox"]:focus-visible{
     border-bottom: 1px solid var(--flat-border-soft);
 }
 
+.sdd-stage-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.sdd-danger-action {
+    width: 36px;
+    min-width: 36px;
+    height: 36px;
+    padding: 0 !important;
+    justify-content: center;
+    color: #ef4444 !important;
+    background: rgba(239, 68, 68, 0.06) !important;
+    border-color: rgba(239, 68, 68, 0.12) !important;
+}
+
+.sdd-danger-action:hover {
+    background: rgba(239, 68, 68, 0.12) !important;
+    border-color: rgba(239, 68, 68, 0.22) !important;
+}
+
 .sdd-stage-title span {
     display: block;
     color: var(--text-muted);
@@ -4348,8 +4370,10 @@ input[type="checkbox"]:focus-visible{
 }
 
 .sdd-task-status {
-    width: 112px;
-    min-width: 112px;
+    width: 118px !important;
+    min-width: 118px;
+    max-width: 118px;
+    flex: 0 0 118px;
     height: 34px;
     font-size: 12px;
     padding: 0 10px;
@@ -4559,6 +4583,8 @@ input[type="checkbox"]:focus-visible{
     font-size: 13px;
     color: var(--text-main);
     line-height: 1.45;
+    flex: 1;
+    min-width: 0;
 }
 
 .sdd-criteria-row.checked .sdd-criteria-text {

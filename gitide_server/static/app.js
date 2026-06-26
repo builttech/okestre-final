@@ -6806,6 +6806,9 @@ function setupSddEventListeners() {
     const btnDelete = document.getElementById('btn-sdd-delete');
     if (btnDelete) btnDelete.addEventListener('click', sddDeleteSpec);
 
+    const btnDeleteSpecify = document.getElementById('btn-sdd-delete-specify');
+    if (btnDeleteSpecify) btnDeleteSpecify.addEventListener('click', sddDeleteSpec);
+
     // Generate spec via IA
     const btnGenSpec = document.getElementById('btn-sdd-generate-spec-ia');
     if (btnGenSpec) btnGenSpec.addEventListener('click', sddGenerateSpecIA);
