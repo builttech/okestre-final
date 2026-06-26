@@ -2042,7 +2042,7 @@ async function loadGitBranches(currentBranch, forceFetch = false) {
                 const normalized = normalizeGitBranchName(branch);
                 const opt = document.createElement('option');
                 opt.value = branch;
-                opt.textContent = `${normalized} · ${scope}${normalized === 'dev' ? ' · padrão' : ''}`;
+                opt.textContent = normalized;
                 opt.dataset.scope = scope;
                 opt.dataset.branch = normalized;
                 branchSelect.appendChild(opt);
@@ -2064,7 +2064,7 @@ async function loadGitBranches(currentBranch, forceFetch = false) {
             if (branchSelect.options.length === 0) {
                 const opt = document.createElement('option');
                 opt.value = 'dev';
-                opt.textContent = 'dev · local · padrão';
+                opt.textContent = 'dev';
                 branchSelect.appendChild(opt);
             }
             
