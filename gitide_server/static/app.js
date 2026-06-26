@@ -2002,21 +2002,21 @@ function syncGitBranchCustomSelect() {
 
 function getGitDeployBranchValue() {
     const branchSelect = document.getElementById('git-branch-input');
-    if (!branchSelect) return 'dev';
+    if (!branchSelect) return '';
 
     const selectedValue = branchSelect.value.trim();
     if (selectedValue) {
         return normalizeGitBranchName(selectedValue);
     }
 
-    const devOption = findGitBranchOption(branchSelect, 'dev');
-    if (devOption) {
-        branchSelect.value = devOption.value;
+    const firstBranchOption = Array.from(branchSelect.options).find(option => option.value && !option.disabled);
+    if (firstBranchOption) {
+        branchSelect.value = firstBranchOption.value;
         syncGitBranchCustomSelect();
-        return normalizeGitBranchName(devOption.value);
+        return normalizeGitBranchName(firstBranchOption.value);
     }
 
-    return 'dev';
+    return '';
 }
 
 async function loadGitBranches(currentBranch, forceFetch = false) {
@@ -2030,7 +2030,7 @@ async function loadGitBranches(currentBranch, forceFetch = false) {
         const res = await fetch(url);
         const data = await res.json();
         if (data.status === 'success') {
-            const fallbackBranch = currentBranch || data.current_branch || 'dev';
+            const fallbackBranch = currentBranch || data.current_branch || '';
             
             branchSelect.innerHTML = '';
 
@@ -2068,13 +2068,15 @@ async function loadGitBranches(currentBranch, forceFetch = false) {
 
             if (branchSelect.options.length === 0) {
                 const opt = document.createElement('option');
-                opt.value = 'dev';
-                opt.textContent = 'dev';
+                opt.value = '';
+                opt.textContent = 'Nenhuma branch disponível';
+                opt.disabled = true;
                 branchSelect.appendChild(opt);
             }
             
-            const devOption = findGitBranchOption(branchSelect, 'dev');
-            branchSelect.value = devOption ? devOption.value : fallbackBranch;
+            const activeOption = findGitBranchOption(branchSelect, fallbackBranch);
+            const firstBranchOption = Array.from(branchSelect.options).find(option => option.value && !option.disabled);
+            branchSelect.value = activeOption ? activeOption.value : (firstBranchOption?.value || '');
             branchSelect.dispatchEvent(new Event('change', { bubbles: true }));
             syncGitBranchCustomSelect();
         }
@@ -2162,7 +2164,12 @@ async function runGitDeploy() {
 
 async function runGitPull() {
     const branch = getGitDeployBranchValue();
-    appendGitConsole(`Puxando alterações (Git Pull) para branch "${branch || 'dev'}"...`);
+    if (!branch) {
+        appendGitConsole('Selecione uma branch antes de sincronizar.', true);
+        gitideNotify({ title: 'Branch não selecionada', message: 'Escolha uma branch de destino antes de sincronizar.', variant: 'warning' });
+        return;
+    }
+    appendGitConsole(`Puxando alterações (Git Pull) para branch "${branch}"...`);
     
     try {
         const res = await fetch(`/api/projects/${state.activeProjectId}/git/pull?branch=${encodeURIComponent(branch)}`, {
