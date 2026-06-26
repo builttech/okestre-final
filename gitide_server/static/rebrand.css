@@ -1971,9 +1971,22 @@ html[data-theme="light"]{
 /* Git page standard */
 .git-layout{
     grid-template-columns:360px minmax(0,1fr)!important;
-    grid-template-rows:minmax(210px,auto) 1fr!important;
-    grid-template-areas:'status console' 'deploy console'!important;
+    grid-template-rows:auto auto 1fr!important;
+    grid-template-areas:
+        'status console'
+        'deploy console'
+        'graph credentials'!important;
+    overflow-y:auto!important;
 }
+
+.git-graph-card{
+    grid-area:graph;
+}
+
+.git-credentials-card{
+    grid-area:credentials;
+}
+
 
 .git-status-card,
 .git-operations-card,
