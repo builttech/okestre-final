@@ -5006,20 +5006,132 @@ async function runGitSetTokenAPI() {
 
 // --- SISTEMA DE DOCUMENTOS WORD ---
 
+function renderDocumentsStateRow(tbody, { icon, message, variant = 'empty', spinning = false }) {
+    tbody.innerHTML = '';
+
+    const row = document.createElement('tr');
+    row.className = `documents-state-row documents-state-row-${variant}`;
+
+    const cell = document.createElement('td');
+    cell.colSpan = 3;
+
+    const stateBox = document.createElement('div');
+    stateBox.className = 'documents-empty-state';
+
+    const iconEl = document.createElement('i');
+    iconEl.className = `${icon}${spinning ? ' fa-spin' : ''}`;
+
+    const textEl = document.createElement('span');
+    textEl.textContent = message;
+
+    stateBox.appendChild(iconEl);
+    stateBox.appendChild(textEl);
+    cell.appendChild(stateBox);
+    row.appendChild(cell);
+    tbody.appendChild(row);
+}
+
+function resetDocumentPreviewState() {
+    const sheet = document.getElementById('document-preview-sheet');
+    const empty = document.getElementById('document-preview-empty');
+    const badge = document.getElementById('preview-filename-badge');
+
+    if (sheet) sheet.style.display = 'none';
+    if (empty) empty.style.display = 'flex';
+    if (badge) badge.style.display = 'none';
+}
+
+function buildDocumentTableRow(doc, tbody) {
+    const tr = document.createElement('tr');
+    tr.className = 'documents-table-row';
+    tr.tabIndex = 0;
+
+    const isSelected = state.selectedDocumentFilename === doc.filename;
+    if (isSelected) {
+        tr.classList.add('selected');
+    }
+
+    const nameCell = document.createElement('td');
+    nameCell.className = 'doc-name-cell';
+
+    const nameWrap = document.createElement('div');
+    nameWrap.className = 'documents-name-wrap';
+
+    const fileIcon = document.createElement('i');
+    fileIcon.className = 'fa-regular fa-file-word';
+
+    const filenameText = document.createElement('span');
+    filenameText.textContent = doc.filename;
+    filenameText.title = doc.filename;
+
+    nameWrap.appendChild(fileIcon);
+    nameWrap.appendChild(filenameText);
+    nameCell.appendChild(nameWrap);
+
+    const sizeCell = document.createElement('td');
+    sizeCell.className = 'documents-size-cell';
+    sizeCell.textContent = `${(doc.size_bytes / 1024).toFixed(1)} KB`;
+
+    const actionsCell = document.createElement('td');
+    actionsCell.className = 'documents-actions-cell';
+
+    const downloadBtn = document.createElement('button');
+    downloadBtn.className = 'btn btn-sm btn-primary btn-download-doc documents-row-action';
+    downloadBtn.dataset.filename = doc.filename;
+    downloadBtn.innerHTML = '<i class="fa-solid fa-download"></i> Baixar';
+
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'btn btn-sm btn-danger btn-delete-doc documents-row-action';
+    deleteBtn.dataset.filename = doc.filename;
+    deleteBtn.innerHTML = '<i class="fa-solid fa-trash-can"></i> Excluir';
+
+    actionsCell.appendChild(downloadBtn);
+    actionsCell.appendChild(deleteBtn);
+
+    tr.appendChild(nameCell);
+    tr.appendChild(sizeCell);
+    tr.appendChild(actionsCell);
+
+    const selectRow = () => {
+        tbody.querySelectorAll('.documents-table-row').forEach(row => row.classList.remove('selected'));
+        tr.classList.add('selected');
+        state.selectedDocumentFilename = doc.filename;
+        loadDocumentPreview(doc.filename);
+    };
+
+    tr.addEventListener('click', selectRow);
+    tr.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            selectRow();
+        }
+    });
+
+    downloadBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        downloadDocumentFile(e.currentTarget.dataset.filename);
+    });
+
+    deleteBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        deleteDocumentFile(e.currentTarget.dataset.filename);
+    });
+
+    return tr;
+}
+
 async function loadDocuments() {
     if (!state.activeProjectId) return;
     
     const tbody = document.getElementById('documents-table-body');
     if (!tbody) return;
     
-    tbody.innerHTML = `
-        <tr>
-            <td colspan="3" style="text-align: center; color: var(--text-muted); padding: 40px 0;">
-                <i class="fa-solid fa-circle-notch fa-spin" style="font-size: 24px; margin-bottom: 8px;"></i><br>
-                Carregando documentos...
-            </td>
-        </tr>
-    `;
+    renderDocumentsStateRow(tbody, {
+        icon: 'fa-solid fa-circle-notch',
+        message: 'Carregando documentos...',
+        variant: 'loading',
+        spinning: true
+    });
     
     try {
         const res = await fetch(`/api/projects/${state.activeProjectId}/documents`);
@@ -5030,83 +5142,20 @@ async function loadDocuments() {
         }
         
         if (documents.length === 0) {
-            tbody.innerHTML = `
-                <tr>
-                    <td colspan="3" style="text-align: center; color: var(--text-muted); padding: 40px 0;">
-                        <i class="fa-solid fa-folder-open" style="font-size: 32px; display: block; margin-bottom: 12px;"></i>
-                        Nenhum documento Word gerado ainda neste projeto.
-                    </td>
-                </tr>
-            `;
-            
-            // Oculta prévia e mostra vazio
-            const sheet = document.getElementById('document-preview-sheet');
-            const empty = document.getElementById('document-preview-empty');
-            const badge = document.getElementById('preview-filename-badge');
-            if (sheet) sheet.style.display = 'none';
-            if (empty) empty.style.display = 'flex';
-            if (badge) badge.style.display = 'none';
+            renderDocumentsStateRow(tbody, {
+                icon: 'fa-solid fa-folder-open',
+                message: 'Nenhum documento Word gerado ainda neste projeto.',
+                variant: 'empty'
+            });
+            resetDocumentPreviewState();
             return;
         }
         
         tbody.innerHTML = '';
         documents.forEach(doc => {
-            const tr = document.createElement('tr');
-            tr.style.borderBottom = '1px solid var(--border-color)';
-            tr.style.fontSize = '13px';
-            tr.style.cursor = 'pointer';
-            
-            const sizeKB = (doc.size_bytes / 1024).toFixed(1);
-            
-            // Verifica se este documento é o ativo no estado
-            const isSelected = state.selectedDocumentFilename === doc.filename;
-            if (isSelected) {
-                tr.style.background = 'rgba(99, 102, 241, 0.1)';
-            }
-            
-            tr.innerHTML = `
-                <td style="padding: 12px 8px; color: var(--text-light); font-weight: 500;" class="doc-name-cell">
-                    <i class="fa-regular fa-file-word" style="color: var(--color-primary); margin-right: 6px;"></i> ${doc.filename}
-                </td>
-                <td style="padding: 12px 8px; color: var(--text-muted);">${sizeKB} KB</td>
-                <td style="padding: 12px 8px; text-align: right; display: flex; gap: 6px; justify-content: flex-end;">
-                    <button class="btn btn-sm btn-primary btn-download-doc" data-filename="${doc.filename}" style="padding: 4px 8px; font-size: 11px;">
-                        <i class="fa-solid fa-download"></i> Baixar
-                    </button>
-                    <button class="btn btn-sm btn-danger btn-delete-doc" data-filename="${doc.filename}" style="padding: 4px 8px; font-size: 11px;">
-                        <i class="fa-solid fa-trash-can"></i> Excluir
-                    </button>
-                </td>
-            `;
-            
-            // Event listener para seleção/preview
-            const selectRow = () => {
-                tbody.querySelectorAll('tr').forEach(r => r.style.background = '');
-                tr.style.background = 'rgba(99, 102, 241, 0.1)';
-                state.selectedDocumentFilename = doc.filename;
-                loadDocumentPreview(doc.filename);
-            };
-            
-            tr.querySelector('.doc-name-cell').addEventListener('click', selectRow);
-            
-            // Event listener para download
-            tr.querySelector('.btn-download-doc').addEventListener('click', (e) => {
-                e.stopPropagation(); // Impede seleção da linha
-                const filename = e.currentTarget.getAttribute('data-filename');
-                downloadDocumentFile(filename);
-            });
-            
-            // Event listener para exclusão
-            tr.querySelector('.btn-delete-doc').addEventListener('click', (e) => {
-                e.stopPropagation(); // Impede seleção da linha
-                const filename = e.currentTarget.getAttribute('data-filename');
-                deleteDocumentFile(filename);
-            });
-            
-            tbody.appendChild(tr);
+            tbody.appendChild(buildDocumentTableRow(doc, tbody));
         });
         
-        // Seleciona o primeiro por padrão caso não tenha seleção ativa válida
         let docToSelect = documents[0];
         if (state.selectedDocumentFilename) {
             const found = documents.find(d => d.filename === state.selectedDocumentFilename);
@@ -5116,25 +5165,19 @@ async function loadDocuments() {
         if (docToSelect) {
             state.selectedDocumentFilename = docToSelect.filename;
             loadDocumentPreview(docToSelect.filename);
-            
-            // Destaca a linha correspondente
-            const rows = tbody.querySelectorAll('tr');
-            documents.forEach((d, idx) => {
-                if (d.filename === docToSelect.filename && rows[idx]) {
-                    rows[idx].style.background = 'rgba(99, 102, 241, 0.1)';
-                }
+            const selectedRow = Array.from(tbody.querySelectorAll('.documents-table-row')).find(row => {
+                const filename = row.querySelector('.btn-download-doc')?.dataset.filename;
+                return filename === docToSelect.filename;
             });
+            if (selectedRow) selectedRow.classList.add('selected');
         }
         
     } catch (err) {
-        tbody.innerHTML = `
-            <tr>
-                <td colspan="3" style="text-align: center; color: var(--color-danger); padding: 40px 0;">
-                    <i class="fa-solid fa-triangle-exclamation" style="font-size: 32px; display: block; margin-bottom: 12px;"></i>
-                    Erro ao listar documentos: ${err.message}
-                </td>
-            </tr>
-        `;
+        renderDocumentsStateRow(tbody, {
+            icon: 'fa-solid fa-triangle-exclamation',
+            message: `Erro ao listar documentos: ${err.message}`,
+            variant: 'error'
+        });
     }
 }
 

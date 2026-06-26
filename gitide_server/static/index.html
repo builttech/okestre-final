@@ -753,88 +753,90 @@ Se o arquivo existir, leia e siga rigorosamente todas as diretrizes, fases de an
 
                 <!-- TAB: DOCUMENTS -->
                 <div id="tab-documents" class="tab-pane">
-                    <div class="documents-layout" style="display: flex; gap: 20px; height: 100%; min-height: 0; padding: 20px; flex-direction: row;">
+                    <div class="documents-layout">
                         
                         <!-- Painel Esquerdo: Lista de Documentos -->
-                        <div class="card" style="flex: 1.2; display: flex; flex-direction: column; min-width: 0; height: 100%; overflow: hidden; padding: 20px;">
+                        <section class="documents-card documents-list-card card">
                             
                             <!-- Header da área de documentos -->
-                            <div class="panel-header-simple" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 14px; margin-bottom: 20px; flex-shrink: 0;">
-                                <div style="display: flex; align-items: center; gap: 12px;">
-                                    <div style="background: rgba(99, 102, 241, 0.15); border: 1px solid rgba(99, 102, 241, 0.25); width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: var(--color-primary); font-size: 18px;">
+                            <div class="documents-header">
+                                <div class="documents-heading">
+                                    <div class="documents-icon-box">
                                         <i class="fa-solid fa-file-word"></i>
                                     </div>
-                                    <div>
-                                        <h3 style="margin: 0; font-size: 16px; font-weight: 600; color: var(--text-light);">Documentação Word</h3>
-                                        <p style="font-size: 12px; color: var(--text-muted); margin: 0; margin-top: 2px;">Geração e envio de relatórios técnicos (.docx).</p>
+                                    <div class="documents-title-copy">
+                                        <h3>Documentação Word</h3>
+                                        <p>Geração e envio de relatórios técnicos (.docx).</p>
                                     </div>
                                 </div>
-                                <div style="display: flex; gap: 10px;">
-                                    <button class="btn btn-secondary btn-sm" id="btn-refresh-documents" title="Recarregar lista"><i class="fa-solid fa-rotate"></i></button>
+                                <div class="documents-actions">
+                                    <button class="btn btn-secondary btn-sm documents-icon-button" id="btn-refresh-documents" title="Recarregar lista" aria-label="Recarregar lista de documentos"><i class="fa-solid fa-rotate"></i></button>
                                     <button class="btn btn-secondary btn-sm" id="btn-upload-document"><i class="fa-solid fa-cloud-arrow-up"></i> Upload</button>
-                                    <input type="file" id="input-upload-document" accept=".docx" style="display: none;">
+                                    <input type="file" id="input-upload-document" accept=".docx" class="documents-file-input">
                                     <button class="btn btn-primary btn-sm" id="btn-generate-test-doc"><i class="fa-solid fa-file-circle-plus"></i> Test Doc</button>
                                 </div>
                             </div>
                             
                             <!-- Info banner / Prompt copy helper -->
-                            <div style="background: rgba(99, 102, 241, 0.08); border: 1px solid rgba(99, 102, 241, 0.16); padding: 12px 16px; border-radius: 8px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-shrink: 0;">
-                                <div style="display: flex; gap: 10px; align-items: flex-start; text-align: left;">
-                                    <i class="fa-solid fa-circle-info" style="color: var(--color-primary); font-size: 16px; margin-top: 2px;"></i>
+                            <div class="documents-prompt-card">
+                                <div class="documents-prompt-copy">
+                                    <i class="fa-solid fa-circle-info"></i>
                                     <div>
-                                        <p style="margin: 0; font-size: 13px; font-weight: 500; color: var(--text-light);">Instruções para o Custom GPT</p>
-                                        <p style="margin: 0; font-size: 12px; color: var(--text-muted); margin-top: 2px;">Copie a instrução e cole no ChatGPT para forçá-lo a criar/editar os arquivos Word no GitIDE em vez de responder em texto corrido.</p>
+                                        <p>Instruções para o Custom GPT</p>
+                                        <span>Copie a instrução e cole no ChatGPT para forçá-lo a criar/editar os arquivos Word no GitIDE em vez de responder em texto corrido.</span>
                                     </div>
                                 </div>
-                                <button type="button" class="btn btn-secondary btn-sm" id="btn-copy-doc-prompt-instructions" style="white-space: nowrap; display: flex; align-items: center; gap: 6px; padding: 6px 12px; min-height: 32px !important;">
+                                <button type="button" class="btn btn-secondary btn-sm documents-copy-button" id="btn-copy-doc-prompt-instructions">
                                     <i class="fa-regular fa-copy"></i> Copiar Prompt
                                 </button>
                             </div>
 
                             <!-- Listagem de Documentos -->
-                            <div style="flex: 1; overflow-y: auto; min-height: 200px;">
-                                <table class="table" style="width: 100%; border-collapse: collapse; text-align: left;">
+                            <div class="documents-table-shell">
+                                <table class="documents-table">
                                     <thead>
-                                        <tr style="border-bottom: 2px solid var(--border-color); font-weight: 600; color: var(--text-light); font-size: 13px;">
-                                            <th style="padding: 12px 8px;">Nome do Arquivo</th>
-                                            <th style="padding: 12px 8px;">Tamanho</th>
-                                            <th style="padding: 12px 8px; text-align: right;">Ações</th>
+                                        <tr>
+                                            <th>Nome do Arquivo</th>
+                                            <th>Tamanho</th>
+                                            <th>Ações</th>
                                         </tr>
                                     </thead>
                                     <tbody id="documents-table-body">
                                         <!-- Preenchido via JS -->
-                                        <tr>
-                                            <td colspan="3" style="text-align: center; color: var(--text-muted); padding: 40px 0;">
-                                                <i class="fa-solid fa-folder-open" style="font-size: 32px; display: block; margin-bottom: 12px;"></i>
-                                                Nenhum documento Word gerado ainda neste projeto.
+                                        <tr class="documents-state-row">
+                                            <td colspan="3">
+                                                <div class="documents-empty-state">
+                                                    <i class="fa-solid fa-folder-open"></i>
+                                                    <span>Nenhum documento Word gerado ainda neste projeto.</span>
+                                                </div>
                                             </td>
                                         </tr>
                                     </tbody>
                                 </table>
                             </div>
-                        </div>
+                        </section>
 
                         <!-- Painel Direito: Visualizador A4 -->
-                        <div class="card" style="flex: 1; display: flex; flex-direction: column; min-width: 0; height: 100%; overflow: hidden; padding: 20px;">
-                            <div class="panel-header-simple" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 14px; margin-bottom: 20px; flex-shrink: 0;">
-                                <h4 style="margin: 0; font-size: 14px; font-weight: 600; color: var(--text-light); display: flex; align-items: center; gap: 8px;">
-                                    <i class="fa-solid fa-eye"></i> Prévia do Documento (Visualização A4)
+                        <section class="documents-card documents-preview-card card">
+                            <div class="documents-preview-header">
+                                <h4>
+                                    <i class="fa-solid fa-eye"></i> Prévia do Documento
                                 </h4>
-                                <span id="preview-filename-badge" class="badge" style="font-size: 11px; padding: 3px 8px; border-radius: 4px; background: rgba(255,255,255,0.05); color: var(--text-muted); display: none;"></span>
+                                <span id="preview-filename-badge" class="documents-preview-badge badge"></span>
                             </div>
                             
-                            <div style="flex: 1; overflow-y: auto; display: flex; justify-content: center; background: rgba(0,0,0,0.25); padding: 20px; border-radius: 8px; min-height: 0;">
+                            <div class="documents-preview-shell">
                                 <!-- Folha A4 Realista -->
-                                <div id="document-preview-sheet" style="display: none; width: 100%; max-width: 800px; min-height: 842px; height: fit-content; background: #ffffff; color: #1e293b; padding: 40px 50px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); border-radius: 4px; font-family: Calibri, sans-serif; box-sizing: border-box; text-align: left;">
+                                <div id="document-preview-sheet" class="documents-preview-sheet">
                                     <!-- Preenchido dinamicamente -->
                                 </div>
                                 
-                                <div id="document-preview-empty" style="display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--text-muted); gap: 12px; margin: auto; text-align: center; padding: 40px 20px;">
-                                    <i class="fa-solid fa-file-invoice" style="font-size: 48px; color: var(--color-primary); opacity: 0.5;"></i>
-                                    <span>Selecione um documento na tabela para visualizar a prévia em tempo real</span>
+                                <div id="document-preview-empty" class="documents-preview-empty">
+                                    <i class="fa-solid fa-file-invoice"></i>
+                                    <span>Selecione um documento na tabela para visualizar a prévia em tempo real.</span>
                                 </div>
                             </div>
-                        </div>
+                        </section>
 
                     </div>
                 </div>
