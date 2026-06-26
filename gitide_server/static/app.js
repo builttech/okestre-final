@@ -1794,8 +1794,10 @@ async function loadGitStatus(forceFetch = false) {
         
     } catch (err) {
         container.innerHTML = `<p class="placeholder-text error-text">Erro ao buscar status do Git: ${err.message}</p>`;
-        const graphPanel = document.getElementById('git-graph-panel');
-        if (graphPanel) graphPanel.style.display = 'none';
+        const graphContainer = document.getElementById('git-graph-container');
+        if (graphContainer) {
+            graphContainer.innerHTML = `<div class="git-side-empty-state">Não foi possível carregar o histórico Git.</div>`;
+        }
     }
 }
 
@@ -1812,11 +1814,11 @@ async function loadGitGraph() {
         const data = await res.json();
         
         if (!data.is_git || data.is_empty) {
-            panel.style.display = 'none';
+            container.innerHTML = '<div class="git-side-empty-state">Sem histórico de commits disponível para este repositório.</div>';
             return;
         }
         
-        panel.style.display = 'block';
+        panel.style.removeProperty('display');
         container.innerHTML = '';
         
         if (data.graph && data.graph.length > 0) {
@@ -1835,6 +1837,27 @@ async function loadGitGraph() {
     } catch (err) {
         console.error('Erro ao carregar o gráfico do Git:', err);
         container.innerHTML = `<div style="color: var(--color-danger); padding: 10px;">Erro: ${err.message}</div>`;
+    }
+}
+
+function switchGitSidePanelTab(tabName) {
+    const tabs = document.querySelectorAll('.git-side-tab');
+    const panes = document.querySelectorAll('.git-side-panel-pane');
+    if (!tabs.length || !panes.length) return;
+
+    tabs.forEach(tab => {
+        const isActive = tab.dataset.gitSideTab === tabName;
+        tab.classList.toggle('active', isActive);
+        tab.setAttribute('aria-selected', isActive ? 'true' : 'false');
+    });
+
+    panes.forEach(pane => {
+        const isActive = pane.dataset.gitSidePane === tabName;
+        pane.classList.toggle('active', isActive);
+    });
+
+    if (tabName === 'graph') {
+        loadGitGraph();
     }
 }
 
@@ -2690,6 +2713,9 @@ function setupEventListeners() {
     // 7. Ações do Git Bridge
     document.getElementById('btn-git-status-refresh').addEventListener('click', loadGitStatus);
     document.getElementById('btn-git-graph-refresh').addEventListener('click', loadGitGraph);
+    document.querySelectorAll('.git-side-tab').forEach(tab => {
+        tab.addEventListener('click', () => switchGitSidePanelTab(tab.dataset.gitSideTab));
+    });
     document.getElementById('btn-git-init').addEventListener('click', initGitRepo);
     document.getElementById('btn-git-deploy').addEventListener('click', runGitDeploy);
     document.getElementById('btn-git-pull').addEventListener('click', runGitPull);

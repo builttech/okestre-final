@@ -3015,6 +3015,197 @@ input[type="checkbox"]:focus-visible{
     }
 }
 
+/* Git right side panel with tabs */
+#tab-git .git-layout{
+    grid-template-columns:minmax(340px,420px) minmax(0,1fr)!important;
+    grid-template-rows:auto auto auto!important;
+    grid-template-areas:
+        'status side'
+        'deploy side'
+        'credentials side'!important;
+    align-items:start!important;
+    align-content:start!important;
+    gap:16px!important;
+}
+
+#tab-git .git-side-panel{
+    grid-area:side!important;
+    width:100%!important;
+    min-width:0!important;
+    height:calc(100vh - var(--topbar-height, 54px) - 48px)!important;
+    min-height:560px!important;
+    display:flex!important;
+    flex-direction:column!important;
+    padding:0!important;
+    overflow:hidden!important;
+    border-radius:24px!important;
+    border:1px solid var(--frame-border)!important;
+    background:rgba(255,255,255,.018)!important;
+}
+
+.git-side-panel-header{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:14px;
+    padding:18px 20px 14px;
+    border-bottom:1px solid var(--frame-border);
+    flex-shrink:0;
+}
+
+.git-side-eyebrow{
+    display:block;
+    margin-bottom:2px;
+    color:var(--text-muted);
+    font-size:10px;
+    font-weight:800;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+}
+
+.git-side-panel-header h4{
+    margin:0;
+    color:var(--text-main);
+    font-size:15px;
+    font-weight:750;
+    letter-spacing:-.035em;
+}
+
+.git-side-panel-header .btn{
+    flex:0 0 auto;
+    min-height:34px!important;
+    border-radius:12px!important;
+}
+
+.git-side-panel-tabs{
+    display:flex;
+    gap:6px;
+    padding:10px 12px;
+    border-bottom:1px solid var(--frame-border);
+    background:rgba(0,0,0,.12);
+    flex-shrink:0;
+}
+
+.git-side-tab{
+    min-height:34px;
+    padding:0 12px;
+    border:1px solid transparent;
+    border-radius:12px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    color:var(--text-muted);
+    background:transparent;
+    font-family:var(--font-sans);
+    font-size:12px;
+    font-weight:700;
+    cursor:pointer;
+    transition:background 160ms ease,border-color 160ms ease,color 160ms ease;
+}
+
+.git-side-tab:hover{
+    color:var(--text-main);
+    background:rgba(255,255,255,.035);
+}
+
+.git-side-tab.active{
+    color:var(--text-main);
+    background:var(--theme-db-row-active);
+    border-color:var(--frame-border);
+}
+
+.git-side-panel-content{
+    flex:1;
+    min-height:0;
+    display:flex;
+    flex-direction:column;
+    overflow:hidden;
+}
+
+.git-side-panel-pane{
+    display:none;
+    flex:1;
+    min-height:0;
+    overflow:hidden;
+}
+
+.git-side-panel-pane.active{
+    display:flex;
+    flex-direction:column;
+}
+
+#tab-git .git-side-panel #git-console-output,
+#tab-git .git-side-panel #git-graph-container{
+    flex:1!important;
+    width:100%!important;
+    height:auto!important;
+    min-height:0!important;
+    max-height:none!important;
+    margin:0!important;
+    padding:18px 20px!important;
+    border:0!important;
+    border-radius:0!important;
+    overflow:auto!important;
+    background:rgba(0,0,0,.34)!important;
+    box-sizing:border-box!important;
+}
+
+#tab-git .git-side-panel #git-console-output{
+    white-space:pre-wrap!important;
+    word-break:break-word!important;
+}
+
+#tab-git .git-side-panel #git-graph-container{
+    font-family:var(--font-mono);
+    font-size:12px;
+    line-height:1.6;
+    color:#f8fafc;
+    white-space:pre;
+}
+
+.git-side-empty-state{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    min-height:220px;
+    color:var(--text-muted);
+    text-align:center;
+    padding:24px;
+}
+
+@media (max-width: 1180px){
+    #tab-git .git-layout{
+        grid-template-columns:1fr!important;
+        grid-template-rows:auto auto auto auto!important;
+        grid-template-areas:
+            'status'
+            'deploy'
+            'credentials'
+            'side'!important;
+    }
+
+    #tab-git .git-side-panel{
+        height:auto!important;
+        min-height:520px!important;
+    }
+}
+
+@media (max-width: 720px){
+    .git-side-panel-header{
+        align-items:flex-start;
+        flex-direction:column;
+    }
+
+    .git-side-panel-tabs{
+        flex-wrap:wrap;
+    }
+
+    .git-side-tab{
+        flex:1 1 130px;
+    }
+}
+
 /* Documents Word view */
 #tab-documents.active{
     display:flex!important;
