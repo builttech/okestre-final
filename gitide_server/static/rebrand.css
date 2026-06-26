@@ -2897,6 +2897,49 @@ input[type="checkbox"]:focus-visible{
     border-radius:14px!important;
 }
 
+.git-commit-input-shell{
+    position:relative;
+    width:100%;
+}
+
+.git-commit-input-shell #git-commit-msg{
+    padding-right:48px!important;
+}
+
+.git-commit-ai-btn{
+    position:absolute;
+    top:50%;
+    right:7px;
+    width:32px;
+    height:32px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    transform:translateY(-50%);
+    border:1px solid transparent;
+    border-radius:10px;
+    background:transparent;
+    color:var(--text-muted);
+    cursor:pointer;
+    transition:background-color .16s ease, color .16s ease, transform .16s ease, border-color .16s ease;
+}
+
+.git-commit-ai-btn:hover{
+    transform:translateY(-50%) scale(1.04);
+    border-color:rgba(255,255,255,.12);
+    background:rgba(255,255,255,.055);
+    color:var(--color-primary);
+}
+
+.git-commit-ai-btn:disabled{
+    cursor:wait;
+    opacity:.75;
+}
+
+.git-commit-ai-btn.is-loading{
+    color:var(--color-primary);
+}
+
 .git-deploy-target-row{
     display:grid;
     grid-template-columns:minmax(0,1fr);

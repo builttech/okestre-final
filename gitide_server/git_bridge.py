@@ -230,6 +230,41 @@ def get_git_graph(project_path: str) -> dict:
             "graph": []
         }
 
+def get_commit_context(project_path: str) -> dict:
+    """Retorna um resumo das alterações atuais para geração de mensagem de commit."""
+    repo = get_repo(project_path)
+    try:
+        branch = repo.active_branch.name
+    except TypeError:
+        branch = "DETACHED HEAD"
+
+    staged_files = [item.a_path for item in repo.index.diff("HEAD")]
+    modified_files = [item.a_path for item in repo.index.diff(None)]
+    untracked_files = repo.untracked_files
+    deleted_files = [item.a_path for item in repo.index.diff(None) if item.change_type == 'D']
+
+    name_status = repo.git.diff("--name-status", "HEAD") if repo.head.is_valid() else ""
+    staged_diff = repo.git.diff("--cached", "--", ".") if repo.head.is_valid() else ""
+    unstaged_diff = repo.git.diff("--", ".")
+    diff_text = "\n".join(part for part in [staged_diff, unstaged_diff] if part).strip()
+
+    # Evita payload enorme para a LLM; nomes de arquivos já carregam boa parte do contexto.
+    max_diff_chars = 12000
+    if len(diff_text) > max_diff_chars:
+        diff_text = diff_text[:max_diff_chars] + "\n\n[diff truncado]"
+
+    return {
+        "status": "success",
+        "branch": branch,
+        "staged": staged_files,
+        "modified": modified_files,
+        "deleted": deleted_files,
+        "untracked": untracked_files,
+        "name_status": name_status,
+        "diff": diff_text,
+        "has_changes": bool(staged_files or modified_files or deleted_files or untracked_files)
+    }
+
 def deploy_git(project_path: str, commit_message: str, branch: str = None) -> dict:
     """
     Executa o deploy (Git commit + push):

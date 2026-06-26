@@ -156,6 +156,9 @@ class GitDeployRequest(BaseModel):
     commit_message: str = Field(..., description="Mensagem de commit para descrever as alterações")
     branch: Optional[str] = Field(None, description="Branch Git de destino (caso omitido, usa a branch atual)")
 
+class GitCommitMessageSuggestion(BaseModel):
+    message: str = Field(..., description="Mensagem de commit sugerida")
+
 class DeviceAuthRequest(BaseModel):
     client_id: Optional[str] = None
 
@@ -1027,6 +1030,63 @@ def git_status(project: Project = Depends(get_project_or_404)):
 def git_graph(project: Project = Depends(get_project_or_404)):
     """Retorna o gráfico de commits (git log --graph) do projeto."""
     return git_bridge.get_git_graph(project.path)
+
+@app.post("/api/projects/{project_id}/git/commit-message/suggest", tags=["Git Bridge"])
+def git_suggest_commit_message(project: Project = Depends(get_project_or_404),
+                               _ = Depends(get_api_key)):
+    """Gera uma mensagem de commit no padrão Conventional Commits usando IA."""
+    context = git_bridge.get_commit_context(project.path)
+    if not context.get("has_changes"):
+        raise HTTPException(status_code=400, detail="Não há alterações para gerar uma mensagem de commit.")
+
+    def fallback_message() -> str:
+        files = context.get("staged", []) + context.get("modified", []) + context.get("untracked", [])
+        filenames = " ".join(files).lower()
+        if any(token in filenames for token in ["css", "style", "ui", "html", "component", "modal"]):
+            return "feat: ajustar interface do usuario"
+        if any(token in filenames for token in ["test", "spec"]):
+            return "test: atualizar testes"
+        if any(token in filenames for token in ["fix", "bug"]):
+            return "fix: corrigir comportamento do sistema"
+        return "refactor: atualizar estrutura do projeto"
+
+    conf = agent.load_agent_config()
+    provider = conf.get("provider")
+    model = conf.get("model")
+    api_key = conf.get("api_key")
+
+    if not provider or not model or not api_key:
+        return {"status": "fallback", "message": fallback_message()}
+
+    system_prompt = (
+        "Voce gera mensagens de commit no padrao Conventional Commits.\n"
+        "Responda EXCLUSIVAMENTE em JSON valido no formato {\"message\":\"tipo: descricao curta\"}.\n"
+        "Regras:\n"
+        "- Use um destes tipos: feat, fix, refactor, chore, docs, style, test, perf.\n"
+        "- A mensagem deve ter no maximo 72 caracteres.\n"
+        "- Use portugues simples, sem ponto final.\n"
+        "- Nao inclua markdown, aspas extras, escopo, corpo ou explicacao.\n"
+    )
+    user_prompt = (
+        "Gere uma unica mensagem de commit para estas alteracoes:\n\n"
+        f"Branch: {context.get('branch')}\n"
+        f"Arquivos staged: {context.get('staged')}\n"
+        f"Arquivos modificados: {context.get('modified')}\n"
+        f"Arquivos deletados: {context.get('deleted')}\n"
+        f"Arquivos novos: {context.get('untracked')}\n"
+        f"Name status:\n{context.get('name_status')}\n\n"
+        f"Diff resumido:\n{context.get('diff')}"
+    )
+
+    try:
+        raw_resp = agent.call_llm(provider, model, api_key, [{"role": "user", "content": user_prompt}], system_prompt)
+        parsed = agent.extract_json(raw_resp)
+        message = (parsed.get("message") or "").strip()
+        if not re.match(r"^(feat|fix|refactor|chore|docs|style|test|perf): .+", message):
+            message = fallback_message()
+        return {"status": "success", "message": message[:120]}
+    except Exception as e:
+        return {"status": "fallback", "message": fallback_message(), "detail": str(e)}
 
 @app.post("/api/projects/{project_id}/git/init", tags=["Git Bridge"])
 def git_init(project: Project = Depends(get_project_or_404), db: Session = Depends(get_db), _ = Depends(get_api_key)):

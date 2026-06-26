@@ -2046,6 +2046,52 @@ async function runGitDeploy() {
     }
 }
 
+async function generateGitCommitMessage() {
+    if (!state.activeProjectId) return;
+
+    const input = document.getElementById('git-commit-msg');
+    const btn = document.getElementById('btn-git-commit-ai');
+    const icon = btn?.querySelector('i');
+    if (!input || !btn) return;
+
+    btn.disabled = true;
+    btn.classList.add('is-loading');
+    if (icon) icon.className = 'fa-solid fa-circle-notch fa-spin';
+
+    try {
+        const res = await fetch(`/api/projects/${state.activeProjectId}/git/commit-message/suggest`, {
+            method: 'POST',
+            headers: getHeaders()
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+            throw new Error(data.detail || 'Não foi possível gerar a mensagem.');
+        }
+
+        input.value = data.message || '';
+        input.focus();
+        input.setSelectionRange(input.value.length, input.value.length);
+
+        if (data.status === 'fallback') {
+            gitideNotify({
+                title: 'Sugestão local aplicada',
+                message: 'Configure a IA para gerar mensagens mais precisas pelo diff.',
+                variant: 'warning'
+            });
+        } else {
+            gitideNotify({ title: 'Commit sugerido', message: input.value, variant: 'success' });
+        }
+    } catch (err) {
+        gitideNotify({ title: 'Erro ao gerar commit', message: err.message, variant: 'error' });
+        appendGitConsole(`Erro ao gerar mensagem de commit: ${err.message}`, true);
+    } finally {
+        btn.disabled = false;
+        btn.classList.remove('is-loading');
+        if (icon) icon.className = 'fa-solid fa-wand-magic-sparkles';
+    }
+}
+
 async function runGitPull() {
     const branch = getGitDeployBranchValue();
     if (!branch) {
@@ -3007,6 +3053,7 @@ function setupEventListeners() {
     switchGitSidePanelTab('console');
     document.getElementById('btn-git-init').addEventListener('click', initGitRepo);
     document.getElementById('btn-git-deploy').addEventListener('click', runGitDeploy);
+    document.getElementById('btn-git-commit-ai').addEventListener('click', generateGitCommitMessage);
     document.getElementById('btn-git-pull').addEventListener('click', runGitPull);
     document.getElementById('btn-git-push').addEventListener('click', runGitPush);
     document.getElementById('btn-git-merge').addEventListener('click', openMergeModal);

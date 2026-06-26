@@ -18,7 +18,7 @@
     <link rel="stylesheet" href="/static/workspace-switcher-refactor.css?v=2">
     <link rel="stylesheet" href="/static/workspace-native-fallback.css?v=1">
     <link rel="stylesheet" href="/static/settings-tabs.css?v=1">
-    <link rel="stylesheet" href="/static/rebrand.css?v=10">
+    <link rel="stylesheet" href="/static/rebrand.css?v=11">
     <script src="/static/lucide-bootstrap.js"></script>
     <script defer src="/static/ui/workspace-switcher.js?v=2"></script>
     <script defer src="/static/settings-tabs.js?v=3"></script>
@@ -439,7 +439,12 @@
                                 <div class="git-deploy-section" id="git-deploy-panel">
                                     <div class="git-deploy-field">
                                         <label for="git-commit-msg">Mensagem de Deploy / Commit:</label>
-                                        <input type="text" id="git-commit-msg" class="text-input" placeholder="ex: feat: add dashboard module, fix api endpoint">
+                                        <div class="git-commit-input-shell">
+                                            <input type="text" id="git-commit-msg" class="text-input" placeholder="ex: feat: add dashboard module, fix api endpoint">
+                                            <button class="git-commit-ai-btn" id="btn-git-commit-ai" type="button" title="Gerar mensagem com IA" aria-label="Gerar mensagem com IA">
+                                                <i class="fa-solid fa-wand-magic-sparkles"></i>
+                                            </button>
+                                        </div>
                                     </div>
                                     <div class="git-deploy-target-row">
                                         <div class="git-deploy-branch-field">
@@ -1488,7 +1493,7 @@ Se o arquivo existir, leia e siga rigorosamente todas as diretrizes, fases de an
     </div>
 
     <!-- Custom JavaScript -->
-    <script src="/static/app.js?v=21"></script>
+    <script src="/static/app.js?v=22"></script>
     <script src="/static/theme-toggle.js?v=1"></script>
     <script src="/static/native-select.js?v=2"></script>
 </body>
