@@ -3901,10 +3901,26 @@ function openMergeModal() {
     
     const selector = document.getElementById('merge-branch-selector');
     const currentBranchLabel = document.getElementById('merge-current-branch-name');
+    const sourceBranchLabel = document.getElementById('merge-source-branch-name');
+    const sourceInline = document.getElementById('merge-source-inline');
+    const targetInline = document.getElementById('merge-target-inline');
+    const confirmButton = document.getElementById('btn-merge-confirm');
+    const updateMergePreview = () => {
+        const source = selector.value || '...';
+        const target = currentBranchLabel.textContent || '...';
+        sourceBranchLabel.textContent = source;
+        sourceInline.textContent = source;
+        targetInline.textContent = target;
+        confirmButton.textContent = source !== '...' && target !== '...' ? `Mesclar em ${target}` : 'Mesclar';
+    };
+    selector.onchange = updateMergePreview;
     
     // Clear and set loading state
     selector.innerHTML = '<option value="">Carregando branches...</option>';
     currentBranchLabel.textContent = '...';
+    sourceBranchLabel.textContent = '...';
+    sourceInline.textContent = '...';
+    targetInline.textContent = '...';
     
     openCustomModal('modal-merge');
     
@@ -3925,6 +3941,9 @@ function openMergeModal() {
             
             if (otherBranches.length === 0) {
                 selector.innerHTML = '<option value="">Nenhuma outra branch disponível para mesclar</option>';
+                sourceBranchLabel.textContent = 'Nenhuma branch';
+                sourceInline.textContent = 'Nenhuma branch';
+                targetInline.textContent = current;
                 return;
             }
             
@@ -3934,19 +3953,24 @@ function openMergeModal() {
                 opt.textContent = b;
                 selector.appendChild(opt);
             });
+            selector.value = otherBranches[0] || '';
+            updateMergePreview();
         } else {
             selector.innerHTML = '<option value="">Erro ao carregar lista de branches</option>';
+            updateMergePreview();
         }
     })
     .catch(err => {
         console.error('Erro ao listar branches:', err);
         selector.innerHTML = '<option value="">Erro ao carregar lista de branches</option>';
+        updateMergePreview();
     });
 }
 
 async function runGitMerge() {
     const branchSelect = document.getElementById('merge-branch-selector');
     const selectedBranch = branchSelect.value;
+    const targetBranch = document.getElementById('merge-current-branch-name')?.textContent?.trim() || 'branch atual';
     
     if (!selectedBranch) {
         alert('Selecione uma branch válida para mesclar.');
@@ -3955,7 +3979,7 @@ async function runGitMerge() {
     
     closeCustomModal('modal-merge');
     
-    appendGitConsole(`Iniciando mesclagem (git merge) da branch "${selectedBranch}"...`);
+    appendGitConsole(`Iniciando mesclagem: "${selectedBranch}" -> "${targetBranch}"...`);
     try {
         const res = await fetch(`/api/projects/${state.activeProjectId}/git/merge`, {
             method: 'POST',

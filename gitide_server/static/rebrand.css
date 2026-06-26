@@ -3806,6 +3806,97 @@ input[type="checkbox"]:focus-visible{
     to{transform:rotate(360deg);}
 }
 
+.git-merge-modal-body{
+    padding:20px;
+    display:flex;
+    flex-direction:column;
+    gap:16px;
+}
+
+.git-merge-helper,
+.git-merge-plain-text{
+    margin:0;
+    color:var(--text-muted);
+    font-size:13px;
+    line-height:1.45;
+}
+
+.git-merge-plain-text strong{
+    color:var(--text-main);
+    font-family:var(--font-mono);
+}
+
+.git-merge-flow-preview{
+    display:grid;
+    grid-template-columns:minmax(0, 1fr) 36px minmax(0, 1fr);
+    align-items:center;
+    gap:10px;
+}
+
+.git-merge-flow-node{
+    min-width:0;
+    min-height:70px;
+    padding:12px;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    gap:6px;
+    border:1px solid var(--flat-border);
+    border-radius:14px;
+    background:rgba(255,255,255,.025);
+}
+
+.git-merge-flow-node.is-target{
+    border-color:rgba(255,255,255,.16);
+    background:rgba(255,255,255,.045);
+}
+
+.git-merge-flow-label{
+    color:var(--text-muted);
+    font-size:11px;
+    font-weight:700;
+    text-transform:uppercase;
+    letter-spacing:.04em;
+}
+
+.git-merge-flow-node strong{
+    overflow:hidden;
+    color:var(--text-main);
+    font-family:var(--font-mono);
+    font-size:14px;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+}
+
+.git-merge-flow-arrow{
+    width:36px;
+    height:36px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    color:var(--color-primary);
+    border:1px solid var(--flat-border);
+    border-radius:999px;
+    background:rgba(255,255,255,.03);
+}
+
+.git-merge-source-field{
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+}
+
+@media (max-width: 560px){
+    .git-merge-flow-preview{
+        grid-template-columns:1fr;
+    }
+
+    .git-merge-flow-arrow{
+        justify-self:center;
+        transform:rotate(90deg);
+    }
+}
+
 /* Documents Word view */
 #tab-documents.active{
     display:flex!important;
