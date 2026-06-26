@@ -2547,6 +2547,65 @@ function showCustomConfirm(title, message, confirmButtonText = 'Confirmar', isDa
     });
 }
 
+function syncDbTypeSelectShell() {
+    const select = document.getElementById('db-type-select');
+    const valueLabel = document.getElementById('db-type-select-value');
+    const options = document.querySelectorAll('.db-type-select-option');
+    if (!select || !valueLabel || !options.length) return;
+
+    const selectedOption = select.options[select.selectedIndex] || select.options[0];
+    valueLabel.textContent = selectedOption ? selectedOption.textContent.trim() : 'Selecionar banco';
+
+    options.forEach(option => {
+        const isSelected = option.dataset.value === select.value;
+        option.classList.toggle('is-selected', isSelected);
+        option.setAttribute('aria-selected', isSelected ? 'true' : 'false');
+    });
+}
+
+function closeDbTypeSelectShell() {
+    const shell = document.getElementById('db-type-select-shell');
+    const trigger = document.getElementById('db-type-select-trigger');
+    if (!shell || !trigger) return;
+
+    shell.classList.remove('is-open');
+    trigger.setAttribute('aria-expanded', 'false');
+}
+
+function initDbTypeSelectShell() {
+    const select = document.getElementById('db-type-select');
+    const shell = document.getElementById('db-type-select-shell');
+    const trigger = document.getElementById('db-type-select-trigger');
+    const options = document.querySelectorAll('.db-type-select-option');
+    if (!select || !shell || !trigger || !options.length) return;
+
+    shell.querySelectorAll('.gitide-select, .custom-select-container').forEach(wrapper => wrapper.remove());
+
+    trigger.addEventListener('click', (event) => {
+        event.stopPropagation();
+        const willOpen = !shell.classList.contains('is-open');
+        shell.classList.toggle('is-open', willOpen);
+        trigger.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+    });
+
+    options.forEach(option => {
+        option.addEventListener('click', (event) => {
+            event.stopPropagation();
+            select.value = option.dataset.value;
+            select.dispatchEvent(new Event('change', { bubbles: true }));
+            closeDbTypeSelectShell();
+        });
+    });
+
+    document.addEventListener('click', closeDbTypeSelectShell);
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') closeDbTypeSelectShell();
+    });
+
+    select.addEventListener('change', syncDbTypeSelectShell);
+    syncDbTypeSelectShell();
+}
+
 // --- EVENT LISTENERS & UI EVENTS ---
 function setupEventListeners() {
     // SDD Module
@@ -2742,6 +2801,8 @@ function setupEventListeners() {
             loadTableGrid(state.gridActiveTable, state.gridCurrentPage + 1);
         }
     });
+
+    initDbTypeSelectShell();
 
     document.getElementById('db-type-select').addEventListener('change', (e) => {
         const type = e.target.value;

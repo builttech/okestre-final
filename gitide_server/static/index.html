@@ -18,7 +18,7 @@
     <link rel="stylesheet" href="/static/workspace-switcher-refactor.css?v=1">
     <link rel="stylesheet" href="/static/workspace-native-fallback.css?v=1">
     <link rel="stylesheet" href="/static/settings-tabs.css?v=1">
-    <link rel="stylesheet" href="/static/rebrand.css?v=6">
+    <link rel="stylesheet" href="/static/rebrand.css?v=8">
     <script src="/static/lucide-bootstrap.js"></script>
     <script defer src="/static/ui/workspace-switcher.js?v=2"></script>
     <script defer src="/static/settings-tabs.js?v=3"></script>
@@ -238,11 +238,22 @@
                                     <div class="db-config-row" style="display: flex; gap: 16px; flex-wrap: wrap; width: 100%;">
                                         <div style="flex: 1; min-width: 150px; display: flex; flex-direction: column; gap: 6px;">
                                             <label for="db-type-select" style="font-size: 12px; color: var(--text-muted);">Tipo de Banco:</label>
-                                            <select id="db-type-select" class="select-input">
+                                            <select id="db-type-select" class="select-input db-type-native-select" data-no-native-select>
                                                 <option value="sqlite">SQLite (Arquivo Local)</option>
                                                 <option value="postgresql">PostgreSQL (Produção/Remoto)</option>
                                                 <option value="mysql">MySQL (Produção/Remoto)</option>
                                             </select>
+                                            <div class="db-type-select-shell" id="db-type-select-shell">
+                                                <button type="button" class="db-type-select-trigger" id="db-type-select-trigger" aria-haspopup="listbox" aria-expanded="false">
+                                                    <span class="db-type-select-value" id="db-type-select-value">SQLite (Arquivo Local)</span>
+                                                    <i class="fa-solid fa-chevron-down"></i>
+                                                </button>
+                                                <div class="db-type-select-menu" id="db-type-select-menu" role="listbox">
+                                                    <button type="button" class="db-type-select-option is-selected" data-value="sqlite" role="option" aria-selected="true">SQLite (Arquivo Local)</button>
+                                                    <button type="button" class="db-type-select-option" data-value="postgresql" role="option" aria-selected="false">PostgreSQL (Produção/Remoto)</button>
+                                                    <button type="button" class="db-type-select-option" data-value="mysql" role="option" aria-selected="false">MySQL (Produção/Remoto)</button>
+                                                </div>
+                                            </div>
                                         </div>
                                         <div style="flex: 3; min-width: 280px; display: flex; flex-direction: column; gap: 6px;">
                                             <label id="lbl-db-conn" for="db-conn-input" style="font-size: 12px; color: var(--text-muted);">Arquivo do Banco (relativo ao projeto):</label>
@@ -1403,7 +1414,7 @@ Se o arquivo existir, leia e siga rigorosamente todas as diretrizes, fases de an
     </div>
 
     <!-- Custom JavaScript -->
-    <script src="/static/app.js?v=19"></script>
+    <script src="/static/app.js?v=20"></script>
     <script src="/static/theme-toggle.js?v=1"></script>
     <script src="/static/workspace-switcher.js?v=1"></script>
     <script src="/static/native-select.js?v=1"></script>
