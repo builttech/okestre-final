@@ -2507,31 +2507,68 @@ function confirmDirectorySelection() {
     closeDirectoryBrowser();
 }
 
-function showCustomConfirm(title, message, confirmButtonText = 'Confirmar', isDanger = false) {
+function gitideNotify({ title = 'GitIDE', message = '', variant = 'info', duration = 3500 } = {}) {
+    const viewport = document.getElementById('gitide-toast-viewport');
+    if (!viewport) return;
+    const icons = {
+        info: 'info',
+        success: 'check-circle-2',
+        warning: 'triangle-alert',
+        danger: 'circle-alert'
+    };
+    const toast = document.createElement('div');
+    toast.className = `gitide-toast gitide-toast-${variant}`;
+    toast.innerHTML = `
+        <div class="gitide-toast-icon"><i data-lucide="${icons[variant] || icons.info}"></i></div>
+        <div class="gitide-toast-copy">
+            <strong>${title}</strong>
+            <span>${message}</span>
+        </div>
+        <button type="button" class="gitide-toast-close" aria-label="Fechar"><i data-lucide="x"></i></button>
+    `;
+    viewport.appendChild(toast);
+    if (window.lucide) lucide.createIcons();
+    const remove = () => {
+        toast.classList.add('is-leaving');
+        setTimeout(() => toast.remove(), 180);
+    };
+    toast.querySelector('.gitide-toast-close')?.addEventListener('click', remove);
+    if (duration) setTimeout(remove, duration);
+}
+
+function gitideConfirm({ title = 'Confirmar ação', message = '', confirmText = 'Confirmar', cancelText = 'Cancelar', variant = 'info', kicker = 'GitIDE' } = {}) {
     return new Promise((resolve) => {
         const modal = document.getElementById('modal-confirm');
         const titleEl = document.getElementById('confirm-title');
+        const kickerEl = document.getElementById('confirm-kicker');
         const messageEl = document.getElementById('confirm-message');
+        const iconEl = document.getElementById('confirm-icon');
         const okBtn = document.getElementById('btn-confirm-ok');
         const cancelBtn = document.getElementById('btn-confirm-cancel');
         const closeBtn = modal.querySelector('.confirm-close');
+        const icons = {
+            info: 'info',
+            success: 'check-circle-2',
+            warning: 'triangle-alert',
+            danger: 'trash-2'
+        };
         
         titleEl.textContent = title;
+        if (kickerEl) kickerEl.textContent = kicker;
         messageEl.innerHTML = message;
-        okBtn.textContent = confirmButtonText;
-        
-        if (isDanger) {
-            okBtn.style.backgroundColor = 'var(--color-danger)';
-            okBtn.style.borderColor = 'var(--color-danger)';
-        } else {
-            okBtn.style.backgroundColor = 'var(--color-primary)';
-            okBtn.style.borderColor = 'var(--color-primary)';
-        }
+        okBtn.textContent = confirmText;
+        cancelBtn.textContent = cancelText;
+        modal.dataset.variant = variant;
+        if (iconEl) iconEl.innerHTML = `<i data-lucide="${icons[variant] || icons.info}"></i>`;
+        okBtn.classList.toggle('btn-danger-confirm', variant === 'danger');
         
         modal.classList.add('active');
+        if (window.lucide) lucide.createIcons();
         
         const cleanup = (result) => {
             modal.classList.remove('active');
+            delete modal.dataset.variant;
+            okBtn.classList.remove('btn-danger-confirm');
             okBtn.removeEventListener('click', onOk);
             cancelBtn.removeEventListener('click', onCancel);
             closeBtn.removeEventListener('click', onCancel);
@@ -2544,6 +2581,15 @@ function showCustomConfirm(title, message, confirmButtonText = 'Confirmar', isDa
         okBtn.addEventListener('click', onOk);
         cancelBtn.addEventListener('click', onCancel);
         closeBtn.addEventListener('click', onCancel);
+    });
+}
+
+function showCustomConfirm(title, message, confirmButtonText = 'Confirmar', isDanger = false) {
+    return gitideConfirm({
+        title,
+        message,
+        confirmText: confirmButtonText,
+        variant: isDanger ? 'danger' : 'info'
     });
 }
 
@@ -6633,7 +6679,15 @@ async function sddSaveStage(stage) {
 // --- Delete Spec ---
 async function sddDeleteSpec() {
     if (!state.activeProjectId || !sddState.activeFilename) return;
-    if (!confirm(`Tem certeza que deseja excluir "${sddState.activeFilename}"? Esta ação é irreversível.`)) return;
+    const confirmed = await gitideConfirm({
+        title: 'Excluir requisito',
+        kicker: 'Spec-Driven Development',
+        message: `Tem certeza que deseja excluir <strong>${sddState.activeFilename}</strong>? Esta ação é irreversível.`,
+        confirmText: 'Excluir',
+        cancelText: 'Cancelar',
+        variant: 'danger'
+    });
+    if (!confirmed) return;
     try {
         const res = await fetch(`/api/projects/${state.activeProjectId}/sdd/specs/${encodeURIComponent(sddState.activeFilename)}`, {
             method: 'DELETE',
@@ -6660,11 +6714,12 @@ async function sddDeleteSpec() {
             const wb = document.getElementById('btn-switch-to-ia-generator');
             if (wb) wb.addEventListener('click', () => sddSwitchTab('sdd-tab-ia-wizard'));
             await sddLoadSpecs();
+            gitideNotify({ title: 'Requisito excluído', message: 'A especificação foi removida do projeto.', variant: 'success' });
         } else {
-            alert('Erro ao excluir: ' + (data.detail || 'Erro desconhecido'));
+            gitideNotify({ title: 'Erro ao excluir', message: data.detail || 'Erro desconhecido', variant: 'danger' });
         }
     } catch (e) {
-        alert('Erro ao excluir especificação: ' + e.message);
+        gitideNotify({ title: 'Erro ao excluir especificação', message: e.message, variant: 'danger' });
     }
 }
 

@@ -1222,21 +1222,27 @@ Se o arquivo existir, leia e siga rigorosamente todas as diretrizes, fases de an
     </div>
 
     <!-- MODAL: CONFIRM DIALOG -->
-    <div class="modal-backdrop" id="modal-confirm">
-        <div class="modal-card" style="max-width: 450px;">
-            <div class="modal-header">
-                <h3 id="confirm-title">Confirmar Ação</h3>
+    <div class="modal-backdrop gitide-notification-backdrop" id="modal-confirm">
+        <div class="modal-card gitide-notification-card">
+            <div class="gitide-notification-header">
+                <div class="gitide-notification-icon" id="confirm-icon"><i data-lucide="info"></i></div>
+                <div>
+                    <h3 id="confirm-title">Confirmar Ação</h3>
+                    <p id="confirm-kicker">GitIDE</p>
+                </div>
                 <button class="btn-icon confirm-close"><i class="fa-solid fa-xmark"></i></button>
             </div>
-            <div class="modal-body">
-                <p id="confirm-message" style="font-size: 14px; color: var(--text-muted); line-height: 1.6;"></p>
+            <div class="gitide-notification-body">
+                <p id="confirm-message"></p>
             </div>
-            <div class="modal-footer">
+            <div class="gitide-notification-footer">
                 <button type="button" class="btn btn-secondary confirm-close" id="btn-confirm-cancel">Cancelar</button>
                 <button type="button" class="btn btn-primary" id="btn-confirm-ok">Confirmar</button>
             </div>
         </div>
     </div>
+
+    <div class="gitide-toast-viewport" id="gitide-toast-viewport" aria-live="polite" aria-atomic="true"></div>
 
     <!-- MODAL: MERGE BRANCH -->
     <div class="modal-backdrop" id="modal-merge">
