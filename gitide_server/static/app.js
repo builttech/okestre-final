@@ -1725,7 +1725,10 @@ async function loadGitStatus(forceFetch = false) {
     const container = document.getElementById('git-status-detail');
     const initPanel = document.getElementById('git-init-panel');
     const deployPanel = document.getElementById('git-deploy-panel');
+    const refreshButton = document.getElementById('btn-git-status-refresh');
     const shouldFetch = forceFetch === true;
+    refreshButton?.classList.add('is-refreshing');
+    refreshButton?.setAttribute('aria-busy', 'true');
     
     try {
         const res = await fetch(`/api/projects/${state.activeProjectId}/git/status`);
@@ -1864,6 +1867,9 @@ async function loadGitStatus(forceFetch = false) {
         if (graphContainer) {
             graphContainer.innerHTML = `<div class="git-side-empty-state">Não foi possível carregar o histórico Git.</div>`;
         }
+    } finally {
+        refreshButton?.classList.remove('is-refreshing');
+        refreshButton?.setAttribute('aria-busy', 'false');
     }
 }
 
@@ -1871,7 +1877,10 @@ async function loadGitGraph() {
     if (!state.activeProjectId) return;
     const panel = document.getElementById('git-graph-panel');
     const container = document.getElementById('git-graph-container');
+    const refreshButton = document.getElementById('btn-git-graph-refresh');
     if (!panel || !container) return;
+    refreshButton?.classList.add('is-refreshing');
+    refreshButton?.setAttribute('aria-busy', 'true');
     
     try {
         const res = await fetch(`/api/projects/${state.activeProjectId}/git/graph`, {
@@ -1903,6 +1912,9 @@ async function loadGitGraph() {
     } catch (err) {
         console.error('Erro ao carregar o gráfico do Git:', err);
         container.innerHTML = `<div style="color: var(--color-danger); padding: 10px;">Erro: ${err.message}</div>`;
+    } finally {
+        refreshButton?.classList.remove('is-refreshing');
+        refreshButton?.setAttribute('aria-busy', 'false');
     }
 }
 

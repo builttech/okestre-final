@@ -3706,6 +3706,63 @@ input[type="checkbox"]:focus-visible{
     display:none!important;
 }
 
+#tab-git .git-icon-action{
+    width:40px!important;
+    min-width:40px!important;
+    height:40px!important;
+    padding:0!important;
+    display:inline-flex!important;
+    align-items:center!important;
+    justify-content:center!important;
+    border-radius:12px!important;
+    transition:
+        transform .16s ease,
+        border-color .16s ease,
+        background-color .16s ease,
+        box-shadow .16s ease,
+        color .16s ease;
+}
+
+#tab-git .git-icon-action i,
+#tab-git .git-icon-action svg{
+    width:16px!important;
+    height:16px!important;
+    margin:0!important;
+    transition:transform .22s ease, color .16s ease;
+}
+
+#tab-git .git-icon-action:hover{
+    transform:translateY(-1px);
+    border-color:rgba(255,255,255,.18)!important;
+    background:rgba(255,255,255,.055)!important;
+    box-shadow:0 8px 24px rgba(0,0,0,.22);
+}
+
+#tab-git .git-icon-action:hover i,
+#tab-git .git-icon-action:hover svg{
+    transform:rotate(22deg);
+}
+
+#tab-git .git-icon-action:active{
+    transform:translateY(0) scale(.96);
+    background:rgba(255,255,255,.08)!important;
+}
+
+#tab-git .git-icon-action.is-refreshing{
+    color:var(--color-primary)!important;
+    pointer-events:none;
+}
+
+#tab-git .git-icon-action.is-refreshing i,
+#tab-git .git-icon-action.is-refreshing svg{
+    animation:gitRefreshSpin .72s linear infinite;
+}
+
+@keyframes gitRefreshSpin{
+    from{transform:rotate(0deg);}
+    to{transform:rotate(360deg);}
+}
+
 /* Documents Word view */
 #tab-documents.active{
     display:flex!important;
