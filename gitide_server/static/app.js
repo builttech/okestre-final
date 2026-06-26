@@ -1131,6 +1131,8 @@ async function loadGitStatus() {
             `;
             initPanel.style.display = 'block';
             deployPanel.style.display = 'none';
+            const graphPanel = document.getElementById('git-graph-panel');
+            if (graphPanel) graphPanel.style.display = 'none';
             return;
         }
         
@@ -1245,9 +1247,83 @@ async function loadGitStatus() {
             });
         }
         
+        // Carrega também o gráfico de commits
+        await loadGitGraph();
+        
     } catch (err) {
         container.innerHTML = `<p class="placeholder-text error-text">Erro ao buscar status do Git: ${err.message}</p>`;
+        const graphPanel = document.getElementById('git-graph-panel');
+        if (graphPanel) graphPanel.style.display = 'none';
     }
+}
+
+async function loadGitGraph() {
+    if (!state.activeProjectId) return;
+    const panel = document.getElementById('git-graph-panel');
+    const container = document.getElementById('git-graph-container');
+    if (!panel || !container) return;
+    
+    try {
+        const res = await fetch(`/api/projects/${state.activeProjectId}/git/graph`, {
+            headers: getHeaders()
+        });
+        const data = await res.json();
+        
+        if (!data.is_git || data.is_empty) {
+            panel.style.display = 'none';
+            return;
+        }
+        
+        panel.style.display = 'block';
+        container.innerHTML = '';
+        
+        if (data.graph && data.graph.length > 0) {
+            data.graph.forEach(line => {
+                const parsedLine = parseGitGraphLine(line);
+                const lineDiv = document.createElement('div');
+                lineDiv.className = 'git-graph-line';
+                lineDiv.style.fontFamily = 'monospace';
+                lineDiv.style.whiteSpace = 'pre';
+                lineDiv.innerHTML = parsedLine;
+                container.appendChild(lineDiv);
+            });
+        } else {
+            container.innerHTML = '<div style="color: var(--text-dark); padding: 10px;">Sem histórico de commits disponível.</div>';
+        }
+    } catch (err) {
+        console.error('Erro ao carregar o gráfico do Git:', err);
+        container.innerHTML = `<div style="color: var(--color-danger); padding: 10px;">Erro: ${err.message}</div>`;
+    }
+}
+
+function parseGitGraphLine(line) {
+    let escaped = line.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    const hashRegex = /\b([a-f0-9]{7,8})\b/;
+    const hashMatch = escaped.match(hashRegex);
+    
+    let drawingPart = '';
+    let textPart = escaped;
+    
+    if (hashMatch) {
+        const hashIndex = escaped.indexOf(hashMatch[0]);
+        drawingPart = escaped.substring(0, hashIndex);
+        textPart = escaped.substring(hashIndex);
+    } else {
+        drawingPart = escaped;
+        textPart = '';
+    }
+    
+    drawingPart = drawingPart.replace(/([*|/\\_-])/g, '<span style="color: #6366f1; font-weight: bold;">$1</span>');
+    
+    if (textPart) {
+        textPart = textPart.replace(/^([a-f0-9]{7,8})/, '<span style="color: #818cf8; font-weight: bold;">$1</span>');
+        textPart = textPart.replace(/(\((?:HEAD|origin|refs|tag|main|dev|homolog|master)[^)]*\))/, '<span style="color: #fb7185; font-weight: 600;">$1</span>');
+        textPart = textPart.replace(/\(([^)]+ ago|[^)]+ old|[^)]+ minutes|[^)]+ hours|[^)]+ days|[^)]+ weeks|[^)]+ months|[^)]+ years)\)/, '<span style="color: #94a3b8;">($1)</span>');
+        textPart = textPart.replace(/&lt;([^&]+)&gt;/, '<span style="color: #34d399; font-style: italic;">&lt;$1&gt;</span>');
+    }
+    
+    return drawingPart + textPart;
+}
 }
 
 async function loadGitBranches(currentBranch) {
@@ -1949,6 +2025,7 @@ function setupEventListeners() {
     
     // 7. Ações do Git Bridge
     document.getElementById('btn-git-status-refresh').addEventListener('click', loadGitStatus);
+    document.getElementById('btn-git-graph-refresh').addEventListener('click', loadGitGraph);
     document.getElementById('btn-git-init').addEventListener('click', initGitRepo);
     document.getElementById('btn-git-deploy').addEventListener('click', runGitDeploy);
     document.getElementById('btn-git-pull').addEventListener('click', runGitPull);

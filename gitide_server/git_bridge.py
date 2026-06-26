@@ -158,6 +158,48 @@ def get_git_status(project_path: str) -> dict:
             "staged": []
         }
 
+def get_git_graph(project_path: str) -> dict:
+    """Retorna a árvore genealógica de commits formatada como um gráfico de texto."""
+    try:
+        repo = get_repo(project_path)
+        # Verifica se o repositório é vazio
+        if len(repo.refs) == 0 or not repo.head.is_valid():
+            return {
+                "is_git": True,
+                "is_empty": True,
+                "graph": []
+            }
+            
+        # Executa git log --graph
+        log_output = repo.git.log(
+            "--graph",
+            "--abbrev-commit",
+            "--decorate",
+            "--date=relative",
+            '--format=format:%h - %s (%cr) <%an>%d',
+            "--all",
+            "-n", "100"
+        )
+        
+        lines = log_output.split('\n')
+        return {
+            "is_git": True,
+            "is_empty": False,
+            "graph": lines
+        }
+    except ValueError:
+        return {
+            "is_git": False,
+            "is_empty": False,
+            "graph": []
+        }
+    except Exception as e:
+        return {
+            "is_git": True,
+            "error": str(e),
+            "graph": []
+        }
+
 def deploy_git(project_path: str, commit_message: str, branch: str = None) -> dict:
     """
     Executa o deploy (Git commit + push):

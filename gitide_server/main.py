@@ -628,6 +628,11 @@ def git_status(project: Project = Depends(get_project_or_404)):
     """Retorna o status atual do Git no projeto."""
     return git_bridge.get_git_status(project.path)
 
+@app.get("/api/projects/{project_id}/git/graph", tags=["Git Bridge"])
+def git_graph(project: Project = Depends(get_project_or_404)):
+    """Retorna o gráfico de commits (git log --graph) do projeto."""
+    return git_bridge.get_git_graph(project.path)
+
 @app.post("/api/projects/{project_id}/git/init", tags=["Git Bridge"])
 def git_init(project: Project = Depends(get_project_or_404), db: Session = Depends(get_db), _ = Depends(get_api_key)):
     """Inicializa um repositório Git ou vincula a URL remota configurada."""

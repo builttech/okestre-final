@@ -388,6 +388,19 @@
                             </div>
                         </div>
 
+                        <!-- GRAPH VISUAL DE COMMITS -->
+                        <div class="git-graph-card card" id="git-graph-panel" style="display: none;">
+                            <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                                <h4 style="display: flex; align-items: center; gap: 8px; margin: 0;"><i class="fa-solid fa-diagram-project" style="color: #6366f1;"></i> Histórico e Gráfico de Commits (Git Graph)</h4>
+                                <button class="btn btn-sm btn-secondary" id="btn-git-graph-refresh"><i class="fa-solid fa-rotate"></i> Atualizar Árvore</button>
+                            </div>
+                            <div class="card-body" style="padding-top: 10px;">
+                                <div id="git-graph-container" style="overflow-x: auto; font-family: monospace; font-size: 12px; line-height: 1.6; color: #f8fafc; max-height: 300px; overflow-y: auto; background: rgba(0,0,0,0.3); padding: 15px; border-radius: var(--border-radius, 8px); border: 1px solid var(--border-color); white-space: pre;">
+                                    <!-- Árvore de commits renderizada via JS -->
+                                </div>
+                            </div>
+                        </div>
+
                         <div class="git-console-card card">
                             <div class="card-header">
                                 <h4>Console Git Output</h4>
