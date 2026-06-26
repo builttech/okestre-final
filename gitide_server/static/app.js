@@ -1729,10 +1729,14 @@ async function loadGitStatus(forceFetch = false) {
         if (dropdownBtn && dropdownMenu) {
             dropdownBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
-                const isShown = dropdownMenu.style.display === 'block';
+                const isShown = dropdownMenu.classList.contains('branch-actions-menu-open') || dropdownMenu.style.display === 'block';
                 closeAllDropdowns();
                 if (!isShown) {
-                    dropdownMenu.style.display = 'block';
+                    dropdownMenu.classList.add('branch-actions-menu-open');
+                    dropdownMenu.style.setProperty('display', 'flex', 'important');
+                    dropdownBtn.setAttribute('aria-expanded', 'true');
+                } else {
+                    dropdownBtn.setAttribute('aria-expanded', 'false');
                 }
             });
             
@@ -3561,7 +3565,12 @@ function copyGitHubCode() {
 function closeAllDropdowns() {
     const menus = document.querySelectorAll('.dropdown-menu');
     menus.forEach(menu => {
-        menu.style.display = 'none';
+        menu.classList.remove('branch-actions-menu-open');
+        menu.style.setProperty('display', 'none', 'important');
+    });
+
+    document.querySelectorAll('.dropdown-trigger[aria-expanded="true"]').forEach(trigger => {
+        trigger.setAttribute('aria-expanded', 'false');
     });
 }
 

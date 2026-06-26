@@ -2853,6 +2853,51 @@ input[type="checkbox"]:focus-visible{
     padding-right:4px!important;
 }
 
+/* Branch active actions menu behavior */
+#tab-git #branch-actions-menu{
+    display:none!important;
+    flex-direction:column!important;
+    gap:4px!important;
+    padding:8px!important;
+    border-radius:16px!important;
+    background:var(--bg-base)!important;
+    border:1px solid var(--frame-border-strong)!important;
+    box-shadow:0 22px 54px rgba(0,0,0,.48)!important;
+}
+
+#tab-git #branch-actions-menu.branch-actions-menu-open{
+    display:flex!important;
+}
+
+#tab-git #branch-actions-menu .dropdown-item{
+    min-height:36px!important;
+    width:100%!important;
+    display:flex!important;
+    align-items:center!important;
+    gap:10px!important;
+    padding:8px 10px!important;
+    border:0!important;
+    border-radius:10px!important;
+    background:transparent!important;
+    color:var(--text-main)!important;
+    text-align:left!important;
+    font-size:13px!important;
+    cursor:pointer!important;
+}
+
+#tab-git #branch-actions-menu .dropdown-item:hover{
+    background:rgba(255,255,255,.055)!important;
+}
+
+#tab-git #branch-actions-menu .dropdown-item i{
+    width:16px;
+    color:var(--text-muted);
+}
+
+#tab-git #btn-dropdown-git-abort-merge{
+    color:var(--color-danger)!important;
+}
+
 /* Documents Word view */
 #tab-documents.active{
     display:flex!important;
