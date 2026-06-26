@@ -2004,14 +2004,19 @@ function getGitDeployBranchValue() {
     const branchSelect = document.getElementById('git-branch-input');
     if (!branchSelect) return 'dev';
 
+    const selectedValue = branchSelect.value.trim();
+    if (selectedValue) {
+        return normalizeGitBranchName(selectedValue);
+    }
+
     const devOption = findGitBranchOption(branchSelect, 'dev');
     if (devOption) {
         branchSelect.value = devOption.value;
         syncGitBranchCustomSelect();
-        return devOption.value;
+        return normalizeGitBranchName(devOption.value);
     }
 
-    return branchSelect.value.trim() || 'dev';
+    return 'dev';
 }
 
 async function loadGitBranches(currentBranch, forceFetch = false) {
