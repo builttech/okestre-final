@@ -909,10 +909,11 @@ Se o arquivo existir, leia e siga rigorosamente todas as diretrizes, fases de an
                                     <span id="sdd-active-spec-filename" class="badge" style="display: none;"></span>
                                 </div>
                                 <div class="sdd-workspace-nav" id="sdd-workspace-nav-tabs" style="display: none;">
-                                    <button class="sdd-nav-btn active" data-sdd-tab="sdd-tab-preview">Visualizar</button>
+                                    <button class="sdd-nav-btn active" data-sdd-tab="sdd-tab-preview"><span>1</span> Specify</button>
+                                    <button class="sdd-nav-btn" data-sdd-tab="sdd-tab-design"><span>2</span> Design</button>
+                                    <button class="sdd-nav-btn" data-sdd-tab="sdd-tab-checklist"><span>3</span> Tasks</button>
+                                    <button class="sdd-nav-btn" data-sdd-tab="sdd-tab-tests"><span>4</span> Execute</button>
                                     <button class="sdd-nav-btn" data-sdd-tab="sdd-tab-edit">Editar</button>
-                                    <button class="sdd-nav-btn" data-sdd-tab="sdd-tab-checklist">Critérios de Aceitação</button>
-                                    <button class="sdd-nav-btn" data-sdd-tab="sdd-tab-tests">Gerar Testes (QA)</button>
                                 </div>
                             </div>
 
@@ -922,9 +923,29 @@ Se o arquivo existir, leia e siga rigorosamente todas as diretrizes, fases de an
                                     <div class="sdd-markdown-preview markdown-body" id="sdd-spec-markdown-render">
                                         <div class="sdd-empty-workspace">
                                             <i data-lucide="sparkles" style="width: 48px; height: 48px; color: var(--color-primary); opacity: 0.6; margin-bottom: 12px;"></i>
-                                            <h3>Desenvolvimento Orientado por Especificação (SDD)</h3>
-                                            <p>Selecione uma especificação da lista à esquerda ou utilize o assistente para criar uma nova e orientar a IA.</p>
-                                            <button class="btn btn-primary" id="btn-switch-to-ia-generator"><i data-lucide="plus-circle"></i> Assistente de Especificação IA</button>
+                                            <h3>Fluxo Spec-Driven Development</h3>
+                                            <p>Crie ou selecione uma feature para conduzir Specify, Design, Tasks e Execute no mesmo artefato Markdown.</p>
+                                            <button class="btn btn-primary" id="btn-switch-to-ia-generator"><i data-lucide="plus-circle"></i> Criar Fluxo com IA</button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- SUBTAB: DESIGN -->
+                                <div id="sdd-tab-design" class="sdd-tab-content">
+                                    <div class="sdd-flow-stage">
+                                        <div class="sdd-stage-header">
+                                            <div>
+                                                <span class="sdd-stage-kicker">Design</span>
+                                                <h4>Planejamento técnico</h4>
+                                                <p>Decisões de arquitetura, dados, bibliotecas, integrações e contratos extraídas da especificação selecionada.</p>
+                                            </div>
+                                            <button class="btn btn-secondary" id="btn-sdd-edit-from-design"><i data-lucide="pencil"></i> Editar planejamento</button>
+                                        </div>
+                                        <div class="sdd-markdown-preview markdown-body" id="sdd-design-render">
+                                            <div class="sdd-empty-workspace">
+                                                <i data-lucide="workflow" style="width: 44px; height: 44px; opacity: 0.45; margin-bottom: 12px;"></i>
+                                                <p>Selecione uma especificação para visualizar o plano técnico.</p>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -949,8 +970,8 @@ Se o arquivo existir, leia e siga rigorosamente todas as diretrizes, fases de an
                                     <div class="sdd-checklist-wrapper" style="display: flex; flex-direction: column; height: 100%; gap: 16px;">
                                         <div class="sdd-checklist-header">
                                             <div style="display: flex; flex-direction: column;">
-                                                <h5>Critérios de Aceitação Interativos</h5>
-                                                <p style="font-size: 12px; color: var(--text-muted); margin: 0;">Esses itens são extraídos do arquivo Markdown. Marcar ou desmarcar atualiza o arquivo local no disco.</p>
+                                                <h5>Tasks executáveis e critérios de aceite</h5>
+                                                <p style="font-size: 12px; color: var(--text-muted); margin: 0;">Itens Markdown <code>- [ ]</code> viram tarefas interativas. Marcar ou desmarcar atualiza o arquivo local no disco.</p>
                                             </div>
                                             <div class="sdd-checklist-progress">
                                                 <span id="sdd-checklist-progress-text">0/0 concluídos</span>
@@ -968,8 +989,8 @@ Se o arquivo existir, leia e siga rigorosamente todas as diretrizes, fases de an
                                     <div class="sdd-tests-wrapper" style="display: flex; flex-direction: column; height: 100%; gap: 18px; max-width: 680px; margin: 0 auto; padding-top: 14px;">
                                         <div style="text-align: center; margin-bottom: 8px;">
                                             <i data-lucide="badge-check" style="width: 48px; height: 48px; color: #10b981; margin-bottom: 12px;"></i>
-                                            <h4>Geração Automatizada de Testes Baseada em Spec</h4>
-                                            <p style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">A IA lerá os Critérios de Aceitação desta especificação e criará uma suite de testes unitários ou de integração correspondente, salvando o arquivo na pasta correta do projeto.</p>
+                                            <h4>Execute: validar implementação contra a spec</h4>
+                                            <p style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">A IA usa a especificação, o design e as tasks para gerar testes automatizados que validam o comportamento planejado.</p>
                                         </div>
                                         <div class="card" style="padding: 20px; background: rgba(255,255,255,0.015); border: 1px solid var(--border-color);">
                                             <div class="form-group">
@@ -998,8 +1019,8 @@ Se o arquivo existir, leia e siga rigorosamente todas as diretrizes, fases de an
                                     <div class="sdd-wizard-wrapper" style="display: flex; flex-direction: column; height: 100%; gap: 18px; max-width: 680px; margin: 0 auto; padding-top: 14px;">
                                         <div style="text-align: center; margin-bottom: 8px;">
                                             <i data-lucide="wand-2" style="width: 48px; height: 48px; color: var(--color-primary); margin-bottom: 12px;"></i>
-                                            <h4>Assistente de Geração de Especificações com IA</h4>
-                                            <p style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">Descreva o recurso ou módulo que deseja implementar. A IA irá estruturar objetivos, modelo de dados, rotas de API e critérios de aceitação automáticos para você.</p>
+                                            <h4>Assistente de Fluxo SDD com IA</h4>
+                                            <p style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">Descreva o recurso ou módulo. A IA irá montar Specify, Design, Tasks e Execute em Markdown para guiar implementação e testes.</p>
                                         </div>
                                         <div class="card" style="padding: 20px; background: rgba(255,255,255,0.015); border: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 14px;">
                                             <div class="form-group">

@@ -6331,8 +6331,32 @@ function sddExtractTitle(content) {
 
 function sddPopulatePreview(content) {
     const container = document.getElementById('sdd-spec-markdown-render');
-    container.innerHTML = sddRenderMarkdown(content);
+    const specify = sddExtractFlowSection(content, 'Specify');
+    container.innerHTML = sddRenderMarkdown(specify || content);
+    sddPopulateDesign(content);
     if (window.lucide) lucide.createIcons();
+}
+
+function sddExtractFlowSection(content, sectionName) {
+    const escaped = sectionName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const pattern = new RegExp(`(^##\\s+\\d*\\.?\\s*${escaped}[^\\n]*\\n)([\\s\\S]*?)(?=^##\\s+\\d*\\.?\\s+|$)`, 'im');
+    const match = content.match(pattern);
+    return match ? `${match[1]}${match[2]}`.trim() : '';
+}
+
+function sddPopulateDesign(content) {
+    const container = document.getElementById('sdd-design-render');
+    if (!container) return;
+    const design = sddExtractFlowSection(content, 'Design');
+    if (design) {
+        container.innerHTML = sddRenderMarkdown(design);
+        return;
+    }
+    container.innerHTML = `
+        <div class="sdd-empty-workspace">
+            <i data-lucide="workflow" style="width:44px;height:44px;opacity:0.45;margin-bottom:12px;"></i>
+            <p>Nenhuma seção <code>## Design</code> encontrada. Edite a especificação para registrar o planejamento técnico.</p>
+        </div>`;
 }
 
 // --- Workspace Sub-tab Switching ---
@@ -6506,7 +6530,7 @@ function sddNewManualSpec() {
     document.getElementById('sdd-active-spec-title').textContent = 'Nova Especificação';
     document.getElementById('sdd-active-spec-filename').style.display = 'none';
     document.getElementById('sdd-edit-filename').value = '';
-    document.getElementById('sdd-spec-editor-textarea').value = `# Título da Especificação\n\n## Objetivo\nDescreva o objetivo desta feature.\n\n## Modelo de Dados\n- Campo: Tipo\n\n## Critérios de Aceitação\n- [ ] Critério 1\n- [ ] Critério 2\n- [ ] Critério 3\n`;
+    document.getElementById('sdd-spec-editor-textarea').value = `# Título da Feature\n\n## 1. Specify - Especificação\n\n### Objetivo\nDescreva o que o software deve fazer.\n\n### Comportamento esperado\n- Descreva os fluxos principais do usuário ou do sistema.\n\n### Restrições arquiteturais\n- Liste limites, padrões obrigatórios, requisitos não funcionais ou decisões já tomadas.\n\n### Critérios de aceitação\n- [ ] Critério de aceite 1\n- [ ] Critério de aceite 2\n\n## 2. Design - Planejamento\n\n### Arquitetura proposta\nDescreva como o sistema vai operar.\n\n### Dados, bibliotecas e integrações\n- Banco de dados: \n- Bibliotecas: \n- Integrações: \n\n### Contratos técnicos\n- APIs, eventos, serviços ou componentes afetados.\n\n## 3. Tasks - Tarefas\n\n- [ ] Implementar a primeira parte pequena e testável.\n- [ ] Implementar a segunda parte pequena e testável.\n- [ ] Atualizar ou criar testes automatizados.\n\n## 4. Execute - Implementação\n\n### Ordem de execução\n1. Execute cada tarefa contra esta especificação.\n2. Rode os testes gerados ou existentes.\n3. Marque as tasks concluídas somente quando o comportamento estiver validado.\n`;
     document.querySelectorAll('.sdd-nav-btn').forEach(b => b.classList.remove('active'));
     document.querySelectorAll('.sdd-tab-content').forEach(t => t.classList.remove('active'));
     sddSwitchTab('sdd-tab-edit');
@@ -6537,15 +6561,16 @@ async function sddGenerateSpecIA() {
             body: JSON.stringify({ title, prompt })
         });
         const data = await res.json();
-        if (data.filename && data.content !== undefined) {
+        const generatedContent = data.content !== undefined ? data.content : data.markdown;
+        if (data.filename && generatedContent !== undefined) {
             sddState.activeFilename = data.filename;
-            sddState.activeContent = data.content;
-            document.getElementById('sdd-active-spec-title').textContent = data.title || sddExtractTitle(data.content) || data.filename;
+            sddState.activeContent = generatedContent;
+            document.getElementById('sdd-active-spec-title').textContent = data.title || sddExtractTitle(generatedContent) || data.filename;
             document.getElementById('sdd-active-spec-filename').textContent = data.filename;
             document.getElementById('sdd-active-spec-filename').style.display = 'inline';
             document.getElementById('sdd-workspace-nav-tabs').style.display = 'flex';
-            sddPopulatePreview(data.content);
-            document.getElementById('sdd-spec-editor-textarea').value = data.content;
+            sddPopulatePreview(generatedContent);
+            document.getElementById('sdd-spec-editor-textarea').value = generatedContent;
             document.getElementById('sdd-edit-filename').value = data.filename;
             sddSwitchTab('sdd-tab-preview');
             // Clear wizard inputs
@@ -6559,7 +6584,7 @@ async function sddGenerateSpecIA() {
         alert('Erro na geração por IA: ' + e.message);
     } finally {
         btn.disabled = false;
-        btn.innerHTML = '<i data-lucide="sparkles"></i> Gerar Especificação via IA';
+        btn.innerHTML = '<i data-lucide="sparkles"></i> Gerar Fluxo SDD via IA';
         if (window.lucide) lucide.createIcons();
     }
 }
@@ -6634,6 +6659,9 @@ function setupSddEventListeners() {
     // Generate tests via IA
     const btnGenTests = document.getElementById('btn-sdd-generate-tests');
     if (btnGenTests) btnGenTests.addEventListener('click', sddGenerateTests);
+
+    const btnEditFromDesign = document.getElementById('btn-sdd-edit-from-design');
+    if (btnEditFromDesign) btnEditFromDesign.addEventListener('click', () => sddSwitchTab('sdd-tab-edit'));
 
     // Copy test code
     const btnCopyTest = document.getElementById('btn-copy-sdd-test-code');
