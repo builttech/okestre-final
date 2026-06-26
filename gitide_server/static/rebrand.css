@@ -2817,6 +2817,42 @@ input[type="checkbox"]:focus-visible{
     }
 }
 
+/* Git branch actions dropdown visibility fix */
+#tab-git .git-status-card{
+    overflow:visible!important;
+    z-index:30!important;
+}
+
+#tab-git #git-status-detail{
+    max-height:none!important;
+    overflow:visible!important;
+    padding-right:0!important;
+}
+
+#tab-git .git-status-info{
+    position:relative;
+    z-index:40;
+}
+
+#tab-git .git-status-info .dropdown-container{
+    position:relative!important;
+    overflow:visible!important;
+    z-index:5000!important;
+}
+
+#tab-git #branch-actions-menu{
+    top:calc(100% + 8px)!important;
+    left:8px!important;
+    z-index:6000!important;
+    min-width:190px;
+}
+
+#tab-git .git-files-list{
+    max-height:260px!important;
+    overflow:auto!important;
+    padding-right:4px!important;
+}
+
 /* Documents Word view */
 #tab-documents.active{
     display:flex!important;
