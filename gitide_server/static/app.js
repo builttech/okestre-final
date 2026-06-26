@@ -1975,9 +1975,7 @@ function cleanupGitBranchSelectArtifacts() {
     if (!field) return;
 
     field.querySelectorAll('.custom-select-container, .git-branch-switcher').forEach(wrapper => {
-        if (!wrapper.contains(branchSelect)) {
-            wrapper.remove();
-        }
+        wrapper.remove();
     });
 
     const gitideWrappers = Array.from(field.querySelectorAll('.gitide-select'));
@@ -1986,22 +1984,6 @@ function cleanupGitBranchSelectArtifacts() {
 
 function syncGitBranchCustomSelect() {
     cleanupGitBranchSelectArtifacts();
-
-    const branchSelect = document.getElementById('git-branch-input');
-    const wrapper = branchSelect?.nextElementSibling;
-    if (!branchSelect || !wrapper || !wrapper.classList.contains('gitide-select')) return;
-
-    const selected = branchSelect.options[branchSelect.selectedIndex] || branchSelect.options[0];
-    const label = wrapper.querySelector('.gitide-select-value');
-    if (label && selected) {
-        label.textContent = selected.textContent.trim() || selected.value;
-    }
-
-    wrapper.querySelectorAll('.gitide-select-option').forEach(option => {
-        const isSelected = option.dataset.value === branchSelect.value;
-        option.classList.toggle('is-selected', isSelected);
-        option.setAttribute('aria-selected', isSelected ? 'true' : 'false');
-    });
 }
 
 function getGitDeployBranchValue() {
