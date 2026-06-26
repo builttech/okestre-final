@@ -257,6 +257,8 @@ function switchTab(tabId) {
         } else if (tabId === 'tab-terminal') {
             loadPendingCommands();
             startPendingCommandsPolling();
+        } else if (tabId === 'tab-sdd') {
+            sddLoadSpecs();
         }
     }
 }
@@ -2547,6 +2549,9 @@ function showCustomConfirm(title, message, confirmButtonText = 'Confirmar', isDa
 
 // --- EVENT LISTENERS & UI EVENTS ---
 function setupEventListeners() {
+    // SDD Module
+    setupSddEventListeners();
+
     // 1. Selector de Projeto
     document.getElementById('project-selector').addEventListener('change', (e) => {
         selectProject(e.target.value);
@@ -6125,3 +6130,485 @@ async function rejectCommand(commandId) {
         alert(`Erro ao rejeitar comando: ${err.message}`);
     }
 }
+
+// =============================================================================
+// --- SPEC-DRIVEN DEVELOPMENT (SDD) MODULE ---
+// =============================================================================
+
+const sddState = {
+    activeFilename: null,
+    activeContent: '',
+    specs: []
+};
+
+// --- Simple Markdown Renderer (lightweight, no external deps) ---
+function sddRenderMarkdown(md) {
+    if (!md) return '';
+    let html = md
+        // Escape HTML
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        // Code blocks
+        .replace(/```([\s\S]*?)```/g, (_, code) => `<pre><code>${code.trim()}</code></pre>`)
+        // Inline code
+        .replace(/`([^`]+)`/g, '<code>$1</code>')
+        // Bold
+        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+        // Italic
+        .replace(/\*(.+?)\*/g, '<em>$1</em>')
+        // H1-H4
+        .replace(/^#### (.+)$/gm, '<h4>$1</h4>')
+        .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+        .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+        .replace(/^# (.+)$/gm, '<h1>$1</h1>')
+        // Horizontal rule
+        .replace(/^---$/gm, '<hr>')
+        // Checkbox list items  - [x] and - [ ]
+        .replace(/^\- \[x\] (.+)$/gm, '<li class="md-check checked"><span class="md-checkbox">✓</span> $1</li>')
+        .replace(/^\- \[ \] (.+)$/gm, '<li class="md-check"><span class="md-checkbox">○</span> $1</li>')
+        // Unordered list items
+        .replace(/^\- (.+)$/gm, '<li>$1</li>')
+        // Ordered list items
+        .replace(/^\d+\. (.+)$/gm, '<li>$1</li>')
+        // Blockquotes
+        .replace(/^> (.+)$/gm, '<blockquote>$1</blockquote>');
+
+    // Wrap consecutive <li> in <ul>
+    html = html.replace(/((<li[^>]*>.*<\/li>\n?)+)/g, '<ul>$1</ul>');
+    // Paragraphs: lines that are not html tags
+    html = html.split('\n').map(line => {
+        const trimmed = line.trim();
+        if (!trimmed) return '';
+        if (/^<(h[1-4]|ul|ol|li|pre|blockquote|hr)/.test(trimmed)) return trimmed;
+        return `<p>${trimmed}</p>`;
+    }).join('\n');
+    return html;
+}
+
+// --- Load & Render Spec List ---
+async function sddLoadSpecs() {
+    if (!state.activeProjectId) return;
+    const list = document.getElementById('sdd-specs-list');
+    list.innerHTML = '<div class="specs-empty-state" style="padding:20px;text-align:center;"><span style="color:var(--text-muted)">Carregando...</span></div>';
+    try {
+        const res = await fetch(`/api/projects/${state.activeProjectId}/sdd/specs`, { headers: getHeaders() });
+        const specs = await res.json();
+        sddState.specs = specs;
+        sddRenderSpecList(specs);
+    } catch (e) {
+        list.innerHTML = '<div class="specs-empty-state"><span style="color:#ef4444">Erro ao carregar especificações.</span></div>';
+    }
+}
+
+function sddRenderSpecList(specs) {
+    const list = document.getElementById('sdd-specs-list');
+    if (!specs || specs.length === 0) {
+        list.innerHTML = `
+            <div class="specs-empty-state">
+                <i data-lucide="file-question"></i>
+                <span>Nenhuma especificação encontrada. Use o assistente ao lado para gerar ou crie uma manual.</span>
+            </div>`;
+        if (window.lucide) lucide.createIcons();
+        return;
+    }
+    list.innerHTML = specs.map(spec => `
+        <div class="spec-item ${sddState.activeFilename === spec.filename ? 'active' : ''}" 
+             data-filename="${spec.filename}" 
+             onclick="sddSelectSpec('${spec.filename}')">
+            <i data-lucide="file-text" style="width:15px;height:15px;flex-shrink:0;"></i>
+            <div style="flex:1;min-width:0;">
+                <div class="spec-item-title" title="${spec.title}">${spec.title}</div>
+                <div class="spec-item-meta">${spec.filename} &middot; ${new Date(spec.modified_at).toLocaleDateString('pt-BR')}</div>
+            </div>
+        </div>`).join('');
+    if (window.lucide) lucide.createIcons();
+}
+
+// --- Select / Load a Spec ---
+async function sddSelectSpec(filename) {
+    if (!state.activeProjectId) return;
+    sddState.activeFilename = filename;
+
+    // Update sidebar highlight
+    document.querySelectorAll('.spec-item').forEach(el => {
+        el.classList.toggle('active', el.dataset.filename === filename);
+    });
+
+    // Show workspace nav
+    document.getElementById('sdd-workspace-nav-tabs').style.display = 'flex';
+    document.getElementById('sdd-active-spec-filename').textContent = filename;
+    document.getElementById('sdd-active-spec-filename').style.display = 'inline';
+
+    // Load content
+    try {
+        const res = await fetch(`/api/projects/${state.activeProjectId}/sdd/specs/${encodeURIComponent(filename)}`, { headers: getHeaders() });
+        const data = await res.json();
+        sddState.activeContent = data.content || '';
+        document.getElementById('sdd-active-spec-title').textContent = sddExtractTitle(sddState.activeContent) || filename;
+
+        // Populate tabs
+        sddPopulatePreview(sddState.activeContent);
+        document.getElementById('sdd-spec-editor-textarea').value = sddState.activeContent;
+        document.getElementById('sdd-edit-filename').value = filename;
+
+        // Switch to preview
+        sddSwitchTab('sdd-tab-preview');
+
+        // Load criteria if checklist tab is being shown
+        const checklistTab = document.getElementById('sdd-tab-checklist');
+        if (checklistTab && checklistTab.classList.contains('active')) {
+            await sddLoadCriteria();
+        }
+    } catch (e) {
+        console.error('Erro ao carregar spec:', e);
+    }
+}
+
+function sddExtractTitle(content) {
+    const match = content.match(/^#\s+(.+)$/m);
+    return match ? match[1].trim() : null;
+}
+
+function sddPopulatePreview(content) {
+    const container = document.getElementById('sdd-spec-markdown-render');
+    container.innerHTML = sddRenderMarkdown(content);
+    if (window.lucide) lucide.createIcons();
+}
+
+// --- Workspace Sub-tab Switching ---
+function sddSwitchTab(tabId) {
+    document.querySelectorAll('.sdd-tab-content').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.sdd-nav-btn').forEach(b => b.classList.remove('active'));
+    const tab = document.getElementById(tabId);
+    if (tab) tab.classList.add('active');
+    const btn = document.querySelector(`[data-sdd-tab="${tabId}"]`);
+    if (btn) btn.classList.add('active');
+
+    // Load criteria when switching to checklist
+    if (tabId === 'sdd-tab-checklist' && sddState.activeFilename) {
+        sddLoadCriteria();
+    }
+}
+
+// --- Criteria Checklist ---
+async function sddLoadCriteria() {
+    if (!state.activeProjectId || !sddState.activeFilename) return;
+    const container = document.getElementById('sdd-criteria-checklist-container');
+    container.innerHTML = '<p style="color:var(--text-muted);padding:16px;">Carregando critérios...</p>';
+    try {
+        const res = await fetch(`/api/projects/${state.activeProjectId}/sdd/specs/${encodeURIComponent(sddState.activeFilename)}/criteria`, { headers: getHeaders() });
+        const data = await res.json();
+        sddRenderCriteria(data.criteria || []);
+    } catch (e) {
+        container.innerHTML = '<p style="color:#ef4444;padding:16px;">Erro ao carregar critérios.</p>';
+    }
+}
+
+function sddRenderCriteria(criteria) {
+    const container = document.getElementById('sdd-criteria-checklist-container');
+    const progressText = document.getElementById('sdd-checklist-progress-text');
+    const progressFill = document.getElementById('sdd-progress-fill');
+
+    if (!criteria.length) {
+        container.innerHTML = `
+            <div style="text-align:center;padding:40px;color:var(--text-muted);">
+                <i data-lucide="clipboard-list" style="width:40px;height:40px;margin-bottom:12px;opacity:0.4;"></i>
+                <p>Nenhum critério de aceitação encontrado nesta especificação.<br>Adicione itens <code>- [ ] Critério</code> no arquivo.</p>
+            </div>`;
+        if (window.lucide) lucide.createIcons();
+        progressText.textContent = '0/0 concluídos';
+        progressFill.style.width = '0%';
+        return;
+    }
+
+    const total = criteria.length;
+    const done = criteria.filter(c => c.checked).length;
+    const pct = total ? Math.round((done / total) * 100) : 0;
+    progressText.textContent = `${done}/${total} concluídos (${pct}%)`;
+    progressFill.style.width = `${pct}%`;
+
+    container.innerHTML = criteria.map(c => `
+        <div class="sdd-criteria-row ${c.checked ? 'checked' : ''}" data-line="${c.line_no}">
+            <input type="checkbox" ${c.checked ? 'checked' : ''} 
+                   onchange="sddToggleCriteria(${c.line_no}, this.checked)" 
+                   style="width:16px;height:16px;cursor:pointer;accent-color:var(--color-primary);flex-shrink:0;">
+            <span class="sdd-criteria-text">${c.text}</span>
+        </div>`).join('');
+}
+
+async function sddToggleCriteria(lineNo, checked) {
+    if (!state.activeProjectId || !sddState.activeFilename) return;
+    // Optimistic UI update
+    const row = document.querySelector(`.sdd-criteria-row[data-line="${lineNo}"]`);
+    if (row) row.classList.toggle('checked', checked);
+
+    try {
+        await fetch(`/api/projects/${state.activeProjectId}/sdd/specs/${encodeURIComponent(sddState.activeFilename)}/criteria`, {
+            method: 'POST',
+            headers: { ...getHeaders(), 'Content-Type': 'application/json' },
+            body: JSON.stringify({ criteria: [{ line_no: lineNo, checked }] })
+        });
+        // Refresh progress
+        await sddLoadCriteria();
+        // Refresh content cache
+        const res = await fetch(`/api/projects/${state.activeProjectId}/sdd/specs/${encodeURIComponent(sddState.activeFilename)}`, { headers: getHeaders() });
+        const data = await res.json();
+        sddState.activeContent = data.content || '';
+        sddPopulatePreview(sddState.activeContent);
+        document.getElementById('sdd-spec-editor-textarea').value = sddState.activeContent;
+    } catch (e) {
+        console.error('Erro ao atualizar critério:', e);
+    }
+}
+
+// --- Save Spec ---
+async function sddSaveSpec() {
+    if (!state.activeProjectId) return;
+    const filename = document.getElementById('sdd-edit-filename').value.trim();
+    const content = document.getElementById('sdd-spec-editor-textarea').value;
+    if (!filename.endsWith('.md')) {
+        alert('O nome do arquivo deve terminar com .md');
+        return;
+    }
+    const btn = document.getElementById('btn-sdd-save');
+    btn.disabled = true;
+    btn.innerHTML = '<i data-lucide="loader-2" style="animation:spin 1s linear infinite;"></i> Salvando...';
+    if (window.lucide) lucide.createIcons();
+    try {
+        const res = await fetch(`/api/projects/${state.activeProjectId}/sdd/specs`, {
+            method: 'POST',
+            headers: { ...getHeaders(), 'Content-Type': 'application/json' },
+            body: JSON.stringify({ filename, content })
+        });
+        const data = await res.json();
+        if (data.status === 'success') {
+            sddState.activeFilename = filename;
+            sddState.activeContent = content;
+            sddPopulatePreview(content);
+            document.getElementById('sdd-active-spec-filename').textContent = filename;
+            document.getElementById('sdd-active-spec-title').textContent = sddExtractTitle(content) || filename;
+            await sddLoadSpecs();
+            sddSwitchTab('sdd-tab-preview');
+        } else {
+            alert('Erro ao salvar: ' + (data.detail || 'Erro desconhecido'));
+        }
+    } catch (e) {
+        alert('Erro ao salvar especificação: ' + e.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i data-lucide="save"></i> Salvar Alterações';
+        if (window.lucide) lucide.createIcons();
+    }
+}
+
+// --- Delete Spec ---
+async function sddDeleteSpec() {
+    if (!state.activeProjectId || !sddState.activeFilename) return;
+    if (!confirm(`Tem certeza que deseja excluir "${sddState.activeFilename}"? Esta ação é irreversível.`)) return;
+    try {
+        const res = await fetch(`/api/projects/${state.activeProjectId}/sdd/specs/${encodeURIComponent(sddState.activeFilename)}`, {
+            method: 'DELETE',
+            headers: getHeaders()
+        });
+        const data = await res.json();
+        if (data.status === 'success') {
+            sddState.activeFilename = null;
+            sddState.activeContent = '';
+            // Reset workspace
+            document.getElementById('sdd-workspace-nav-tabs').style.display = 'none';
+            document.getElementById('sdd-active-spec-title').textContent = 'Nenhuma Especificação Selecionada';
+            document.getElementById('sdd-active-spec-filename').style.display = 'none';
+            sddSwitchTab('sdd-tab-preview');
+            document.getElementById('sdd-spec-markdown-render').innerHTML = `
+                <div class="sdd-empty-workspace">
+                    <i data-lucide="sparkles" style="width:48px;height:48px;color:var(--color-primary);opacity:0.6;margin-bottom:12px;"></i>
+                    <h3>Desenvolvimento Orientado por Especificação (SDD)</h3>
+                    <p>Selecione uma especificação da lista à esquerda ou utilize o assistente para criar uma nova e orientar a IA.</p>
+                    <button class="btn btn-primary" id="btn-switch-to-ia-generator"><i data-lucide="plus-circle"></i> Assistente de Especificação IA</button>
+                </div>`;
+            if (window.lucide) lucide.createIcons();
+            // Re-bind wizard button
+            const wb = document.getElementById('btn-switch-to-ia-generator');
+            if (wb) wb.addEventListener('click', () => sddSwitchTab('sdd-tab-ia-wizard'));
+            await sddLoadSpecs();
+        } else {
+            alert('Erro ao excluir: ' + (data.detail || 'Erro desconhecido'));
+        }
+    } catch (e) {
+        alert('Erro ao excluir especificação: ' + e.message);
+    }
+}
+
+// --- New Manual Spec ---
+function sddNewManualSpec() {
+    sddState.activeFilename = null;
+    document.getElementById('sdd-workspace-nav-tabs').style.display = 'flex';
+    document.getElementById('sdd-active-spec-title').textContent = 'Nova Especificação';
+    document.getElementById('sdd-active-spec-filename').style.display = 'none';
+    document.getElementById('sdd-edit-filename').value = '';
+    document.getElementById('sdd-spec-editor-textarea').value = `# Título da Especificação\n\n## Objetivo\nDescreva o objetivo desta feature.\n\n## Modelo de Dados\n- Campo: Tipo\n\n## Critérios de Aceitação\n- [ ] Critério 1\n- [ ] Critério 2\n- [ ] Critério 3\n`;
+    document.querySelectorAll('.sdd-nav-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.sdd-tab-content').forEach(t => t.classList.remove('active'));
+    sddSwitchTab('sdd-tab-edit');
+    // Remove sidebar active
+    document.querySelectorAll('.spec-item').forEach(el => el.classList.remove('active'));
+}
+
+// --- AI Spec Generation ---
+async function sddGenerateSpecIA() {
+    const title = document.getElementById('sdd-wizard-title').value.trim();
+    const prompt = document.getElementById('sdd-wizard-prompt').value.trim();
+    if (!prompt) {
+        alert('Por favor, descreva as funcionalidades para gerar a especificação.');
+        return;
+    }
+    if (!state.activeProjectId) {
+        alert('Selecione um projeto primeiro.');
+        return;
+    }
+    const btn = document.getElementById('btn-sdd-generate-spec-ia');
+    btn.disabled = true;
+    btn.innerHTML = '<i data-lucide="loader-2" style="animation:spin 1s linear infinite;"></i> Gerando com IA...';
+    if (window.lucide) lucide.createIcons();
+    try {
+        const res = await fetch(`/api/projects/${state.activeProjectId}/sdd/generate-spec`, {
+            method: 'POST',
+            headers: { ...getHeaders(), 'Content-Type': 'application/json' },
+            body: JSON.stringify({ title, prompt })
+        });
+        const data = await res.json();
+        if (data.filename && data.content !== undefined) {
+            sddState.activeFilename = data.filename;
+            sddState.activeContent = data.content;
+            document.getElementById('sdd-active-spec-title').textContent = data.title || sddExtractTitle(data.content) || data.filename;
+            document.getElementById('sdd-active-spec-filename').textContent = data.filename;
+            document.getElementById('sdd-active-spec-filename').style.display = 'inline';
+            document.getElementById('sdd-workspace-nav-tabs').style.display = 'flex';
+            sddPopulatePreview(data.content);
+            document.getElementById('sdd-spec-editor-textarea').value = data.content;
+            document.getElementById('sdd-edit-filename').value = data.filename;
+            sddSwitchTab('sdd-tab-preview');
+            // Clear wizard inputs
+            document.getElementById('sdd-wizard-title').value = '';
+            document.getElementById('sdd-wizard-prompt').value = '';
+            await sddLoadSpecs();
+        } else {
+            alert('Erro ao gerar especificação: ' + (data.detail || JSON.stringify(data)));
+        }
+    } catch (e) {
+        alert('Erro na geração por IA: ' + e.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i data-lucide="sparkles"></i> Gerar Especificação via IA';
+        if (window.lucide) lucide.createIcons();
+    }
+}
+
+// --- AI Test Generation ---
+async function sddGenerateTests() {
+    if (!state.activeProjectId || !sddState.activeFilename) {
+        alert('Selecione uma especificação primeiro.');
+        return;
+    }
+    const framework = document.getElementById('sdd-test-framework').value;
+    const btn = document.getElementById('btn-sdd-generate-tests');
+    btn.disabled = true;
+    btn.innerHTML = '<i data-lucide="loader-2" style="animation:spin 1s linear infinite;"></i> Gerando testes com IA...';
+    if (window.lucide) lucide.createIcons();
+    const resultPanel = document.getElementById('sdd-test-result-panel');
+    resultPanel.style.display = 'none';
+    try {
+        const res = await fetch(`/api/projects/${state.activeProjectId}/sdd/generate-tests`, {
+            method: 'POST',
+            headers: { ...getHeaders(), 'Content-Type': 'application/json' },
+            body: JSON.stringify({ filename: sddState.activeFilename, framework })
+        });
+        const data = await res.json();
+        if (data.status === 'success') {
+            document.getElementById('sdd-test-result-filepath').textContent = '✓ Salvo em: ' + data.filepath;
+            document.getElementById('sdd-test-result-code').textContent = data.code || '';
+            resultPanel.style.display = 'flex';
+        } else {
+            alert('Erro ao gerar testes: ' + (data.detail || JSON.stringify(data)));
+        }
+    } catch (e) {
+        alert('Erro na geração de testes: ' + e.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i data-lucide="play-circle"></i> Gerar Arquivo de Testes com IA';
+        if (window.lucide) lucide.createIcons();
+    }
+}
+
+// --- SDD Event Listener Setup (called from setupEventListeners) ---
+function setupSddEventListeners() {
+    // Sidebar: Refresh
+    const btnRefresh = document.getElementById('btn-refresh-sdd-specs');
+    if (btnRefresh) btnRefresh.addEventListener('click', sddLoadSpecs);
+
+    // Sidebar: New Manual
+    const btnNew = document.getElementById('btn-new-sdd-spec-manual');
+    if (btnNew) btnNew.addEventListener('click', sddNewManualSpec);
+
+    // Switch to IA wizard from empty workspace
+    const btnToWizard = document.getElementById('btn-switch-to-ia-generator');
+    if (btnToWizard) btnToWizard.addEventListener('click', () => sddSwitchTab('sdd-tab-ia-wizard'));
+
+    // Workspace sub-tabs
+    document.querySelectorAll('.sdd-nav-btn').forEach(btn => {
+        btn.addEventListener('click', () => sddSwitchTab(btn.dataset.sddTab));
+    });
+
+    // Save spec
+    const btnSave = document.getElementById('btn-sdd-save');
+    if (btnSave) btnSave.addEventListener('click', sddSaveSpec);
+
+    // Delete spec
+    const btnDelete = document.getElementById('btn-sdd-delete');
+    if (btnDelete) btnDelete.addEventListener('click', sddDeleteSpec);
+
+    // Generate spec via IA
+    const btnGenSpec = document.getElementById('btn-sdd-generate-spec-ia');
+    if (btnGenSpec) btnGenSpec.addEventListener('click', sddGenerateSpecIA);
+
+    // Generate tests via IA
+    const btnGenTests = document.getElementById('btn-sdd-generate-tests');
+    if (btnGenTests) btnGenTests.addEventListener('click', sddGenerateTests);
+
+    // Copy test code
+    const btnCopyTest = document.getElementById('btn-copy-sdd-test-code');
+    if (btnCopyTest) btnCopyTest.addEventListener('click', () => {
+        const code = document.getElementById('sdd-test-result-code').textContent;
+        navigator.clipboard.writeText(code).then(() => {
+            btnCopyTest.innerHTML = '<i data-lucide="check"></i>';
+            if (window.lucide) lucide.createIcons();
+            setTimeout(() => {
+                btnCopyTest.innerHTML = '<i data-lucide="copy"></i>';
+                if (window.lucide) lucide.createIcons();
+            }, 2000);
+        });
+    });
+}
+
+// Inject SDD CSS for markdown items not covered by rebrand.css
+(function injectSddStyles() {
+    const style = document.createElement('style');
+    style.textContent = `
+        .spec-item {
+            display: flex; align-items: center; gap: 10px;
+            padding: 10px 14px; cursor: pointer; border-bottom: 1px solid var(--border-color);
+            transition: background 0.15s;
+        }
+        .spec-item:hover { background: rgba(255,255,255,0.04); }
+        .spec-item.active { background: rgba(var(--color-primary-rgb, 99,102,241),0.15); border-left: 3px solid var(--color-primary); }
+        .spec-item-title { font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .spec-item-meta { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+        .specs-empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center;
+            gap: 10px; padding: 40px 20px; color: var(--text-muted); font-size: 13px; text-align: center; }
+        .specs-empty-state i { width: 36px; height: 36px; opacity: 0.4; }
+        .md-check { list-style: none; }
+        .md-checkbox { display: inline-block; width: 16px; margin-right: 6px; color: var(--color-primary); }
+        .md-check.checked { color: #10b981; text-decoration: line-through; opacity: 0.7; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    `;
+    document.head.appendChild(style);
+})();
