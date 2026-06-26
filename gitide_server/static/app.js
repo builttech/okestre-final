@@ -6331,32 +6331,8 @@ function sddExtractTitle(content) {
 
 function sddPopulatePreview(content) {
     const container = document.getElementById('sdd-spec-markdown-render');
-    const specify = sddExtractFlowSection(content, 'Specify');
-    container.innerHTML = sddRenderMarkdown(specify || content);
-    sddPopulateDesign(content);
+    container.innerHTML = sddRenderMarkdown(content);
     if (window.lucide) lucide.createIcons();
-}
-
-function sddExtractFlowSection(content, sectionName) {
-    const escaped = sectionName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const pattern = new RegExp(`(^##\\s+\\d*\\.?\\s*${escaped}[^\\n]*\\n)([\\s\\S]*?)(?=^##\\s+\\d*\\.?\\s+|$)`, 'im');
-    const match = content.match(pattern);
-    return match ? `${match[1]}${match[2]}`.trim() : '';
-}
-
-function sddPopulateDesign(content) {
-    const container = document.getElementById('sdd-design-render');
-    if (!container) return;
-    const design = sddExtractFlowSection(content, 'Design');
-    if (design) {
-        container.innerHTML = sddRenderMarkdown(design);
-        return;
-    }
-    container.innerHTML = `
-        <div class="sdd-empty-workspace">
-            <i data-lucide="workflow" style="width:44px;height:44px;opacity:0.45;margin-bottom:12px;"></i>
-            <p>Nenhuma seção <code>## Design</code> encontrada. Edite a especificação para registrar o planejamento técnico.</p>
-        </div>`;
 }
 
 // --- Workspace Sub-tab Switching ---
@@ -6367,11 +6343,37 @@ function sddSwitchTab(tabId) {
     if (tab) tab.classList.add('active');
     const btn = document.querySelector(`[data-sdd-tab="${tabId}"]`);
     if (btn) btn.classList.add('active');
+    sddUpdateFlowStrip(tabId);
 
     // Load criteria when switching to checklist
     if (tabId === 'sdd-tab-checklist' && sddState.activeFilename) {
         sddLoadCriteria();
     }
+}
+
+function sddUpdateFlowStrip(tabId = 'sdd-tab-preview') {
+    const strip = document.getElementById('sdd-flow-strip');
+    if (!strip) return;
+    const hasSpecContext = Boolean(sddState.activeFilename) || tabId === 'sdd-tab-edit' || tabId === 'sdd-tab-ia-wizard';
+    strip.style.display = hasSpecContext ? 'flex' : 'none';
+
+    const breadcrumb = document.getElementById('sdd-flow-breadcrumb');
+    if (breadcrumb) {
+        const filename = sddState.activeFilename || document.getElementById('sdd-edit-filename')?.value || 'nova-spec.md';
+        breadcrumb.textContent = `.documents > specs > ${filename} > fluxo SDD`;
+    }
+
+    const activeFlowTab = tabId === 'sdd-tab-checklist'
+        ? 'sdd-tab-checklist'
+        : tabId === 'sdd-tab-tests'
+            ? 'sdd-tab-tests'
+            : tabId === 'sdd-tab-edit'
+                ? 'sdd-tab-edit'
+                : 'sdd-tab-preview';
+
+    document.querySelectorAll('.sdd-flow-step').forEach(step => {
+        step.classList.toggle('active', step.dataset.sddFlowTab === activeFlowTab);
+    });
 }
 
 // --- Criteria Checklist ---
@@ -6660,8 +6662,9 @@ function setupSddEventListeners() {
     const btnGenTests = document.getElementById('btn-sdd-generate-tests');
     if (btnGenTests) btnGenTests.addEventListener('click', sddGenerateTests);
 
-    const btnEditFromDesign = document.getElementById('btn-sdd-edit-from-design');
-    if (btnEditFromDesign) btnEditFromDesign.addEventListener('click', () => sddSwitchTab('sdd-tab-edit'));
+    document.querySelectorAll('.sdd-flow-step').forEach(btn => {
+        btn.addEventListener('click', () => sddSwitchTab(btn.dataset.sddFlowTab));
+    });
 
     // Copy test code
     const btnCopyTest = document.getElementById('btn-copy-sdd-test-code');

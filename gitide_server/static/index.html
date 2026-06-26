@@ -909,15 +909,41 @@ Se o arquivo existir, leia e siga rigorosamente todas as diretrizes, fases de an
                                     <span id="sdd-active-spec-filename" class="badge" style="display: none;"></span>
                                 </div>
                                 <div class="sdd-workspace-nav" id="sdd-workspace-nav-tabs" style="display: none;">
-                                    <button class="sdd-nav-btn active" data-sdd-tab="sdd-tab-preview"><span>1</span> Specify</button>
-                                    <button class="sdd-nav-btn" data-sdd-tab="sdd-tab-design"><span>2</span> Design</button>
-                                    <button class="sdd-nav-btn" data-sdd-tab="sdd-tab-checklist"><span>3</span> Tasks</button>
-                                    <button class="sdd-nav-btn" data-sdd-tab="sdd-tab-tests"><span>4</span> Execute</button>
+                                    <button class="sdd-nav-btn active" data-sdd-tab="sdd-tab-preview">Visualizar</button>
                                     <button class="sdd-nav-btn" data-sdd-tab="sdd-tab-edit">Editar</button>
+                                    <button class="sdd-nav-btn" data-sdd-tab="sdd-tab-checklist">Checklist</button>
+                                    <button class="sdd-nav-btn" data-sdd-tab="sdd-tab-ia-wizard">Geração IA</button>
+                                    <button class="sdd-nav-btn" data-sdd-tab="sdd-tab-tests">Gerar Testes</button>
                                 </div>
                             </div>
 
                             <div class="sdd-workspace-body">
+                                <div class="sdd-flow-strip" id="sdd-flow-strip" style="display: none;">
+                                    <div class="sdd-flow-breadcrumb" id="sdd-flow-breadcrumb">specs &gt; nova-spec.md &gt; fluxo SDD</div>
+                                    <div class="sdd-flow-steps">
+                                        <button class="sdd-flow-step active" data-sdd-flow-tab="sdd-tab-preview">
+                                            <i data-lucide="file-text"></i>
+                                            <span>Spec</span>
+                                        </button>
+                                        <button class="sdd-flow-step" data-sdd-flow-tab="sdd-tab-preview">
+                                            <strong>1</strong>
+                                            <span>Requirements</span>
+                                        </button>
+                                        <button class="sdd-flow-step" data-sdd-flow-tab="sdd-tab-edit">
+                                            <strong>2</strong>
+                                            <span>Design</span>
+                                        </button>
+                                        <button class="sdd-flow-step" data-sdd-flow-tab="sdd-tab-checklist">
+                                            <strong>3</strong>
+                                            <span>Task List</span>
+                                        </button>
+                                        <button class="sdd-flow-step" data-sdd-flow-tab="sdd-tab-tests">
+                                            <i data-lucide="play-circle"></i>
+                                            <span>Execute</span>
+                                        </button>
+                                    </div>
+                                </div>
+
                                 <!-- SUBTAB: PREVIEW -->
                                 <div id="sdd-tab-preview" class="sdd-tab-content active">
                                     <div class="sdd-markdown-preview markdown-body" id="sdd-spec-markdown-render">
@@ -926,26 +952,6 @@ Se o arquivo existir, leia e siga rigorosamente todas as diretrizes, fases de an
                                             <h3>Fluxo Spec-Driven Development</h3>
                                             <p>Crie ou selecione uma feature para conduzir Specify, Design, Tasks e Execute no mesmo artefato Markdown.</p>
                                             <button class="btn btn-primary" id="btn-switch-to-ia-generator"><i data-lucide="plus-circle"></i> Criar Fluxo com IA</button>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- SUBTAB: DESIGN -->
-                                <div id="sdd-tab-design" class="sdd-tab-content">
-                                    <div class="sdd-flow-stage">
-                                        <div class="sdd-stage-header">
-                                            <div>
-                                                <span class="sdd-stage-kicker">Design</span>
-                                                <h4>Planejamento técnico</h4>
-                                                <p>Decisões de arquitetura, dados, bibliotecas, integrações e contratos extraídas da especificação selecionada.</p>
-                                            </div>
-                                            <button class="btn btn-secondary" id="btn-sdd-edit-from-design"><i data-lucide="pencil"></i> Editar planejamento</button>
-                                        </div>
-                                        <div class="sdd-markdown-preview markdown-body" id="sdd-design-render">
-                                            <div class="sdd-empty-workspace">
-                                                <i data-lucide="workflow" style="width: 44px; height: 44px; opacity: 0.45; margin-bottom: 12px;"></i>
-                                                <p>Selecione uma especificação para visualizar o plano técnico.</p>
-                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -970,8 +976,8 @@ Se o arquivo existir, leia e siga rigorosamente todas as diretrizes, fases de an
                                     <div class="sdd-checklist-wrapper" style="display: flex; flex-direction: column; height: 100%; gap: 16px;">
                                         <div class="sdd-checklist-header">
                                             <div style="display: flex; flex-direction: column;">
-                                                <h5>Tasks executáveis e critérios de aceite</h5>
-                                                <p style="font-size: 12px; color: var(--text-muted); margin: 0;">Itens Markdown <code>- [ ]</code> viram tarefas interativas. Marcar ou desmarcar atualiza o arquivo local no disco.</p>
+                                                <h5>Checklist Interativo</h5>
+                                                <p style="font-size: 12px; color: var(--text-muted); margin: 0;">Critérios e tarefas em Markdown <code>- [ ]</code> ficam interativos. Marcar ou desmarcar atualiza o arquivo local no disco.</p>
                                             </div>
                                             <div class="sdd-checklist-progress">
                                                 <span id="sdd-checklist-progress-text">0/0 concluídos</span>
@@ -989,8 +995,8 @@ Se o arquivo existir, leia e siga rigorosamente todas as diretrizes, fases de an
                                     <div class="sdd-tests-wrapper" style="display: flex; flex-direction: column; height: 100%; gap: 18px; max-width: 680px; margin: 0 auto; padding-top: 14px;">
                                         <div style="text-align: center; margin-bottom: 8px;">
                                             <i data-lucide="badge-check" style="width: 48px; height: 48px; color: #10b981; margin-bottom: 12px;"></i>
-                                            <h4>Execute: validar implementação contra a spec</h4>
-                                            <p style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">A IA usa a especificação, o design e as tasks para gerar testes automatizados que validam o comportamento planejado.</p>
+                                            <h4>Gerador de Testes</h4>
+                                            <p style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">A IA lerá a especificação selecionada e criará testes unitários ou de integração correspondentes, salvando o arquivo na estrutura do projeto.</p>
                                         </div>
                                         <div class="card" style="padding: 20px; background: rgba(255,255,255,0.015); border: 1px solid var(--border-color);">
                                             <div class="form-group">
