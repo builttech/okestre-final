@@ -19,7 +19,13 @@ const state = {
     // Design System (Tokens) States
     designTokens: null,
     activeTokenSet: 'global',
-    activeTokenTheme: null
+    activeTokenTheme: null,
+    
+    // Database Data Grid States
+    gridActiveTable: null,
+    gridCurrentPage: 1,
+    gridTotalRows: 0,
+    gridColumns: []
 };
 
 // --- CUSTOM SELECT COMPONENT ---
@@ -882,10 +888,13 @@ function renderDbTablesList(rows) {
                 // Carrega estrutura de colunas e ações
                 loadTableSchema(tableName, schemaPanel);
                 
-                // Configura query inicial e executa
+                // Configura query inicial
                 const textarea = document.getElementById('db-sql-textarea');
                 textarea.value = `SELECT * FROM ${tableName} LIMIT 50;`;
-                runSqlQuery();
+                
+                // Abre aba do Grid Editor por padrão ao clicar na tabela e carrega dados
+                switchDbResultsTab('grid');
+                loadTableGrid(tableName, 1);
             }
         });
         
@@ -1043,6 +1052,8 @@ async function loadTableSchema(tableName, schemaContainer) {
 async function runSqlQuery() {
     if (!state.activeProjectId) return;
     
+    switchDbResultsTab('raw');
+    
     const dbType = document.getElementById('db-type-select').value;
     const connString = document.getElementById('db-conn-input').value.trim();
     const query = document.getElementById('db-sql-textarea').value.trim();
@@ -1122,6 +1133,518 @@ async function runSqlQuery() {
     } catch (err) {
         container.innerHTML = `<p class="placeholder-text stderr-msg" style="color: var(--color-danger);"><i class="fa-solid fa-triangle-exclamation"></i> Erro na requisição: ${err.message}</p>`;
         statusLabel.textContent = 'Erro';
+    }
+}
+
+// --- DATABASE GRID EDITOR ---
+function switchDbResultsTab(tabId) {
+    document.querySelectorAll('.db-results-tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+        btn.style.borderBottom = '2px solid transparent';
+        btn.style.color = 'var(--text-muted)';
+        btn.style.fontWeight = '500';
+    });
+    
+    const activeBtn = document.getElementById(tabId === 'raw' ? 'btn-tab-raw-results' : 'btn-tab-grid-editor');
+    if (activeBtn) {
+        activeBtn.classList.add('active');
+        activeBtn.style.borderBottom = '2px solid var(--color-primary)';
+        activeBtn.style.color = 'var(--text-light)';
+        activeBtn.style.fontWeight = '600';
+    }
+    
+    document.getElementById('db-results-table-container').style.display = tabId === 'raw' ? 'block' : 'none';
+    document.getElementById('db-grid-editor-container').style.display = tabId === 'grid' ? 'flex' : 'none';
+}
+
+async function loadTableGrid(tableName, page = 1) {
+    if (!state.activeProjectId) return;
+    
+    state.gridActiveTable = tableName;
+    state.gridCurrentPage = page;
+    
+    const tableEl = document.getElementById('db-grid-table');
+    tableEl.innerHTML = `<tr><td style="text-align: center; padding: 20px; color: var(--text-muted);"><i class="fa-solid fa-circle-notch fa-spin"></i> Carregando dados...</td></tr>`;
+    
+    const dbType = document.getElementById('db-type-select').value;
+    const connStr = document.getElementById('db-conn-input').value.trim();
+    const statusLabel = document.getElementById('db-query-status');
+    
+    if (!connStr) {
+        tableEl.innerHTML = `<tr><td style="text-align: center; padding: 20px; color: var(--color-danger);">Conecte ao banco de dados para ver os dados.</td></tr>`;
+        return;
+    }
+    
+    try {
+        // 1. Carrega Schema da tabela
+        const schemaRes = await fetch(`/api/projects/${state.activeProjectId}/db/tables/${tableName}/schema`, {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify({
+                db_type: dbType,
+                connection_string: connStr
+            })
+        });
+        const schemaData = await schemaRes.json();
+        if (schemaRes.status !== 200 || schemaData.status !== 'success') {
+            throw new Error(schemaData.detail || 'Erro ao buscar o esquema da tabela.');
+        }
+        state.gridColumns = schemaData.columns;
+        
+        // 2. Carrega Linhas com paginação
+        const limit = 50;
+        const offset = (page - 1) * limit;
+        const rowsRes = await fetch(`/api/projects/${state.activeProjectId}/db/tables/${tableName}/rows`, {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify({
+                db_type: dbType,
+                connection_string: connStr,
+                limit: limit,
+                offset: offset
+            })
+        });
+        const rowsData = await rowsRes.json();
+        if (rowsRes.status !== 200 || rowsData.status !== 'success') {
+            throw new Error(rowsData.detail || 'Erro ao buscar registros da tabela.');
+        }
+        
+        state.gridTotalRows = rowsData.total_count;
+        
+        // Atualiza Toolbar
+        document.getElementById('grid-table-name-label').textContent = tableName;
+        const totalPages = Math.max(1, Math.ceil(state.gridTotalRows / limit));
+        document.getElementById('grid-page-info').textContent = `Página ${page} de ${totalPages}`;
+        document.getElementById('grid-total-info').textContent = `(Total: ${state.gridTotalRows})`;
+        
+        document.getElementById('grid-btn-prev').disabled = page <= 1;
+        document.getElementById('grid-btn-next').disabled = page >= totalPages;
+        
+        statusLabel.textContent = `Tabela ${tableName} carregada (Visual Grid).`;
+        
+        // Renderiza
+        renderTableGrid(rowsData.rows);
+    } catch (err) {
+        tableEl.innerHTML = `<tr><td style="text-align: center; padding: 20px; color: var(--color-danger);"><i class="fa-solid fa-triangle-exclamation"></i> Erro: ${err.message}</td></tr>`;
+        statusLabel.textContent = 'Erro ao carregar grid';
+    }
+}
+
+function renderTableGrid(rows) {
+    const tableEl = document.getElementById('db-grid-table');
+    tableEl.innerHTML = '';
+    
+    // 1. Cabeçalho (Header)
+    const thead = document.createElement('thead');
+    const headerRow = document.createElement('tr');
+    
+    // Checkbox Header
+    const thCheck = document.createElement('th');
+    thCheck.className = 'checkbox-cell';
+    thCheck.innerHTML = '<input type="checkbox" id="grid-header-select-all" style="cursor: pointer;">';
+    headerRow.appendChild(thCheck);
+    
+    // Colunas de dados
+    state.gridColumns.forEach(col => {
+        const th = document.createElement('th');
+        th.style.padding = '10px 14px';
+        th.style.fontWeight = '600';
+        th.style.color = 'var(--text-muted)';
+        th.style.borderBottom = '1px solid var(--border-color)';
+        th.style.background = 'rgba(255,255,255,0.03)';
+        
+        let label = col.name;
+        if (col.primary_key) {
+            th.style.color = '#eab308';
+            label += ' <i class="fa-solid fa-key" style="color: #eab308; font-size: 9px;" title="Chave Primária"></i>';
+        }
+        th.innerHTML = label;
+        headerRow.appendChild(th);
+    });
+    
+    thead.appendChild(headerRow);
+    tableEl.appendChild(thead);
+    
+    // 2. Corpo (Body)
+    const tbody = document.createElement('tbody');
+    
+    if (rows.length === 0) {
+        const trEmpty = document.createElement('tr');
+        const tdEmpty = document.createElement('td');
+        tdEmpty.colSpan = state.gridColumns.length + 1;
+        tdEmpty.style.textAlign = 'center';
+        tdEmpty.style.padding = '30px';
+        tdEmpty.style.color = 'var(--text-dark)';
+        tdEmpty.textContent = 'Nenhum registro encontrado nesta tabela.';
+        trEmpty.appendChild(tdEmpty);
+        tbody.appendChild(trEmpty);
+    } else {
+        rows.forEach(row => {
+            const tr = document.createElement('tr');
+            tr.style.transition = 'background-color 0.15s';
+            tr.style.borderBottom = '1px solid var(--border-color)';
+            
+            // Checkbox do registro
+            const tdCheck = document.createElement('td');
+            tdCheck.className = 'checkbox-cell';
+            tdCheck.innerHTML = '<input type="checkbox" class="grid-row-checkbox" style="cursor: pointer;">';
+            
+            // Toggle highlight row on select
+            const cb = tdCheck.querySelector('input');
+            cb.addEventListener('change', () => {
+                if (cb.checked) {
+                    tr.classList.add('selected-row');
+                } else {
+                    tr.classList.remove('selected-row');
+                }
+            });
+            tr.appendChild(tdCheck);
+            
+            // Células de valor
+            state.gridColumns.forEach(col => {
+                const td = document.createElement('td');
+                td.style.padding = '10px 14px';
+                td.style.borderBottom = '1px solid var(--border-color)';
+                
+                const val = row[col.name];
+                td.gridValue = val; // Store native typed value
+                
+                if (col.primary_key) {
+                    td.className = 'pk-col';
+                    td.style.fontWeight = '500';
+                } else {
+                    td.className = 'editable';
+                    td.addEventListener('dblclick', () => makeGridCellEditable(td));
+                }
+                
+                renderCellText(td, val);
+                tr.appendChild(td);
+            });
+            
+            tbody.appendChild(tr);
+        });
+    }
+    
+    tableEl.appendChild(tbody);
+    
+    // Lógica Select All
+    const selectAllCheck = document.getElementById('grid-header-select-all');
+    if (selectAllCheck) {
+        selectAllCheck.addEventListener('change', (e) => {
+            const checked = e.target.checked;
+            document.querySelectorAll('.grid-row-checkbox').forEach(cb => {
+                cb.checked = checked;
+                const tr = cb.parentElement.parentElement;
+                if (checked) {
+                    tr.classList.add('selected-row');
+                } else {
+                    tr.classList.remove('selected-row');
+                }
+            });
+        });
+    }
+}
+
+function renderCellText(cell, val) {
+    if (val === null || val === undefined) {
+        cell.innerHTML = '<span style="color: rgba(255,255,255,0.25); font-style: italic;">NULL</span>';
+    } else {
+        cell.textContent = val;
+    }
+}
+
+function makeGridCellEditable(cell) {
+    if (cell.classList.contains('editing')) return;
+    
+    const colName = state.gridColumns[cell.cellIndex - 1].name; // -1 because index 0 is checkbox
+    const originalValue = cell.gridValue;
+    
+    cell.classList.add('editing');
+    
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'grid-cell-input';
+    input.value = (originalValue === null || originalValue === undefined) ? '' : originalValue;
+    
+    cell.innerHTML = '';
+    cell.appendChild(input);
+    input.focus();
+    input.select();
+    
+    let finished = false;
+    
+    async function saveEdit() {
+        if (finished) return;
+        finished = true;
+        
+        let newValue = input.value;
+        if (input.value.trim() === '') {
+            newValue = originalValue === null ? null : '';
+        }
+        
+        // Se nada mudou, cancela
+        if (newValue === originalValue) {
+            cell.classList.remove('editing');
+            renderCellText(cell, originalValue);
+            return;
+        }
+        
+        cell.classList.remove('editing');
+        cell.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin" style="color: var(--color-primary);"></i>';
+        
+        try {
+            const tr = cell.parentElement;
+            const keys = {};
+            const hasPk = state.gridColumns.some(c => c.primary_key);
+            
+            state.gridColumns.forEach((col, idx) => {
+                const rowCell = tr.cells[idx + 1];
+                const val = rowCell.gridValue;
+                
+                if (hasPk) {
+                    if (col.primary_key) {
+                        keys[col.name] = val;
+                    }
+                } else {
+                    keys[col.name] = val;
+                }
+            });
+            
+            const values = {};
+            values[colName] = newValue;
+            
+            const dbType = document.getElementById('db-type-select').value;
+            const connStr = document.getElementById('db-conn-input').value.trim();
+            const statusLabel = document.getElementById('db-query-status');
+            
+            const res = await fetch(`/api/projects/${state.activeProjectId}/db/tables/${state.gridActiveTable}/update-row`, {
+                method: 'POST',
+                headers: getHeaders(),
+                body: JSON.stringify({
+                    db_type: dbType,
+                    connection_string: connStr,
+                    keys: keys,
+                    values: values
+                })
+            });
+            
+            const data = await res.json();
+            if (res.status !== 200 || data.status !== 'success') {
+                throw new Error(data.detail || 'Erro na requisição');
+            }
+            
+            cell.gridValue = newValue;
+            renderCellText(cell, newValue);
+            statusLabel.textContent = `Linha atualizada com sucesso. Linhas afetadas: ${data.rows_affected}.`;
+        } catch (err) {
+            alert(`Erro ao atualizar registro: ${err.message}`);
+            renderCellText(cell, originalValue);
+        }
+    }
+    
+    function cancelEdit() {
+        if (finished) return;
+        finished = true;
+        cell.classList.remove('editing');
+        renderCellText(cell, originalValue);
+    }
+    
+    input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            saveEdit();
+        } else if (e.key === 'Escape') {
+            cancelEdit();
+        }
+    });
+    
+    input.addEventListener('blur', () => {
+        saveEdit();
+    });
+}
+
+async function insertGridRow() {
+    if (!state.activeProjectId || !state.gridActiveTable) return;
+    
+    const tableEl = document.getElementById('db-grid-table');
+    const tbody = tableEl.querySelector('tbody');
+    if (!tbody) return;
+    
+    // Remove o placeholder se houver
+    if (tbody.rows.length === 1 && tbody.rows[0].cells[0].colSpan > 1) {
+        tbody.innerHTML = '';
+    }
+    
+    const tr = document.createElement('tr');
+    tr.className = 'new-row-tr';
+    tr.style.background = 'rgba(16, 185, 129, 0.05)';
+    tr.style.borderBottom = '1px solid var(--border-color)';
+    
+    // Célula de Ações (Salvar / Cancelar)
+    const tdAction = document.createElement('td');
+    tdAction.className = 'checkbox-cell';
+    tdAction.innerHTML = `
+        <i class="fa-solid fa-floppy-disk grid-save-row-btn" style="color: var(--color-success, #10b981); cursor: pointer; padding: 4px; font-size: 13px;" title="Salvar Linha"></i>
+        <i class="fa-solid fa-xmark grid-cancel-row-btn" style="color: var(--color-danger, #ef4444); cursor: pointer; padding: 4px; font-size: 13px; margin-left: 6px;" title="Cancelar"></i>
+    `;
+    tr.appendChild(tdAction);
+    
+    // Campos de input para cada coluna
+    state.gridColumns.forEach(col => {
+        const td = document.createElement('td');
+        td.style.padding = '6px 14px';
+        td.style.borderBottom = '1px solid var(--border-color)';
+        
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'grid-cell-input';
+        input.style.width = '100%';
+        
+        if (col.primary_key) {
+            input.placeholder = '(auto-increment / opcional)';
+        } else {
+            input.placeholder = `${col.name}...`;
+        }
+        
+        td.appendChild(input);
+        tr.appendChild(td);
+    });
+    
+    // Insere no topo do tbody
+    tbody.insertBefore(tr, tbody.firstChild);
+    
+    // Foca no primeiro input
+    const firstInput = tr.querySelector('input');
+    if (firstInput) firstInput.focus();
+    
+    // Event listeners
+    const saveBtn = tdAction.querySelector('.grid-save-row-btn');
+    const cancelBtn = tdAction.querySelector('.grid-cancel-row-btn');
+    
+    let isSaving = false;
+    
+    async function executeSave() {
+        if (isSaving) return;
+        isSaving = true;
+        
+        const values = {};
+        state.gridColumns.forEach((col, idx) => {
+            const inputVal = tr.cells[idx + 1].querySelector('input').value.trim();
+            if (inputVal !== '') {
+                values[col.name] = inputVal;
+            }
+        });
+        
+        try {
+            const dbType = document.getElementById('db-type-select').value;
+            const connStr = document.getElementById('db-conn-input').value.trim();
+            const statusLabel = document.getElementById('db-query-status');
+            
+            const res = await fetch(`/api/projects/${state.activeProjectId}/db/tables/${state.gridActiveTable}/insert-row`, {
+                method: 'POST',
+                headers: getHeaders(),
+                body: JSON.stringify({
+                    db_type: dbType,
+                    connection_string: connStr,
+                    values: values
+                })
+            });
+            
+            const data = await res.json();
+            if (res.status !== 200 || data.status !== 'success') {
+                throw new Error(data.detail || 'Erro ao inserir linha');
+            }
+            
+            statusLabel.textContent = 'Novo registro inserido com sucesso.';
+            loadTableGrid(state.gridActiveTable, state.gridCurrentPage);
+        } catch (err) {
+            alert(`Erro ao inserir linha: ${err.message}`);
+            isSaving = false;
+        }
+    }
+    
+    saveBtn.addEventListener('click', executeSave);
+    cancelBtn.addEventListener('click', () => {
+        tr.remove();
+        // Se a tabela ficou vazia, recarrega para mostrar placeholder
+        if (tbody.rows.length === 0) {
+            loadTableGrid(state.gridActiveTable, state.gridCurrentPage);
+        }
+    });
+    
+    tr.querySelectorAll('input').forEach(input => {
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                executeSave();
+            } else if (e.key === 'Escape') {
+                tr.remove();
+                if (tbody.rows.length === 0) {
+                    loadTableGrid(state.gridActiveTable, state.gridCurrentPage);
+                }
+            }
+        });
+    });
+}
+
+async function deleteSelectedGridRows() {
+    if (!state.activeProjectId || !state.gridActiveTable) return;
+    
+    const checkedCheckboxes = document.querySelectorAll('.grid-row-checkbox:checked');
+    if (checkedCheckboxes.length === 0) {
+        alert('Selecione pelo menos uma linha para excluir.');
+        return;
+    }
+    
+    if (!confirm(`Deseja realmente excluir as ${checkedCheckboxes.length} linhas selecionadas?`)) {
+        return;
+    }
+    
+    const dbType = document.getElementById('db-type-select').value;
+    const connStr = document.getElementById('db-conn-input').value.trim();
+    const statusLabel = document.getElementById('db-query-status');
+    
+    statusLabel.textContent = `Excluindo ${checkedCheckboxes.length} registros...`;
+    
+    let deletedCount = 0;
+    
+    try {
+        for (const cb of checkedCheckboxes) {
+            const tr = cb.parentElement.parentElement;
+            const keys = {};
+            const hasPk = state.gridColumns.some(c => c.primary_key);
+            
+            state.gridColumns.forEach((col, idx) => {
+                const cell = tr.cells[idx + 1];
+                const val = cell.gridValue;
+                
+                if (hasPk) {
+                    if (col.primary_key) {
+                        keys[col.name] = val;
+                    }
+                } else {
+                    keys[col.name] = val;
+                }
+            });
+            
+            const res = await fetch(`/api/projects/${state.activeProjectId}/db/tables/${state.gridActiveTable}/delete-row`, {
+                method: 'POST',
+                headers: getHeaders(),
+                body: JSON.stringify({
+                    db_type: dbType,
+                    connection_string: connStr,
+                    keys: keys
+                })
+            });
+            const data = await res.json();
+            if (res.status === 200 && data.status === 'success') {
+                deletedCount++;
+            }
+        }
+        
+        statusLabel.textContent = `${deletedCount} registros excluídos com sucesso.`;
+        loadTableGrid(state.gridActiveTable, state.gridCurrentPage);
+    } catch (err) {
+        alert(`Erro ao deletar registros: ${err.message}`);
+        loadTableGrid(state.gridActiveTable, state.gridCurrentPage);
     }
 }
 
@@ -2054,6 +2577,30 @@ function setupEventListeners() {
     document.getElementById('btn-run-sql').addEventListener('click', runSqlQuery);
     document.getElementById('btn-db-connect').addEventListener('click', loadDbTables);
     document.getElementById('btn-db-refresh').addEventListener('click', loadDbTables);
+    
+    // Abas de resultados do banco
+    document.getElementById('btn-tab-raw-results').addEventListener('click', () => switchDbResultsTab('raw'));
+    document.getElementById('btn-tab-grid-editor').addEventListener('click', () => {
+        switchDbResultsTab('grid');
+        if (state.gridActiveTable) {
+            loadTableGrid(state.gridActiveTable, state.gridCurrentPage);
+        }
+    });
+    
+    // Ações do Grid Editor
+    document.getElementById('grid-btn-add').addEventListener('click', insertGridRow);
+    document.getElementById('grid-btn-delete').addEventListener('click', deleteSelectedGridRows);
+    document.getElementById('grid-btn-prev').addEventListener('click', () => {
+        if (state.gridActiveTable && state.gridCurrentPage > 1) {
+            loadTableGrid(state.gridActiveTable, state.gridCurrentPage - 1);
+        }
+    });
+    document.getElementById('grid-btn-next').addEventListener('click', () => {
+        if (state.gridActiveTable) {
+            loadTableGrid(state.gridActiveTable, state.gridCurrentPage + 1);
+        }
+    });
+
     document.getElementById('db-type-select').addEventListener('change', (e) => {
         const type = e.target.value;
         const lbl = document.getElementById('lbl-db-conn');

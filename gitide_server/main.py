@@ -115,6 +115,32 @@ class DbQuery(BaseModel):
     connection_string: str = Field(..., description="Caminho do arquivo SQLite ou Connection String de Produção (Postgres/MySQL)")
     query: str = Field(..., description="Query SQL a ser executada")
 
+class DbTableSchemaRequest(BaseModel):
+    db_type: str = Field("sqlite", description="sqlite, postgresql, mysql")
+    connection_string: str = Field(..., description="Arquivo SQLite ou connection string")
+
+class DbTableRowsRequest(BaseModel):
+    db_type: str
+    connection_string: str
+    limit: int = 50
+    offset: int = 0
+
+class DbUpdateRowRequest(BaseModel):
+    db_type: str
+    connection_string: str
+    keys: dict
+    values: dict
+
+class DbInsertRowRequest(BaseModel):
+    db_type: str
+    connection_string: str
+    values: dict
+
+class DbDeleteRowRequest(BaseModel):
+    db_type: str
+    connection_string: str
+    keys: dict
+
 class FileWrite(BaseModel):
     filepath: str = Field(..., description="Caminho do arquivo relativo à pasta do projeto")
     content: str = Field(..., description="Conteúdo completo a ser escrito no arquivo")
@@ -705,6 +731,262 @@ def execute_db_query(db_in: DbQuery,
         }
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Erro na execução da query SQL: {str(e)}")
+
+def get_db_url(db_type: str, connection_string: str, project_path: str) -> str:
+    db_url = connection_string
+    if db_type == "sqlite":
+        if not db_url.startswith("sqlite:///"):
+            db_path = vcs.get_safe_path(project_path, db_url)
+            db_url = f"sqlite:///{db_path}"
+    elif db_type == "mysql":
+        if db_url.startswith("mysql://"):
+            db_url = db_url.replace("mysql://", "mysql+pymysql://", 1)
+        elif db_url.startswith("mariadb://"):
+            db_url = db_url.replace("mariadb://", "mysql+pymysql://", 1)
+        elif db_url.startswith("mariadb+pymysql://"):
+            db_url = db_url.replace("mariadb+pymysql://", "mysql+pymysql://", 1)
+    elif db_type == "postgresql":
+        if db_url.startswith("postgres://"):
+            db_url = db_url.replace("postgres://", "postgresql://", 1)
+    return db_url
+
+def get_quoted_identifier(name: str, db_type: str) -> str:
+    if db_type == "mysql":
+        return f"`{name}`"
+    return f'"{name}"'
+
+@app.post("/api/projects/{project_id}/db/tables/{table_name}/schema", tags=["Banco de Dados"])
+def get_table_schema(table_name: str,
+                     req: DbTableSchemaRequest,
+                     project: Project = Depends(get_project_or_404),
+                     db: Session = Depends(get_db),
+                     _ = Depends(get_api_key)):
+    """Retorna o esquema de uma tabela (colunas, tipos, chaves primárias)."""
+    try:
+        from sqlalchemy import create_engine, inspect
+        db_url = get_db_url(req.db_type, req.connection_string, project.path)
+        temp_engine = create_engine(db_url, echo=False)
+        
+        inspector = inspect(temp_engine)
+        columns = inspector.get_columns(table_name)
+        pk_constraint = inspector.get_pk_constraint(table_name)
+        pk_cols = pk_constraint.get("constrained_columns", []) or []
+        
+        cols_info = []
+        for col in columns:
+            cols_info.append({
+                "name": col["name"],
+                "type": str(col["type"]),
+                "nullable": col.get("nullable", True),
+                "primary_key": col["name"] in pk_cols
+            })
+            
+        temp_engine.dispose()
+        return {
+            "status": "success",
+            "columns": cols_info
+        }
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Erro ao obter esquema da tabela: {str(e)}")
+
+@app.post("/api/projects/{project_id}/db/tables/{table_name}/rows", tags=["Banco de Dados"])
+def get_table_rows(table_name: str,
+                   req: DbTableRowsRequest,
+                   project: Project = Depends(get_project_or_404),
+                   db: Session = Depends(get_db),
+                   _ = Depends(get_api_key)):
+    """Busca os registros de uma tabela de forma paginada e retorna o total geral."""
+    try:
+        from sqlalchemy import create_engine, text
+        db_url = get_db_url(req.db_type, req.connection_string, project.path)
+        temp_engine = create_engine(db_url, echo=False)
+        
+        total_count = 0
+        rows = []
+        
+        table_quoted = get_quoted_identifier(table_name, req.db_type)
+        
+        with temp_engine.connect() as conn:
+            count_res = conn.execute(text(f"SELECT COUNT(*) FROM {table_quoted}"))
+            total_count = count_res.scalar()
+            
+            select_query = f"SELECT * FROM {table_quoted} LIMIT :limit OFFSET :offset"
+            result = conn.execute(text(select_query), {"limit": req.limit, "offset": req.offset})
+            
+            if result.returns_rows:
+                rows = [dict(row._mapping) for row in result.all()]
+                
+        temp_engine.dispose()
+        return {
+            "status": "success",
+            "total_count": total_count,
+            "rows": rows
+        }
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Erro ao buscar linhas da tabela: {str(e)}")
+
+@app.post("/api/projects/{project_id}/db/tables/{table_name}/update-row", tags=["Banco de Dados"])
+def update_table_row(table_name: str,
+                     req: DbUpdateRowRequest,
+                     project: Project = Depends(get_project_or_404),
+                     db: Session = Depends(get_db),
+                     _ = Depends(get_api_key)):
+    """Atualiza uma linha do banco de dados de maneira segura e parametrizada."""
+    try:
+        from sqlalchemy import create_engine, text
+        db_url = get_db_url(req.db_type, req.connection_string, project.path)
+        temp_engine = create_engine(db_url, echo=False)
+        
+        set_clauses = []
+        params = {}
+        
+        for i, (col, val) in enumerate(req.values.items()):
+            param_name = f"val_{i}"
+            quoted_col = get_quoted_identifier(col, req.db_type)
+            set_clauses.append(f"{quoted_col} = :{param_name}")
+            params[param_name] = val
+            
+        where_clauses = []
+        for i, (col, val) in enumerate(req.keys.items()):
+            param_name = f"key_{i}"
+            quoted_col = get_quoted_identifier(col, req.db_type)
+            if val is None:
+                where_clauses.append(f"{quoted_col} IS NULL")
+            else:
+                where_clauses.append(f"{quoted_col} = :{param_name}")
+                params[param_name] = val
+                
+        if not set_clauses:
+            raise HTTPException(status_code=400, detail="Nenhum valor fornecido para atualização.")
+        if not where_clauses:
+            raise HTTPException(status_code=400, detail="Nenhuma chave fornecida para identificar a linha.")
+            
+        table_quoted = get_quoted_identifier(table_name, req.db_type)
+        query_str = f"UPDATE {table_quoted} SET {', '.join(set_clauses)} WHERE {' AND '.join(where_clauses)}"
+        
+        with temp_engine.connect() as conn:
+            result = conn.execute(text(query_str), params)
+            conn.commit()
+            rows_affected = result.rowcount
+            
+        temp_engine.dispose()
+        
+        log = ActivityLog(
+            project_id=project.id,
+            action_type="DB_UPDATE",
+            details=f"UPDATE na tabela {table_name}: alterou {list(req.values.keys())} onde {req.keys}"
+        )
+        db.add(log)
+        db.commit()
+        
+        return {
+            "status": "success",
+            "rows_affected": rows_affected
+        }
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Erro ao atualizar linha: {str(e)}")
+
+@app.post("/api/projects/{project_id}/db/tables/{table_name}/insert-row", tags=["Banco de Dados"])
+def insert_table_row(table_name: str,
+                     req: DbInsertRowRequest,
+                     project: Project = Depends(get_project_or_404),
+                     db: Session = Depends(get_db),
+                     _ = Depends(get_api_key)):
+    """Insere um novo registro de forma segura e parametrizada."""
+    try:
+        from sqlalchemy import create_engine, text
+        db_url = get_db_url(req.db_type, req.connection_string, project.path)
+        temp_engine = create_engine(db_url, echo=False)
+        
+        cols = []
+        placeholders = []
+        params = {}
+        
+        for i, (col, val) in enumerate(req.values.items()):
+            param_name = f"val_{i}"
+            cols.append(get_quoted_identifier(col, req.db_type))
+            placeholders.append(f":{param_name}")
+            params[param_name] = val
+            
+        if not cols:
+            raise HTTPException(status_code=400, detail="Nenhum valor fornecido para inserção.")
+            
+        table_quoted = get_quoted_identifier(table_name, req.db_type)
+        query_str = f"INSERT INTO {table_quoted} ({', '.join(cols)}) VALUES ({', '.join(placeholders)})"
+        
+        with temp_engine.connect() as conn:
+            result = conn.execute(text(query_str), params)
+            conn.commit()
+            rows_affected = result.rowcount
+            
+        temp_engine.dispose()
+        
+        log = ActivityLog(
+            project_id=project.id,
+            action_type="DB_INSERT",
+            details=f"INSERT na tabela {table_name}"
+        )
+        db.add(log)
+        db.commit()
+        
+        return {
+            "status": "success",
+            "rows_affected": rows_affected
+        }
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Erro ao inserir linha: {str(e)}")
+
+@app.post("/api/projects/{project_id}/db/tables/{table_name}/delete-row", tags=["Banco de Dados"])
+def delete_table_row(table_name: str,
+                     req: DbDeleteRowRequest,
+                     project: Project = Depends(get_project_or_404),
+                     db: Session = Depends(get_db),
+                     _ = Depends(get_api_key)):
+    """Remove um registro da tabela de forma segura e parametrizada."""
+    try:
+        from sqlalchemy import create_engine, text
+        db_url = get_db_url(req.db_type, req.connection_string, project.path)
+        temp_engine = create_engine(db_url, echo=False)
+        
+        where_clauses = []
+        params = {}
+        
+        for i, (col, val) in enumerate(req.keys.items()):
+            param_name = f"key_{i}"
+            quoted_col = get_quoted_identifier(col, req.db_type)
+            if val is None:
+                where_clauses.append(f"{quoted_col} IS NULL")
+            else:
+                where_clauses.append(f"{quoted_col} = :{param_name}")
+                params[param_name] = val
+                
+        if not where_clauses:
+            raise HTTPException(status_code=400, detail="Nenhuma chave fornecida para identificar a linha.")
+            
+        table_quoted = get_quoted_identifier(table_name, req.db_type)
+        query_str = f"DELETE FROM {table_quoted} WHERE {' AND '.join(where_clauses)}"
+        
+        with temp_engine.connect() as conn:
+            result = conn.execute(text(query_str), params)
+            conn.commit()
+            rows_affected = result.rowcount
+            
+        temp_engine.dispose()
+        
+        log = ActivityLog(
+            project_id=project.id,
+            action_type="DB_DELETE",
+            details=f"DELETE na tabela {table_name}"
+        )
+        db.add(log)
+        db.commit()
+        
+        return {
+            "status": "success",
+            "rows_affected": rows_affected
+        }
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Erro ao deletar linha: {str(e)}")
 
 # Ponte Git
 @app.get("/api/projects/{project_id}/git/status", tags=["Git Bridge"])

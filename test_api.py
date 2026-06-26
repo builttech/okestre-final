@@ -334,5 +334,101 @@ class TestGitIDEAPI(unittest.TestCase):
         self.db.refresh(pending)
         self.assertEqual(pending.status, "executed")
 
+    def test_database_grid_crud(self):
+        # 1. Cria um banco de dados SQLite de teste dentro da pasta do projeto
+        db_file_rel = "app_data.db"
+        db_file_abs = os.path.join(self.test_dir, db_file_rel)
+        
+        # Conecta e cria a tabela de teste
+        from sqlalchemy import create_engine, text
+        project_db_engine = create_engine(f"sqlite:///{db_file_abs}")
+        with project_db_engine.connect() as conn:
+            conn.execute(text("CREATE TABLE users (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, age INTEGER)"))
+            conn.execute(text("INSERT INTO users (name, age) VALUES ('Alice', 30)"))
+            conn.execute(text("INSERT INTO users (name, age) VALUES ('Bob', 25)"))
+            conn.commit()
+        project_db_engine.dispose()
+        
+        connection_info = {
+            "db_type": "sqlite",
+            "connection_string": db_file_rel
+        }
+        
+        # 2. Testa obter o schema da tabela
+        response = self.client.post("/api/projects/1/db/tables/users/schema", json=connection_info)
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["status"], "success")
+        columns = data["columns"]
+        self.assertEqual(len(columns), 3)
+        self.assertEqual(columns[0]["name"], "id")
+        self.assertTrue(columns[0]["primary_key"])
+        self.assertEqual(columns[1]["name"], "name")
+        self.assertFalse(columns[1]["primary_key"])
+        
+        # 3. Testa listar linhas paginadas
+        rows_payload = {
+            "db_type": "sqlite",
+            "connection_string": db_file_rel,
+            "limit": 10,
+            "offset": 0
+        }
+        response = self.client.post("/api/projects/1/db/tables/users/rows", json=rows_payload)
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["status"], "success")
+        self.assertEqual(data["total_count"], 2)
+        self.assertEqual(len(data["rows"]), 2)
+        self.assertEqual(data["rows"][0]["name"], "Alice")
+        self.assertEqual(data["rows"][1]["name"], "Bob")
+        
+        # 4. Testa atualizar uma linha
+        update_payload = {
+            "db_type": "sqlite",
+            "connection_string": db_file_rel,
+            "keys": {"id": 1},
+            "values": {"name": "Alice Cooper", "age": 31}
+        }
+        response = self.client.post("/api/projects/1/db/tables/users/update-row", json=update_payload)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["status"], "success")
+        self.assertEqual(response.json()["rows_affected"], 1)
+        
+        # Verifica se o valor foi alterado
+        response = self.client.post("/api/projects/1/db/tables/users/rows", json=rows_payload)
+        self.assertEqual(response.json()["rows"][0]["name"], "Alice Cooper")
+        
+        # 5. Testa inserir uma linha
+        insert_payload = {
+            "db_type": "sqlite",
+            "connection_string": db_file_rel,
+            "values": {"name": "Charlie", "age": 40}
+        }
+        response = self.client.post("/api/projects/1/db/tables/users/insert-row", json=insert_payload)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["status"], "success")
+        
+        # Verifica se foi inserido
+        response = self.client.post("/api/projects/1/db/tables/users/rows", json=rows_payload)
+        self.assertEqual(response.json()["total_count"], 3)
+        self.assertEqual(response.json()["rows"][2]["name"], "Charlie")
+        
+        # 6. Testa deletar uma linha
+        delete_payload = {
+            "db_type": "sqlite",
+            "connection_string": db_file_rel,
+            "keys": {"id": 2}
+        }
+        response = self.client.post("/api/projects/1/db/tables/users/delete-row", json=delete_payload)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["status"], "success")
+        
+        # Verifica se foi deletado
+        response = self.client.post("/api/projects/1/db/tables/users/rows", json=rows_payload)
+        self.assertEqual(response.json()["total_count"], 2)
+        # Deve sobrar id=1 (Alice Cooper) e id=3 (Charlie)
+        self.assertEqual(response.json()["rows"][0]["name"], "Alice Cooper")
+        self.assertEqual(response.json()["rows"][1]["name"], "Charlie")
+
 if __name__ == "__main__":
     unittest.main()
