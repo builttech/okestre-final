@@ -1789,8 +1789,11 @@ async function loadGitStatus(forceFetch = false) {
             });
         }
         
-        // Carrega também o gráfico de commits
-        await loadGitGraph();
+        // Carrega o gráfico apenas quando a aba Git Graph estiver ativa no painel lateral.
+        const isGraphPanelActive = document.querySelector('.git-side-tab[data-git-side-tab="graph"]')?.classList.contains('active');
+        if (isGraphPanelActive) {
+            await loadGitGraph();
+        }
         
     } catch (err) {
         container.innerHTML = `<p class="placeholder-text error-text">Erro ao buscar status do Git: ${err.message}</p>`;
@@ -1854,6 +1857,8 @@ function switchGitSidePanelTab(tabName) {
     panes.forEach(pane => {
         const isActive = pane.dataset.gitSidePane === tabName;
         pane.classList.toggle('active', isActive);
+        pane.hidden = !isActive;
+        pane.style.setProperty('display', isActive ? 'flex' : 'none', 'important');
     });
 
     if (tabName === 'graph') {
@@ -2716,6 +2721,7 @@ function setupEventListeners() {
     document.querySelectorAll('.git-side-tab').forEach(tab => {
         tab.addEventListener('click', () => switchGitSidePanelTab(tab.dataset.gitSideTab));
     });
+    switchGitSidePanelTab('console');
     document.getElementById('btn-git-init').addEventListener('click', initGitRepo);
     document.getElementById('btn-git-deploy').addEventListener('click', runGitDeploy);
     document.getElementById('btn-git-pull').addEventListener('click', runGitPull);
