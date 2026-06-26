@@ -4463,10 +4463,20 @@ input[type="checkbox"]:focus-visible{
 .workspace-switcher.is-open .workspace-account-popover,
 .workspace-switcher.is-open .workspace-switcher-menu {
     display: block !important;
+    top: auto !important;
+    bottom: calc(100% + 10px) !important;
+    left: 0 !important;
+    right: auto !important;
+    width: min(252px, calc(100vw - 24px)) !important;
+    max-height: calc(100vh - 140px) !important;
+    overflow-y: auto !important;
+    overscroll-behavior: contain;
     z-index: 30002 !important;
 }
 
 .workspace-switcher.is-switching-org .workspace-account-org-submenu {
     display: flex !important;
+    max-height: calc(100vh - 160px) !important;
+    overflow-y: auto !important;
 }
 
