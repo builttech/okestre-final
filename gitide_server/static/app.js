@@ -1965,12 +1965,25 @@ function findGitBranchOption(selectEl, preferredBranch) {
     return Array.from(selectEl.options).find(option => normalizeGitBranchName(option.value) === normalizedPreferred);
 }
 
-function syncGitBranchCustomSelect() {
+function cleanupGitBranchSelectArtifacts() {
     const branchSelect = document.getElementById('git-branch-input');
-    const wrapper = branchSelect?.nextElementSibling;
-    if (wrapper && wrapper.classList.contains('custom-select-container')) {
-        syncCustomSelectValue(branchSelect, wrapper);
-    }
+    if (!branchSelect) return;
+
+    branchSelect.removeAttribute('data-gitide-select-enhanced');
+    branchSelect.classList.remove('gitide-select-original', 'git-branch-native', 'git-branch-select-native-hidden');
+
+    const field = branchSelect.closest('.git-deploy-branch-field');
+    if (!field) return;
+
+    field.querySelectorAll('.gitide-select, .custom-select-container, .git-branch-switcher').forEach(wrapper => {
+        if (!wrapper.contains(branchSelect)) {
+            wrapper.remove();
+        }
+    });
+}
+
+function syncGitBranchCustomSelect() {
+    cleanupGitBranchSelectArtifacts();
 }
 
 function getGitDeployBranchValue() {
@@ -1990,6 +2003,8 @@ function getGitDeployBranchValue() {
 async function loadGitBranches(currentBranch, forceFetch = false) {
     const branchSelect = document.getElementById('git-branch-input');
     if (!branchSelect) return;
+
+    cleanupGitBranchSelectArtifacts();
 
     try {
         const url = `/api/projects/${state.activeProjectId}/git/branches` + (forceFetch ? '?fetch=true' : '');
