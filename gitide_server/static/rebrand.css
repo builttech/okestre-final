@@ -4117,18 +4117,21 @@ input[type="checkbox"]:focus-visible{
 .specs-list {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 0;
 }
 
 .spec-item {
-    padding: 12px 14px;
-    border-radius: 14px;
-    border: 1px solid var(--flat-border);
+    min-height: 48px;
+    padding: 9px 10px;
+    border-radius: 0;
+    border: 0;
+    border-bottom: 1px solid var(--flat-border-soft);
     background: transparent;
     cursor: pointer;
     display: flex;
-    flex-direction: column;
-    gap: 4px;
+    align-items: center;
+    flex-direction: row;
+    gap: 10px;
     transition: all 0.2s ease;
     text-align: left;
     width: 100%;
@@ -4136,12 +4139,11 @@ input[type="checkbox"]:focus-visible{
 
 .spec-item:hover {
     background: rgba(255, 255, 255, 0.025) !important;
-    border-color: rgba(255, 255, 255, 0.1) !important;
 }
 
 .spec-item.active {
-    background: rgba(255, 255, 255, 0.035) !important;
-    border-color: rgba(255, 255, 255, 0.15) !important;
+    background: rgba(255, 255, 255, 0.04) !important;
+    box-shadow: inset 3px 0 0 var(--color-primary);
 }
 
 .spec-item-title {
@@ -4156,8 +4158,9 @@ input[type="checkbox"]:focus-visible{
 .spec-item-meta {
     font-size: 11px;
     color: var(--text-muted);
-    display: flex;
-    justify-content: space-between;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .specs-empty-state,

@@ -6687,7 +6687,7 @@ function setupSddEventListeners() {
     style.textContent = `
         .spec-item {
             display: flex; align-items: center; gap: 10px;
-            padding: 10px 14px; cursor: pointer; border-bottom: 1px solid var(--border-color);
+            min-height: 48px; padding: 9px 10px; cursor: pointer; border-bottom: 1px solid var(--border-color);
             transition: background 0.15s;
         }
         .spec-item:hover { background: rgba(255,255,255,0.04); }
