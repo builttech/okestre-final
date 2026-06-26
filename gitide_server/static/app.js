@@ -1765,11 +1765,6 @@ async function loadGitStatus(forceFetch = false) {
                             <button type="button" class="dropdown-item" id="btn-dropdown-git-checkout"><i class="fa-solid fa-right-to-bracket"></i> Checkout branch</button>
                             <button type="button" class="dropdown-item" id="btn-dropdown-create-branch"><i class="fa-solid fa-plus"></i> Create new branch</button>
                             <button type="button" class="dropdown-item" id="btn-dropdown-refresh-branches"><i class="fa-solid fa-arrows-rotate"></i> Refresh branches</button>
-                            <button type="button" class="dropdown-item" id="btn-dropdown-git-pull"><i class="fa-solid fa-cloud-arrow-down"></i> Git pull</button>
-                            <button type="button" class="dropdown-item" id="btn-dropdown-git-push"><i class="fa-solid fa-cloud-arrow-up"></i> Git push</button>
-                            <button type="button" class="dropdown-item" id="btn-dropdown-git-merge"><i class="fa-solid fa-code-merge"></i> Git merge</button>
-                            <button type="button" class="dropdown-item" id="btn-dropdown-git-abort-merge" style="color: var(--color-danger);"><i class="fa-solid fa-ban"></i> Abort merge</button>
-                            <button type="button" class="dropdown-item" id="btn-dropdown-git-pr"><i class="fa-solid fa-code-pull-request"></i> Criar Pull Request</button>
                         </div>
 
                     </span>
@@ -1824,35 +1819,6 @@ async function loadGitStatus(forceFetch = false) {
                 loadGitStatus(true);
             });
             
-            document.getElementById('btn-dropdown-git-pull').addEventListener('click', (e) => {
-                e.stopPropagation();
-                closeAllDropdowns();
-                runGitPull();
-            });
-
-            document.getElementById('btn-dropdown-git-push').addEventListener('click', (e) => {
-                e.stopPropagation();
-                closeAllDropdowns();
-                runGitPush();
-            });
-            
-            document.getElementById('btn-dropdown-git-merge').addEventListener('click', (e) => {
-                e.stopPropagation();
-                closeAllDropdowns();
-                openMergeModal();
-            });
-
-            document.getElementById('btn-dropdown-git-abort-merge').addEventListener('click', (e) => {
-                e.stopPropagation();
-                closeAllDropdowns();
-                runGitAbortMerge();
-            });
-            
-            document.getElementById('btn-dropdown-git-pr').addEventListener('click', (e) => {
-                e.stopPropagation();
-                closeAllDropdowns();
-                openPRModal();
-            });
         }
         
         // Carrega o gráfico apenas quando a aba Git Graph estiver ativa no painel lateral.
@@ -3136,6 +3102,10 @@ function setupEventListeners() {
     document.getElementById('btn-git-init').addEventListener('click', initGitRepo);
     document.getElementById('btn-git-deploy').addEventListener('click', runGitDeploy);
     document.getElementById('btn-git-pull').addEventListener('click', runGitPull);
+    document.getElementById('btn-git-push').addEventListener('click', runGitPush);
+    document.getElementById('btn-git-merge').addEventListener('click', openMergeModal);
+    document.getElementById('btn-git-pr').addEventListener('click', openPRModal);
+    document.getElementById('btn-git-abort-merge').addEventListener('click', runGitAbortMerge);
     document.getElementById('btn-git-conflicts-refresh').addEventListener('click', loadGitConflicts);
     document.getElementById('btn-git-conflict-save-file').addEventListener('click', applyGitConflictResolutions);
     document.getElementById('btn-git-conflicts-abort').addEventListener('click', runGitAbortMerge);
@@ -5350,6 +5320,50 @@ async function runGitPush() {
     } catch (err) {
         appendGitConsole(`Erro ao executar Git Push: ${err.message}`, true);
         alert(`Erro ao executar Git Push: ${err.message}`);
+    }
+}
+
+async function openPRModal() {
+    if (!state.activeProjectId) return;
+
+    const defaultTitle = `Pull request ${new Date().toLocaleDateString()}`;
+    const title = prompt('Título do Pull Request:', defaultTitle);
+    if (!title) return;
+
+    const base = prompt('Branch de destino do Pull Request:', 'main');
+    if (!base) return;
+
+    const body = prompt('Descrição do Pull Request (opcional):', '');
+
+    appendGitConsole(`Criando Pull Request para a branch "${base}"...`);
+    try {
+        const res = await fetch(`/api/projects/${state.activeProjectId}/git/pullrequest`, {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify({
+                title,
+                base,
+                body: body || ''
+            })
+        });
+
+        const data = await res.json();
+        if (!res.ok) {
+            throw new Error(data.detail || 'Erro desconhecido');
+        }
+
+        appendGitConsole(`Pull Request criado com sucesso: ${data.html_url || data.title || ''}`);
+        gitideNotify({
+            title: 'Pull Request criado',
+            message: data.html_url || `PR #${data.pr_number || ''} criado no GitHub.`,
+            variant: 'success'
+        });
+        if (data.html_url) {
+            window.open(data.html_url, '_blank', 'noopener,noreferrer');
+        }
+    } catch (err) {
+        appendGitConsole(`Erro ao criar Pull Request: ${err.message}`, true);
+        gitideNotify({ title: 'Erro ao criar PR', message: err.message, variant: 'error' });
     }
 }
 

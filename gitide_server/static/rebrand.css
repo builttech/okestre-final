@@ -2985,6 +2985,38 @@ input[type="checkbox"]:focus-visible{
     justify-content:center;
 }
 
+.git-advanced-actions{
+    display:grid;
+    grid-template-columns:repeat(2, minmax(0, 1fr));
+    gap:8px;
+    padding-top:2px;
+}
+
+.git-advanced-actions .btn{
+    min-height:36px!important;
+    padding:0 10px!important;
+    border-radius:12px!important;
+    justify-content:center;
+    font-size:12px!important;
+    white-space:nowrap;
+}
+
+.git-advanced-actions .btn i,
+.git-advanced-actions .btn svg{
+    width:14px!important;
+    height:14px!important;
+    margin:0!important;
+}
+
+.git-advanced-actions .git-danger-action{
+    color:var(--color-danger)!important;
+}
+
+.git-advanced-actions .git-danger-action:hover{
+    border-color:rgba(239,68,68,.28)!important;
+    background:rgba(239,68,68,.08)!important;
+}
+
 @media (min-width: 1320px){
     .git-deploy-buttons{
         grid-template-columns:1fr;
