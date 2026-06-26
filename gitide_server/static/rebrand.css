@@ -3806,6 +3806,20 @@ input[type="checkbox"]:focus-visible{
     to{transform:rotate(360deg);}
 }
 
+#modal-checkout #checkout-branch-selector{
+    display:block!important;
+    position:static!important;
+    width:100%!important;
+    min-height:40px!important;
+    opacity:1!important;
+    pointer-events:auto!important;
+}
+
+#modal-checkout #checkout-branch-selector + .gitide-select,
+#modal-checkout .form-group > .gitide-select{
+    display:none!important;
+}
+
 /* Documents Word view */
 #tab-documents.active{
     display:flex!important;
