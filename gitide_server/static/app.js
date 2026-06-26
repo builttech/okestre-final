@@ -6687,11 +6687,12 @@ function setupSddEventListeners() {
     style.textContent = `
         .spec-item {
             display: flex; align-items: center; gap: 10px;
-            min-height: 48px; padding: 9px 10px; cursor: pointer; border-bottom: 1px solid var(--border-color);
-            transition: background 0.15s;
+            min-height: 46px; padding: 8px 10px; cursor: pointer;
+            border: 1px solid transparent; border-radius: 10px;
+            transition: background 0.15s, border-color 0.15s;
         }
-        .spec-item:hover { background: rgba(255,255,255,0.04); }
-        .spec-item.active { background: rgba(var(--color-primary-rgb, 99,102,241),0.15); border-left: 3px solid var(--color-primary); }
+        .spec-item:hover { background: rgba(255,255,255,0.025); border-color: var(--flat-border-soft, var(--border-color)); }
+        .spec-item.active { background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.10); }
         .spec-item-title { font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .spec-item-meta { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
         .specs-empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center;
