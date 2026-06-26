@@ -1,4 +1,5 @@
 import os
+import re
 import shutil
 import json
 import secrets
@@ -174,6 +175,16 @@ class GitPushRequest(BaseModel):
 class GitSetTokenRequest(BaseModel):
     token: str = Field(..., description="Personal Access Token do GitHub")
 
+class GitConflictResolveBlock(BaseModel):
+    index: int = Field(..., description="Índice do bloco de conflito no arquivo")
+    resolution: str = Field(..., description="Estratégia: ours, theirs ou manual")
+    content: Optional[str] = Field(None, description="Conteúdo manual para substituir o bloco")
+
+class GitConflictResolveRequest(BaseModel):
+    filepath: str = Field(..., description="Caminho relativo do arquivo em conflito")
+    resolutions: List[GitConflictResolveBlock] = Field(..., description="Resoluções por bloco")
+    stage_file: bool = Field(True, description="Adicionar o arquivo ao index após resolver")
+
 class GitPullRequestCreate(BaseModel):
     title: str = Field(..., description="Título do Pull Request")
     base: str = Field(..., description="Branch de destino (ex: main, master)")
@@ -201,7 +212,25 @@ class CreateDirectoryRequest(BaseModel):
     parent_path: str = Field(..., description="Caminho do diretório pai")
     name: str = Field(..., description="Nome da nova pasta a ser criada")
 
+# SDD Models
+class SddSpecSaveRequest(BaseModel):
+    filename: str = Field(..., description="Nome do arquivo da especificação (ex: auth.md)")
+    content: str = Field(..., description="Conteúdo em Markdown da especificação")
 
+class SddSpecGenerateRequest(BaseModel):
+    prompt: str = Field(..., description="Prompt descrevendo a feature a ser especificada")
+    title: Optional[str] = Field(None, description="Título opcional para a especificação")
+
+class SddCriteriaItem(BaseModel):
+    line_no: int = Field(..., description="Número da linha (1-indexed) do critério no Markdown")
+    checked: bool = Field(..., description="Estado de verificação do critério")
+
+class SddCriteriaUpdateRequest(BaseModel):
+    criteria: List[SddCriteriaItem] = Field(..., description="Lista de critérios a serem atualizados")
+
+class SddTestGenerateRequest(BaseModel):
+    filename: str = Field(..., description="Nome do arquivo de especificação (.md)")
+    framework: str = Field(..., description="Framework de teste (ex: pytest, jest, phpunit, mocha)")
 
 # Dependência para buscar projeto do DB
 def get_project_or_404(project_id: int, db: Session = Depends(get_db)) -> Project:
@@ -1036,6 +1065,13 @@ def git_pull(branch: Optional[str] = Query(None),
         
         return result
     except Exception as e:
+        conflicts = git_bridge.list_conflicts(project.path)
+        if conflicts.get("files"):
+            raise HTTPException(status_code=409, detail={
+                "message": str(e),
+                "has_conflicts": True,
+                "conflicts": conflicts.get("files", [])
+            })
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/projects/{project_id}/git/deploy", tags=["Git Bridge"])
@@ -1109,6 +1145,50 @@ def git_merge_branch(req: GitMergeRequest,
         db.add(log)
         db.commit()
         
+        return result
+    except Exception as e:
+        conflicts = git_bridge.list_conflicts(project.path)
+        if conflicts.get("files"):
+            raise HTTPException(status_code=409, detail={
+                "message": str(e),
+                "has_conflicts": True,
+                "conflicts": conflicts.get("files", [])
+            })
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/projects/{project_id}/git/conflicts", tags=["Git Bridge"])
+def git_list_conflicts(project: Project = Depends(get_project_or_404)):
+    """Lista arquivos e blocos com marcadores de conflito Git."""
+    try:
+        return git_bridge.list_conflicts(project.path)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/projects/{project_id}/git/conflicts/file", tags=["Git Bridge"])
+def git_get_conflict_file(filepath: str = Query(...),
+                          project: Project = Depends(get_project_or_404)):
+    """Retorna o conteúdo e os blocos de conflito de um arquivo."""
+    try:
+        return git_bridge.get_conflict_file(project.path, filepath)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/projects/{project_id}/git/conflicts/resolve", tags=["Git Bridge"])
+def git_resolve_conflict(req: GitConflictResolveRequest,
+                         project: Project = Depends(get_project_or_404),
+                         db: Session = Depends(get_db),
+                         _ = Depends(get_api_key)):
+    """Resolve blocos de conflito em um arquivo e adiciona ao stage quando não restarem conflitos."""
+    try:
+        payload = [item.model_dump() for item in req.resolutions]
+        result = git_bridge.resolve_conflict_file(project.path, req.filepath, payload, req.stage_file)
+        log = ActivityLog(
+            project_id=project.id,
+            action_type="GIT_CONFLICT_RESOLVE",
+            details=f"Conflitos resolvidos em {req.filepath}. Restantes: {result.get('remaining_blocks')}"
+        )
+        db.add(log)
+        db.commit()
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -1706,6 +1786,360 @@ def delete_document(
         return {"status": "success", "message": "Documento deletado com sucesso."}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro ao deletar documento: {str(e)}")
+
+# --- ENDPOINTS DO SPEC-DRIVEN DEVELOPMENT (SDD) ---
+
+@app.get("/api/projects/{project_id}/sdd/specs", tags=["Spec-Driven Development"])
+def list_sdd_specs(project: Project = Depends(get_project_or_404)):
+    """Lista todas as especificações (.md) no diretório .documents/specs do projeto."""
+    specs_dir = os.path.join(project.path, ".documents", "specs")
+    if not os.path.exists(specs_dir):
+        return []
+    
+    specs = []
+    try:
+        for entry in os.scandir(specs_dir):
+            if entry.is_file() and entry.name.endswith(".md"):
+                stat = entry.stat()
+                title = entry.name
+                
+                # Tenta extrair o primeiro header # do arquivo
+                try:
+                    with open(entry.path, "r", encoding="utf-8") as f:
+                        for line in f:
+                            line_stripped = line.strip()
+                            if line_stripped.startswith("# "):
+                                title = line_stripped.lstrip("# ").strip()
+                                break
+                except Exception:
+                    pass
+                
+                specs.append({
+                    "filename": entry.name,
+                    "title": title,
+                    "size_bytes": stat.st_size,
+                    "modified_at": datetime.fromtimestamp(stat.st_mtime).isoformat()
+                })
+        
+        # Ordena pelos mais recentes
+        specs.sort(key=lambda x: x["modified_at"], reverse=True)
+        return specs
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao listar especificações: {str(e)}")
+
+@app.get("/api/projects/{project_id}/sdd/specs/{filename}", tags=["Spec-Driven Development"])
+def get_sdd_spec(filename: str, project: Project = Depends(get_project_or_404)):
+    """Retorna o conteúdo de uma especificação específica."""
+    if ".." in filename or "/" in filename or "\\" in filename:
+        raise HTTPException(status_code=400, detail="Nome de arquivo inválido.")
+        
+    spec_path = os.path.join(project.path, ".documents", "specs", filename)
+    if not os.path.exists(spec_path):
+        raise HTTPException(status_code=404, detail="Especificação não encontrada.")
+        
+    try:
+        with open(spec_path, "r", encoding="utf-8") as f:
+            content = f.read()
+        return {"filename": filename, "content": content}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao ler especificação: {str(e)}")
+
+@app.post("/api/projects/{project_id}/sdd/specs", tags=["Spec-Driven Development"])
+def save_sdd_spec(
+    req: SddSpecSaveRequest,
+    project: Project = Depends(get_project_or_404),
+    db: Session = Depends(get_db),
+    _ = Depends(get_api_key)
+):
+    """Cria ou atualiza uma especificação manualmente."""
+    filename = req.filename
+    if ".." in filename or "/" in filename or "\\" in filename or not filename.endswith(".md"):
+        raise HTTPException(status_code=400, detail="Nome de arquivo inválido. Deve terminar com .md")
+        
+    specs_dir = os.path.join(project.path, ".documents", "specs")
+    os.makedirs(specs_dir, exist_ok=True)
+    spec_path = os.path.join(specs_dir, filename)
+    
+    try:
+        with open(spec_path, "w", encoding="utf-8") as f:
+            f.write(req.content)
+            
+        # Log da ação no banco de dados
+        log = ActivityLog(
+            project_id=project.id,
+            action_type="SPEC_SAVED",
+            details=f"Especificação salva: {filename}"
+        )
+        db.add(log)
+        db.commit()
+        
+        return {"status": "success", "message": "Especificação salva com sucesso."}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao salvar especificação: {str(e)}")
+
+@app.delete("/api/projects/{project_id}/sdd/specs/{filename}", tags=["Spec-Driven Development"])
+def delete_sdd_spec(
+    filename: str,
+    project: Project = Depends(get_project_or_404),
+    db: Session = Depends(get_db),
+    _ = Depends(get_api_key)
+):
+    """Deleta uma especificação específica."""
+    if ".." in filename or "/" in filename or "\\" in filename:
+        raise HTTPException(status_code=400, detail="Nome de arquivo inválido.")
+        
+    spec_path = os.path.join(project.path, ".documents", "specs", filename)
+    if not os.path.exists(spec_path):
+        raise HTTPException(status_code=404, detail="Especificação não encontrada.")
+        
+    try:
+        os.remove(spec_path)
+        
+        # Log da ação no banco de dados
+        log = ActivityLog(
+            project_id=project.id,
+            action_type="SPEC_DELETED",
+            details=f"Especificação deletada: {filename}"
+        )
+        db.add(log)
+        db.commit()
+        
+        return {"status": "success", "message": "Especificação excluída com sucesso."}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao deletar especificação: {str(e)}")
+
+@app.post("/api/projects/{project_id}/sdd/generate-spec", tags=["Spec-Driven Development"])
+def generate_sdd_spec(
+    req: SddSpecGenerateRequest,
+    project: Project = Depends(get_project_or_404),
+    db: Session = Depends(get_db),
+    _ = Depends(get_api_key)
+):
+    """Gera uma especificação técnica em Markdown usando IA com base no prompt."""
+    config = agent.load_agent_config()
+    provider = config.get("provider")
+    model = config.get("model")
+    api_key = config.get("api_key")
+    
+    if not api_key:
+        raise HTTPException(status_code=400, detail="Chave de API da LLM não configurada no Agente IA.")
+        
+    system_prompt = (
+        "Você é um Engenheiro de Software Sênior especialista em Spec-Driven Development (SDD).\n"
+        "Sua tarefa é gerar uma especificação técnica detalhada em formato Markdown com base no prompt do usuário.\n"
+        "Você DEVE retornar a resposta formatada estritamente como um objeto JSON estruturado contendo:\n"
+        "1. \"title\": O título da funcionalidade.\n"
+        "2. \"filename\": Sugestão de nome de arquivo amigável terminando em .md (ex: user_auth.md, shopping_cart.md).\n"
+        "3. \"markdown\": A especificação técnica completa em Markdown.\n\n"
+        "A especificação técnica em Markdown DEVE seguir este fluxo SDD, com estes títulos exatos:\n"
+        "- # [Título da Funcionalidade]\n"
+        "- ## 1. Specify - Especificação\n"
+        "  Inclua documentação de negócio, regras de negócio e múltiplos requisitos quando necessário.\n"
+        "  Cada requisito DEVE possuir um código único e estável no formato REQ-001, REQ-002, etc.\n"
+        "  Inclua objetivo, comportamento esperado, escopo, restrições arquiteturais e critérios de aceitação.\n"
+        "  Os critérios de aceitação DEVEM usar caixas de seleção Markdown '- [ ]'.\n"
+        "- ## 2. Design - Planejamento\n"
+        "  Defina como o sistema vai operar: arquitetura proposta, dados, banco, bibliotecas, integrações, APIs, eventos e contratos técnicos.\n"
+        "  NÃO gere tarefas nesta seção.\n"
+        "- ## 3. Tasks - Tarefas\n"
+        "  Quebre o plano em tarefas pequenas, executáveis, paralelizáveis e testáveis. Cada tarefa DEVE usar '- [ ]'.\n"
+        "- ## 4. Execute - Implementação\n"
+        "  Defina ordem de execução, validações, comandos de teste sugeridos e critérios para considerar a implementação concluída.\n\n"
+        "Retorne estritamente um objeto JSON. Não adicione tags de bloco ```json ou outro texto fora do JSON."
+    )
+    
+    messages = [
+        {"role": "user", "content": f"Por favor, gere uma especificação completa para a seguinte ideia de funcionalidade:\n\n{req.prompt}"}
+    ]
+    
+    try:
+        raw_resp = agent.call_llm(provider, model, api_key, messages, system_prompt)
+        parsed = agent.extract_json(raw_resp)
+        
+        title = parsed.get("title", req.title or "Especificação Gerada")
+        filename = parsed.get("filename", "spec.md")
+        if not filename.endswith(".md"):
+            filename += ".md"
+            
+        # Limpa o filename contra caminhos maliciosos
+        filename = os.path.basename(filename)
+        
+        markdown_content = parsed.get("markdown", "")
+        
+        specs_dir = os.path.join(project.path, ".documents", "specs")
+        os.makedirs(specs_dir, exist_ok=True)
+        spec_path = os.path.join(specs_dir, filename)
+        
+        with open(spec_path, "w", encoding="utf-8") as f:
+            f.write(markdown_content)
+            
+        # Log da ação
+        log = ActivityLog(
+            project_id=project.id,
+            action_type="SPEC_GENERATED",
+            details=f"Especificação gerada por IA: {filename}"
+        )
+        db.add(log)
+        db.commit()
+        
+        return {
+            "status": "success",
+            "title": title,
+            "filename": filename,
+            "markdown": markdown_content
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao gerar especificação por IA: {str(e)}")
+
+@app.get("/api/projects/{project_id}/sdd/specs/{filename}/criteria", tags=["Spec-Driven Development"])
+def get_sdd_spec_criteria(filename: str, project: Project = Depends(get_project_or_404)):
+    """Extrai todos os critérios de aceitação de uma especificação Markdown."""
+    if ".." in filename or "/" in filename or "\\" in filename:
+        raise HTTPException(status_code=400, detail="Nome de arquivo inválido.")
+        
+    spec_path = os.path.join(project.path, ".documents", "specs", filename)
+    if not os.path.exists(spec_path):
+        raise HTTPException(status_code=404, detail="Especificação não encontrada.")
+        
+    criteria = []
+    try:
+        with open(spec_path, "r", encoding="utf-8") as f:
+            lines = f.readlines()
+            
+        for i, line in enumerate(lines):
+            line_stripped = line.strip()
+            # Procura por "- [ ]" ou "- [x]" ou "- [X]"
+            match = re.match(r"^\-\s*\[([ xX])\]\s*(.*)", line_stripped)
+            if match:
+                checked = match.group(1).lower() == "x"
+                text = match.group(2).strip()
+                criteria.append({
+                    "id": i,
+                    "line_no": i + 1,  # 1-indexed para facilitar leitura
+                    "text": text,
+                    "checked": checked
+                })
+        return {"filename": filename, "criteria": criteria}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao extrair critérios de aceitação: {str(e)}")
+
+@app.post("/api/projects/{project_id}/sdd/specs/{filename}/criteria", tags=["Spec-Driven Development"])
+def update_sdd_spec_criteria(
+    filename: str,
+    req: SddCriteriaUpdateRequest,
+    project: Project = Depends(get_project_or_404),
+    db: Session = Depends(get_db),
+    _ = Depends(get_api_key)
+):
+    """Atualiza o estado (checked/unchecked) de critérios de aceitação específicos no arquivo Markdown."""
+    if ".." in filename or "/" in filename or "\\" in filename:
+        raise HTTPException(status_code=400, detail="Nome de arquivo inválido.")
+        
+    spec_path = os.path.join(project.path, ".documents", "specs", filename)
+    if not os.path.exists(spec_path):
+        raise HTTPException(status_code=404, detail="Especificação não encontrada.")
+        
+    try:
+        with open(spec_path, "r", encoding="utf-8") as f:
+            lines = f.readlines()
+            
+        # Cria um mapeamento de line_no -> checked
+        updates = {item.line_no: item.checked for item in req.criteria}
+        
+        for line_no, checked in updates.items():
+            idx = line_no - 1  # 0-indexed para a lista de linhas
+            if 0 <= idx < len(lines):
+                line = lines[idx]
+                # Preserva a indentação e substitui o checkbox
+                indent_match = re.match(r"^(\s*)\-\s*\[[ xX]\](.*)", line)
+                if indent_match:
+                    indent = indent_match.group(1)
+                    rest = indent_match.group(2)
+                    box = "[x]" if checked else "[ ]"
+                    lines[idx] = f"{indent}- {box}{rest}\n"
+                    
+        with open(spec_path, "w", encoding="utf-8") as f:
+            f.writelines(lines)
+            
+        return {"status": "success", "message": "Critérios de aceitação atualizados no disco com sucesso."}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao atualizar critérios de aceitação: {str(e)}")
+
+@app.post("/api/projects/{project_id}/sdd/generate-tests", tags=["Spec-Driven Development"])
+def generate_sdd_tests(
+    req: SddTestGenerateRequest,
+    project: Project = Depends(get_project_or_404),
+    db: Session = Depends(get_db),
+    _ = Depends(get_api_key)
+):
+    """Gera arquivos de testes unitários ou de integração com IA baseado na especificação."""
+    if ".." in req.filename or "/" in req.filename or "\\" in req.filename:
+        raise HTTPException(status_code=400, detail="Nome de especificação inválido.")
+        
+    spec_path = os.path.join(project.path, ".documents", "specs", req.filename)
+    if not os.path.exists(spec_path):
+        raise HTTPException(status_code=404, detail="Especificação não encontrada.")
+        
+    config = agent.load_agent_config()
+    provider = config.get("provider")
+    model = config.get("model")
+    api_key = config.get("api_key")
+    
+    if not api_key:
+        raise HTTPException(status_code=400, detail="Chave de API da LLM não configurada no Agente IA.")
+        
+    try:
+        with open(spec_path, "r", encoding="utf-8") as f:
+            spec_content = f.read()
+            
+        system_prompt = (
+            "Você é um Engenheiro de Software focado em Qualidade de Software (QA) e Testes Automatizados.\n"
+            "Sua tarefa é ler uma especificação técnica e gerar um código de teste completo e limpo para ela.\n"
+            f"O framework de teste a ser utilizado é: {req.framework}.\n"
+            "Você deve mapear Specify, Design e cada item marcado como critério/tarefa da seção Tasks para um ou mais casos de teste no código.\n\n"
+            "Você DEVE retornar a resposta formatada estritamente como um objeto JSON estruturado contendo:\n"
+            "1. \"filepath\": O caminho onde o arquivo de teste deve ser gravado (ex: tests/test_auth.py, __tests__/auth.test.js).\n"
+            "2. \"code\": O código de teste completo, pronto para execução.\n\n"
+            "Retorne estritamente o objeto JSON. Não adicione tags de bloco ```json ou qualquer texto explicativo."
+        )
+        
+        messages = [
+            {"role": "user", "content": f"Aqui está a especificação técnica em Markdown:\n\n{spec_content}"}
+        ]
+        
+        raw_resp = agent.call_llm(provider, model, api_key, messages, system_prompt)
+        parsed = agent.extract_json(raw_resp)
+        
+        filepath = parsed.get("filepath", "tests/test_spec.py")
+        code = parsed.get("code", "")
+        
+        # Limpa o filepath contra caminhos maliciosos
+        if ".." in filepath:
+            filepath = os.path.basename(filepath)
+            
+        full_filepath = os.path.join(project.path, filepath)
+        # Garante que as pastas pai existem
+        os.makedirs(os.path.dirname(full_filepath), exist_ok=True)
+        
+        with open(full_filepath, "w", encoding="utf-8") as f:
+            f.write(code)
+            
+        # Log da ação
+        log = ActivityLog(
+            project_id=project.id,
+            action_type="TEST_GENERATED",
+            details=f"Testes gerados via IA ({req.framework}): {filepath} baseado em {req.filename}"
+        )
+        db.add(log)
+        db.commit()
+        
+        return {
+            "status": "success",
+            "filepath": filepath,
+            "code": code
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao gerar testes via IA: {str(e)}")
 
 # --- ENDPOINTS DO AGENTE IA NATIVO ---
 

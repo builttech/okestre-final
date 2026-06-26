@@ -15,10 +15,10 @@
     <link rel="stylesheet" href="/static/style.css?v=8">
     <link rel="stylesheet" href="/static/select-layer-fix.css?v=1">
     <link rel="stylesheet" href="/static/lucide-icons.css?v=1">
-    <link rel="stylesheet" href="/static/workspace-switcher-refactor.css?v=1">
+    <link rel="stylesheet" href="/static/workspace-switcher-refactor.css?v=2">
     <link rel="stylesheet" href="/static/workspace-native-fallback.css?v=1">
     <link rel="stylesheet" href="/static/settings-tabs.css?v=1">
-    <link rel="stylesheet" href="/static/rebrand.css?v=2">
+    <link rel="stylesheet" href="/static/rebrand.css?v=9">
     <script src="/static/lucide-bootstrap.js"></script>
     <script defer src="/static/ui/workspace-switcher.js?v=2"></script>
     <script defer src="/static/settings-tabs.js?v=3"></script>
@@ -95,6 +95,9 @@
                     </button>
                     <button class="nav-item" data-tab="tab-documents">
                         <i data-lucide="file-text"></i> Documentos (Word)
+                    </button>
+                    <button class="nav-item" data-tab="tab-sdd">
+                        <i data-lucide="file-check"></i> Especificações (SDD)
                     </button>
                 </nav>
 
@@ -235,11 +238,22 @@
                                     <div class="db-config-row" style="display: flex; gap: 16px; flex-wrap: wrap; width: 100%;">
                                         <div style="flex: 1; min-width: 150px; display: flex; flex-direction: column; gap: 6px;">
                                             <label for="db-type-select" style="font-size: 12px; color: var(--text-muted);">Tipo de Banco:</label>
-                                            <select id="db-type-select" class="select-input">
+                                            <select id="db-type-select" class="select-input db-type-native-select" data-no-native-select>
                                                 <option value="sqlite">SQLite (Arquivo Local)</option>
                                                 <option value="postgresql">PostgreSQL (Produção/Remoto)</option>
                                                 <option value="mysql">MySQL (Produção/Remoto)</option>
                                             </select>
+                                            <div class="db-type-select-shell" id="db-type-select-shell">
+                                                <button type="button" class="db-type-select-trigger" id="db-type-select-trigger" aria-haspopup="listbox" aria-expanded="false">
+                                                    <span class="db-type-select-value" id="db-type-select-value">SQLite (Arquivo Local)</span>
+                                                    <i class="fa-solid fa-chevron-down"></i>
+                                                </button>
+                                                <div class="db-type-select-menu" id="db-type-select-menu" role="listbox">
+                                                    <button type="button" class="db-type-select-option is-selected" data-value="sqlite" role="option" aria-selected="true">SQLite (Arquivo Local)</button>
+                                                    <button type="button" class="db-type-select-option" data-value="postgresql" role="option" aria-selected="false">PostgreSQL (Produção/Remoto)</button>
+                                                    <button type="button" class="db-type-select-option" data-value="mysql" role="option" aria-selected="false">MySQL (Produção/Remoto)</button>
+                                                </div>
+                                            </div>
                                         </div>
                                         <div style="flex: 3; min-width: 280px; display: flex; flex-direction: column; gap: 6px;">
                                             <label id="lbl-db-conn" for="db-conn-input" style="font-size: 12px; color: var(--text-muted);">Arquivo do Banco (relativo ao projeto):</label>
@@ -423,33 +437,53 @@
                                     </div>
                                 </div>
                                 <div class="git-deploy-section" id="git-deploy-panel">
-                                    <div class="form-group">
+                                    <div class="git-deploy-field">
                                         <label for="git-commit-msg">Mensagem de Deploy / Commit:</label>
                                         <input type="text" id="git-commit-msg" class="text-input" placeholder="ex: feat: add dashboard module, fix api endpoint">
                                     </div>
-                                    <div class="form-group inline-form">
-                                         <select id="git-branch-input" class="select-input" style="flex: 1; min-width: 150px;"></select>
-                                         <button class="btn btn-primary" id="btn-git-deploy"><i data-lucide="rocket"></i> Commitar e Fazer Deploy (Push)</button>
-                                         <button class="btn btn-secondary" id="btn-git-pull"><i data-lucide="cloud-download"></i> Sincronizar (Pull)</button>
+                                    <div class="git-deploy-target-row">
+                                        <div class="git-deploy-branch-field">
+                                            <label for="git-branch-input">Branch de destino:</label>
+                                            <select id="git-branch-input" class="select-input"></select>
+                                            <span class="git-dev-hint"><i class="fa-solid fa-code-branch"></i> Deploy configurado para priorizar a branch <strong>dev</strong>.</span>
+                                        </div>
+                                        <div class="git-deploy-buttons">
+                                            <button class="btn btn-primary" id="btn-git-deploy"><i data-lucide="rocket"></i> Commitar e Fazer Deploy (Push)</button>
+                                            <button class="btn btn-secondary" id="btn-git-pull"><i data-lucide="cloud-download"></i> Sincronizar (Pull)</button>
+                                        </div>
                                      </div>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- GRAPH VISUAL DE COMMITS -->
-                        <div class="git-graph-card card" id="git-graph-panel" style="display: none;">
-                            <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-                                <h4 style="display: flex; align-items: center; gap: 8px; margin: 0;"><i class="fa-solid fa-diagram-project" style="color: #6366f1;"></i> Histórico e Gráfico de Commits (Git Graph)</h4>
-                                <button class="btn btn-sm btn-secondary" id="btn-git-graph-refresh"><i class="fa-solid fa-rotate"></i> Atualizar Árvore</button>
-                            </div>
-                            <div class="card-body" style="padding-top: 10px;">
-                                <div id="git-graph-container" style="overflow-x: auto; font-family: monospace; font-size: 12px; line-height: 1.6; color: #f8fafc; max-height: 300px; overflow-y: auto; background: rgba(0,0,0,0.3); padding: 15px; border-radius: var(--border-radius, 8px); border: 1px solid var(--border-color); white-space: pre;">
-                                    <!-- Árvore de commits renderizada via JS -->
+                        <div class="git-conflicts-card card" id="git-conflicts-card" style="display: none;">
+                            <div class="card-header">
+                                <div>
+                                    <h4><i data-lucide="git-merge"></i> Resolução Visual de Conflitos</h4>
+                                    <p class="git-conflicts-subtitle">Resolva blocos conflitantes com atalhos ou edite manualmente antes de concluir o merge.</p>
                                 </div>
+                                <div class="git-conflicts-actions">
+                                    <button class="btn btn-sm btn-secondary" id="btn-git-conflicts-refresh"><i data-lucide="refresh-cw"></i> Atualizar</button>
+                                    <button class="btn btn-sm btn-secondary" id="btn-git-conflicts-abort"><i data-lucide="ban"></i> Abort merge</button>
+                                </div>
+                            </div>
+                            <div class="git-conflicts-layout">
+                                <aside class="git-conflict-files" id="git-conflict-files-list">
+                                    <div class="git-side-empty-state">Nenhum conflito carregado.</div>
+                                </aside>
+                                <section class="git-conflict-editor">
+                                    <div class="git-conflict-editor-header">
+                                        <span id="git-conflict-active-file">Selecione um arquivo em conflito</span>
+                                        <button class="btn btn-sm btn-primary" id="btn-git-conflict-save-file" disabled><i data-lucide="check"></i> Aplicar resoluções</button>
+                                    </div>
+                                    <div class="git-conflict-blocks" id="git-conflict-blocks">
+                                        <div class="git-side-empty-state">Quando um pull ou merge falhar por conflito, os blocos aparecem aqui.</div>
+                                    </div>
+                                </section>
                             </div>
                         </div>
 
-                        <div class="git-credentials-card card" style="margin-top: 14px;">
+                        <div class="git-credentials-card card">
                             <div class="card-header">
                                 <h4><i data-lucide="key-round"></i> Autenticação com Token (Personal Access Token)</h4>
                             </div>
@@ -469,14 +503,43 @@
                             </div>
                         </div>
 
-                        <div class="git-console-card card">
-                            <div class="card-header">
-                                <h4>Console Git Output</h4>
+                        <aside class="git-side-panel card">
+                            <div class="git-side-panel-header">
+                                <div>
+                                    <span class="git-side-eyebrow">Painel Git</span>
+                                    <h4>Console e histórico</h4>
+                                </div>
+                                <button class="btn btn-sm btn-secondary" id="btn-git-graph-refresh"><i class="fa-solid fa-rotate"></i> Atualizar Graph</button>
                             </div>
-                            <div class="terminal-output" id="git-console-output">
-                                <div class="terminal-line system-msg">Log de operações do Git Bridge.</div>
+                            <div class="git-side-panel-tabs" role="tablist" aria-label="Painel lateral Git">
+                                <button type="button" class="git-side-tab active" data-git-side-tab="console" role="tab" aria-selected="true" aria-controls="git-side-console-pane">
+                                    <i class="fa-solid fa-terminal"></i> Console
+                                </button>
+                                <button type="button" class="git-side-tab" data-git-side-tab="graph" role="tab" aria-selected="false" aria-controls="git-graph-panel">
+                                    <i class="fa-solid fa-diagram-project"></i> Git Graph
+                                </button>
+                                <button type="button" class="git-side-tab" data-git-side-tab="files" role="tab" aria-selected="false" aria-controls="git-side-files-pane">
+                                    <i class="fa-solid fa-file-lines"></i> Arquivos
+                                </button>
                             </div>
-                        </div>
+                            <div class="git-side-panel-content">
+                                <section class="git-side-panel-pane active" id="git-side-console-pane" data-git-side-pane="console" role="tabpanel">
+                                    <div class="terminal-output" id="git-console-output">
+                                        <div class="terminal-line system-msg">Log de operações do Git Bridge.</div>
+                                    </div>
+                                </section>
+                                <section class="git-side-panel-pane" id="git-graph-panel" data-git-side-pane="graph" role="tabpanel" hidden>
+                                    <div id="git-graph-container">
+                                        <!-- Árvore de commits renderizada via JS -->
+                                    </div>
+                                </section>
+                                <section class="git-side-panel-pane" id="git-side-files-pane" data-git-side-pane="files" role="tabpanel" hidden>
+                                    <div id="git-changed-files-list" class="git-changed-files-list">
+                                        <div class="git-side-empty-state">Nenhuma alteração carregada ainda.</div>
+                                    </div>
+                                </section>
+                            </div>
+                        </aside>
                     </div>
                 </div>
 
@@ -753,89 +816,249 @@ Se o arquivo existir, leia e siga rigorosamente todas as diretrizes, fases de an
 
                 <!-- TAB: DOCUMENTS -->
                 <div id="tab-documents" class="tab-pane">
-                    <div class="documents-layout" style="display: flex; gap: 20px; height: 100%; min-height: 0; padding: 20px; flex-direction: row;">
+                    <div class="documents-layout">
                         
                         <!-- Painel Esquerdo: Lista de Documentos -->
-                        <div class="card" style="flex: 1.2; display: flex; flex-direction: column; min-width: 0; height: 100%; overflow: hidden; padding: 20px;">
+                        <section class="documents-card documents-list-card card">
                             
                             <!-- Header da área de documentos -->
-                            <div class="panel-header-simple" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 14px; margin-bottom: 20px; flex-shrink: 0;">
-                                <div style="display: flex; align-items: center; gap: 12px;">
-                                    <div style="background: rgba(99, 102, 241, 0.15); border: 1px solid rgba(99, 102, 241, 0.25); width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: var(--color-primary); font-size: 18px;">
+                            <div class="documents-header">
+                                <div class="documents-heading">
+                                    <div class="documents-icon-box">
                                         <i class="fa-solid fa-file-word"></i>
                                     </div>
-                                    <div>
-                                        <h3 style="margin: 0; font-size: 16px; font-weight: 600; color: var(--text-light);">Documentação Word</h3>
-                                        <p style="font-size: 12px; color: var(--text-muted); margin: 0; margin-top: 2px;">Geração e envio de relatórios técnicos (.docx).</p>
+                                    <div class="documents-title-copy">
+                                        <h3>Documentação Word</h3>
+                                        <p>Geração e envio de relatórios técnicos (.docx).</p>
                                     </div>
                                 </div>
-                                <div style="display: flex; gap: 10px;">
-                                    <button class="btn btn-secondary btn-sm" id="btn-refresh-documents" title="Recarregar lista"><i class="fa-solid fa-rotate"></i></button>
+                                <div class="documents-actions">
+                                    <button class="btn btn-secondary btn-sm documents-icon-button" id="btn-refresh-documents" title="Recarregar lista" aria-label="Recarregar lista de documentos"><i class="fa-solid fa-rotate"></i></button>
                                     <button class="btn btn-secondary btn-sm" id="btn-upload-document"><i class="fa-solid fa-cloud-arrow-up"></i> Upload</button>
-                                    <input type="file" id="input-upload-document" accept=".docx" style="display: none;">
+                                    <input type="file" id="input-upload-document" accept=".docx" class="documents-file-input">
                                     <button class="btn btn-primary btn-sm" id="btn-generate-test-doc"><i class="fa-solid fa-file-circle-plus"></i> Test Doc</button>
                                 </div>
                             </div>
                             
                             <!-- Info banner / Prompt copy helper -->
-                            <div style="background: rgba(99, 102, 241, 0.08); border: 1px solid rgba(99, 102, 241, 0.16); padding: 12px 16px; border-radius: 8px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-shrink: 0;">
-                                <div style="display: flex; gap: 10px; align-items: flex-start; text-align: left;">
-                                    <i class="fa-solid fa-circle-info" style="color: var(--color-primary); font-size: 16px; margin-top: 2px;"></i>
+                            <div class="documents-prompt-card">
+                                <div class="documents-prompt-copy">
+                                    <i class="fa-solid fa-circle-info"></i>
                                     <div>
-                                        <p style="margin: 0; font-size: 13px; font-weight: 500; color: var(--text-light);">Instruções para o Custom GPT</p>
-                                        <p style="margin: 0; font-size: 12px; color: var(--text-muted); margin-top: 2px;">Copie a instrução e cole no ChatGPT para forçá-lo a criar/editar os arquivos Word no GitIDE em vez de responder em texto corrido.</p>
+                                        <p>Instruções para o Custom GPT</p>
+                                        <span>Copie a instrução e cole no ChatGPT para forçá-lo a criar/editar os arquivos Word no GitIDE em vez de responder em texto corrido.</span>
                                     </div>
                                 </div>
-                                <button type="button" class="btn btn-secondary btn-sm" id="btn-copy-doc-prompt-instructions" style="white-space: nowrap; display: flex; align-items: center; gap: 6px; padding: 6px 12px; min-height: 32px !important;">
+                                <button type="button" class="btn btn-secondary btn-sm documents-copy-button" id="btn-copy-doc-prompt-instructions">
                                     <i class="fa-regular fa-copy"></i> Copiar Prompt
                                 </button>
                             </div>
 
                             <!-- Listagem de Documentos -->
-                            <div style="flex: 1; overflow-y: auto; min-height: 200px;">
-                                <table class="table" style="width: 100%; border-collapse: collapse; text-align: left;">
+                            <div class="documents-table-shell">
+                                <table class="documents-table">
                                     <thead>
-                                        <tr style="border-bottom: 2px solid var(--border-color); font-weight: 600; color: var(--text-light); font-size: 13px;">
-                                            <th style="padding: 12px 8px;">Nome do Arquivo</th>
-                                            <th style="padding: 12px 8px;">Tamanho</th>
-                                            <th style="padding: 12px 8px; text-align: right;">Ações</th>
+                                        <tr>
+                                            <th>Nome do Arquivo</th>
+                                            <th>Tamanho</th>
+                                            <th>Ações</th>
                                         </tr>
                                     </thead>
                                     <tbody id="documents-table-body">
                                         <!-- Preenchido via JS -->
-                                        <tr>
-                                            <td colspan="3" style="text-align: center; color: var(--text-muted); padding: 40px 0;">
-                                                <i class="fa-solid fa-folder-open" style="font-size: 32px; display: block; margin-bottom: 12px;"></i>
-                                                Nenhum documento Word gerado ainda neste projeto.
+                                        <tr class="documents-state-row">
+                                            <td colspan="3">
+                                                <div class="documents-empty-state">
+                                                    <i class="fa-solid fa-folder-open"></i>
+                                                    <span>Nenhum documento Word gerado ainda neste projeto.</span>
+                                                </div>
                                             </td>
                                         </tr>
                                     </tbody>
                                 </table>
                             </div>
-                        </div>
+                        </section>
 
                         <!-- Painel Direito: Visualizador A4 -->
-                        <div class="card" style="flex: 1; display: flex; flex-direction: column; min-width: 0; height: 100%; overflow: hidden; padding: 20px;">
-                            <div class="panel-header-simple" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 14px; margin-bottom: 20px; flex-shrink: 0;">
-                                <h4 style="margin: 0; font-size: 14px; font-weight: 600; color: var(--text-light); display: flex; align-items: center; gap: 8px;">
-                                    <i class="fa-solid fa-eye"></i> Prévia do Documento (Visualização A4)
+                        <section class="documents-card documents-preview-card card">
+                            <div class="documents-preview-header">
+                                <h4>
+                                    <i class="fa-solid fa-eye"></i> Prévia do Documento
                                 </h4>
-                                <span id="preview-filename-badge" class="badge" style="font-size: 11px; padding: 3px 8px; border-radius: 4px; background: rgba(255,255,255,0.05); color: var(--text-muted); display: none;"></span>
+                                <span id="preview-filename-badge" class="documents-preview-badge badge"></span>
                             </div>
                             
-                            <div style="flex: 1; overflow-y: auto; display: flex; justify-content: center; background: rgba(0,0,0,0.25); padding: 20px; border-radius: 8px; min-height: 0;">
+                            <div class="documents-preview-shell">
                                 <!-- Folha A4 Realista -->
-                                <div id="document-preview-sheet" style="display: none; width: 100%; max-width: 800px; min-height: 842px; height: fit-content; background: #ffffff; color: #1e293b; padding: 40px 50px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); border-radius: 4px; font-family: Calibri, sans-serif; box-sizing: border-box; text-align: left;">
+                                <div id="document-preview-sheet" class="documents-preview-sheet">
                                     <!-- Preenchido dinamicamente -->
                                 </div>
                                 
-                                <div id="document-preview-empty" style="display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--text-muted); gap: 12px; margin: auto; text-align: center; padding: 40px 20px;">
-                                    <i class="fa-solid fa-file-invoice" style="font-size: 48px; color: var(--color-primary); opacity: 0.5;"></i>
-                                    <span>Selecione um documento na tabela para visualizar a prévia em tempo real</span>
+                                <div id="document-preview-empty" class="documents-preview-empty">
+                                    <i class="fa-solid fa-file-invoice"></i>
+                                    <span>Selecione um documento na tabela para visualizar a prévia em tempo real.</span>
                                 </div>
                             </div>
-                        </div>
+                        </section>
 
+                    </div>
+                </div>
+
+                <!-- TAB: SPEC-DRIVEN DEVELOPMENT (SDD) -->
+                <div id="tab-sdd" class="tab-pane">
+                    <div class="sdd-layout">
+                        <!-- Painel Esquerdo: Lista de Especificações -->
+                        <section class="sdd-sidebar card">
+                            <div class="sdd-sidebar-header">
+                                <h4><i data-lucide="file-text"></i> Especificações</h4>
+                                <div style="display: flex; gap: 6px;">
+                                    <button class="btn btn-sm btn-secondary btn-icon-only" id="btn-refresh-sdd-specs" title="Recarregar"><i data-lucide="refresh-cw"></i></button>
+                                    <button class="btn btn-sm btn-primary btn-icon-only" id="btn-new-sdd-spec-manual" title="Nova Manual"><i data-lucide="plus"></i></button>
+                                </div>
+                            </div>
+                            <div class="sdd-sidebar-body">
+                                <div class="specs-list" id="sdd-specs-list">
+                                    <!-- Preenchido via JS -->
+                                    <div class="specs-empty-state">
+                                        <i data-lucide="file-question"></i>
+                                        <span>Nenhuma especificação encontrada. Use o assistente ao lado para gerar ou crie uma manual.</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+
+                        <!-- Painel Direito: Espaço de Trabalho SDD -->
+                        <section class="sdd-workspace card">
+                            <!-- Nav Header da Área de Trabalho -->
+                            <div class="sdd-workspace-header">
+                                <div class="sdd-active-spec-info">
+                                    <h4 id="sdd-active-spec-title">Nenhuma Especificação Selecionada</h4>
+                                    <span id="sdd-active-spec-filename" class="badge" style="display: none;"></span>
+                                </div>
+                                <div class="sdd-workspace-nav" id="sdd-workspace-nav-tabs" style="display: none;">
+                                    <button class="sdd-nav-btn active" data-sdd-tab="sdd-tab-preview"><span>1</span> Specify</button>
+                                    <button class="sdd-nav-btn" data-sdd-tab="sdd-tab-edit"><span>2</span> Design</button>
+                                    <button class="sdd-nav-btn" data-sdd-tab="sdd-tab-checklist"><span>3</span> Task List</button>
+                                    <button class="sdd-nav-btn" data-sdd-tab="sdd-tab-tests"><span>4</span> Execute</button>
+                                </div>
+                            </div>
+
+                            <div class="sdd-workspace-body">
+                                <!-- STEP 1: SPECIFY -->
+                                <div id="sdd-tab-preview" class="sdd-tab-content active">
+                                    <div class="sdd-stage-grid">
+                                        <section class="sdd-stage-main">
+                                            <div class="sdd-stage-title">
+                                                <div>
+                                                    <span>Specify - Especificação</span>
+                                                    <h5>Documentação de negócio e requisitos</h5>
+                                                </div>
+                                                <div class="sdd-stage-actions">
+                                                    <button class="btn btn-secondary btn-sm sdd-danger-action" id="btn-sdd-delete-specify" title="Excluir requisito"><i data-lucide="trash-2"></i></button>
+                                                    <button class="btn btn-primary btn-sm" id="btn-sdd-save-specify"><i data-lucide="save"></i> Salvar</button>
+                                                </div>
+                                            </div>
+                                            <textarea id="sdd-specify-editor" class="sdd-doc-editor text-input" placeholder="# Requisitos de negócio..."></textarea>
+                                        </section>
+                                        <aside class="sdd-stage-aside">
+                                            <h5><i data-lucide="sparkles"></i> Assistente IA</h5>
+                                            <p>Gere ou refine a documentação de negócio. Cada requisito deve ter código único, como <code>REQ-001</code>.</p>
+                                            <input type="text" id="sdd-wizard-title" class="text-input" placeholder="Título da feature">
+                                            <textarea id="sdd-wizard-prompt" class="text-input" placeholder="Descreva regras de negócio, usuários, restrições e requisitos..."></textarea>
+                                            <button class="btn btn-primary" id="btn-sdd-generate-spec-ia"><i data-lucide="sparkles"></i> Gerar Specify com IA</button>
+                                        </aside>
+                                        <div class="sdd-empty-workspace" id="sdd-empty-workspace">
+                                            <i data-lucide="sparkles" style="width: 48px; height: 48px; color: var(--color-primary); opacity: 0.6; margin-bottom: 12px;"></i>
+                                            <h3>Fluxo Spec-Driven Development</h3>
+                                            <p>Crie ou selecione uma feature para conduzir Specify, Design, Tasks e Execute no mesmo artefato Markdown.</p>
+                                            <button class="btn btn-primary" id="btn-switch-to-ia-generator"><i data-lucide="plus-circle"></i> Criar Fluxo com IA</button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- STEP 2: DESIGN -->
+                                <div id="sdd-tab-edit" class="sdd-tab-content">
+                                    <div class="sdd-stage-grid">
+                                        <section class="sdd-stage-main">
+                                            <div class="sdd-stage-title">
+                                                <div>
+                                                    <span>Design - Planejamento</span>
+                                                    <h5>Arquitetura proposta</h5>
+                                                </div>
+                                                <button class="btn btn-primary btn-sm" id="btn-sdd-save-design"><i data-lucide="save"></i> Salvar</button>
+                                            </div>
+                                            <textarea id="sdd-design-editor" class="sdd-doc-editor text-input" placeholder="## Arquitetura proposta..."></textarea>
+                                        </section>
+                                        <aside class="sdd-stage-aside">
+                                            <h5><i data-lucide="sparkles"></i> Assistente IA</h5>
+                                            <p>A IA deve ler sempre o Specify/requisito e propor arquitetura, componentes, dados, integrações e contratos técnicos.</p>
+                                            <textarea id="sdd-design-ai-prompt" class="text-input" placeholder="Ex: proponha a arquitetura para os requisitos REQ-001 a REQ-004..."></textarea>
+                                            <button class="btn btn-primary" id="btn-sdd-design-ai"><i data-lucide="wand-2"></i> Preparar Prompt de Design</button>
+                                        </aside>
+                                    </div>
+                                </div>
+
+                                <input type="hidden" id="sdd-edit-filename">
+                                <textarea id="sdd-spec-editor-textarea" style="display:none;"></textarea>
+                                <button id="btn-sdd-save" style="display:none;" type="button"></button>
+                                <button id="btn-sdd-delete" style="display:none;" type="button"></button>
+
+                                <!-- STEP 3: TASK LIST -->
+                                <div id="sdd-tab-checklist" class="sdd-tab-content">
+                                    <div class="sdd-checklist-wrapper" style="display: flex; flex-direction: column; height: 100%; gap: 16px;">
+                                        <div class="sdd-checklist-header">
+                                            <div style="display: flex; flex-direction: column;">
+                                                <h5>Task List - Tarefas</h5>
+                                                <p style="font-size: 12px; color: var(--text-muted); margin: 0;">Quebre o plano em tarefas pequenas. Use o seletor para mandar uma task para Execute.</p>
+                                            </div>
+                                            <div class="sdd-checklist-progress">
+                                                <span id="sdd-checklist-progress-text">0/0 concluídos</span>
+                                                <div class="sdd-progress-bar"><div id="sdd-progress-fill" style="width: 0%;"></div></div>
+                                            </div>
+                                        </div>
+                                        <div class="sdd-checklist-body" id="sdd-criteria-checklist-container">
+                                            <!-- Checkboxes inseridos via JS -->
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- STEP 4: EXECUTE -->
+                                <div id="sdd-tab-tests" class="sdd-tab-content">
+                                    <div class="sdd-execute-grid">
+                                        <section class="sdd-stage-main">
+                                            <div class="sdd-stage-title">
+                                                <div>
+                                                    <span>Execute - Implementação</span>
+                                                    <h5>Tarefa pronta para agente/programador</h5>
+                                                </div>
+                                            </div>
+                                            <textarea id="sdd-execute-instructions" class="sdd-doc-editor text-input" placeholder="Selecione uma tarefa como Executar na aba Task List."></textarea>
+                                        </section>
+                                        <aside class="sdd-stage-aside">
+                                            <h5><i data-lucide="badge-check"></i> Validação</h5>
+                                            <p>Gere testes contra a especificação e a tarefa selecionada.</p>
+                                            <div class="form-group">
+                                                <label for="sdd-test-framework">Framework de Teste:</label>
+                                                <select id="sdd-test-framework" class="select-input">
+                                                    <option value="pytest">Pytest (Python)</option>
+                                                    <option value="jest">Jest (JavaScript / TypeScript)</option>
+                                                    <option value="phpunit">PHPUnit (PHP)</option>
+                                                    <option value="mocha">Mocha / Chai (Node.js)</option>
+                                                </select>
+                                            </div>
+                                            <button class="btn btn-primary" id="btn-sdd-generate-tests"><i data-lucide="play-circle"></i> Gerar Testes com IA</button>
+                                        </aside>
+                                        <div id="sdd-test-result-panel" class="sdd-test-result" style="display: none;">
+                                            <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-bottom:1px solid var(--flat-border-soft);">
+                                                <span style="font-size: 12px; font-family: var(--font-mono); color: #10b981;" id="sdd-test-result-filepath"></span>
+                                                <button class="btn-icon-copy" id="btn-copy-sdd-test-code" title="Copiar Código"><i data-lucide="copy"></i></button>
+                                            </div>
+                                            <pre style="flex: 1; overflow: auto; padding: 14px; font-family: var(--font-mono); font-size: 12px; line-height: 1.5; color: #f8fafc; margin: 0; white-space: pre-wrap;" id="sdd-test-result-code"></pre>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
                     </div>
                 </div>
             </main>
@@ -1026,21 +1249,27 @@ Se o arquivo existir, leia e siga rigorosamente todas as diretrizes, fases de an
     </div>
 
     <!-- MODAL: CONFIRM DIALOG -->
-    <div class="modal-backdrop" id="modal-confirm">
-        <div class="modal-card" style="max-width: 450px;">
-            <div class="modal-header">
-                <h3 id="confirm-title">Confirmar Ação</h3>
+    <div class="modal-backdrop gitide-notification-backdrop" id="modal-confirm">
+        <div class="modal-card gitide-notification-card">
+            <div class="gitide-notification-header">
+                <div class="gitide-notification-icon" id="confirm-icon"><i data-lucide="info"></i></div>
+                <div>
+                    <h3 id="confirm-title">Confirmar Ação</h3>
+                    <p id="confirm-kicker">GitIDE</p>
+                </div>
                 <button class="btn-icon confirm-close"><i class="fa-solid fa-xmark"></i></button>
             </div>
-            <div class="modal-body">
-                <p id="confirm-message" style="font-size: 14px; color: var(--text-muted); line-height: 1.6;"></p>
+            <div class="gitide-notification-body">
+                <p id="confirm-message"></p>
             </div>
-            <div class="modal-footer">
+            <div class="gitide-notification-footer">
                 <button type="button" class="btn btn-secondary confirm-close" id="btn-confirm-cancel">Cancelar</button>
                 <button type="button" class="btn btn-primary" id="btn-confirm-ok">Confirmar</button>
             </div>
         </div>
     </div>
+
+    <div class="gitide-toast-viewport" id="gitide-toast-viewport" aria-live="polite" aria-atomic="true"></div>
 
     <!-- MODAL: MERGE BRANCH -->
     <div class="modal-backdrop" id="modal-merge">
@@ -1234,9 +1463,8 @@ Se o arquivo existir, leia e siga rigorosamente todas as diretrizes, fases de an
     </div>
 
     <!-- Custom JavaScript -->
-    <script src="/static/app.js?v=14"></script>
+    <script src="/static/app.js?v=20"></script>
     <script src="/static/theme-toggle.js?v=1"></script>
-    <script src="/static/workspace-switcher.js?v=1"></script>
     <script src="/static/native-select.js?v=1"></script>
 </body>
 </html>

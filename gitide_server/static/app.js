@@ -25,7 +25,12 @@ const state = {
     gridActiveTable: null,
     gridCurrentPage: 1,
     gridTotalRows: 0,
-    gridColumns: []
+    gridColumns: [],
+
+    // Git conflict resolver
+    gitConflicts: [],
+    gitConflictActiveFile: null,
+    gitConflictBlocks: []
 };
 
 // --- CUSTOM SELECT COMPONENT ---
@@ -257,6 +262,8 @@ function switchTab(tabId) {
         } else if (tabId === 'tab-terminal') {
             loadPendingCommands();
             startPendingCommandsPolling();
+        } else if (tabId === 'tab-sdd') {
+            sddLoadSpecs();
         }
     }
 }
@@ -1648,6 +1655,71 @@ async function deleteSelectedGridRows() {
     }
 }
 
+function clearGitStatusFileList() {
+    document.querySelectorAll('#git-status-detail .git-files-list').forEach(list => list.remove());
+}
+
+function renderGitChangedFiles(status) {
+    clearGitStatusFileList();
+    const container = document.getElementById('git-changed-files-list');
+    if (!container) return;
+
+    container.innerHTML = '';
+
+    const groups = [
+        { key: 'staged', label: 'Staged', tag: 'staged', files: status?.staged || [] },
+        { key: 'modified', label: 'Modificados', tag: 'modified', files: status?.modified || [] },
+        { key: 'untracked', label: 'Untracked', tag: 'untracked', files: status?.untracked || [] },
+        { key: 'deleted', label: 'Removidos', tag: 'deleted', files: status?.deleted || [] }
+    ].filter(group => group.files.length > 0);
+
+    if (!groups.length) {
+        const emptyState = document.createElement('div');
+        emptyState.className = 'git-side-empty-state';
+        emptyState.innerHTML = '<i class="fa-solid fa-circle-check"></i><span>Nenhum arquivo alterado no momento.</span>';
+        container.appendChild(emptyState);
+        return;
+    }
+
+    groups.forEach(group => {
+        const section = document.createElement('section');
+        section.className = 'git-changed-files-group';
+
+        const header = document.createElement('div');
+        header.className = 'git-changed-files-group-header';
+
+        const title = document.createElement('span');
+        title.textContent = group.label;
+
+        const count = document.createElement('strong');
+        count.textContent = String(group.files.length);
+
+        header.appendChild(title);
+        header.appendChild(count);
+        section.appendChild(header);
+
+        group.files.forEach(file => {
+            const item = document.createElement('div');
+            item.className = 'git-file-item git-changed-file-item';
+
+            const name = document.createElement('span');
+            name.className = 'git-changed-file-name';
+            name.textContent = file;
+            name.title = file;
+
+            const badge = document.createElement('span');
+            badge.className = `git-tag ${group.tag}`;
+            badge.textContent = group.tag;
+
+            item.appendChild(name);
+            item.appendChild(badge);
+            section.appendChild(item);
+        });
+
+        container.appendChild(section);
+    });
+}
+
 // --- GIT BRIDGE ---
 async function loadGitStatus(forceFetch = false) {
     const container = document.getElementById('git-status-detail');
@@ -1667,8 +1739,7 @@ async function loadGitStatus(forceFetch = false) {
             `;
             initPanel.style.display = 'block';
             deployPanel.style.display = 'none';
-            const graphPanel = document.getElementById('git-graph-panel');
-            if (graphPanel) graphPanel.style.display = 'none';
+            renderGitChangedFiles({ staged: [], modified: [], untracked: [], deleted: [] });
             return;
         }
         
@@ -1704,24 +1775,16 @@ async function loadGitStatus(forceFetch = false) {
             </div>
         `;
         
-        if (!status.is_clean) {
-            html += '<div class="git-files-list">';
-            status.staged.forEach(f => {
-                html += `<div class="git-file-item"><span>${f}</span><span class="git-tag staged">staged</span></div>`;
-            });
-            status.modified.forEach(f => {
-                html += `<div class="git-file-item"><span>${f}</span><span class="git-tag modified">modificado</span></div>`;
-            });
-            status.untracked.forEach(f => {
-                html += `<div class="git-file-item"><span>${f}</span><span class="git-tag untracked">untracked</span></div>`;
-            });
-            status.deleted.forEach(f => {
-                html += `<div class="git-file-item"><span>${f}</span><span class="git-tag deleted">removido</span></div>`;
-            });
-            html += '</div>';
-        }
-        
         container.innerHTML = html;
+        clearGitStatusFileList();
+        renderGitChangedFiles(status);
+        if (status.has_conflicts || (status.conflicted && status.conflicted.length)) {
+            loadGitConflicts();
+        } else {
+            state.gitConflicts = [];
+            state.gitConflictActiveFile = null;
+            hideGitConflictsPanelIfEmpty();
+        }
         
         const dropdownBtn = document.getElementById('btn-branch-actions');
         const dropdownMenu = document.getElementById('branch-actions-menu');
@@ -1729,10 +1792,14 @@ async function loadGitStatus(forceFetch = false) {
         if (dropdownBtn && dropdownMenu) {
             dropdownBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
-                const isShown = dropdownMenu.style.display === 'block';
+                const isShown = dropdownMenu.classList.contains('branch-actions-menu-open') || dropdownMenu.style.display === 'block';
                 closeAllDropdowns();
                 if (!isShown) {
-                    dropdownMenu.style.display = 'block';
+                    dropdownMenu.classList.add('branch-actions-menu-open');
+                    dropdownMenu.style.setProperty('display', 'flex', 'important');
+                    dropdownBtn.setAttribute('aria-expanded', 'true');
+                } else {
+                    dropdownBtn.setAttribute('aria-expanded', 'false');
                 }
             });
             
@@ -1785,13 +1852,18 @@ async function loadGitStatus(forceFetch = false) {
             });
         }
         
-        // Carrega também o gráfico de commits
-        await loadGitGraph();
+        // Carrega o gráfico apenas quando a aba Git Graph estiver ativa no painel lateral.
+        const isGraphPanelActive = document.querySelector('.git-side-tab[data-git-side-tab="graph"]')?.classList.contains('active');
+        if (isGraphPanelActive) {
+            await loadGitGraph();
+        }
         
     } catch (err) {
         container.innerHTML = `<p class="placeholder-text error-text">Erro ao buscar status do Git: ${err.message}</p>`;
-        const graphPanel = document.getElementById('git-graph-panel');
-        if (graphPanel) graphPanel.style.display = 'none';
+        const graphContainer = document.getElementById('git-graph-container');
+        if (graphContainer) {
+            graphContainer.innerHTML = `<div class="git-side-empty-state">Não foi possível carregar o histórico Git.</div>`;
+        }
     }
 }
 
@@ -1808,11 +1880,11 @@ async function loadGitGraph() {
         const data = await res.json();
         
         if (!data.is_git || data.is_empty) {
-            panel.style.display = 'none';
+            container.innerHTML = '<div class="git-side-empty-state">Sem histórico de commits disponível para este repositório.</div>';
             return;
         }
         
-        panel.style.display = 'block';
+        panel.style.removeProperty('display');
         container.innerHTML = '';
         
         if (data.graph && data.graph.length > 0) {
@@ -1831,6 +1903,37 @@ async function loadGitGraph() {
     } catch (err) {
         console.error('Erro ao carregar o gráfico do Git:', err);
         container.innerHTML = `<div style="color: var(--color-danger); padding: 10px;">Erro: ${err.message}</div>`;
+    }
+}
+
+function switchGitSidePanelTab(tabName) {
+    const tabs = document.querySelectorAll('.git-side-tab');
+    const panes = document.querySelectorAll('.git-side-panel-pane');
+    if (!tabs.length || !panes.length) return;
+
+    tabs.forEach(tab => {
+        const isActive = tab.dataset.gitSideTab === tabName;
+        tab.classList.toggle('active', isActive);
+        tab.setAttribute('aria-selected', isActive ? 'true' : 'false');
+    });
+
+    panes.forEach(pane => {
+        const isActive = pane.dataset.gitSidePane === tabName;
+        pane.classList.toggle('active', isActive);
+        pane.hidden = !isActive;
+        pane.style.setProperty('display', isActive ? 'flex' : 'none', 'important');
+    });
+
+    if (tabName === 'graph') {
+        loadGitGraph();
+    }
+
+    if (tabName === 'files') {
+        const filesContainer = document.getElementById('git-changed-files-list');
+        const needsRefresh = !filesContainer || filesContainer.textContent.includes('Nenhuma alteração carregada ainda');
+        if (needsRefresh) {
+            loadGitStatus();
+        }
     }
 }
 
@@ -1863,34 +1966,81 @@ function parseGitGraphLine(line) {
     return drawingPart + textPart;
 }
 
+function normalizeGitBranchName(branchName) {
+    return String(branchName || '')
+        .replace(/^refs\/heads\//, '')
+        .replace(/^refs\/remotes\//, '')
+        .replace(/^origin\//, '')
+        .trim();
+}
+
+function findGitBranchOption(selectEl, preferredBranch) {
+    const normalizedPreferred = normalizeGitBranchName(preferredBranch);
+    return Array.from(selectEl.options).find(option => normalizeGitBranchName(option.value) === normalizedPreferred);
+}
+
+function cleanupGitBranchSelectArtifacts() {
+    const branchSelect = document.getElementById('git-branch-input');
+    if (!branchSelect) return;
+
+    branchSelect.classList.remove('git-branch-native', 'git-branch-select-native-hidden');
+
+    const field = branchSelect.closest('.git-deploy-branch-field');
+    if (!field) return;
+
+    field.querySelectorAll('.custom-select-container, .git-branch-switcher').forEach(wrapper => {
+        wrapper.remove();
+    });
+
+    const gitideWrappers = Array.from(field.querySelectorAll('.gitide-select'));
+    gitideWrappers.slice(1).forEach(wrapper => wrapper.remove());
+}
+
+function syncGitBranchCustomSelect() {
+    cleanupGitBranchSelectArtifacts();
+}
+
+function getGitDeployBranchValue() {
+    const branchSelect = document.getElementById('git-branch-input');
+    if (!branchSelect) return 'dev';
+
+    const devOption = findGitBranchOption(branchSelect, 'dev');
+    if (devOption) {
+        branchSelect.value = devOption.value;
+        syncGitBranchCustomSelect();
+        return devOption.value;
+    }
+
+    return branchSelect.value.trim() || 'dev';
+}
+
 async function loadGitBranches(currentBranch, forceFetch = false) {
     const branchSelect = document.getElementById('git-branch-input');
     if (!branchSelect) return;
+
+    cleanupGitBranchSelectArtifacts();
 
     try {
         const url = `/api/projects/${state.activeProjectId}/git/branches` + (forceFetch ? '?fetch=true' : '');
         const res = await fetch(url);
         const data = await res.json();
         if (data.status === 'success') {
-            const currentSelected = currentBranch || data.current_branch || 'main';
+            const fallbackBranch = currentBranch || data.current_branch || 'dev';
             
-            // Clear existing options
             branchSelect.innerHTML = '';
             
-            // Add local branches
             if (data.local && data.local.length > 0) {
                 const localGroup = document.createElement('optgroup');
                 localGroup.label = 'Branches Locais';
                 data.local.forEach(branch => {
                     const opt = document.createElement('option');
                     opt.value = branch;
-                    opt.textContent = branch;
+                    opt.textContent = normalizeGitBranchName(branch) === 'dev' ? `${branch} · padrão` : branch;
                     localGroup.appendChild(opt);
                 });
                 branchSelect.appendChild(localGroup);
             }
             
-            // Add remote branches
             if (data.remote && data.remote.length > 0) {
                 const remoteGroup = document.createElement('optgroup');
                 remoteGroup.label = 'Branches Remotas';
@@ -1898,22 +2048,23 @@ async function loadGitBranches(currentBranch, forceFetch = false) {
                     const displayVal = branch.startsWith('origin/') ? branch : `origin/${branch}`;
                     const opt = document.createElement('option');
                     opt.value = branch;
-                    opt.textContent = displayVal;
+                    opt.textContent = normalizeGitBranchName(branch) === 'dev' ? `${displayVal} · padrão` : displayVal;
                     remoteGroup.appendChild(opt);
                 });
                 branchSelect.appendChild(remoteGroup);
             }
 
-            // Fallback if no branches
             if (branchSelect.options.length === 0) {
                 const opt = document.createElement('option');
-                opt.value = currentSelected;
-                opt.textContent = currentSelected;
+                opt.value = 'dev';
+                opt.textContent = 'dev · padrão';
                 branchSelect.appendChild(opt);
             }
             
-            // Set selection
-            branchSelect.value = currentSelected;
+            const devOption = findGitBranchOption(branchSelect, 'dev');
+            branchSelect.value = devOption ? devOption.value : fallbackBranch;
+            branchSelect.dispatchEvent(new Event('change', { bubbles: true }));
+            syncGitBranchCustomSelect();
         }
     } catch (err) {
         console.error('Erro ao carregar branches:', err);
@@ -1955,7 +2106,7 @@ async function initGitRepo() {
 
 async function runGitDeploy() {
     const message = document.getElementById('git-commit-msg').value.trim();
-    const branch = document.getElementById('git-branch-input').value.trim();
+    const branch = getGitDeployBranchValue();
     
     if (!message) {
         alert('Digite uma mensagem de commit/deploy.');
@@ -1998,8 +2149,8 @@ async function runGitDeploy() {
 }
 
 async function runGitPull() {
-    const branch = document.getElementById('git-branch-input').value.trim();
-    appendGitConsole(`Puxando alterações (Git Pull) para branch "${branch || 'atual'}"...`);
+    const branch = getGitDeployBranchValue();
+    appendGitConsole(`Puxando alterações (Git Pull) para branch "${branch || 'dev'}"...`);
     
     try {
         const res = await fetch(`/api/projects/${state.activeProjectId}/git/pull?branch=${encodeURIComponent(branch)}`, {
@@ -2013,11 +2164,14 @@ async function runGitPull() {
             appendGitConsole(`Git pull concluído:\n${data.details.join('\n')}`);
             loadGitStatus();
         } else {
-            appendGitConsole(`Erro no Git Pull: ${data.detail}`, true);
+            const detail = normalizeGitErrorDetail(data.detail);
+            appendGitConsole(`Erro no Git Pull: ${detail.message || data.detail}`, true);
+            await maybeLoadGitConflicts(detail);
         }
         
     } catch (err) {
         appendGitConsole(`Erro de conexão no Git Pull: ${err.message}`, true);
+        await loadGitConflicts();
     }
 }
 
@@ -2028,6 +2182,186 @@ function appendGitConsole(text, isError = false) {
     line.textContent = `[${new Date().toLocaleTimeString()}] ${text}`;
     consoleDiv.appendChild(line);
     consoleDiv.scrollTop = consoleDiv.scrollHeight;
+}
+
+function normalizeGitErrorDetail(detail) {
+    if (!detail) return { message: 'Erro desconhecido' };
+    if (typeof detail === 'string') return { message: detail };
+    return detail;
+}
+
+async function maybeLoadGitConflicts(detail = null) {
+    const normalized = normalizeGitErrorDetail(detail);
+    if (normalized.has_conflicts && Array.isArray(normalized.conflicts)) {
+        state.gitConflicts = normalized.conflicts;
+        renderGitConflictFiles();
+        showGitConflictsPanel();
+        if (state.gitConflicts[0]) await loadGitConflictFile(state.gitConflicts[0].filepath);
+        return true;
+    }
+    return loadGitConflicts();
+}
+
+function showGitConflictsPanel() {
+    const card = document.getElementById('git-conflicts-card');
+    if (card) card.style.display = 'flex';
+}
+
+function hideGitConflictsPanelIfEmpty() {
+    const card = document.getElementById('git-conflicts-card');
+    if (card && (!state.gitConflicts || state.gitConflicts.length === 0)) {
+        card.style.display = 'none';
+    }
+}
+
+async function loadGitConflicts() {
+    if (!state.activeProjectId) return false;
+    try {
+        const res = await fetch(`/api/projects/${state.activeProjectId}/git/conflicts`, { headers: getHeaders() });
+        const data = await res.json();
+        state.gitConflicts = data.files || [];
+        renderGitConflictFiles();
+        if (state.gitConflicts.length) {
+            showGitConflictsPanel();
+            if (!state.gitConflictActiveFile) await loadGitConflictFile(state.gitConflicts[0].filepath);
+            return true;
+        }
+        state.gitConflictActiveFile = null;
+        state.gitConflictBlocks = [];
+        renderGitConflictBlocks([]);
+        hideGitConflictsPanelIfEmpty();
+        return false;
+    } catch (err) {
+        appendGitConsole(`Erro ao carregar conflitos: ${err.message}`, true);
+        return false;
+    }
+}
+
+function renderGitConflictFiles() {
+    const list = document.getElementById('git-conflict-files-list');
+    if (!list) return;
+    if (!state.gitConflicts.length) {
+        list.innerHTML = '<div class="git-side-empty-state">Nenhum conflito encontrado.</div>';
+        return;
+    }
+    list.innerHTML = state.gitConflicts.map(file => `
+        <button type="button" class="git-conflict-file ${state.gitConflictActiveFile === file.filepath ? 'active' : ''}" data-filepath="${escapeGitConflictHtml(file.filepath)}">
+            <i data-lucide="file-warning"></i>
+            <span>${escapeGitConflictHtml(file.filepath)}</span>
+            <strong>${file.blocks_count}</strong>
+        </button>
+    `).join('');
+    list.querySelectorAll('.git-conflict-file').forEach(btn => {
+        btn.addEventListener('click', () => loadGitConflictFile(btn.dataset.filepath));
+    });
+    if (window.lucide) lucide.createIcons();
+}
+
+async function loadGitConflictFile(filepath) {
+    if (!state.activeProjectId || !filepath) return;
+    try {
+        const res = await fetch(`/api/projects/${state.activeProjectId}/git/conflicts/file?filepath=${encodeURIComponent(filepath)}`, { headers: getHeaders() });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || 'Erro ao carregar arquivo em conflito');
+        state.gitConflictActiveFile = filepath;
+        state.gitConflictBlocks = data.blocks || [];
+        document.getElementById('git-conflict-active-file').textContent = filepath;
+        document.getElementById('btn-git-conflict-save-file').disabled = !state.gitConflictBlocks.length;
+        renderGitConflictFiles();
+        renderGitConflictBlocks(state.gitConflictBlocks);
+    } catch (err) {
+        appendGitConsole(`Erro ao abrir conflito: ${err.message}`, true);
+    }
+}
+
+function escapeGitConflictHtml(value) {
+    return String(value || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
+function renderGitConflictBlocks(blocks) {
+    const container = document.getElementById('git-conflict-blocks');
+    if (!container) return;
+    if (!blocks.length) {
+        container.innerHTML = '<div class="git-side-empty-state">Nenhum bloco conflitante neste arquivo.</div>';
+        return;
+    }
+    container.innerHTML = blocks.map(block => `
+        <article class="git-conflict-block" data-index="${block.index}">
+            <header>
+                <div>
+                    <span>Bloco ${block.index + 1}</span>
+                    <strong>Linhas ${block.start_line}-${block.end_line}</strong>
+                </div>
+                <div class="git-conflict-choice">
+                    <button type="button" class="btn btn-sm btn-secondary" data-choice="ours">Manter Meu</button>
+                    <button type="button" class="btn btn-sm btn-secondary" data-choice="theirs">Manter Remoto</button>
+                    <button type="button" class="btn btn-sm btn-primary" data-choice="manual">Manual</button>
+                </div>
+            </header>
+            <div class="git-conflict-three-way">
+                <section>
+                    <h5>Meu (${escapeGitConflictHtml(block.ours_label)})</h5>
+                    <pre>${escapeGitConflictHtml(block.ours)}</pre>
+                </section>
+                <section>
+                    <h5>Remoto (${escapeGitConflictHtml(block.theirs_label)})</h5>
+                    <pre>${escapeGitConflictHtml(block.theirs)}</pre>
+                </section>
+            </div>
+            <label class="git-conflict-manual-label">Merge manual</label>
+            <textarea class="git-conflict-manual text-input">${escapeGitConflictHtml(block.ours || block.theirs)}</textarea>
+        </article>
+    `).join('');
+    container.querySelectorAll('.git-conflict-block').forEach(blockEl => {
+        blockEl.dataset.resolution = 'manual';
+        blockEl.querySelectorAll('[data-choice]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                blockEl.dataset.resolution = btn.dataset.choice;
+                blockEl.querySelectorAll('[data-choice]').forEach(b => b.classList.toggle('active', b === btn));
+                const idx = Number(blockEl.dataset.index);
+                const block = state.gitConflictBlocks.find(item => item.index === idx);
+                const manual = blockEl.querySelector('.git-conflict-manual');
+                if (btn.dataset.choice === 'ours') manual.value = block?.ours || '';
+                if (btn.dataset.choice === 'theirs') manual.value = block?.theirs || '';
+            });
+        });
+    });
+}
+
+async function applyGitConflictResolutions() {
+    if (!state.activeProjectId || !state.gitConflictActiveFile) return;
+    const blockEls = Array.from(document.querySelectorAll('.git-conflict-block'));
+    const resolutions = blockEls.map(el => ({
+        index: Number(el.dataset.index),
+        resolution: el.dataset.resolution || 'manual',
+        content: el.querySelector('.git-conflict-manual')?.value || ''
+    }));
+    try {
+        const res = await fetch(`/api/projects/${state.activeProjectId}/git/conflicts/resolve`, {
+            method: 'POST',
+            headers: { ...getHeaders(), 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                filepath: state.gitConflictActiveFile,
+                resolutions,
+                stage_file: true
+            })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || 'Erro ao aplicar resoluções');
+        appendGitConsole(`Conflitos resolvidos em ${state.gitConflictActiveFile}. Restantes: ${data.remaining_blocks}`);
+        gitideNotify({ title: 'Conflito resolvido', message: state.gitConflictActiveFile, variant: 'success' });
+        state.gitConflictActiveFile = null;
+        await loadGitConflicts();
+        loadGitStatus();
+    } catch (err) {
+        appendGitConsole(`Erro ao resolver conflito: ${err.message}`, true);
+        gitideNotify({ title: 'Erro ao resolver conflito', message: err.message, variant: 'danger' });
+    }
 }
 
 // --- HISTÓRICO & LOGS GERAIS ---
@@ -2368,31 +2702,68 @@ function confirmDirectorySelection() {
     closeDirectoryBrowser();
 }
 
-function showCustomConfirm(title, message, confirmButtonText = 'Confirmar', isDanger = false) {
+function gitideNotify({ title = 'GitIDE', message = '', variant = 'info', duration = 3500 } = {}) {
+    const viewport = document.getElementById('gitide-toast-viewport');
+    if (!viewport) return;
+    const icons = {
+        info: 'info',
+        success: 'check-circle-2',
+        warning: 'triangle-alert',
+        danger: 'circle-alert'
+    };
+    const toast = document.createElement('div');
+    toast.className = `gitide-toast gitide-toast-${variant}`;
+    toast.innerHTML = `
+        <div class="gitide-toast-icon"><i data-lucide="${icons[variant] || icons.info}"></i></div>
+        <div class="gitide-toast-copy">
+            <strong>${title}</strong>
+            <span>${message}</span>
+        </div>
+        <button type="button" class="gitide-toast-close" aria-label="Fechar"><i data-lucide="x"></i></button>
+    `;
+    viewport.appendChild(toast);
+    if (window.lucide) lucide.createIcons();
+    const remove = () => {
+        toast.classList.add('is-leaving');
+        setTimeout(() => toast.remove(), 180);
+    };
+    toast.querySelector('.gitide-toast-close')?.addEventListener('click', remove);
+    if (duration) setTimeout(remove, duration);
+}
+
+function gitideConfirm({ title = 'Confirmar ação', message = '', confirmText = 'Confirmar', cancelText = 'Cancelar', variant = 'info', kicker = 'GitIDE' } = {}) {
     return new Promise((resolve) => {
         const modal = document.getElementById('modal-confirm');
         const titleEl = document.getElementById('confirm-title');
+        const kickerEl = document.getElementById('confirm-kicker');
         const messageEl = document.getElementById('confirm-message');
+        const iconEl = document.getElementById('confirm-icon');
         const okBtn = document.getElementById('btn-confirm-ok');
         const cancelBtn = document.getElementById('btn-confirm-cancel');
         const closeBtn = modal.querySelector('.confirm-close');
+        const icons = {
+            info: 'info',
+            success: 'check-circle-2',
+            warning: 'triangle-alert',
+            danger: 'trash-2'
+        };
         
         titleEl.textContent = title;
+        if (kickerEl) kickerEl.textContent = kicker;
         messageEl.innerHTML = message;
-        okBtn.textContent = confirmButtonText;
-        
-        if (isDanger) {
-            okBtn.style.backgroundColor = 'var(--color-danger)';
-            okBtn.style.borderColor = 'var(--color-danger)';
-        } else {
-            okBtn.style.backgroundColor = 'var(--color-primary)';
-            okBtn.style.borderColor = 'var(--color-primary)';
-        }
+        okBtn.textContent = confirmText;
+        cancelBtn.textContent = cancelText;
+        modal.dataset.variant = variant;
+        if (iconEl) iconEl.innerHTML = `<i data-lucide="${icons[variant] || icons.info}"></i>`;
+        okBtn.classList.toggle('btn-danger-confirm', variant === 'danger');
         
         modal.classList.add('active');
+        if (window.lucide) lucide.createIcons();
         
         const cleanup = (result) => {
             modal.classList.remove('active');
+            delete modal.dataset.variant;
+            okBtn.classList.remove('btn-danger-confirm');
             okBtn.removeEventListener('click', onOk);
             cancelBtn.removeEventListener('click', onCancel);
             closeBtn.removeEventListener('click', onCancel);
@@ -2408,8 +2779,79 @@ function showCustomConfirm(title, message, confirmButtonText = 'Confirmar', isDa
     });
 }
 
+function showCustomConfirm(title, message, confirmButtonText = 'Confirmar', isDanger = false) {
+    return gitideConfirm({
+        title,
+        message,
+        confirmText: confirmButtonText,
+        variant: isDanger ? 'danger' : 'info'
+    });
+}
+
+function syncDbTypeSelectShell() {
+    const select = document.getElementById('db-type-select');
+    const valueLabel = document.getElementById('db-type-select-value');
+    const options = document.querySelectorAll('.db-type-select-option');
+    if (!select || !valueLabel || !options.length) return;
+
+    const selectedOption = select.options[select.selectedIndex] || select.options[0];
+    valueLabel.textContent = selectedOption ? selectedOption.textContent.trim() : 'Selecionar banco';
+
+    options.forEach(option => {
+        const isSelected = option.dataset.value === select.value;
+        option.classList.toggle('is-selected', isSelected);
+        option.setAttribute('aria-selected', isSelected ? 'true' : 'false');
+    });
+}
+
+function closeDbTypeSelectShell() {
+    const shell = document.getElementById('db-type-select-shell');
+    const trigger = document.getElementById('db-type-select-trigger');
+    if (!shell || !trigger) return;
+
+    shell.classList.remove('is-open');
+    trigger.setAttribute('aria-expanded', 'false');
+}
+
+function initDbTypeSelectShell() {
+    const select = document.getElementById('db-type-select');
+    const shell = document.getElementById('db-type-select-shell');
+    const trigger = document.getElementById('db-type-select-trigger');
+    const options = document.querySelectorAll('.db-type-select-option');
+    if (!select || !shell || !trigger || !options.length) return;
+
+    shell.querySelectorAll('.gitide-select, .custom-select-container').forEach(wrapper => wrapper.remove());
+
+    trigger.addEventListener('click', (event) => {
+        event.stopPropagation();
+        const willOpen = !shell.classList.contains('is-open');
+        shell.classList.toggle('is-open', willOpen);
+        trigger.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+    });
+
+    options.forEach(option => {
+        option.addEventListener('click', (event) => {
+            event.stopPropagation();
+            select.value = option.dataset.value;
+            select.dispatchEvent(new Event('change', { bubbles: true }));
+            closeDbTypeSelectShell();
+        });
+    });
+
+    document.addEventListener('click', closeDbTypeSelectShell);
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') closeDbTypeSelectShell();
+    });
+
+    select.addEventListener('change', syncDbTypeSelectShell);
+    syncDbTypeSelectShell();
+}
+
 // --- EVENT LISTENERS & UI EVENTS ---
 function setupEventListeners() {
+    // SDD Module
+    setupSddEventListeners();
+
     // 1. Selector de Projeto
     document.getElementById('project-selector').addEventListener('change', (e) => {
         selectProject(e.target.value);
@@ -2601,6 +3043,8 @@ function setupEventListeners() {
         }
     });
 
+    initDbTypeSelectShell();
+
     document.getElementById('db-type-select').addEventListener('change', (e) => {
         const type = e.target.value;
         const lbl = document.getElementById('lbl-db-conn');
@@ -2654,9 +3098,16 @@ function setupEventListeners() {
     // 7. Ações do Git Bridge
     document.getElementById('btn-git-status-refresh').addEventListener('click', loadGitStatus);
     document.getElementById('btn-git-graph-refresh').addEventListener('click', loadGitGraph);
+    document.querySelectorAll('.git-side-tab').forEach(tab => {
+        tab.addEventListener('click', () => switchGitSidePanelTab(tab.dataset.gitSideTab));
+    });
+    switchGitSidePanelTab('console');
     document.getElementById('btn-git-init').addEventListener('click', initGitRepo);
     document.getElementById('btn-git-deploy').addEventListener('click', runGitDeploy);
     document.getElementById('btn-git-pull').addEventListener('click', runGitPull);
+    document.getElementById('btn-git-conflicts-refresh').addEventListener('click', loadGitConflicts);
+    document.getElementById('btn-git-conflict-save-file').addEventListener('click', applyGitConflictResolutions);
+    document.getElementById('btn-git-conflicts-abort').addEventListener('click', runGitAbortMerge);
     
     // Merge Dialog Close & Confirm Events
     document.querySelectorAll('.merge-close').forEach(btn => {
@@ -2695,30 +3146,8 @@ function setupEventListeners() {
         updateTokenEditorFormFields(e.target.value);
     });
     
-    document.getElementById('git-branch-input').addEventListener('change', async (e) => {
-        const selectedBranch = e.target.value;
-        if (!selectedBranch) return;
-        
-        appendGitConsole(`Alternando para a branch "${selectedBranch}"...`);
-        try {
-            const res = await fetch(`/api/projects/${state.activeProjectId}/git/branches`, {
-                method: 'POST',
-                headers: getHeaders(),
-                body: JSON.stringify({ name: selectedBranch })
-            });
-            
-            if (!res.ok) {
-                throw new Error(await res.text());
-            }
-            
-            const data = await res.json();
-            appendGitConsole(`Alternado para a branch "${selectedBranch}" com sucesso!`);
-            loadGitStatus();
-        } catch (err) {
-            appendGitConsole(`Erro ao alternar para a branch: ${err.message}`, true);
-            alert(`Erro ao alternar para a branch: ${err.message}`);
-            loadGitStatus();
-        }
+    document.getElementById('git-branch-input').addEventListener('change', () => {
+        syncGitBranchCustomSelect();
     });
     
     // 8. Logs
@@ -3529,7 +3958,12 @@ function copyGitHubCode() {
 function closeAllDropdowns() {
     const menus = document.querySelectorAll('.dropdown-menu');
     menus.forEach(menu => {
-        menu.style.display = 'none';
+        menu.classList.remove('branch-actions-menu-open');
+        menu.style.setProperty('display', 'none', 'important');
+    });
+
+    document.querySelectorAll('.dropdown-trigger[aria-expanded="true"]').forEach(trigger => {
+        trigger.setAttribute('aria-expanded', 'false');
     });
 }
 
@@ -3628,7 +4062,10 @@ async function runGitMerge() {
         const data = await res.json();
         
         if (!res.ok) {
-            throw new Error(data.detail || 'Erro desconhecido');
+            const detail = normalizeGitErrorDetail(data.detail);
+            appendGitConsole(`Erro ao mesclar branch: ${detail.message || 'Erro desconhecido'}`, true);
+            await maybeLoadGitConflicts(detail);
+            return;
         }
         
         appendGitConsole(`Branch "${selectedBranch}" mesclada com sucesso!\n\n${data.detail || ''}`);
@@ -3636,7 +4073,7 @@ async function runGitMerge() {
         loadGitStatus();
     } catch (err) {
         appendGitConsole(`Erro ao mesclar branch: ${err.message}`, true);
-        alert(`Erro ao mesclar branch: ${err.message}`);
+        await loadGitConflicts();
     }
 }
 
@@ -4887,9 +5324,14 @@ async function runGitPush() {
 async function runGitAbortMerge() {
     if (!state.activeProjectId) return;
     
-    if (!confirm('Tem certeza que deseja abortar a mesclagem em andamento? Todas as alterações não resolvidas do merge serão descartadas.')) {
-        return;
-    }
+    const confirmed = await gitideConfirm({
+        title: 'Abortar merge',
+        kicker: 'Git conflicts',
+        message: 'Todas as alterações não resolvidas do merge serão descartadas.',
+        confirmText: 'Abortar merge',
+        variant: 'danger'
+    });
+    if (!confirmed) return;
     
     appendGitConsole(`Abortando mesclagem (git merge --abort)...`);
     try {
@@ -4905,11 +5347,16 @@ async function runGitAbortMerge() {
         }
         
         appendGitConsole(`Mesclagem abortada com sucesso!`);
-        alert('Mesclagem abortada com sucesso!');
+        gitideNotify({ title: 'Merge abortado', message: 'O repositório voltou ao estado anterior ao merge.', variant: 'success' });
+        state.gitConflicts = [];
+        state.gitConflictActiveFile = null;
+        renderGitConflictFiles();
+        renderGitConflictBlocks([]);
+        hideGitConflictsPanelIfEmpty();
         loadGitStatus();
     } catch (err) {
         appendGitConsole(`Erro ao abortar mesclagem: ${err.message}`, true);
-        alert(`Erro ao abortar mesclagem: ${err.message}`);
+        gitideNotify({ title: 'Erro ao abortar merge', message: err.message, variant: 'danger' });
     }
 }
 
@@ -5006,20 +5453,132 @@ async function runGitSetTokenAPI() {
 
 // --- SISTEMA DE DOCUMENTOS WORD ---
 
+function renderDocumentsStateRow(tbody, { icon, message, variant = 'empty', spinning = false }) {
+    tbody.innerHTML = '';
+
+    const row = document.createElement('tr');
+    row.className = `documents-state-row documents-state-row-${variant}`;
+
+    const cell = document.createElement('td');
+    cell.colSpan = 3;
+
+    const stateBox = document.createElement('div');
+    stateBox.className = 'documents-empty-state';
+
+    const iconEl = document.createElement('i');
+    iconEl.className = `${icon}${spinning ? ' fa-spin' : ''}`;
+
+    const textEl = document.createElement('span');
+    textEl.textContent = message;
+
+    stateBox.appendChild(iconEl);
+    stateBox.appendChild(textEl);
+    cell.appendChild(stateBox);
+    row.appendChild(cell);
+    tbody.appendChild(row);
+}
+
+function resetDocumentPreviewState() {
+    const sheet = document.getElementById('document-preview-sheet');
+    const empty = document.getElementById('document-preview-empty');
+    const badge = document.getElementById('preview-filename-badge');
+
+    if (sheet) sheet.style.display = 'none';
+    if (empty) empty.style.display = 'flex';
+    if (badge) badge.style.display = 'none';
+}
+
+function buildDocumentTableRow(doc, tbody) {
+    const tr = document.createElement('tr');
+    tr.className = 'documents-table-row';
+    tr.tabIndex = 0;
+
+    const isSelected = state.selectedDocumentFilename === doc.filename;
+    if (isSelected) {
+        tr.classList.add('selected');
+    }
+
+    const nameCell = document.createElement('td');
+    nameCell.className = 'doc-name-cell';
+
+    const nameWrap = document.createElement('div');
+    nameWrap.className = 'documents-name-wrap';
+
+    const fileIcon = document.createElement('i');
+    fileIcon.className = 'fa-regular fa-file-word';
+
+    const filenameText = document.createElement('span');
+    filenameText.textContent = doc.filename;
+    filenameText.title = doc.filename;
+
+    nameWrap.appendChild(fileIcon);
+    nameWrap.appendChild(filenameText);
+    nameCell.appendChild(nameWrap);
+
+    const sizeCell = document.createElement('td');
+    sizeCell.className = 'documents-size-cell';
+    sizeCell.textContent = `${(doc.size_bytes / 1024).toFixed(1)} KB`;
+
+    const actionsCell = document.createElement('td');
+    actionsCell.className = 'documents-actions-cell';
+
+    const downloadBtn = document.createElement('button');
+    downloadBtn.className = 'btn btn-sm btn-primary btn-download-doc documents-row-action';
+    downloadBtn.dataset.filename = doc.filename;
+    downloadBtn.innerHTML = '<i class="fa-solid fa-download"></i> Baixar';
+
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'btn btn-sm btn-danger btn-delete-doc documents-row-action';
+    deleteBtn.dataset.filename = doc.filename;
+    deleteBtn.innerHTML = '<i class="fa-solid fa-trash-can"></i> Excluir';
+
+    actionsCell.appendChild(downloadBtn);
+    actionsCell.appendChild(deleteBtn);
+
+    tr.appendChild(nameCell);
+    tr.appendChild(sizeCell);
+    tr.appendChild(actionsCell);
+
+    const selectRow = () => {
+        tbody.querySelectorAll('.documents-table-row').forEach(row => row.classList.remove('selected'));
+        tr.classList.add('selected');
+        state.selectedDocumentFilename = doc.filename;
+        loadDocumentPreview(doc.filename);
+    };
+
+    tr.addEventListener('click', selectRow);
+    tr.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            selectRow();
+        }
+    });
+
+    downloadBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        downloadDocumentFile(e.currentTarget.dataset.filename);
+    });
+
+    deleteBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        deleteDocumentFile(e.currentTarget.dataset.filename);
+    });
+
+    return tr;
+}
+
 async function loadDocuments() {
     if (!state.activeProjectId) return;
     
     const tbody = document.getElementById('documents-table-body');
     if (!tbody) return;
     
-    tbody.innerHTML = `
-        <tr>
-            <td colspan="3" style="text-align: center; color: var(--text-muted); padding: 40px 0;">
-                <i class="fa-solid fa-circle-notch fa-spin" style="font-size: 24px; margin-bottom: 8px;"></i><br>
-                Carregando documentos...
-            </td>
-        </tr>
-    `;
+    renderDocumentsStateRow(tbody, {
+        icon: 'fa-solid fa-circle-notch',
+        message: 'Carregando documentos...',
+        variant: 'loading',
+        spinning: true
+    });
     
     try {
         const res = await fetch(`/api/projects/${state.activeProjectId}/documents`);
@@ -5030,83 +5589,20 @@ async function loadDocuments() {
         }
         
         if (documents.length === 0) {
-            tbody.innerHTML = `
-                <tr>
-                    <td colspan="3" style="text-align: center; color: var(--text-muted); padding: 40px 0;">
-                        <i class="fa-solid fa-folder-open" style="font-size: 32px; display: block; margin-bottom: 12px;"></i>
-                        Nenhum documento Word gerado ainda neste projeto.
-                    </td>
-                </tr>
-            `;
-            
-            // Oculta prévia e mostra vazio
-            const sheet = document.getElementById('document-preview-sheet');
-            const empty = document.getElementById('document-preview-empty');
-            const badge = document.getElementById('preview-filename-badge');
-            if (sheet) sheet.style.display = 'none';
-            if (empty) empty.style.display = 'flex';
-            if (badge) badge.style.display = 'none';
+            renderDocumentsStateRow(tbody, {
+                icon: 'fa-solid fa-folder-open',
+                message: 'Nenhum documento Word gerado ainda neste projeto.',
+                variant: 'empty'
+            });
+            resetDocumentPreviewState();
             return;
         }
         
         tbody.innerHTML = '';
         documents.forEach(doc => {
-            const tr = document.createElement('tr');
-            tr.style.borderBottom = '1px solid var(--border-color)';
-            tr.style.fontSize = '13px';
-            tr.style.cursor = 'pointer';
-            
-            const sizeKB = (doc.size_bytes / 1024).toFixed(1);
-            
-            // Verifica se este documento é o ativo no estado
-            const isSelected = state.selectedDocumentFilename === doc.filename;
-            if (isSelected) {
-                tr.style.background = 'rgba(99, 102, 241, 0.1)';
-            }
-            
-            tr.innerHTML = `
-                <td style="padding: 12px 8px; color: var(--text-light); font-weight: 500;" class="doc-name-cell">
-                    <i class="fa-regular fa-file-word" style="color: var(--color-primary); margin-right: 6px;"></i> ${doc.filename}
-                </td>
-                <td style="padding: 12px 8px; color: var(--text-muted);">${sizeKB} KB</td>
-                <td style="padding: 12px 8px; text-align: right; display: flex; gap: 6px; justify-content: flex-end;">
-                    <button class="btn btn-sm btn-primary btn-download-doc" data-filename="${doc.filename}" style="padding: 4px 8px; font-size: 11px;">
-                        <i class="fa-solid fa-download"></i> Baixar
-                    </button>
-                    <button class="btn btn-sm btn-danger btn-delete-doc" data-filename="${doc.filename}" style="padding: 4px 8px; font-size: 11px;">
-                        <i class="fa-solid fa-trash-can"></i> Excluir
-                    </button>
-                </td>
-            `;
-            
-            // Event listener para seleção/preview
-            const selectRow = () => {
-                tbody.querySelectorAll('tr').forEach(r => r.style.background = '');
-                tr.style.background = 'rgba(99, 102, 241, 0.1)';
-                state.selectedDocumentFilename = doc.filename;
-                loadDocumentPreview(doc.filename);
-            };
-            
-            tr.querySelector('.doc-name-cell').addEventListener('click', selectRow);
-            
-            // Event listener para download
-            tr.querySelector('.btn-download-doc').addEventListener('click', (e) => {
-                e.stopPropagation(); // Impede seleção da linha
-                const filename = e.currentTarget.getAttribute('data-filename');
-                downloadDocumentFile(filename);
-            });
-            
-            // Event listener para exclusão
-            tr.querySelector('.btn-delete-doc').addEventListener('click', (e) => {
-                e.stopPropagation(); // Impede seleção da linha
-                const filename = e.currentTarget.getAttribute('data-filename');
-                deleteDocumentFile(filename);
-            });
-            
-            tbody.appendChild(tr);
+            tbody.appendChild(buildDocumentTableRow(doc, tbody));
         });
         
-        // Seleciona o primeiro por padrão caso não tenha seleção ativa válida
         let docToSelect = documents[0];
         if (state.selectedDocumentFilename) {
             const found = documents.find(d => d.filename === state.selectedDocumentFilename);
@@ -5116,25 +5612,19 @@ async function loadDocuments() {
         if (docToSelect) {
             state.selectedDocumentFilename = docToSelect.filename;
             loadDocumentPreview(docToSelect.filename);
-            
-            // Destaca a linha correspondente
-            const rows = tbody.querySelectorAll('tr');
-            documents.forEach((d, idx) => {
-                if (d.filename === docToSelect.filename && rows[idx]) {
-                    rows[idx].style.background = 'rgba(99, 102, 241, 0.1)';
-                }
+            const selectedRow = Array.from(tbody.querySelectorAll('.documents-table-row')).find(row => {
+                const filename = row.querySelector('.btn-download-doc')?.dataset.filename;
+                return filename === docToSelect.filename;
             });
+            if (selectedRow) selectedRow.classList.add('selected');
         }
         
     } catch (err) {
-        tbody.innerHTML = `
-            <tr>
-                <td colspan="3" style="text-align: center; color: var(--color-danger); padding: 40px 0;">
-                    <i class="fa-solid fa-triangle-exclamation" style="font-size: 32px; display: block; margin-bottom: 12px;"></i>
-                    Erro ao listar documentos: ${err.message}
-                </td>
-            </tr>
-        `;
+        renderDocumentsStateRow(tbody, {
+            icon: 'fa-solid fa-triangle-exclamation',
+            message: `Erro ao listar documentos: ${err.message}`,
+            variant: 'error'
+        });
     }
 }
 
@@ -5958,3 +6448,691 @@ async function rejectCommand(commandId) {
         alert(`Erro ao rejeitar comando: ${err.message}`);
     }
 }
+
+// =============================================================================
+// --- SPEC-DRIVEN DEVELOPMENT (SDD) MODULE ---
+// =============================================================================
+
+const sddState = {
+    activeFilename: null,
+    activeContent: '',
+    specs: [],
+    executeTask: null
+};
+
+// --- Simple Markdown Renderer (lightweight, no external deps) ---
+function sddRenderMarkdown(md) {
+    if (!md) return '';
+    let html = md
+        // Escape HTML
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        // Code blocks
+        .replace(/```([\s\S]*?)```/g, (_, code) => `<pre><code>${code.trim()}</code></pre>`)
+        // Inline code
+        .replace(/`([^`]+)`/g, '<code>$1</code>')
+        // Bold
+        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+        // Italic
+        .replace(/\*(.+?)\*/g, '<em>$1</em>')
+        // H1-H4
+        .replace(/^#### (.+)$/gm, '<h4>$1</h4>')
+        .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+        .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+        .replace(/^# (.+)$/gm, '<h1>$1</h1>')
+        // Horizontal rule
+        .replace(/^---$/gm, '<hr>')
+        // Checkbox list items  - [x] and - [ ]
+        .replace(/^\- \[x\] (.+)$/gm, '<li class="md-check checked"><span class="md-checkbox">✓</span> $1</li>')
+        .replace(/^\- \[ \] (.+)$/gm, '<li class="md-check"><span class="md-checkbox">○</span> $1</li>')
+        // Unordered list items
+        .replace(/^\- (.+)$/gm, '<li>$1</li>')
+        // Ordered list items
+        .replace(/^\d+\. (.+)$/gm, '<li>$1</li>')
+        // Blockquotes
+        .replace(/^> (.+)$/gm, '<blockquote>$1</blockquote>');
+
+    // Wrap consecutive <li> in <ul>
+    html = html.replace(/((<li[^>]*>.*<\/li>\n?)+)/g, '<ul>$1</ul>');
+    // Paragraphs: lines that are not html tags
+    html = html.split('\n').map(line => {
+        const trimmed = line.trim();
+        if (!trimmed) return '';
+        if (/^<(h[1-4]|ul|ol|li|pre|blockquote|hr)/.test(trimmed)) return trimmed;
+        return `<p>${trimmed}</p>`;
+    }).join('\n');
+    return html;
+}
+
+// --- Load & Render Spec List ---
+async function sddLoadSpecs() {
+    if (!state.activeProjectId) return;
+    const list = document.getElementById('sdd-specs-list');
+    list.innerHTML = '<div class="specs-empty-state" style="padding:20px;text-align:center;"><span style="color:var(--text-muted)">Carregando...</span></div>';
+    try {
+        const res = await fetch(`/api/projects/${state.activeProjectId}/sdd/specs`, { headers: getHeaders() });
+        const specs = await res.json();
+        sddState.specs = specs;
+        sddRenderSpecList(specs);
+    } catch (e) {
+        list.innerHTML = '<div class="specs-empty-state"><span style="color:#ef4444">Erro ao carregar especificações.</span></div>';
+    }
+}
+
+function sddRenderSpecList(specs) {
+    const list = document.getElementById('sdd-specs-list');
+    if (!specs || specs.length === 0) {
+        list.innerHTML = `
+            <div class="specs-empty-state">
+                <i data-lucide="file-question"></i>
+                <span>Nenhuma especificação encontrada. Use o assistente ao lado para gerar ou crie uma manual.</span>
+            </div>`;
+        if (window.lucide) lucide.createIcons();
+        return;
+    }
+    list.innerHTML = specs.map(spec => `
+        <div class="spec-item ${sddState.activeFilename === spec.filename ? 'active' : ''}" 
+             data-filename="${spec.filename}" 
+             onclick="sddSelectSpec('${spec.filename}')">
+            <i data-lucide="file-text" style="width:15px;height:15px;flex-shrink:0;"></i>
+            <div style="flex:1;min-width:0;">
+                <div class="spec-item-title" title="${spec.title}">${spec.title}</div>
+                <div class="spec-item-meta">${spec.filename} &middot; ${new Date(spec.modified_at).toLocaleDateString('pt-BR')}</div>
+            </div>
+        </div>`).join('');
+    if (window.lucide) lucide.createIcons();
+}
+
+// --- Select / Load a Spec ---
+async function sddSelectSpec(filename) {
+    if (!state.activeProjectId) return;
+    sddState.activeFilename = filename;
+
+    // Update sidebar highlight
+    document.querySelectorAll('.spec-item').forEach(el => {
+        el.classList.toggle('active', el.dataset.filename === filename);
+    });
+
+    // Show workspace nav
+    document.getElementById('sdd-workspace-nav-tabs').style.display = 'flex';
+    document.getElementById('sdd-active-spec-filename').textContent = filename;
+    document.getElementById('sdd-active-spec-filename').style.display = 'inline';
+
+    // Load content
+    try {
+        const res = await fetch(`/api/projects/${state.activeProjectId}/sdd/specs/${encodeURIComponent(filename)}`, { headers: getHeaders() });
+        const data = await res.json();
+        sddState.activeContent = data.content || '';
+        document.getElementById('sdd-active-spec-title').textContent = sddExtractTitle(sddState.activeContent) || filename;
+
+        // Populate tabs
+        sddPopulatePreview(sddState.activeContent);
+        document.getElementById('sdd-spec-editor-textarea').value = sddState.activeContent;
+        document.getElementById('sdd-edit-filename').value = filename;
+
+        // Switch to preview
+        sddSwitchTab('sdd-tab-preview');
+
+        // Load criteria if checklist tab is being shown
+        const checklistTab = document.getElementById('sdd-tab-checklist');
+        if (checklistTab && checklistTab.classList.contains('active')) {
+            await sddLoadCriteria();
+        }
+    } catch (e) {
+        console.error('Erro ao carregar spec:', e);
+    }
+}
+
+function sddExtractTitle(content) {
+    const match = content.match(/^#\s+(.+)$/m);
+    return match ? match[1].trim() : null;
+}
+
+function sddExtractSection(content, sectionNames) {
+    const names = Array.isArray(sectionNames) ? sectionNames : [sectionNames];
+    const lines = (content || '').split('\n');
+    let start = -1;
+    let end = lines.length;
+
+    for (let i = 0; i < lines.length; i++) {
+        const normalized = lines[i].replace(/^#+\s*\d*\.?\s*/, '').toLowerCase();
+        if (names.some(name => normalized.includes(name.toLowerCase()))) {
+            start = i;
+            break;
+        }
+    }
+
+    if (start === -1) return '';
+
+    const level = (lines[start].match(/^#+/) || ['##'])[0].length;
+    for (let i = start + 1; i < lines.length; i++) {
+        const heading = lines[i].match(/^(#+)\s+/);
+        if (heading && heading[1].length <= level) {
+            end = i;
+            break;
+        }
+    }
+
+    return lines.slice(start, end).join('\n').trim();
+}
+
+function sddReplaceSection(content, sectionNames, fallbackHeading, sectionContent) {
+    const names = Array.isArray(sectionNames) ? sectionNames : [sectionNames];
+    const lines = (content || '').split('\n');
+    let start = -1;
+    let end = lines.length;
+
+    for (let i = 0; i < lines.length; i++) {
+        const normalized = lines[i].replace(/^#+\s*\d*\.?\s*/, '').toLowerCase();
+        if (names.some(name => normalized.includes(name.toLowerCase()))) {
+            start = i;
+            break;
+        }
+    }
+
+    const cleanSection = (sectionContent || fallbackHeading).trim();
+    if (start === -1) {
+        return `${(content || '').trim()}\n\n${cleanSection}\n`;
+    }
+
+    const level = (lines[start].match(/^#+/) || ['##'])[0].length;
+    for (let i = start + 1; i < lines.length; i++) {
+        const heading = lines[i].match(/^(#+)\s+/);
+        if (heading && heading[1].length <= level) {
+            end = i;
+            break;
+        }
+    }
+
+    return [
+        ...lines.slice(0, start),
+        ...cleanSection.split('\n'),
+        ...lines.slice(end)
+    ].join('\n').trim() + '\n';
+}
+
+function sddPopulateStageEditors(content) {
+    const specify = sddExtractSection(content, ['Specify', 'Especificação', 'Requisitos']) || content;
+    const design = sddExtractSection(content, ['Design', 'Planejamento', 'Arquitetura']);
+    const specifyEditor = document.getElementById('sdd-specify-editor');
+    const designEditor = document.getElementById('sdd-design-editor');
+    const fullEditor = document.getElementById('sdd-spec-editor-textarea');
+    if (specifyEditor) specifyEditor.value = specify;
+    if (designEditor) designEditor.value = design || '## 2. Design - Planejamento\n\n### Arquitetura proposta\n\n### Dados, bibliotecas e integrações\n\n### Contratos técnicos\n';
+    if (fullEditor) fullEditor.value = content;
+    const empty = document.getElementById('sdd-empty-workspace');
+    const previewTab = document.getElementById('sdd-tab-preview');
+    const hasContent = Boolean(sddState.activeFilename || content);
+    if (empty) empty.style.display = hasContent ? 'none' : 'flex';
+    if (previewTab) previewTab.classList.toggle('has-content', hasContent);
+}
+
+function sddPopulatePreview(content) {
+    const container = document.getElementById('sdd-spec-markdown-render');
+    if (container) container.innerHTML = sddRenderMarkdown(content);
+    sddPopulateStageEditors(content);
+    if (window.lucide) lucide.createIcons();
+}
+
+// --- Workspace Sub-tab Switching ---
+function sddSwitchTab(tabId) {
+    document.querySelectorAll('.sdd-tab-content').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.sdd-nav-btn').forEach(b => b.classList.remove('active'));
+    const tab = document.getElementById(tabId);
+    if (tab) tab.classList.add('active');
+    const btn = document.querySelector(`[data-sdd-tab="${tabId}"]`);
+    if (btn) btn.classList.add('active');
+    sddUpdateFlowStrip(tabId);
+
+    // Load criteria when switching to checklist
+    if (tabId === 'sdd-tab-checklist' && sddState.activeFilename) {
+        sddLoadCriteria();
+    }
+}
+
+function sddUpdateFlowStrip(tabId = 'sdd-tab-preview') {
+    const strip = document.getElementById('sdd-flow-strip');
+    if (!strip) return;
+    const hasSpecContext = Boolean(sddState.activeFilename) || tabId === 'sdd-tab-edit' || tabId === 'sdd-tab-ia-wizard';
+    strip.style.display = hasSpecContext ? 'flex' : 'none';
+
+    const breadcrumb = document.getElementById('sdd-flow-breadcrumb');
+    if (breadcrumb) {
+        const filename = sddState.activeFilename || document.getElementById('sdd-edit-filename')?.value || 'nova-spec.md';
+        breadcrumb.textContent = `.documents > specs > ${filename} > fluxo SDD`;
+    }
+
+    const activeFlowTab = tabId === 'sdd-tab-checklist'
+        ? 'sdd-tab-checklist'
+        : tabId === 'sdd-tab-tests'
+            ? 'sdd-tab-tests'
+            : tabId === 'sdd-tab-edit'
+                ? 'sdd-tab-edit'
+                : 'sdd-tab-preview';
+
+    document.querySelectorAll('.sdd-flow-step').forEach(step => {
+        step.classList.toggle('active', step.dataset.sddFlowTab === activeFlowTab);
+    });
+}
+
+// --- Criteria Checklist ---
+async function sddLoadCriteria() {
+    if (!state.activeProjectId || !sddState.activeFilename) return;
+    const container = document.getElementById('sdd-criteria-checklist-container');
+    container.innerHTML = '<p style="color:var(--text-muted);padding:16px;">Carregando critérios...</p>';
+    try {
+        const res = await fetch(`/api/projects/${state.activeProjectId}/sdd/specs/${encodeURIComponent(sddState.activeFilename)}/criteria`, { headers: getHeaders() });
+        const data = await res.json();
+        sddRenderCriteria(data.criteria || []);
+    } catch (e) {
+        container.innerHTML = '<p style="color:#ef4444;padding:16px;">Erro ao carregar critérios.</p>';
+    }
+}
+
+function sddRenderCriteria(criteria) {
+    const container = document.getElementById('sdd-criteria-checklist-container');
+    const progressText = document.getElementById('sdd-checklist-progress-text');
+    const progressFill = document.getElementById('sdd-progress-fill');
+
+    if (!criteria.length) {
+        container.innerHTML = `
+            <div style="text-align:center;padding:40px;color:var(--text-muted);">
+                <i data-lucide="clipboard-list" style="width:40px;height:40px;margin-bottom:12px;opacity:0.4;"></i>
+                <p>Nenhum critério de aceitação encontrado nesta especificação.<br>Adicione itens <code>- [ ] Critério</code> no arquivo.</p>
+            </div>`;
+        if (window.lucide) lucide.createIcons();
+        progressText.textContent = '0/0 concluídos';
+        progressFill.style.width = '0%';
+        return;
+    }
+
+    const total = criteria.length;
+    const done = criteria.filter(c => c.checked).length;
+    const pct = total ? Math.round((done / total) * 100) : 0;
+    progressText.textContent = `${done}/${total} concluídos (${pct}%)`;
+    progressFill.style.width = `${pct}%`;
+
+    container.innerHTML = criteria.map(c => `
+        <div class="sdd-criteria-row ${c.checked ? 'checked' : ''}" data-line="${c.line_no}">
+            <input type="checkbox" ${c.checked ? 'checked' : ''} 
+                   onchange="sddToggleCriteria(${c.line_no}, this.checked)" 
+                   style="width:16px;height:16px;cursor:pointer;accent-color:var(--color-primary);flex-shrink:0;">
+            <span class="sdd-criteria-text">${c.text}</span>
+            <select class="sdd-task-status select-input" onchange="sddSetTaskStatus(${c.line_no}, this.value)">
+                <option value="todo">todo</option>
+                <option value="execute">executar</option>
+            </select>
+        </div>`).join('');
+}
+
+function sddSetTaskStatus(lineNo, value) {
+    if (value !== 'execute') return;
+    const row = document.querySelector(`.sdd-criteria-row[data-line="${lineNo}"]`);
+    const taskText = row?.querySelector('.sdd-criteria-text')?.textContent?.trim() || '';
+    sddState.executeTask = { lineNo, text: taskText };
+    sddPopulateExecuteInstructions(taskText);
+    sddSwitchTab('sdd-tab-tests');
+}
+
+function sddPopulateExecuteInstructions(taskText) {
+    const textarea = document.getElementById('sdd-execute-instructions');
+    if (!textarea) return;
+    const specify = sddExtractSection(sddState.activeContent, ['Specify', 'Especificação', 'Requisitos']);
+    const design = sddExtractSection(sddState.activeContent, ['Design', 'Planejamento', 'Arquitetura']);
+    textarea.value = `# Execute\n\n## Tarefa selecionada\n${taskText || 'Nenhuma tarefa selecionada.'}\n\n## Instruções para IA/agente\nExecute estritamente esta tarefa contra a especificação e o design abaixo. Não implemente escopo fora da task selecionada. Ao terminar, indique arquivos alterados e testes executados.\n\n## Specify de referência\n${specify || 'Specify não encontrado.'}\n\n## Design de referência\n${design || 'Design não encontrado.'}\n`;
+}
+
+async function sddToggleCriteria(lineNo, checked) {
+    if (!state.activeProjectId || !sddState.activeFilename) return;
+    // Optimistic UI update
+    const row = document.querySelector(`.sdd-criteria-row[data-line="${lineNo}"]`);
+    if (row) row.classList.toggle('checked', checked);
+
+    try {
+        await fetch(`/api/projects/${state.activeProjectId}/sdd/specs/${encodeURIComponent(sddState.activeFilename)}/criteria`, {
+            method: 'POST',
+            headers: { ...getHeaders(), 'Content-Type': 'application/json' },
+            body: JSON.stringify({ criteria: [{ line_no: lineNo, checked }] })
+        });
+        // Refresh progress
+        await sddLoadCriteria();
+        // Refresh content cache
+        const res = await fetch(`/api/projects/${state.activeProjectId}/sdd/specs/${encodeURIComponent(sddState.activeFilename)}`, { headers: getHeaders() });
+        const data = await res.json();
+        sddState.activeContent = data.content || '';
+        sddPopulatePreview(sddState.activeContent);
+        document.getElementById('sdd-spec-editor-textarea').value = sddState.activeContent;
+    } catch (e) {
+        console.error('Erro ao atualizar critério:', e);
+    }
+}
+
+// --- Save Spec ---
+async function sddSaveSpec() {
+    if (!state.activeProjectId) return;
+    const filename = document.getElementById('sdd-edit-filename').value.trim();
+    const content = document.getElementById('sdd-spec-editor-textarea').value;
+    if (!filename.endsWith('.md')) {
+        alert('O nome do arquivo deve terminar com .md');
+        return;
+    }
+    const btn = document.getElementById('btn-sdd-save');
+    btn.disabled = true;
+    btn.innerHTML = '<i data-lucide="loader-2" style="animation:spin 1s linear infinite;"></i> Salvando...';
+    if (window.lucide) lucide.createIcons();
+    try {
+        const res = await fetch(`/api/projects/${state.activeProjectId}/sdd/specs`, {
+            method: 'POST',
+            headers: { ...getHeaders(), 'Content-Type': 'application/json' },
+            body: JSON.stringify({ filename, content })
+        });
+        const data = await res.json();
+        if (data.status === 'success') {
+            sddState.activeFilename = filename;
+            sddState.activeContent = content;
+            sddPopulatePreview(content);
+            document.getElementById('sdd-active-spec-filename').textContent = filename;
+            document.getElementById('sdd-active-spec-title').textContent = sddExtractTitle(content) || filename;
+            await sddLoadSpecs();
+            sddSwitchTab('sdd-tab-preview');
+        } else {
+            alert('Erro ao salvar: ' + (data.detail || 'Erro desconhecido'));
+        }
+    } catch (e) {
+        alert('Erro ao salvar especificação: ' + e.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i data-lucide="save"></i> Salvar Alterações';
+        if (window.lucide) lucide.createIcons();
+    }
+}
+
+async function sddSaveStage(stage) {
+    if (!state.activeProjectId) return;
+    const filenameInput = document.getElementById('sdd-edit-filename');
+    let filename = filenameInput?.value.trim() || sddState.activeFilename;
+    if (!filename) {
+        const title = sddExtractTitle(document.getElementById('sdd-specify-editor')?.value || '') || 'nova_spec';
+        filename = title.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '') + '.md';
+        if (filenameInput) filenameInput.value = filename;
+    }
+    if (!filename.endsWith('.md')) filename += '.md';
+
+    const specifyEditor = document.getElementById('sdd-specify-editor');
+    const designEditor = document.getElementById('sdd-design-editor');
+    let content = sddState.activeContent || `# ${sddExtractTitle(specifyEditor?.value || '') || 'Nova Feature'}\n`;
+
+    if (stage === 'specify') {
+        content = sddReplaceSection(
+            content,
+            ['Specify', 'Especificação', 'Requisitos'],
+            '## 1. Specify - Especificação',
+            specifyEditor?.value || ''
+        );
+    }
+
+    if (stage === 'design') {
+        content = sddReplaceSection(
+            content,
+            ['Design', 'Planejamento', 'Arquitetura'],
+            '## 2. Design - Planejamento',
+            designEditor?.value || ''
+        );
+    }
+
+    document.getElementById('sdd-spec-editor-textarea').value = content;
+    if (filenameInput) filenameInput.value = filename;
+    await sddSaveSpec();
+    sddState.activeContent = content;
+    sddPopulateStageEditors(content);
+    sddSwitchTab(stage === 'design' ? 'sdd-tab-edit' : 'sdd-tab-preview');
+}
+
+// --- Delete Spec ---
+async function sddDeleteSpec() {
+    if (!state.activeProjectId || !sddState.activeFilename) return;
+    const confirmed = await gitideConfirm({
+        title: 'Excluir requisito',
+        kicker: 'Spec-Driven Development',
+        message: `Tem certeza que deseja excluir <strong>${sddState.activeFilename}</strong>? Esta ação é irreversível.`,
+        confirmText: 'Excluir',
+        cancelText: 'Cancelar',
+        variant: 'danger'
+    });
+    if (!confirmed) return;
+    try {
+        const res = await fetch(`/api/projects/${state.activeProjectId}/sdd/specs/${encodeURIComponent(sddState.activeFilename)}`, {
+            method: 'DELETE',
+            headers: getHeaders()
+        });
+        const data = await res.json();
+        if (data.status === 'success') {
+            sddState.activeFilename = null;
+            sddState.activeContent = '';
+            // Reset workspace
+            document.getElementById('sdd-workspace-nav-tabs').style.display = 'none';
+            document.getElementById('sdd-active-spec-title').textContent = 'Nenhuma Especificação Selecionada';
+            document.getElementById('sdd-active-spec-filename').style.display = 'none';
+            sddSwitchTab('sdd-tab-preview');
+            document.getElementById('sdd-spec-markdown-render').innerHTML = `
+                <div class="sdd-empty-workspace">
+                    <i data-lucide="sparkles" style="width:48px;height:48px;color:var(--color-primary);opacity:0.6;margin-bottom:12px;"></i>
+                    <h3>Desenvolvimento Orientado por Especificação (SDD)</h3>
+                    <p>Selecione uma especificação da lista à esquerda ou utilize o assistente para criar uma nova e orientar a IA.</p>
+                    <button class="btn btn-primary" id="btn-switch-to-ia-generator"><i data-lucide="plus-circle"></i> Assistente de Especificação IA</button>
+                </div>`;
+            if (window.lucide) lucide.createIcons();
+            // Re-bind wizard button
+            const wb = document.getElementById('btn-switch-to-ia-generator');
+            if (wb) wb.addEventListener('click', () => sddSwitchTab('sdd-tab-ia-wizard'));
+            await sddLoadSpecs();
+            gitideNotify({ title: 'Requisito excluído', message: 'A especificação foi removida do projeto.', variant: 'success' });
+        } else {
+            gitideNotify({ title: 'Erro ao excluir', message: data.detail || 'Erro desconhecido', variant: 'danger' });
+        }
+    } catch (e) {
+        gitideNotify({ title: 'Erro ao excluir especificação', message: e.message, variant: 'danger' });
+    }
+}
+
+// --- New Manual Spec ---
+function sddNewManualSpec() {
+    sddState.activeFilename = null;
+    document.getElementById('sdd-workspace-nav-tabs').style.display = 'flex';
+    document.getElementById('sdd-active-spec-title').textContent = 'Nova Especificação';
+    document.getElementById('sdd-active-spec-filename').style.display = 'none';
+    document.getElementById('sdd-edit-filename').value = '';
+    const template = `# Título da Feature\n\n## 1. Specify - Especificação\n\n### Visão de negócio\nDescreva o problema, objetivo e contexto da feature.\n\n### Requisitos\n- REQ-001: Primeiro requisito de negócio.\n- REQ-002: Segundo requisito de negócio.\n\n### Regras de negócio\n- RN-001: Primeira regra de negócio.\n\n## 2. Design - Planejamento\n\n### Arquitetura proposta\nDescreva como o sistema vai operar.\n\n### Dados, bibliotecas e integrações\n- Banco de dados:\n- Bibliotecas:\n- Integrações:\n\n### Contratos técnicos\n- APIs, eventos, serviços ou componentes afetados.\n\n## 3. Task List - Tarefas\n\n- [ ] TASK-001: Implementar a primeira parte pequena e testável.\n- [ ] TASK-002: Criar testes automatizados.\n\n## 4. Execute - Implementação\n\nSelecione uma tarefa na aba Task List para montar as instruções de execução.\n`;
+    sddState.activeContent = template;
+    document.getElementById('sdd-spec-editor-textarea').value = template;
+    sddPopulateStageEditors(template);
+    document.querySelectorAll('.sdd-nav-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.sdd-tab-content').forEach(t => t.classList.remove('active'));
+    sddSwitchTab('sdd-tab-preview');
+    // Remove sidebar active
+    document.querySelectorAll('.spec-item').forEach(el => el.classList.remove('active'));
+}
+
+// --- AI Spec Generation ---
+async function sddGenerateSpecIA() {
+    const title = document.getElementById('sdd-wizard-title').value.trim();
+    const prompt = document.getElementById('sdd-wizard-prompt').value.trim();
+    if (!prompt) {
+        alert('Por favor, descreva as funcionalidades para gerar a especificação.');
+        return;
+    }
+    if (!state.activeProjectId) {
+        alert('Selecione um projeto primeiro.');
+        return;
+    }
+    const btn = document.getElementById('btn-sdd-generate-spec-ia');
+    btn.disabled = true;
+    btn.innerHTML = '<i data-lucide="loader-2" style="animation:spin 1s linear infinite;"></i> Gerando com IA...';
+    if (window.lucide) lucide.createIcons();
+    try {
+        const res = await fetch(`/api/projects/${state.activeProjectId}/sdd/generate-spec`, {
+            method: 'POST',
+            headers: { ...getHeaders(), 'Content-Type': 'application/json' },
+            body: JSON.stringify({ title, prompt })
+        });
+        const data = await res.json();
+        const generatedContent = data.content !== undefined ? data.content : data.markdown;
+        if (data.filename && generatedContent !== undefined) {
+            sddState.activeFilename = data.filename;
+            sddState.activeContent = generatedContent;
+            document.getElementById('sdd-active-spec-title').textContent = data.title || sddExtractTitle(generatedContent) || data.filename;
+            document.getElementById('sdd-active-spec-filename').textContent = data.filename;
+            document.getElementById('sdd-active-spec-filename').style.display = 'inline';
+            document.getElementById('sdd-workspace-nav-tabs').style.display = 'flex';
+            sddPopulatePreview(generatedContent);
+            document.getElementById('sdd-spec-editor-textarea').value = generatedContent;
+            document.getElementById('sdd-edit-filename').value = data.filename;
+            sddSwitchTab('sdd-tab-preview');
+            // Clear wizard inputs
+            document.getElementById('sdd-wizard-title').value = '';
+            document.getElementById('sdd-wizard-prompt').value = '';
+            await sddLoadSpecs();
+        } else {
+            alert('Erro ao gerar especificação: ' + (data.detail || JSON.stringify(data)));
+        }
+    } catch (e) {
+        alert('Erro na geração por IA: ' + e.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i data-lucide="sparkles"></i> Gerar Fluxo SDD via IA';
+        if (window.lucide) lucide.createIcons();
+    }
+}
+
+// --- AI Test Generation ---
+async function sddGenerateTests() {
+    if (!state.activeProjectId || !sddState.activeFilename) {
+        alert('Selecione uma especificação primeiro.');
+        return;
+    }
+    const framework = document.getElementById('sdd-test-framework').value;
+    const btn = document.getElementById('btn-sdd-generate-tests');
+    btn.disabled = true;
+    btn.innerHTML = '<i data-lucide="loader-2" style="animation:spin 1s linear infinite;"></i> Gerando testes com IA...';
+    if (window.lucide) lucide.createIcons();
+    const resultPanel = document.getElementById('sdd-test-result-panel');
+    resultPanel.style.display = 'none';
+    try {
+        const res = await fetch(`/api/projects/${state.activeProjectId}/sdd/generate-tests`, {
+            method: 'POST',
+            headers: { ...getHeaders(), 'Content-Type': 'application/json' },
+            body: JSON.stringify({ filename: sddState.activeFilename, framework })
+        });
+        const data = await res.json();
+        if (data.status === 'success') {
+            document.getElementById('sdd-test-result-filepath').textContent = '✓ Salvo em: ' + data.filepath;
+            document.getElementById('sdd-test-result-code').textContent = data.code || '';
+            resultPanel.style.display = 'flex';
+        } else {
+            alert('Erro ao gerar testes: ' + (data.detail || JSON.stringify(data)));
+        }
+    } catch (e) {
+        alert('Erro na geração de testes: ' + e.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i data-lucide="play-circle"></i> Gerar Arquivo de Testes com IA';
+        if (window.lucide) lucide.createIcons();
+    }
+}
+
+// --- SDD Event Listener Setup (called from setupEventListeners) ---
+function setupSddEventListeners() {
+    // Sidebar: Refresh
+    const btnRefresh = document.getElementById('btn-refresh-sdd-specs');
+    if (btnRefresh) btnRefresh.addEventListener('click', sddLoadSpecs);
+
+    // Sidebar: New Manual
+    const btnNew = document.getElementById('btn-new-sdd-spec-manual');
+    if (btnNew) btnNew.addEventListener('click', sddNewManualSpec);
+
+    // Switch to IA wizard from empty workspace
+    const btnToWizard = document.getElementById('btn-switch-to-ia-generator');
+    if (btnToWizard) btnToWizard.addEventListener('click', () => sddSwitchTab('sdd-tab-ia-wizard'));
+
+    // Workspace sub-tabs
+    document.querySelectorAll('.sdd-nav-btn').forEach(btn => {
+        btn.addEventListener('click', () => sddSwitchTab(btn.dataset.sddTab));
+    });
+
+    // Save spec
+    const btnSave = document.getElementById('btn-sdd-save');
+    if (btnSave) btnSave.addEventListener('click', sddSaveSpec);
+
+    const btnSaveSpecify = document.getElementById('btn-sdd-save-specify');
+    if (btnSaveSpecify) btnSaveSpecify.addEventListener('click', () => sddSaveStage('specify'));
+
+    const btnSaveDesign = document.getElementById('btn-sdd-save-design');
+    if (btnSaveDesign) btnSaveDesign.addEventListener('click', () => sddSaveStage('design'));
+
+    // Delete spec
+    const btnDelete = document.getElementById('btn-sdd-delete');
+    if (btnDelete) btnDelete.addEventListener('click', sddDeleteSpec);
+
+    const btnDeleteSpecify = document.getElementById('btn-sdd-delete-specify');
+    if (btnDeleteSpecify) btnDeleteSpecify.addEventListener('click', sddDeleteSpec);
+
+    // Generate spec via IA
+    const btnGenSpec = document.getElementById('btn-sdd-generate-spec-ia');
+    if (btnGenSpec) btnGenSpec.addEventListener('click', sddGenerateSpecIA);
+
+    const btnDesignAi = document.getElementById('btn-sdd-design-ai');
+    if (btnDesignAi) btnDesignAi.addEventListener('click', () => {
+        const prompt = document.getElementById('sdd-design-ai-prompt');
+        const specify = sddExtractSection(sddState.activeContent, ['Specify', 'Especificação', 'Requisitos']) || document.getElementById('sdd-specify-editor')?.value || '';
+        if (prompt) {
+            prompt.value = `Com base no Specify abaixo, gere somente a seção "## 2. Design - Planejamento" com arquitetura proposta, dados, integrações, bibliotecas e contratos técnicos. Não gere tarefas.\n\n${specify}`;
+            prompt.focus();
+        }
+    });
+
+    // Generate tests via IA
+    const btnGenTests = document.getElementById('btn-sdd-generate-tests');
+    if (btnGenTests) btnGenTests.addEventListener('click', sddGenerateTests);
+
+    document.querySelectorAll('.sdd-flow-step').forEach(btn => {
+        btn.addEventListener('click', () => sddSwitchTab(btn.dataset.sddFlowTab));
+    });
+
+    // Copy test code
+    const btnCopyTest = document.getElementById('btn-copy-sdd-test-code');
+    if (btnCopyTest) btnCopyTest.addEventListener('click', () => {
+        const code = document.getElementById('sdd-test-result-code').textContent;
+        navigator.clipboard.writeText(code).then(() => {
+            btnCopyTest.innerHTML = '<i data-lucide="check"></i>';
+            if (window.lucide) lucide.createIcons();
+            setTimeout(() => {
+                btnCopyTest.innerHTML = '<i data-lucide="copy"></i>';
+                if (window.lucide) lucide.createIcons();
+            }, 2000);
+        });
+    });
+}
+
+// Inject SDD CSS for markdown items not covered by rebrand.css
+(function injectSddStyles() {
+    const style = document.createElement('style');
+    style.textContent = `
+        .spec-item {
+            display: flex; align-items: center; gap: 10px;
+            min-height: 46px; padding: 8px 10px; cursor: pointer;
+            border: 1px solid transparent; border-radius: 10px;
+            transition: background 0.15s, border-color 0.15s;
+        }
+        .spec-item:hover { background: rgba(255,255,255,0.025); border-color: var(--flat-border-soft, var(--border-color)); }
+        .spec-item.active { background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.10); }
+        .spec-item-title { font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .spec-item-meta { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+        .specs-empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center;
+            gap: 10px; padding: 40px 20px; color: var(--text-muted); font-size: 13px; text-align: center; }
+        .specs-empty-state i { width: 36px; height: 36px; opacity: 0.4; }
+        .md-check { list-style: none; }
+        .md-checkbox { display: inline-block; width: 16px; margin-right: 6px; color: var(--color-primary); }
+        .md-check.checked { color: #10b981; text-decoration: line-through; opacity: 0.7; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    `;
+    document.head.appendChild(style);
+})();

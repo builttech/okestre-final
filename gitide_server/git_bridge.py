@@ -145,6 +145,7 @@ def get_git_status(project_path: str) -> dict:
         modified = [item.a_path for item in repo.index.diff(None) if item.change_type == 'M']
         deleted = [item.a_path for item in repo.index.diff(None) if item.change_type == 'D']
         staged = [item.a_path for item in repo.index.diff("HEAD")]
+        conflicted = sorted([item[0] for item in repo.index.unmerged_blobs().items()])
         
         # Busca a branch ativa
         try:
@@ -160,7 +161,9 @@ def get_git_status(project_path: str) -> dict:
             "modified": modified,
             "deleted": deleted,
             "staged": staged,
-            "is_clean": not any([untracked, modified, deleted, staged]),
+            "conflicted": conflicted,
+            "has_conflicts": bool(conflicted),
+            "is_clean": not any([untracked, modified, deleted, staged, conflicted]),
             "remote_url": remote_url
         }
     except ValueError:
@@ -441,6 +444,123 @@ def abort_merge(project_path: str) -> dict:
         }
     except Exception as e:
         raise RuntimeError(f"Erro ao abortar mesclagem: {str(e)}")
+
+def _safe_project_path(project_path: str, filepath: str) -> str:
+    if os.path.isabs(filepath) or ".." in filepath.replace("\\", "/").split("/"):
+        raise ValueError("Caminho de arquivo inválido.")
+    root = os.path.abspath(project_path)
+    full_path = os.path.abspath(os.path.join(root, filepath))
+    if not full_path.startswith(root):
+        raise ValueError("Caminho de arquivo fora do projeto.")
+    return full_path
+
+def parse_conflict_blocks(content: str) -> list:
+    lines = content.splitlines(keepends=True)
+    blocks = []
+    i = 0
+    while i < len(lines):
+        if lines[i].startswith("<<<<<<< "):
+            start = i
+            ours_label = lines[i].strip().replace("<<<<<<<", "").strip() or "ours"
+            i += 1
+            ours_start = i
+            while i < len(lines) and not lines[i].startswith("======="):
+                i += 1
+            if i >= len(lines):
+                break
+            separator = i
+            i += 1
+            theirs_start = i
+            while i < len(lines) and not lines[i].startswith(">>>>>>> "):
+                i += 1
+            if i >= len(lines):
+                break
+            end = i
+            theirs_label = lines[i].strip().replace(">>>>>>>", "").strip() or "theirs"
+            blocks.append({
+                "index": len(blocks),
+                "start_line": start + 1,
+                "end_line": end + 1,
+                "ours_label": ours_label,
+                "theirs_label": theirs_label,
+                "ours": "".join(lines[ours_start:separator]),
+                "theirs": "".join(lines[theirs_start:end]),
+                "raw": "".join(lines[start:end + 1])
+            })
+        i += 1
+    return blocks
+
+def list_conflicts(project_path: str) -> dict:
+    repo = get_repo(project_path)
+    files = sorted([item[0] for item in repo.index.unmerged_blobs().items()])
+    result = []
+    for filepath in files:
+        full_path = _safe_project_path(project_path, filepath)
+        try:
+            with open(full_path, "r", encoding="utf-8") as f:
+                content = f.read()
+        except UnicodeDecodeError:
+            with open(full_path, "r", encoding="latin-1") as f:
+                content = f.read()
+        blocks = parse_conflict_blocks(content)
+        result.append({
+            "filepath": filepath,
+            "blocks_count": len(blocks),
+            "blocks": blocks
+        })
+    return {"status": "success", "files": result}
+
+def get_conflict_file(project_path: str, filepath: str) -> dict:
+    full_path = _safe_project_path(project_path, filepath)
+    try:
+        with open(full_path, "r", encoding="utf-8") as f:
+            content = f.read()
+    except UnicodeDecodeError:
+        with open(full_path, "r", encoding="latin-1") as f:
+            content = f.read()
+    return {
+        "status": "success",
+        "filepath": filepath,
+        "content": content,
+        "blocks": parse_conflict_blocks(content)
+    }
+
+def resolve_conflict_file(project_path: str, filepath: str, resolutions: list, stage_file: bool = True) -> dict:
+    repo = get_repo(project_path)
+    full_path = _safe_project_path(project_path, filepath)
+    with open(full_path, "r", encoding="utf-8") as f:
+        content = f.read()
+
+    blocks = parse_conflict_blocks(content)
+    resolution_map = {item["index"]: item for item in resolutions}
+    for block in reversed(blocks):
+        if block["index"] not in resolution_map:
+            continue
+        resolution = resolution_map[block["index"]]
+        mode = resolution.get("resolution")
+        if mode == "ours":
+            replacement = block["ours"]
+        elif mode == "theirs":
+            replacement = block["theirs"]
+        elif mode == "manual":
+            replacement = resolution.get("content") or ""
+        else:
+            raise ValueError(f"Resolução inválida para bloco {block['index']}: {mode}")
+        content = content.replace(block["raw"], replacement, 1)
+
+    remaining = parse_conflict_blocks(content)
+    with open(full_path, "w", encoding="utf-8", newline="") as f:
+        f.write(content)
+
+    if stage_file and not remaining:
+        repo.git.add(filepath)
+
+    return {
+        "status": "success",
+        "filepath": filepath,
+        "remaining_blocks": len(remaining),
+        "staged": stage_file and not remaining
+    }
 
 def set_remote_token(project_path: str, token: str) -> dict:
     """Configura o Personal Access Token (PAT) na URL de origin do Git."""
