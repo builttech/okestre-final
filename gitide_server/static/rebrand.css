@@ -2898,6 +2898,123 @@ input[type="checkbox"]:focus-visible{
     color:var(--color-danger)!important;
 }
 
+/* Git console + credentials layout repair */
+#tab-git .git-layout{
+    grid-template-columns:minmax(340px,420px) minmax(0,1fr)!important;
+    grid-template-rows:auto auto auto!important;
+    grid-template-areas:
+        'status console'
+        'deploy console'
+        'credentials graph'!important;
+    align-items:start!important;
+    align-content:start!important;
+    gap:16px!important;
+}
+
+#tab-git .git-credentials-card{grid-area:credentials!important;}
+#tab-git .git-console-card{grid-area:console!important;}
+#tab-git .git-graph-card{grid-area:graph!important;}
+
+#tab-git .git-console-card,
+#tab-git .git-credentials-card,
+#tab-git .git-graph-card{
+    width:100%!important;
+    min-width:0!important;
+    height:auto!important;
+    align-self:start!important;
+    border-radius:24px!important;
+    background:rgba(255,255,255,.018)!important;
+    border:1px solid var(--frame-border)!important;
+    overflow:hidden!important;
+}
+
+#tab-git .git-console-card{
+    position:relative!important;
+    top:auto!important;
+    z-index:1!important;
+    min-height:0!important;
+    max-height:none!important;
+    display:flex!important;
+    flex-direction:column!important;
+    padding:0!important;
+}
+
+#tab-git .git-console-card .card-header,
+#tab-git .git-credentials-card .card-header{
+    margin:0!important;
+    padding:18px 20px 12px!important;
+    border-bottom:1px solid var(--frame-border)!important;
+}
+
+#tab-git #git-console-output{
+    width:100%!important;
+    min-height:260px!important;
+    max-height:360px!important;
+    height:auto!important;
+    margin:0!important;
+    padding:18px 20px!important;
+    border:0!important;
+    border-radius:0!important;
+    overflow:auto!important;
+    white-space:pre-wrap!important;
+    word-break:break-word!important;
+    background:rgba(0,0,0,.34)!important;
+}
+
+#tab-git .git-credentials-card{
+    padding:0!important;
+}
+
+#tab-git .git-credentials-card .card-body{
+    padding:18px 20px 20px!important;
+    display:flex!important;
+    flex-direction:column!important;
+    gap:14px!important;
+}
+
+#tab-git .git-credentials-card .card-body > div{
+    min-width:0;
+}
+
+#tab-git #git-pat-token-input{
+    min-width:0!important;
+}
+
+#tab-git .generated-command-container{
+    width:100%!important;
+    box-sizing:border-box!important;
+    overflow:hidden!important;
+}
+
+#tab-git #git-generated-command-text{
+    display:block!important;
+    padding-right:36px!important;
+    overflow-wrap:anywhere!important;
+}
+
+#tab-git #btn-run-generated-git-cmd{
+    width:100%!important;
+    justify-content:center!important;
+    white-space:normal!important;
+}
+
+@media (max-width: 1180px){
+    #tab-git .git-layout{
+        grid-template-columns:1fr!important;
+        grid-template-rows:auto auto auto auto auto!important;
+        grid-template-areas:
+            'status'
+            'deploy'
+            'credentials'
+            'console'
+            'graph'!important;
+    }
+
+    #tab-git #git-console-output{
+        max-height:320px!important;
+    }
+}
+
 /* Documents Word view */
 #tab-documents.active{
     display:flex!important;
