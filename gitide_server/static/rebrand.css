@@ -4440,3 +4440,33 @@ input[type="checkbox"]:focus-visible{
     color: var(--text-muted);
 }
 
+/* Workspace account menu must escape the footer/sidebar clipping. */
+.app-container:has(.workspace-switcher.is-open),
+.main-layout:has(.workspace-switcher.is-open),
+.sidebar:has(.workspace-switcher.is-open),
+.sidebar-footer:has(.workspace-switcher.is-open),
+.sidebar-workspace-footer-section:has(.workspace-switcher.is-open),
+.project-selector-wrapper:has(.workspace-switcher.is-open) {
+    overflow: visible !important;
+}
+
+.sidebar:has(.workspace-switcher.is-open),
+.sidebar-footer:has(.workspace-switcher.is-open),
+.sidebar-workspace-footer-section:has(.workspace-switcher.is-open) {
+    z-index: 30000 !important;
+}
+
+.workspace-switcher.is-open {
+    z-index: 30001 !important;
+}
+
+.workspace-switcher.is-open .workspace-account-popover,
+.workspace-switcher.is-open .workspace-switcher-menu {
+    display: block !important;
+    z-index: 30002 !important;
+}
+
+.workspace-switcher.is-switching-org .workspace-account-org-submenu {
+    display: flex !important;
+}
+
