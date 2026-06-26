@@ -18,6 +18,8 @@
 
     select.setAttribute(ENHANCED_ATTR, 'true');
     select.classList.add('gitide-select-original');
+    select.hidden = true;
+    select.style.setProperty('display', 'none', 'important');
 
     if (select.id === 'project-selector') {
       const bootValue = localStorage.getItem('selected_project_id') || localStorage.getItem('active_project_id');

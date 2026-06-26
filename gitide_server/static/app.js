@@ -5133,9 +5133,6 @@ function openCheckoutModal() {
     if (!state.activeProjectId) return;
     
     const selector = document.getElementById('checkout-branch-selector');
-    selector?.nextElementSibling?.classList?.contains('gitide-select') && selector.nextElementSibling.remove();
-    selector?.classList.remove('gitide-select-original');
-    selector?.removeAttribute('data-gitide-select-enhanced');
     selector.innerHTML = '<option value="">Carregando branches...</option>';
     
     openCustomModal('modal-checkout');
