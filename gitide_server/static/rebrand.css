@@ -4474,9 +4474,15 @@ input[type="checkbox"]:focus-visible{
     z-index: 30002 !important;
 }
 
+.workspace-switcher.is-open .workspace-account-popover {
+    max-height: none !important;
+    overflow: visible !important;
+}
+
 .workspace-switcher.is-switching-org .workspace-account-org-submenu {
     display: flex !important;
     max-height: calc(100vh - 160px) !important;
     overflow-y: auto !important;
+    z-index: 30003 !important;
 }
 
