@@ -1,0 +1,2481 @@
+/* GitIDE Rebrand Layer — DS driven visual system */
+:root,
+:root[data-theme="dark"] {
+    /* DS semantic colors — theme/dark */
+    --ds-bg: #0a0a0a;
+    --ds-surface: #111111;
+    --ds-surface-elevated: #1a1a1a;
+    --ds-surface-muted: #1f2228;
+    --ds-text: #ffffff;
+    --ds-text-secondary: #999999;
+    --ds-text-muted: #6f6f6f;
+    --ds-border: #1a1a1a;
+    --ds-border-strong: rgba(255,255,255,0.15);
+    --ds-primary: #f97583;
+    --ds-primary-soft: rgba(249,117,131,0.16);
+    --ds-secondary: #29c6be;
+    --ds-info: #79b8ff;
+    --ds-purple: #bc97ff;
+    --ds-success: #91c17a;
+    --ds-warning: #ffbd2e;
+    --ds-danger: #ff5f57;
+
+    /* DS foundations */
+    --ds-font-heading: universalSansDisplay, Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --ds-font-body: universalSans, Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --ds-font-mono: 'Fira Code', 'SFMono-Regular', Consolas, monospace;
+    --ds-radius-button: 6px;
+    --ds-radius-lg: 12px;
+    --ds-radius-card: 24px;
+    --ds-shadow-low: rgba(0,0,0,0.10) 0 20px 25px -5px, rgba(0,0,0,0.10) 0 8px 10px -6px;
+    --ds-shadow-surface: rgba(255,255,255,0.03) 0 1px 0 0 inset;
+    --ds-shadow-focus: 0 0 0 3px rgba(249,117,131,0.18);
+
+    /* Legacy bridge used by existing CSS */
+    --frame-bg: var(--ds-bg);
+    --frame-canvas: var(--ds-surface);
+    --frame-panel: rgba(26,26,26,0.84);
+    --frame-panel-solid: var(--ds-surface-elevated);
+    --frame-panel-hover: rgba(255,255,255,0.055);
+    --frame-border: rgba(255,255,255,0.085);
+    --frame-border-strong: var(--ds-border-strong);
+    --frame-blue: var(--ds-primary);
+    --frame-blue-soft: var(--ds-primary-soft);
+    --frame-text: var(--ds-text);
+    --frame-muted: var(--ds-text-secondary);
+    --frame-subtle: var(--ds-text-muted);
+    --frame-shadow: 0 24px 70px rgba(0,0,0,0.38);
+    --frame-radius: var(--ds-radius-lg);
+    --frame-radius-lg: var(--ds-radius-card);
+
+    --bg-base: var(--ds-bg);
+    --bg-surface: var(--ds-surface);
+    --bg-surface-hover: var(--ds-surface-muted);
+    --border-color: var(--frame-border);
+    --color-primary: var(--ds-primary);
+    --color-primary-glow: var(--ds-primary-soft);
+    --color-secondary: var(--ds-secondary);
+    --color-success: var(--ds-success);
+    --color-warning: var(--ds-warning);
+    --color-danger: var(--ds-danger);
+    --text-main: var(--ds-text);
+    --text-muted: var(--ds-text-secondary);
+    --text-dark: var(--ds-text-muted);
+    --font-sans: var(--ds-font-body);
+    --font-mono: var(--ds-font-mono);
+}
+
+:root[data-theme="light"] {
+    --ds-bg: #ffffff;
+    --ds-surface: #f7f7f7;
+    --ds-surface-elevated: #ffffff;
+    --ds-surface-muted: #f1f3f5;
+    --ds-text: #0a0a0a;
+    --ds-text-secondary: #666666;
+    --ds-text-muted: #999999;
+    --ds-border: #e6e6e6;
+    --ds-border-strong: rgba(10,10,10,0.15);
+    --ds-primary: #f97583;
+    --ds-primary-soft: rgba(249,117,131,0.14);
+    --ds-secondary: #179f99;
+    --ds-info: #2563eb;
+    --ds-purple: #7c3aed;
+    --ds-success: #3f8f46;
+    --ds-warning: #b7791f;
+    --ds-danger: #d92d20;
+
+    --frame-panel: rgba(255,255,255,0.86);
+    --frame-panel-hover: rgba(10,10,10,0.045);
+    --frame-border: rgba(10,10,10,0.085);
+    --frame-shadow: 0 24px 70px rgba(10,10,10,0.10);
+}
+
+body {
+    font-family: var(--font-sans);
+    color: var(--text-main);
+    background:
+        radial-gradient(circle at 54% -16%, color-mix(in srgb, var(--color-primary) 12%, transparent), transparent 32%),
+        radial-gradient(circle at 92% 10%, color-mix(in srgb, var(--color-secondary) 10%, transparent), transparent 28%),
+        var(--bg-base);
+}
+
+.topbar {
+    height: 48px;
+    padding: 0 14px;
+    background: rgba(9,9,10,0.78);
+}
+
+.main-layout {
+    height: calc(100vh - 48px);
+}
+
+.sidebar {
+    width: 270px;
+    padding: 10px 8px;
+    background: rgba(12,12,13,0.9);
+}
+
+.content-area {
+    background:
+        linear-gradient(180deg, rgba(255,255,255,0.012), transparent 22%),
+        var(--frame-canvas);
+}
+
+.brand-text h1::after {
+    content: " Canvas";
+    color: var(--frame-muted);
+    font-weight: 600;
+}
+
+.status-label {
+    color: var(--frame-muted);
+}
+
+.sidebar-section,
+.project-selector-wrapper,
+.sidebar-footer,
+.editor-actions,
+.terminal-actions,
+.db-actions,
+.card-body,
+.form-group,
+.input-copy-wrapper,
+.token-container,
+.github-profile-bar,
+.agent-quick-actions,
+.agent-input-wrapper > div,
+.dir-browser-nav,
+.modal-tabs-header,
+.collapsible-trigger {
+    gap: 8px !important;
+}
+
+.section-header,
+.panel-header,
+.card-header,
+.modal-header {
+    min-height: 44px;
+    padding: 12px 14px;
+}
+
+.section-header h3,
+.panel-header h4,
+.card-header h4,
+.panel-header-simple h4,
+.panel-header-simple h5 {
+    text-transform: none !important;
+    letter-spacing: -0.012em !important;
+    color: var(--frame-text) !important;
+}
+
+.nav-item {
+    min-height: 36px;
+    padding: 8px 10px !important;
+    border-radius: 10px !important;
+}
+
+.nav-item.active::after {
+    content: "";
+    margin-left: auto;
+    width: 5px;
+    height: 5px;
+    border-radius: 999px;
+    background: var(--frame-blue);
+    box-shadow: 0 0 12px var(--frame-blue);
+}
+
+.file-tree-panel,
+.editor-panel,
+.db-explorer-sidebar,
+.db-editor-panel,
+.db-results-panel,
+.git-status-card,
+.git-operations-card,
+.git-console-card,
+.activity-logs-panel,
+.all-snapshots-panel,
+.tokens-sidebar-card,
+.tokens-content-panel,
+.settings-card,
+.agent-main-panel,
+.modal-card {
+    background: var(--frame-panel) !important;
+    border: 1px solid var(--frame-border) !important;
+    box-shadow: var(--frame-shadow);
+}
+
+.file-tree-panel,
+.editor-panel {
+    box-shadow: none;
+}
+
+.files-layout,
+.database-layout,
+.logs-layout,
+.git-layout,
+.terminal-panel,
+.tokens-layout,
+.settings-dashboard-layout,
+.agent-layout {
+    padding: 14px !important;
+    gap: 14px !important;
+}
+
+.files-layout {
+    background: transparent;
+}
+
+.file-tree-panel {
+    border-radius: var(--frame-radius-lg) !important;
+    overflow: hidden;
+}
+
+.editor-panel {
+    border-radius: var(--frame-radius-lg) !important;
+    overflow: hidden;
+}
+
+.panel-header,
+.card-header,
+.modal-header,
+.modal-footer {
+    background: rgba(255,255,255,0.018) !important;
+}
+
+.btn,
+.select-input,
+.text-input,
+.db-query-wrapper textarea,
+.terminal-input-wrapper,
+#file-editor-textarea,
+.quick-action-btn,
+.modal-tab-btn,
+.github-connect-btn,
+.btn-select-folder,
+.collapsible-trigger,
+.code-box,
+pre,
+input,
+select,
+textarea {
+    border-radius: var(--frame-radius) !important;
+}
+
+.btn,
+.btn-icon,
+.btn-icon-sm,
+.quick-action-btn,
+.modal-tab-btn,
+.github-connect-btn,
+.btn-select-folder,
+.collapsible-trigger {
+    transition: transform 160ms ease, background 160ms ease, border-color 160ms ease, box-shadow 160ms ease, color 160ms ease !important;
+}
+
+.btn:hover,
+.btn-icon:hover,
+.btn-icon-sm:hover,
+.quick-action-btn:hover,
+.modal-tab-btn:hover,
+.github-connect-btn:hover,
+.btn-select-folder:hover,
+.collapsible-trigger:hover {
+    transform: translateY(-1px);
+}
+
+.btn-primary,
+#btn-send-agent-prompt {
+    background: linear-gradient(180deg, #0aa2ff 0%, #0078df 100%) !important;
+    color: #fff !important;
+    border: 1px solid rgba(255,255,255,0.14) !important;
+}
+
+.btn-primary:hover,
+#btn-send-agent-prompt:hover {
+    box-shadow: 0 10px 30px rgba(0,153,255,0.24), inset 0 1px 0 rgba(255,255,255,0.2) !important;
+}
+
+.btn-danger {
+    background: linear-gradient(180deg, var(--color-danger) 0%, var(--color-danger) 100%) !important;
+    color: #fff !important;
+    border: 1px solid rgba(255,255,255,0.14) !important;
+}
+
+.btn-danger:hover {
+    box-shadow: 0 10px 30px rgba(255,95,87,0.24), inset 0 1px 0 rgba(255,255,255,0.2) !important;
+}
+
+.btn-secondary,
+.quick-action-btn,
+.modal-tab-btn,
+.github-connect-btn,
+.btn-select-folder,
+.collapsible-trigger {
+    background: rgba(255,255,255,0.04) !important;
+    border: 1px solid var(--frame-border) !important;
+    color: var(--frame-text) !important;
+}
+
+.btn-secondary:hover,
+.quick-action-btn:hover,
+.modal-tab-btn:hover,
+.github-connect-btn:hover,
+.btn-select-folder:hover,
+.collapsible-trigger:hover {
+    background: rgba(255,255,255,0.07) !important;
+    border-color: var(--frame-border-strong) !important;
+}
+
+.select-input,
+.text-input,
+.db-query-wrapper textarea,
+.terminal-input-wrapper,
+.editor-container,
+.db-results-container,
+#dir-browser-list {
+    background: rgba(0,0,0,0.28) !important;
+    border: 1px solid var(--frame-border) !important;
+}
+
+.select-input:focus,
+.text-input:focus,
+.db-query-wrapper textarea:focus,
+#file-editor-textarea:focus {
+    border-color: rgba(0,153,255,0.55) !important;
+    box-shadow: 0 0 0 3px rgba(0,153,255,0.12) !important;
+}
+
+.file-node,
+.db-table-item,
+.log-card,
+.snapshot-item,
+.git-file-item,
+.token-row,
+.token-category-header,
+.github-repo-item,
+.dir-item {
+    border-radius: 10px !important;
+}
+
+.file-node:hover,
+.db-table-item:hover,
+.log-card:hover,
+.snapshot-item:hover,
+.git-file-item:hover,
+.token-row:hover,
+.github-repo-item:hover,
+.dir-item:hover {
+    background: var(--frame-panel-hover) !important;
+}
+
+.file-node.active,
+.db-table-item.active,
+.modal-tab-btn.active {
+    background: var(--frame-blue-soft) !important;
+    border-color: rgba(0,153,255,0.32) !important;
+    color: var(--frame-text) !important;
+}
+
+.editor-container {
+    overflow: hidden;
+}
+
+.editor-gutter {
+    background: rgba(0,0,0,0.22) !important;
+    color: var(--frame-subtle) !important;
+}
+
+.terminal-output,
+#git-console-output {
+    background: rgba(0,0,0,0.34) !important;
+}
+
+.db-table th {
+    background: rgba(255,255,255,0.035) !important;
+    color: var(--frame-muted) !important;
+}
+
+.modal-backdrop {
+    background: rgba(0,0,0,0.68) !important;
+    backdrop-filter: blur(20px) !important;
+}
+
+.modal-card {
+    border-radius: 20px !important;
+    overflow: hidden;
+}
+
+.agent-chat-header,
+.agent-reasoning-monitor,
+.agent-chat-container,
+.agent-quick-actions,
+.agent-input-wrapper {
+    background: transparent !important;
+}
+
+.agent-chat-welcome {
+    background: linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0.012));
+    border: 1px solid var(--frame-border);
+    border-radius: 24px;
+    box-shadow: var(--frame-shadow);
+}
+
+.agent-chat-welcome i,
+.state-icon i {
+    color: var(--frame-blue) !important;
+}
+
+.agent-input-wrapper > div {
+    background: rgba(0,0,0,0.38) !important;
+    border: 1px solid var(--frame-border) !important;
+    border-radius: 999px !important;
+}
+
+#agent-user-prompt {
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+}
+
+.state-panel {
+    background:
+        radial-gradient(circle at 50% 36%, rgba(0,153,255,0.1), transparent 24%),
+        transparent;
+}
+
+.state-panel h2,
+.agent-chat-welcome h3 {
+    letter-spacing: -0.055em;
+    font-weight: 750;
+}
+
+.placeholder-text,
+.help-text,
+.db-meta-status,
+.status-label,
+.brand-text span,
+.form-group label {
+    color: var(--frame-muted) !important;
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,0.16);
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(255,255,255,0.28);
+}
+
+/* Explorer + Tables modernized */
+.file-tree-panel,
+.db-explorer-sidebar{
+    background:rgba(15,15,17,0.92)!important;
+}
+
+.file-tree-header,
+.db-panel-header,
+.panel-header-simple{
+    backdrop-filter:blur(16px);
+}
+
+.file-node,
+.db-table-item{
+    min-height:34px;
+    display:flex;
+    align-items:center;
+    font-size:13px;
+    letter-spacing:-0.01em;
+}
+
+.file-node.active,
+.db-table-item.active{
+    position:relative;
+}
+
+.file-node.active::before,
+.db-table-item.active::before{
+    content:'';
+    position:absolute;
+    left:6px;
+    top:6px;
+    bottom:6px;
+    width:2px;
+    border-radius:99px;
+    background:var(--frame-blue);
+}
+
+.log-card,
+.snapshot-item,
+.git-file-item{
+    background:rgba(255,255,255,0.02);
+    border:1px solid var(--frame-border);
+}
+
+.settings-card,
+.tokens-content-panel,
+.tokens-sidebar-card{
+    border-radius:20px!important;
+}
+
+.db-table table,
+.db-results-table{
+    font-size:13px;
+}
+
+.db-table th{
+    position:sticky;
+    top:0;
+    backdrop-filter:blur(10px);
+}
+
+.agent-chat-container .message,
+.agent-message,
+.chat-message{
+    border-radius:16px;
+}
+
+
+
+.section-actions{display:flex;gap:6px;}
+.project-selector-row{display:flex;gap:8px;align-items:center;}
+.project-selector-input{flex:1;}
+.is-hidden{display:none !important;}
+.is-danger{color:var(--color-danger)!important;}
+
+.sidebar-footer-stack{
+ display:flex;
+ flex-direction:column;
+ gap:8px;
+ padding-top:12px;
+ margin-top:auto;
+}
+
+.footer-settings-btn{
+ width:100%;
+ justify-content:center;
+ font-size:13px;
+ padding:10px;
+ margin-bottom:4px;
+}
+
+.sidebar-meta-row{
+ display:flex;
+ justify-content:space-between;
+ width:100%;
+ padding:0 4px;
+ font-size:10px;
+ color:var(--text-dark);
+}
+
+.db-tabs-nav-rebrand{
+ display:flex;
+ gap:8px;
+ border-bottom:1px solid var(--border-color);
+ margin-bottom:20px;
+ padding:20px 20px 2px;
+ flex-shrink:0;
+}
+
+.db-subtab-pane-active{
+ display:block;
+ flex:1;
+ min-height:0;
+}
+
+.database-layout-rebrand{
+ height:100%;
+ padding:0 20px 20px;
+}
+
+.db-panel-header{
+ display:flex;
+ justify-content:space-between;
+ align-items:center;
+ border-bottom:1px solid var(--border-color);
+ padding-bottom:10px;
+ margin-bottom:16px;
+}
+
+.db-tables-list-rebrand{
+ flex:1;
+ overflow-y:auto;
+ display:flex;
+ flex-direction:column;
+ gap:6px;
+}
+
+.agent-layout-rebrand{
+ display:flex;
+ gap:20px;
+ height:100%;
+ min-height:0;
+}
+
+.agent-main-panel-rebrand{
+ flex:1;
+ display:flex;
+ flex-direction:column;
+ min-width:0;
+ height:100%;
+ overflow:hidden;
+}
+
+.agent-chat-container-rebrand{
+ flex:1;
+ padding:20px;
+ overflow-y:auto;
+ display:flex;
+ flex-direction:column;
+ gap:14px;
+ background:rgba(0,0,0,0.05);
+}
+
+.agent-quick-actions-rebrand{
+ display:flex;
+ gap:10px;
+ padding:12px 20px;
+ background:transparent;
+ flex-shrink:0;
+ flex-wrap:wrap;
+ border-top:1px solid var(--border-color);
+}
+
+.agent-input-wrapper-rebrand{
+ display:flex;
+ align-items:center;
+ gap:12px;
+ padding:12px 20px 20px;
+ background:rgba(0,0,0,0.1);
+ flex-shrink:0;
+ flex-direction:column;
+}
+
+.agent-chat-header-rebrand{
+ display:flex;
+ justify-content:space-between;
+ align-items:center;
+ padding:14px 20px;
+ border-bottom:1px solid var(--border-color);
+ background:rgba(0,0,0,0.15);
+ flex-shrink:0;
+}
+
+.agent-header-group{
+ display:flex;
+ align-items:center;
+ gap:12px;
+}
+
+.agent-chat-header-rebrand h3{
+ letter-spacing:-0.03em;
+ font-weight:700;
+}
+
+.agent-chat-header-rebrand .btn-icon{
+ background:rgba(255,255,255,0.04);
+ border:1px solid var(--border-color);
+}
+
+.agent-chat-header-rebrand .btn-icon:hover{
+ background:rgba(255,255,255,0.08);
+}
+
+.agent-chat-welcome-rebrand{
+ text-align:center;
+ color:var(--text-muted);
+ margin:auto;
+ max-width:560px;
+ padding:32px;
+ border-radius:24px;
+}
+
+.agent-chat-welcome-rebrand h3{
+ margin-bottom:10px;
+}
+
+.agent-chat-welcome-rebrand p{
+ line-height:1.7;
+}
+
+.agent-chat-welcome-rebrand .quick-action-btn{
+ min-height:42px;
+}
+
+.agent-reasoning-monitor-rebrand{
+ padding:14px;
+ background:rgba(0,0,0,0.2);
+ border-bottom:1px solid var(--border-color);
+ flex-shrink:0;
+ max-height:150px;
+ overflow-y:auto;
+ font-family:var(--font-mono);
+ font-size:12px;
+ color:var(--text-muted);
+}
+
+.agent-reasoning-monitor-rebrand::before{
+ content:'Reasoning';
+ display:block;
+ font-size:11px;
+ font-weight:700;
+ letter-spacing:.04em;
+ text-transform:uppercase;
+ color:var(--text-dark);
+ margin-bottom:8px;
+}
+
+.modal-card-sm{
+ max-width:450px;
+ width:min(450px,92vw);
+}
+
+.modal-card-md{
+ max-width:600px;
+ width:min(600px,92vw);
+}
+
+.modal-card-lg{
+ max-width:900px;
+ width:min(900px,94vw);
+}
+
+.modal-card-xl{
+ max-width:1200px;
+ width:min(1200px,96vw);
+}
+
+.modal-header h3,
+.modal-header h4{
+ letter-spacing:-0.03em;
+ font-weight:700;
+}
+
+.modal-body{
+ padding:20px;
+}
+
+.modal-footer{
+ padding:16px 20px;
+}
+
+/* Workspace shell redesign */
+.topbar{
+    border-bottom:1px solid rgba(255,255,255,0.06)!important;
+    box-shadow:0 1px 0 rgba(255,255,255,0.035), 0 16px 42px rgba(0,0,0,0.18);
+}
+
+.brand{
+    min-width:250px;
+}
+
+.brand::after{
+    content:'Local Workspace';
+    height:24px;
+    display:inline-flex;
+    align-items:center;
+    padding:0 9px;
+    margin-left:4px;
+    border:1px solid var(--frame-border);
+    border-radius:999px;
+    color:var(--frame-muted);
+    background:rgba(255,255,255,0.035);
+    font-size:11px;
+    font-weight:600;
+}
+
+.sidebar{
+    border-right:1px solid rgba(255,255,255,0.06)!important;
+    box-shadow:inset -1px 0 0 rgba(255,255,255,0.025);
+}
+
+.sidebar::before{
+    content:'Workspace';
+    display:block;
+    margin:2px 10px 12px;
+    color:var(--frame-subtle);
+    font-size:11px;
+    font-weight:700;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+}
+
+.sidebar-section{
+    padding:10px;
+    border:1px solid var(--frame-border);
+    border-radius:16px;
+    background:rgba(255,255,255,0.025);
+}
+
+.sidebar-nav{
+    padding:6px;
+    border:1px solid var(--frame-border);
+    border-radius:18px;
+    background:rgba(255,255,255,0.018);
+}
+
+.nav-item{
+    position:relative;
+    isolation:isolate;
+}
+
+.nav-item.active{
+    background:linear-gradient(180deg, rgba(255,255,255,0.075), rgba(255,255,255,0.045))!important;
+}
+
+.nav-item.active::before{
+    content:'';
+    position:absolute;
+    inset:0;
+    border-radius:inherit;
+    padding:1px;
+    background:linear-gradient(135deg, rgba(255,255,255,0.18), rgba(0,153,255,0.22), rgba(255,255,255,0.04));
+    -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite:xor;
+    mask-composite:exclude;
+    pointer-events:none;
+}
+
+.content-area::before{
+    content:'';
+    position:absolute;
+    inset:14px;
+    border:1px solid rgba(255,255,255,0.045);
+    border-radius:24px;
+    pointer-events:none;
+    opacity:.65;
+}
+
+.status-panel::before{
+    content:'';
+    width:1px;
+    height:22px;
+    background:var(--frame-border);
+    margin-right:2px;
+}
+
+.api-key-badge{
+    font-family:var(--font-mono);
+    letter-spacing:-0.03em;
+}
+
+/* Layout redesign v3: workspace views, less dashboard */
+.git-layout,
+.database-layout,
+.logs-layout,
+.terminal-panel,
+.tokens-layout,
+.settings-dashboard-layout,
+.agent-layout{
+    max-width:1440px;
+    margin:0 auto;
+}
+
+.git-layout{
+    display:grid!important;
+    grid-template-columns:minmax(280px,380px) 1fr!important;
+    grid-template-areas:
+        'status console'
+        'deploy console'!important;
+    align-items:stretch;
+    height:100%;
+    padding:28px!important;
+    gap:16px!important;
+}
+
+.git-status-card{grid-area:status;}
+.git-operations-card{grid-area:deploy;}
+.git-console-card{grid-area:console;}
+
+.git-status-card,
+.git-operations-card,
+.git-console-card{
+    border-radius:24px!important;
+    background:rgba(15,15,17,.78)!important;
+}
+
+.git-console-card{
+    min-height:0;
+    display:flex;
+    flex-direction:column;
+}
+
+.git-console-card .card-header{
+    flex-shrink:0;
+}
+
+#git-console-output{
+    flex:1!important;
+    height:auto!important;
+    min-height:420px;
+}
+
+.git-status-card .card-header,
+.git-operations-card .card-header,
+.git-console-card .card-header{
+    border-bottom:0!important;
+    padding-bottom:6px!important;
+}
+
+.git-status-card .card-header h4,
+.git-operations-card .card-header h4,
+.git-console-card .card-header h4{
+    font-size:15px!important;
+    letter-spacing:-.04em!important;
+}
+
+#git-status-detail{
+    margin-top:8px;
+    padding-top:14px;
+    border-top:1px solid var(--frame-border);
+}
+
+.git-deploy-section .inline-form{
+    display:grid!important;
+    grid-template-columns:1fr!important;
+    gap:10px!important;
+}
+
+#git-branch-input,
+#git-commit-msg{
+    min-height:42px!important;
+}
+
+#btn-git-deploy,
+#btn-git-pull{
+    width:100%;
+    justify-content:center;
+}
+
+.files-layout{
+    width:100%!important;
+    max-width:none!important;
+    height:100%!important;
+    padding:0!important;
+    gap:0!important;
+}
+
+.file-tree-panel{
+    width:280px!important;
+    border-radius:0!important;
+    border-left:0!important;
+    border-top:0!important;
+    border-bottom:0!important;
+    border-right:1px solid var(--flat-border)!important;
+}
+
+.editor-panel,
+.file-tree-panel{
+    border-radius:24px!important;
+}
+
+.database-layout-rebrand,
+.database-layout{
+    grid-template-columns:320px 1fr!important;
+    padding:18px!important;
+    gap:16px!important;
+}
+
+.db-editor-panel,
+.db-results-panel,
+.db-explorer-sidebar{
+    border-radius:24px!important;
+}
+
+.agent-main-panel-rebrand{
+    border-radius:28px!important;
+}
+
+.agent-chat-container-rebrand{
+    padding:28px!important;
+}
+
+.agent-chat-welcome-rebrand{
+    max-width:620px!important;
+    padding:42px!important;
+}
+
+.agent-chat-welcome-rebrand h3{
+    font-size:30px!important;
+}
+
+.card{
+    padding:18px!important;
+}
+
+.card-header{
+    margin-bottom:10px!important;
+}
+
+.content-area{
+    padding:0;
+}
+
+.content-area::before{
+    inset:18px;
+    border-radius:30px;
+}
+
+/* Component-token bridge */
+:root{
+  --cmp-topbar-height:var(--theme-topbar-height,48px);
+  --cmp-sidebar-width:var(--theme-sidebar-width,270px);
+  --cmp-card-radius:var(--theme-card-radius,24px);
+  --cmp-button-height:var(--theme-button-height,36px);
+  --cmp-input-height:var(--theme-input-height,36px);
+  --cmp-db-explorer-width:var(--theme-db-explorer-width,320px);
+  --cmp-git-sidebar-width:var(--theme-git-sidebar-width,380px);
+  --cmp-git-console-height:var(--theme-git-console-height,420px);
+}
+
+.topbar{height:var(--cmp-topbar-height)!important;}
+.sidebar{width:var(--cmp-sidebar-width)!important;}
+.card,.modal-card{border-radius:var(--cmp-card-radius)!important;}
+.btn{min-height:var(--cmp-button-height)!important;}
+.select-input,.text-input,input,select{min-height:var(--cmp-input-height)!important;}
+.file-tree-panel,.db-explorer-sidebar{width:var(--cmp-db-explorer-width)!important;}
+#git-console-output{min-height:var(--cmp-git-console-height)!important;}
+
+.theme-toggle-btn{
+ display:inline-flex;
+ align-items:center;
+ gap:8px;
+ height:30px;
+ padding:0 10px;
+ border-radius:999px;
+ border:1px solid var(--frame-border);
+ background:rgba(255,255,255,.04);
+ color:var(--text-main);
+ cursor:pointer;
+}
+
+.theme-toggle-btn:hover{
+ background:rgba(255,255,255,.08);
+}
+
+/* Theme-aware workspace */
+html[data-theme="light"] body{
+    background:var(--bg-base);
+}
+
+html[data-theme="light"] .content-area,
+html[data-theme="light"] .file-tree-panel,
+html[data-theme="light"] .editor-panel,
+html[data-theme="light"] .db-explorer-sidebar,
+html[data-theme="light"] .db-editor-panel,
+html[data-theme="light"] .db-results-panel,
+html[data-theme="light"] .git-status-card,
+html[data-theme="light"] .git-operations-card,
+html[data-theme="light"] .git-console-card,
+html[data-theme="light"] .agent-main-panel,
+html[data-theme="light"] .modal-card{
+    color:var(--ds-text);
+}
+
+.theme-toggle-ready{
+    cursor:pointer;
+}
+
+/* Sidebar v2 + Git view v2 */
+.sidebar{
+    width:248px!important;
+    padding:14px 10px!important;
+    background:var(--theme-sidebar-bg)!important;
+}
+
+.brand{
+    min-width:auto!important;
+}
+
+.brand::after{
+    display:none!important;
+}
+
+.logo-icon{
+    width:28px!important;
+    height:28px!important;
+    border-radius:8px!important;
+}
+
+.brand-text h1{
+    font-size:14px!important;
+}
+
+.sidebar::before{
+    content:'Workspace';
+    margin:8px 8px 10px!important;
+}
+
+.sidebar-section{
+    padding:0!important;
+    border:0!important;
+    background:transparent!important;
+    margin-bottom:16px!important;
+}
+
+.section-header{
+    min-height:auto!important;
+    padding:0 8px 8px!important;
+}
+
+.section-header h3{
+    color:var(--text-dark)!important;
+    font-size:11px!important;
+    font-weight:700!important;
+    letter-spacing:.08em!important;
+    text-transform:uppercase!important;
+}
+
+.project-selector-row{
+    padding:0 6px!important;
+}
+
+.sidebar-nav{
+    border:0!important;
+    background:transparent!important;
+    padding:0!important;
+    gap:2px!important;
+}
+
+.nav-item{
+    min-height:34px!important;
+    padding:7px 9px!important;
+    border-radius:8px!important;
+    font-size:13px!important;
+    color:var(--text-muted)!important;
+}
+
+.nav-item.active{
+    background:var(--theme-db-row-active)!important;
+    color:var(--text-main)!important;
+    border-color:transparent!important;
+}
+
+.nav-item.active::before{
+    display:none!important;
+}
+
+.nav-item.active::after{
+    width:4px!important;
+    height:4px!important;
+    background:var(--color-primary)!important;
+    box-shadow:0 0 10px var(--color-primary)!important;
+}
+
+.sidebar-footer-stack{
+    border-top:1px solid var(--frame-border)!important;
+    padding-top:10px!important;
+}
+
+.footer-settings-btn{
+    justify-content:flex-start!important;
+}
+
+.sidebar-meta-row{
+    padding:0 8px!important;
+    opacity:.68;
+}
+
+.git-layout{
+    width:100%!important;
+    max-width:none!important;
+    min-height:100%!important;
+    grid-template-columns:minmax(280px,var(--theme-git-sidebar-width)) minmax(0,1fr)!important;
+    grid-template-rows:minmax(190px,auto) 1fr!important;
+    grid-template-areas:'status console' 'deploy console'!important;
+    padding:24px!important;
+    gap:14px!important;
+}
+
+.git-status-card,
+.git-operations-card,
+.git-console-card{
+    box-shadow:none!important;
+    background:transparent!important;
+    border:1px solid var(--frame-border)!important;
+}
+
+.git-status-card,
+.git-operations-card{
+    padding:18px!important;
+}
+
+.git-console-card{
+    padding:0!important;
+    overflow:hidden;
+}
+
+.git-console-card .card-header{
+    padding:18px 20px 10px!important;
+    margin:0!important;
+}
+
+#git-console-output{
+    margin:0!important;
+    border:0!important;
+    border-radius:0!important;
+    min-height:var(--theme-git-console-height)!important;
+    background:rgba(0,0,0,.38)!important;
+}
+
+.git-operations-card .card-body,
+.git-status-card #git-status-detail{
+    display:flex;
+    flex-direction:column;
+    gap:12px;
+}
+
+.git-deploy-section .form-group{
+    margin-bottom:12px!important;
+}
+
+#git-commit-msg{
+    font-size:13px!important;
+}
+
+#btn-git-deploy,
+#btn-git-pull,
+#btn-git-init{
+    height:40px!important;
+    border-radius:10px!important;
+}
+
+/* Flat UI direction (no shadows, neutral palette) */
+.card,
+.modal-card,
+.db-editor-panel,
+.db-results-panel,
+.db-explorer-sidebar,
+.git-status-card,
+.git-operations-card,
+.git-console-card,
+.agent-main-panel,
+.topbar,
+.sidebar{
+    box-shadow:none!important;
+}
+
+.content-area{
+    width:100%!important;
+    max-width:none!important;
+    padding:0!important;
+    margin:0!important;
+    border:0!important;
+    border-radius:0!important;
+}
+
+.content-area::before{
+    display:none!important;
+}
+
+.db-tab-btn.active{
+    background:rgba(255,255,255,.05)!important;
+    color:var(--text-main)!important;
+}
+
+/* Database View v2 — improved layout/disposition */
+#tab-database.active{
+    display:flex!important;
+    flex-direction:column!important;
+    height:100%!important;
+    padding:18px!important;
+}
+
+#tab-database .db-tabs-nav-rebrand,
+#tab-database .db-tabs-nav{
+    width:100%!important;
+    max-width:1480px!important;
+    margin:0 auto 14px!important;
+    padding:0!important;
+    border:0!important;
+    gap:6px!important;
+}
+
+#tab-database .db-tab-btn{
+    height:34px!important;
+    padding:0 12px!important;
+    border-radius:9px!important;
+    border:1px solid transparent!important;
+    border-bottom:1px solid transparent!important;
+    background:transparent!important;
+    color:var(--text-muted)!important;
+}
+
+#tab-database .db-tab-btn.active{
+    color:var(--text-main)!important;
+    background:var(--theme-db-row-active)!important;
+    border-color:var(--frame-border)!important;
+}
+
+#db-subtab-explorer{
+    flex:1!important;
+    min-height:0!important;
+    width:100%!important;
+}
+
+#tab-database .database-layout,
+#tab-database .database-layout-rebrand{
+    width:100%!important;
+    max-width:none!important;
+    height:100%!important;
+    margin:0 auto!important;
+    padding:0!important;
+    gap:16px!important;
+    grid-template-columns:300px minmax(0,1fr)!important;
+    align-items:stretch!important;
+}
+
+#tab-database .db-explorer-sidebar{
+    width:300px!important;
+    min-width:300px!important;
+    border-radius:18px!important;
+    box-shadow:none!important;
+    background:rgba(255,255,255,0.018)!important;
+}
+
+#tab-database .db-content-area{
+    gap:16px!important;
+    min-width:0!important;
+}
+
+#tab-database .db-editor-panel,
+#tab-database .db-results-panel{
+    border-radius:18px!important;
+    box-shadow:none!important;
+    background:rgba(255,255,255,0.018)!important;
+    padding:0!important;
+    overflow:hidden!important;
+}
+
+#tab-database .db-editor-panel{
+    flex:0 0 auto!important;
+}
+
+#tab-database .db-results-panel{
+    flex:1!important;
+    min-height:0!important;
+}
+
+#tab-database .db-editor-panel > .panel-header,
+#tab-database .db-results-panel > .panel-header{
+    padding:14px 16px!important;
+    margin:0!important;
+    min-height:48px!important;
+    background:rgba(255,255,255,0.025)!important;
+    border-bottom:1px solid var(--frame-border)!important;
+}
+
+#tab-database .db-config-row{
+    display:grid!important;
+    grid-template-columns:250px minmax(0,1fr)!important;
+    gap:14px!important;
+    padding:16px 16px 0!important;
+}
+
+#tab-database .db-query-wrapper{
+    padding:14px 16px 0!important;
+}
+
+#tab-database .db-query-wrapper textarea{
+    height:128px!important;
+    font-size:13px!important;
+    line-height:1.65!important;
+}
+
+#tab-database .db-actions{
+    padding:14px 16px 18px!important;
+    display:flex!important;
+    justify-content:flex-start!important;
+    gap:10px!important;
+}
+
+#tab-database .db-results-container{
+    margin:14px 16px 16px!important;
+    flex:1!important;
+    min-height:220px!important;
+    border-radius:14px!important;
+}
+
+#tab-database .placeholder-text{
+    display:flex!important;
+    align-items:center!important;
+    justify-content:center!important;
+    min-height:100%!important;
+}
+
+#tab-database .db-panel-header{
+    padding:16px 16px 12px!important;
+    margin:0!important;
+}
+
+#tab-database .db-conn-status{
+    padding:12px 16px!important;
+    margin:0!important;
+    border-bottom:1px solid var(--frame-border)!important;
+}
+
+#tab-database .db-tables-list-rebrand,
+#tab-database .db-tables-container{
+    padding:14px!important;
+}
+
+/* Flat workspace v3 — continuous layout, no card feeling */
+:root{
+    --flat-bg: var(--theme-bg);
+    --flat-panel: transparent;
+    --flat-panel-muted: rgba(255,255,255,.018);
+    --flat-border: rgba(255,255,255,.075);
+    --flat-border-soft: rgba(255,255,255,.045);
+    --flat-active: rgba(255,255,255,.06);
+}
+
+html[data-theme="light"]{
+    --flat-border: rgba(10,10,10,.08);
+    --flat-border-soft: rgba(10,10,10,.05);
+    --flat-active: rgba(10,10,10,.055);
+    --flat-panel-muted: rgba(10,10,10,.018);
+}
+
+.btn-primary{
+    background:var(--text-main)!important;
+    color:var(--bg-base)!important;
+    border-color:var(--text-main)!important;
+}
+
+.btn-primary:hover{
+    background:var(--text-main)!important;
+    color:var(--bg-base)!important;
+    transform:none!important;
+    box-shadow:none!important;
+}
+
+.btn-secondary,
+.theme-toggle-btn,
+.api-key-badge,
+.status-item{
+    background:transparent!important;
+    border-color:var(--flat-border)!important;
+    box-shadow:none!important;
+}
+
+.btn-secondary:hover,
+.theme-toggle-btn:hover,
+.api-key-badge:hover{
+    background:var(--flat-active)!important;
+    transform:none!important;
+}
+
+.card,
+.db-editor-panel,
+.db-results-panel,
+.db-explorer-sidebar,
+.file-tree-panel,
+.editor-panel,
+.git-status-card,
+.git-operations-card,
+.git-console-card,
+.agent-main-panel,
+.tokens-content-panel,
+.tokens-sidebar-card,
+.settings-card{
+    background:transparent!important;
+    border-color:var(--flat-border)!important;
+    box-shadow:none!important;
+}
+
+.panel-header,
+.card-header,
+.modal-header,
+.modal-footer{
+    background:transparent!important;
+    border-color:var(--flat-border-soft)!important;
+}
+
+.select-input,
+.text-input,
+.db-query-wrapper textarea,
+.editor-container,
+.db-results-container,
+.terminal-output,
+#git-console-output{
+    background:var(--flat-panel-muted)!important;
+    border-color:var(--flat-border)!important;
+    box-shadow:none!important;
+}
+
+.select-input:focus,
+.text-input:focus,
+.db-query-wrapper textarea:focus,
+#file-editor-textarea:focus{
+    border-color:var(--flat-border)!important;
+    box-shadow:none!important;
+}
+
+#tab-database.active{
+    padding:0!important;
+}
+
+#tab-database .db-tabs-nav-rebrand,
+#tab-database .db-tabs-nav{
+    max-width:none!important;
+    padding:14px 18px 0!important;
+    margin:0!important;
+    border-bottom:1px solid var(--flat-border-soft)!important;
+}
+
+#tab-database .db-tab-btn.active{
+    background:transparent!important;
+    border:0!important;
+    border-bottom:1px solid var(--text-main)!important;
+    border-radius:0!important;
+}
+
+#db-subtab-explorer{
+    padding:0!important;
+}
+
+#tab-database .database-layout,
+#tab-database .database-layout-rebrand{
+    width:100%!important;
+    height:100%!important;
+    display:grid!important;
+    grid-template-columns:280px minmax(0,1fr)!important;
+    gap:0!important;
+    border:0!important;
+}
+
+#tab-database .db-explorer-sidebar{
+    width:280px!important;
+    min-width:280px!important;
+    border:0!important;
+    border-right:1px solid var(--flat-border)!important;
+    border-radius:0!important;
+    background:transparent!important;
+}
+
+#tab-database .db-content-area{
+    display:grid!important;
+    grid-template-rows:auto minmax(0,1fr)!important;
+    gap:0!important;
+    height:100%!important;
+}
+
+#tab-database .db-editor-panel,
+#tab-database .db-results-panel{
+    border:0!important;
+    border-radius:0!important;
+    background:transparent!important;
+}
+
+#tab-database .db-editor-panel{
+    border-bottom:1px solid var(--flat-border)!important;
+}
+
+#tab-database .db-editor-panel > .panel-header,
+#tab-database .db-results-panel > .panel-header{
+    padding:16px 20px!important;
+    min-height:auto!important;
+    border-bottom:1px solid var(--flat-border-soft)!important;
+}
+
+#tab-database .db-config-row{
+    grid-template-columns:260px minmax(0,1fr)!important;
+    padding:18px 20px 0!important;
+}
+
+#tab-database .db-query-wrapper{
+    padding:16px 20px 0!important;
+}
+
+#tab-database .db-query-wrapper textarea{
+    height:120px!important;
+    border-radius:10px!important;
+}
+
+#tab-database .db-actions{
+    padding:14px 20px 20px!important;
+}
+
+#tab-database .db-results-container{
+    margin:0!important;
+    border:0!important;
+    border-radius:0!important;
+    min-height:0!important;
+    height:100%!important;
+    background:transparent!important;
+}
+
+#tab-database .db-results-panel{
+    overflow:hidden!important;
+}
+
+#tab-database .placeholder-text{
+    min-height:100%!important;
+    color:var(--text-muted)!important;
+}
+
+#tab-database .db-panel-header{
+    padding:18px 20px 14px!important;
+    border-bottom:1px solid var(--flat-border-soft)!important;
+}
+
+#tab-database .db-conn-status{
+    padding:14px 20px!important;
+    border-bottom:1px solid var(--flat-border-soft)!important;
+}
+
+#tab-database .db-tables-list-rebrand,
+#tab-database .db-tables-container{
+    padding:16px 20px!important;
+}
+
+.editor-panel,
+.agent-layout,
+.database-layout,
+.git-layout,
+.files-layout{
+    border:0!important;
+    border-radius:0!important;
+    box-shadow:none!important;
+}
+
+.main-content,
+.workspace-content,
+.page-content{
+    padding:0!important;
+    margin:0!important;
+}
+
+/* Workspace Switcher */
+.workspace-switcher-native{
+    display:none!important;
+}
+
+.workspace-switcher{
+    position:relative;
+}
+
+.workspace-switcher-trigger{
+    width:100%;
+    height:72px;
+    min-height:72px;
+    padding:14px;
+    border-radius:18px;
+    border:1px solid var(--flat-border);
+    background:rgba(255,255,255,.02);
+    display:flex;
+    align-items:center;
+    gap:12px;
+    text-align:left;
+}
+
+.workspace-switcher-avatar{
+    width:34px;
+    height:34px;
+    border-radius:999px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:11px;
+    font-weight:700;
+    background:#000;
+    color:#fff;
+    flex-shrink:0;
+}
+
+.workspace-switcher-copy{
+    flex:1;
+    display:flex;
+    flex-direction:column;
+    gap:2px;
+}
+
+.workspace-switcher-copy strong{
+    font-size:15px;
+    color:var(--text-main);
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    display:block;
+    line-height:1.2;
+}
+
+.workspace-switcher-copy span{
+    font-size:13px;
+    color:var(--text-muted);
+    line-height:1.2;
+}
+
+.workspace-switcher-menu{
+    display:none;
+    margin-top:10px;
+    position:absolute;
+    top:calc(100% + 10px);
+    left:0;
+    right:0;
+    z-index:3000;
+    border:1px solid var(--flat-border);
+    border-radius:22px;
+    background:var(--bg-base);
+    padding:12px;
+}
+
+.workspace-switcher.is-open .workspace-switcher-menu{display:block;}
+
+.workspace-switcher-search{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:0 12px;
+    height:40px;
+    border:1px solid var(--flat-border);
+    border-radius:14px;
+    margin-bottom:12px;
+}
+
+.workspace-switcher-search input{
+    flex:1;
+    border:0;
+    background:transparent;
+    color:var(--text-main);
+}
+
+.workspace-switcher-option,
+.workspace-switcher-create{
+    width:100%;
+    border:0;
+    background:transparent;
+    display:flex;
+    align-items:center;
+    gap:12px;
+    min-height:58px;
+    padding:8px 10px;
+    border-radius:12px;
+}
+
+.workspace-switcher-option:hover{
+    background:rgba(255,255,255,.03);
+}
+
+.workspace-switcher-option.is-selected{
+    background:rgba(255,255,255,.04);
+    border:1px solid rgba(255,255,255,.06);
+}
+
+.workspace-switcher-check{margin-left:auto;opacity:0;}
+.workspace-switcher-option.is-selected .workspace-switcher-check{opacity:1;}
+
+.workspace-switcher-create{
+    margin-top:10px;
+    border-top:1px solid var(--flat-border);
+    border-radius:0;
+    padding-top:14px;
+}
+
+/* Workspace Switcher v1 */
+.sidebar-section .section-header h3{
+    letter-spacing:.12em!important;
+    font-size:11px!important;
+    color:var(--text-muted)!important;
+}
+
+.project-selector-row{
+    padding:0!important;
+}
+
+.project-selector-input{
+    height:68px!important;
+    border-radius:18px!important;
+    border:1px solid var(--flat-border)!important;
+    background:rgba(255,255,255,.02)!important;
+    padding:14px 18px!important;
+    font-size:16px!important;
+    font-weight:600!important;
+}
+
+.project-selector-row{
+    position:relative;
+    display:block!important;
+}
+
+.project-selector-row::after{
+    display:none!important;
+    content:none!important;
+}
+
+/* GitIDE Native Select */
+.gitide-select-original{
+    position:absolute!important;
+    opacity:0!important;
+    pointer-events:none!important;
+}
+
+.gitide-select{
+    position:relative;
+    width:100%;
+}
+
+.gitide-select-trigger{
+    width:100%;
+    height:40px;
+    padding:0 12px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    border:1px solid var(--flat-border);
+    border-radius:10px;
+    background:var(--flat-panel-muted);
+    color:var(--text-main);
+}
+
+.gitide-select-menu{
+    display:none;
+    position:absolute;
+    top:calc(100% + 6px);
+    left:0;
+    right:0;
+    z-index:2000;
+    border:1px solid var(--flat-border);
+    border-radius:10px;
+    background:var(--bg-base);
+    overflow:hidden;
+}
+
+.gitide-select.is-open .gitide-select-menu{
+    display:block;
+}
+
+.gitide-select-option{
+    width:100%;
+    text-align:left;
+    padding:10px 12px;
+    border:0;
+    background:transparent;
+    color:var(--text-main);
+}
+
+.gitide-select-option:hover,
+.gitide-select-option.is-selected{
+    background:var(--flat-active);
+}
+
+.gitide-select-icon{
+    font-size:11px;
+    opacity:.7;
+}
+
+/* Global page layout standard — spacious rounded workspace */
+.tab-pane.active{
+    height:100%!important;
+    padding:24px!important;
+}
+
+.files-layout,
+.git-layout,
+.database-layout,
+.database-layout-rebrand,
+.logs-layout,
+.terminal-panel,
+.tokens-layout,
+.settings-dashboard-layout,
+.agent-layout{
+    width:100%!important;
+    height:100%!important;
+    max-width:none!important;
+    margin:0!important;
+    gap:24px!important;
+    padding:0!important;
+}
+
+.card,
+.file-tree-panel,
+.editor-panel,
+.db-explorer-sidebar,
+.db-editor-panel,
+.db-results-panel,
+.git-status-card,
+.git-operations-card,
+.git-console-card,
+.activity-logs-panel,
+.all-snapshots-panel,
+.tokens-sidebar-card,
+.tokens-content-panel,
+.settings-card,
+.agent-main-panel,
+.terminal-output,
+.terminal-input-wrapper{
+    border-radius:24px!important;
+    border:1px solid var(--flat-border)!important;
+    background:rgba(255,255,255,.018)!important;
+    box-shadow:none!important;
+    overflow:hidden!important;
+}
+
+.panel-header,
+.card-header{
+    padding:18px 20px!important;
+    border-bottom:1px solid var(--flat-border-soft)!important;
+    margin:0!important;
+}
+
+.card:not(.git-console-card),
+.db-editor-panel,
+.db-results-panel,
+.activity-logs-panel,
+.all-snapshots-panel,
+.tokens-content-panel,
+.settings-card{
+    padding:0!important;
+}
+
+/* Files page standard */
+.files-layout{
+    display:grid!important;
+    grid-template-columns:300px minmax(0,1fr)!important;
+}
+
+.file-tree-panel{
+    width:auto!important;
+    border-radius:24px!important;
+    border:1px solid var(--flat-border)!important;
+}
+
+.editor-panel{
+    border-radius:24px!important;
+}
+
+.editor-body-wrapper{
+    padding:20px!important;
+}
+
+/* Terminal page standard */
+.terminal-panel{
+    display:flex!important;
+    flex-direction:column!important;
+}
+
+.terminal-panel > .panel-header{
+    flex-shrink:0;
+}
+
+.terminal-output{
+    flex:1!important;
+    margin:24px 0!important;
+    border-radius:24px!important;
+}
+
+.terminal-input-wrapper{
+    flex-shrink:0!important;
+    border-radius:16px!important;
+}
+
+/* Git page standard */
+.git-layout{
+    grid-template-columns:360px minmax(0,1fr)!important;
+    grid-template-rows:minmax(210px,auto) 1fr!important;
+    grid-template-areas:'status console' 'deploy console'!important;
+}
+
+.git-status-card,
+.git-operations-card,
+.git-console-card{
+    border-radius:24px!important;
+    background:rgba(255,255,255,.018)!important;
+}
+
+.git-status-card,
+.git-operations-card{
+    padding:0!important;
+}
+
+.git-status-card #git-status-detail,
+.git-operations-card .card-body{
+    padding:20px!important;
+}
+
+.git-console-card .card-header{
+    padding:18px 20px!important;
+}
+
+#git-console-output{
+    border-radius:0!important;
+    border:0!important;
+}
+
+/* Database page standard */
+#tab-database.active{
+    padding:24px!important;
+}
+
+#tab-database .db-tabs-nav-rebrand,
+#tab-database .db-tabs-nav{
+    padding:0!important;
+    margin:0 0 16px!important;
+    border:0!important;
+}
+
+#tab-database .database-layout,
+#tab-database .database-layout-rebrand{
+    height:calc(100% - 50px)!important;
+    grid-template-columns:300px minmax(0,1fr)!important;
+    gap:24px!important;
+}
+
+#tab-database .db-explorer-sidebar,
+#tab-database .db-editor-panel,
+#tab-database .db-results-panel{
+    border-radius:24px!important;
+    border:1px solid var(--flat-border)!important;
+    background:rgba(255,255,255,.018)!important;
+}
+
+#tab-database .db-explorer-sidebar{
+    width:auto!important;
+    min-width:0!important;
+}
+
+#tab-database .db-content-area{
+    gap:24px!important;
+}
+
+#tab-database .db-editor-panel{
+    border-bottom:1px solid var(--flat-border)!important;
+}
+
+#tab-database .db-results-container{
+    margin:20px!important;
+    border:1px solid var(--flat-border)!important;
+    border-radius:18px!important;
+    background:rgba(255,255,255,.012)!important;
+}
+
+/* Logs/settings/tokens/agent standard */
+.logs-layout{
+    grid-template-columns:1fr 1fr!important;
+}
+
+.agent-main-panel-rebrand,
+.agent-main-panel{
+    border-radius:28px!important;
+}
+
+/* Workspace switcher polish */
+.sidebar::before{
+    display:none!important;
+    content:none!important;
+}
+
+.sidebar-section:first-child .section-header{
+    display:none!important;
+}
+
+.sidebar-section:first-child{
+    margin-top:4px!important;
+}
+
+.workspace-switcher-search{
+    height:38px!important;
+    border-color:rgba(255,255,255,.08)!important;
+    background:rgba(255,255,255,.018)!important;
+    border-radius:12px!important;
+}
+
+.workspace-switcher-search:focus-within{
+    border-color:rgba(255,255,255,.16)!important;
+    box-shadow:none!important;
+}
+
+.workspace-switcher-search input{
+    font-size:13px!important;
+    outline:none!important;
+}
+
+.workspace-switcher-option{
+    min-height:54px!important;
+    padding:8px 10px!important;
+}
+
+.workspace-switcher-option .workspace-switcher-copy{
+    align-items:flex-start!important;
+    text-align:left!important;
+}
+
+.workspace-switcher-option .workspace-switcher-copy strong{
+    font-size:14px!important;
+    font-weight:600!important;
+    line-height:1.15!important;
+    text-align:left!important;
+    width:100%!important;
+}
+
+.workspace-switcher-option .workspace-switcher-copy span{
+    font-size:12px!important;
+    color:var(--text-dark)!important;
+    text-align:left!important;
+    width:100%!important;
+}
+
+.workspace-switcher-option.is-selected{
+    background:rgba(255,255,255,.03)!important;
+    border:1px solid rgba(255,255,255,.045)!important;
+    border-radius:14px!important;
+}
+
+.workspace-switcher-create{
+    min-height:44px!important;
+    margin-top:12px!important;
+    padding:12px 10px 4px!important;
+    border-top:1px solid rgba(255,255,255,.075)!important;
+    color:var(--text-muted)!important;
+    font-weight:500!important;
+}
+
+.workspace-switcher-create:hover{
+    color:var(--text-main)!important;
+    background:transparent!important;
+}
+
+.workspace-switcher-menu{
+    padding:10px!important;
+    border-color:rgba(255,255,255,.075)!important;
+}
+
+/* Tokens / Design System panel refinement */
+#tab-tokens.active{
+    padding:24px!important;
+}
+
+.tokens-layout{
+    gap:24px!important;
+}
+
+.tokens-sidebar,
+.tokens-content-panel{
+    min-height:0!important;
+}
+
+.tokens-sidebar-card,
+.tokens-content-panel{
+    border-radius:24px!important;
+    background:rgba(255,255,255,.018)!important;
+    border:1px solid var(--flat-border)!important;
+    box-shadow:none!important;
+    overflow:hidden!important;
+}
+
+.tokens-sidebar-card .card-header-simple,
+.tokens-content-panel .panel-header-simple{
+    padding:16px 18px 10px!important;
+    margin:0!important;
+    border-bottom:1px solid var(--flat-border-soft)!important;
+}
+
+.tokens-sidebar-card .card-header-simple h5,
+.tokens-content-panel .panel-header-simple h4{
+    font-size:11px!important;
+    letter-spacing:.12em!important;
+    text-transform:uppercase!important;
+    color:var(--text-muted)!important;
+}
+
+.tokens-sidebar-body{
+    padding:10px!important;
+    display:flex!important;
+    flex-direction:column!important;
+    gap:8px!important;
+}
+
+.token-set-item,
+.token-theme-item,
+.tokens-theme-item,
+.tokens-set-item{
+    min-height:48px!important;
+    border-radius:14px!important;
+    border:1px solid var(--flat-border)!important;
+    background:transparent!important;
+    padding:0 12px!important;
+    display:flex!important;
+    align-items:center!important;
+    gap:10px!important;
+}
+
+.token-set-item:hover,
+.token-theme-item:hover,
+.tokens-theme-item:hover,
+.tokens-set-item:hover{
+    background:rgba(255,255,255,.025)!important;
+}
+
+.token-set-item.active,
+.token-theme-item.active,
+.tokens-theme-item.active,
+.tokens-set-item.active,
+.token-set-item:has(input:checked),
+.tokens-set-item:has(input:checked){
+    background:rgba(255,255,255,.035)!important;
+    border-color:rgba(255,255,255,.12)!important;
+}
+
+#tokens-themes-container select,
+#tokens-themes-container .select-input{
+    height:40px!important;
+    border-radius:12px!important;
+}
+
+#tokens-themes-container .btn,
+#tokens-themes-container button,
+#btn-theme-editor-save{
+    height:40px!important;
+    border-radius:12px!important;
+}
+
+#tokens-active-set-status,
+.badge{
+    background:rgba(255,255,255,.035)!important;
+    border:1px solid var(--flat-border)!important;
+    border-radius:999px!important;
+    padding:4px 9px!important;
+}
+
+.tokens-list-container{
+    padding:14px!important;
+}
+
+.token-category-header,
+.token-row{
+    border-radius:14px!important;
+    border:1px solid var(--flat-border)!important;
+    background:transparent!important;
+}
+
+.token-category-header:hover,
+.token-row:hover{
+    background:rgba(255,255,255,.025)!important;
+}
+
+/* GitIDE Checkbox */
+.gitide-checkbox-native{
+    display:none!important;
+}
+
+.gitide-checkbox{
+    width:18px;
+    height:18px;
+    border-radius:6px;
+    border:1px solid rgba(255,255,255,.18);
+    background:transparent;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    flex-shrink:0;
+}
+
+.gitide-checkbox i{
+    font-size:10px;
+    opacity:0;
+    transform:scale(.85);
+}
+
+.gitide-checkbox.is-checked{
+    background:rgba(255,255,255,.08);
+    border-color:rgba(255,255,255,.22);
+}
+
+.gitide-checkbox.is-checked i{
+    opacity:1;
+    transform:scale(1);
+}
+
+.gitide-checkbox:hover{
+    background:rgba(255,255,255,.03);
+}
+
+.gitide-checkbox:focus-visible{
+    outline:none;
+    border-color:rgba(255,255,255,.3);
+}
+
+/* Native checkbox styling — CSS only, no duplicated indicators */
+input[type="checkbox"]{
+    appearance:none!important;
+    -webkit-appearance:none!important;
+    width:18px!important;
+    height:18px!important;
+    margin:0!important;
+    border-radius:6px!important;
+    border:1px solid rgba(255,255,255,.18)!important;
+    background:transparent!important;
+    display:inline-grid!important;
+    place-content:center!important;
+    cursor:pointer!important;
+    flex:0 0 auto!important;
+}
+
+input[type="checkbox"]::before{
+    content:'✓';
+    font-size:12px;
+    line-height:1;
+    color:var(--bg-base);
+    opacity:0;
+    transform:scale(.75);
+}
+
+input[type="checkbox"]:checked{
+    background:var(--text-main)!important;
+    border-color:var(--text-main)!important;
+}
+
+input[type="checkbox"]:checked::before{
+    opacity:1;
+    transform:scale(1);
+}
+
+input[type="checkbox"]:hover{
+    border-color:rgba(255,255,255,.32)!important;
+}
+
+input[type="checkbox"]:focus-visible{
+    outline:none!important;
+    border-color:rgba(255,255,255,.42)!important;
+}
+
+.gitide-checkbox{
+    display:none!important;
+}
+
+.token-set-item input[type="checkbox"],
+.tokens-set-item input[type="checkbox"],
+.token-theme-item input[type="checkbox"],
+.tokens-theme-item input[type="checkbox"]{
+    margin-left:auto!important;
+}
+
+.token-set-item .fa-check,
+.tokens-set-item .fa-check,
+.token-theme-item .fa-check,
+.tokens-theme-item .fa-check{
+    display:none!important;
+}
+
+/* Git Branch Switcher */
+.git-branch-native{display:none!important;}
+.git-branch-switcher{position:relative;display:inline-block;min-width:140px;}
+.git-branch-trigger{height:36px;padding:0 12px;border-radius:12px;border:1px solid var(--flat-border);background:rgba(255,255,255,.02);display:flex;align-items:center;gap:8px;color:var(--text-main);}
+.git-branch-menu{display:none;position:absolute;top:calc(100% + 8px);left:0;min-width:220px;z-index:2500;border:1px solid var(--flat-border);border-radius:14px;background:var(--bg-base);padding:6px;}
+.git-branch-switcher.is-open .git-branch-menu{display:block;}
+.git-branch-option{width:100%;display:flex;align-items:center;gap:10px;padding:10px;border:0;background:transparent;border-radius:10px;text-align:left;}
+.git-branch-option:hover{background:rgba(255,255,255,.03);}
+.git-branch-option.is-selected{background:rgba(255,255,255,.04);}
+.git-branch-check{margin-left:auto;opacity:0;}
+.git-branch-option.is-selected .git-branch-check{opacity:1;}
+
+/* Git view cleanup: disable broken branch switcher duplicate, normalize deploy controls */
+#git-branch-input,
+#git-branch-input.git-branch-native{
+    display:inline-block!important;
+    appearance:auto!important;
+    -webkit-appearance:menulist!important;
+    min-width:110px!important;
+    height:34px!important;
+    padding:0 8px!important;
+    border-radius:12px!important;
+    border:1px solid var(--flat-border)!important;
+    background:rgba(255,255,255,.025)!important;
+    color:var(--text-main)!important;
+    font-size:13px!important;
+    font-weight:600!important;
+    pointer-events:auto!important;
+    opacity:1!important;
+}
+
+#git-branch-input:focus{
+    outline:none!important;
+    border-color:rgba(255,255,255,.16)!important;
+    box-shadow:none!important;
+}
+
+.git-operations-card .card-body > .inline-form,
+.git-operations-card .inline-form{
+    display:grid!important;
+    grid-template-columns:1fr!important;
+    gap:12px!important;
+}
+
+.git-operations-card select.select-input,
+.git-operations-card .gitide-select,
+.git-operations-card .gitide-select-trigger{
+    width:100%!important;
+}
+
+.git-operations-card .gitide-select{
+    display:block!important;
+}
+
+.git-operations-card .gitide-select-original{
+    display:none!important;
+}
+
+.git-operations-card .gitide-select-trigger{
+    height:42px!important;
+    border-radius:12px!important;
+    background:rgba(255,255,255,.025)!important;
+}
+
+.git-operations-card .gitide-select-menu{
+    max-height:220px!important;
+    overflow:auto!important;
+}
+
+.git-operations-card #btn-git-deploy,
+.git-operations-card #btn-git-pull{
+    margin-top:0!important;
+}
+
+/* Git branch actions */
+.git-branch-select-native-hidden{
+    display:none!important;
+}
+
+.git-branch-status-pill{
+    display:inline-flex;
+    align-items:center;
+    min-height:34px;
+    padding:0 12px;
+    border-radius:12px;
+    border:1px solid var(--flat-border);
+    background:rgba(255,255,255,.025);
+    font-weight:600;
+    color:var(--text-main);
+}
+
+.git-branch-actions-list{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+    margin-top:12px;
+}
+
+.git-branch-action-btn{
+    height:40px;
+    padding:0 14px;
+    border-radius:12px;
+    border:1px solid var(--flat-border);
+    background:rgba(255,255,255,.02);
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+}
+
+.git-branch-action-btn.is-active{
+    background:rgba(255,255,255,.06);
+}
+
+.git-branch-action-check{display:none;}
+.git-branch-action-btn.is-active .git-branch-action-check{display:inline-block;}
+
+@media (max-width: 980px) {
+    .sidebar { width: 236px; }
+    .database-layout,
+    .logs-layout,
+    .settings-dashboard-layout { grid-template-columns: 1fr !important; }
+}

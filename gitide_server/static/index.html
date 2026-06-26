@@ -10,8 +10,19 @@
     <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
     <!-- Custom CSS -->
-    <link rel="stylesheet" href="/static/style.css?v=7">
+    <link rel="stylesheet" href="/static/style.css?v=8">
+    <link rel="stylesheet" href="/static/select-layer-fix.css?v=1">
+    <link rel="stylesheet" href="/static/lucide-icons.css?v=1">
+    <link rel="stylesheet" href="/static/workspace-switcher-refactor.css?v=1">
+    <link rel="stylesheet" href="/static/workspace-native-fallback.css?v=1">
+    <link rel="stylesheet" href="/static/settings-tabs.css?v=1">
+    <script src="/static/lucide-bootstrap.js"></script>
+    <script defer src="/static/ui/workspace-switcher.js?v=2"></script>
+    <script defer src="/static/settings-tabs.js?v=3"></script>
+    <script defer src="/static/sidebar-workspace-footer.js?v=1"></script>
+    <script defer src="/static/navigation-unlock.js?v=2"></script>
 </head>
 <body>
     <div class="app-container">
@@ -44,50 +55,51 @@
                 <!-- Project Section -->
                 <div class="sidebar-section">
                     <div class="section-header">
-                        <h3><i class="fa-solid fa-folder-open"></i> Projetos</h3>
+                        <h3><i data-lucide="folder-open"></i> Projetos</h3>
                         <div style="display: flex; gap: 4px;">
-                            <button class="btn-icon" id="btn-new-project" title="Novo Projeto"><i class="fa-solid fa-plus"></i></button>
-                            <button class="btn-icon" id="btn-delete-project" title="Remover Projeto Ativo" style="color: var(--color-danger); display: none;"><i class="fa-solid fa-trash-can"></i></button>
+                            <button class="btn-icon" id="btn-new-project" title="Novo Projeto"><i data-lucide="plus"></i></button>
+                            <button class="btn-icon" id="btn-delete-project" title="Remover Projeto Ativo" style="color: var(--color-danger); display: none;"><i data-lucide="trash-2"></i></button>
                         </div>
                     </div>
                     <div class="project-selector-wrapper" style="display: flex; gap: 8px; align-items: center;">
                         <select id="project-selector" class="select-input" style="flex: 1;">
                             <option value="">Carregando projetos...</option>
                         </select>
-                        <button class="btn-icon" id="btn-copy-project-gpt-info" title="Copiar ID e instruções para o GPT" style="display: none;"><i class="fa-solid fa-robot"></i></button>
+                        <button class="btn-icon" id="btn-copy-project-gpt-info" title="Copiar ID e instruções para o GPT" style="display: none;"><i data-lucide="copy"></i></button>
                     </div>
                 </div>
 
                 <!-- Navigation Tabs -->
                 <nav class="sidebar-nav">
                     <button class="nav-item active" data-tab="tab-files">
-                        <i class="fa-solid fa-file-code"></i> Arquivos do Workspace
+                        <i data-lucide="files"></i> Arquivos do Workspace
                     </button>
                     <button class="nav-item" data-tab="tab-terminal">
-                        <i class="fa-solid fa-terminal"></i> Terminal Console
+                        <i data-lucide="terminal"></i> Terminal Console
                     </button>
                     <button class="nav-item" data-tab="tab-database">
-                        <i class="fa-solid fa-database"></i> Banco de Dados (SQL)
+                        <i data-lucide="database"></i> Banco de Dados (SQL)
                     </button>
                     <button class="nav-item" data-tab="tab-git">
-                        <i class="fa-brands fa-git-alt"></i> Controle de Versão (Git)
+                        <i data-lucide="git-branch"></i> Controle de Versão (Git)
                     </button>
                     <button class="nav-item" data-tab="tab-logs">
-                        <i class="fa-solid fa-clock-rotate-left"></i> Histórico & Rollbacks
+                        <i data-lucide="history"></i> Histórico & Rollbacks
                     </button>
                     <button class="nav-item" data-tab="tab-tokens">
-                        <i class="fa-solid fa-palette"></i> Design System (Tokens)
+                        <i data-lucide="palette"></i> Design System (Tokens)
                     </button>
                     <button class="nav-item" data-tab="tab-agent">
-                        <i class="fa-solid fa-robot"></i> Agente IA Nativo
+                        <i data-lucide="bot"></i> Agente IA Nativo
+                    </button>
+                    <button class="nav-item" data-tab="tab-documents">
+                        <i data-lucide="file-text"></i> Documentos (Word)
                     </button>
                 </nav>
 
                 <!-- Footer Info -->
                 <div class="sidebar-footer" style="display: flex; flex-direction: column; gap: 8px; padding-top: 12px; margin-top: auto;">
-                    <button class="nav-item" data-tab="tab-settings" id="btn-footer-settings" style="width: 100%; box-sizing: border-box; justify-content: center; font-size: 13px; padding: 10px; margin-bottom: 4px;">
-                        <i class="fa-solid fa-gears"></i> Configurações
-                    </button>
+                    
                     <div style="display: flex; justify-content: space-between; font-size: 10px; color: var(--text-dark); padding: 0 4px; width: 100%; box-sizing: border-box;">
                         <span class="version">Versão 1.0.0</span>
                         <span class="author">Antigravity Coding</span>
@@ -154,6 +166,17 @@
                 <!-- TAB: TERMINAL -->
                 <div id="tab-terminal" class="tab-pane">
                     <div class="terminal-panel">
+                        <!-- Pending Commands Card -->
+                        <div id="pending-commands-panel" style="display: none; background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.2); border-radius: 8px; padding: 16px; margin-bottom: 16px; flex-shrink: 0;">
+                            <h5 style="margin: 0 0 10px 0; color: var(--color-warning); font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 8px;">
+                                <i class="fa-solid fa-shield-halved"></i> Solicitações de Execução Externas Pendentes
+                                <span class="badge" id="pending-commands-count" style="background-color: #f59e0b; color: #0f172a; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: bold; margin-left: auto;">0</span>
+                            </h5>
+                            <div id="pending-commands-list" style="display: flex; flex-direction: column; gap: 10px;">
+                                <!-- Dynamically populated -->
+                            </div>
+                        </div>
+
                         <div class="panel-header">
                             <h4><i class="fa-solid fa-terminal"></i> Terminal Integrado</h4>
                             <div class="terminal-actions">
@@ -168,17 +191,6 @@
                             <input type="text" id="terminal-input" placeholder="Digite um comando (ex: npm install, pytest, python app.py) e pressione Enter..." autocomplete="off">
                             <button type="submit" class="btn btn-primary" id="btn-run-cmd"><i class="fa-solid fa-play"></i></button>
                         </form>
-                    </div>
-
-                    <!-- PANEL DE COMANDOS PENDENTES -->
-                    <div id="pending-commands-panel" class="terminal-panel" style="margin-top: 20px; display: none;">
-                        <div class="panel-header" style="border-bottom: 1px solid var(--border-color); padding-bottom: 10px; display: flex; justify-content: space-between; align-items: center; width: 100%;">
-                            <h4 style="display: flex; align-items: center; gap: 8px; margin: 0;"><i class="fa-solid fa-shield-halved" style="color: #f59e0b;"></i> Solicitações de Comando Pendentes</h4>
-                            <span class="badge" id="pending-commands-count" style="background-color: #f59e0b; color: #0f172a; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: bold;">0</span>
-                        </div>
-                        <div id="pending-commands-list" style="padding: 15px; display: flex; flex-direction: column; gap: 10px; max-height: 250px; overflow-y: auto; width: 100%;">
-                            <!-- Os comandos pendentes serão listados aqui -->
-                        </div>
                     </div>
                 </div>
 
@@ -353,8 +365,8 @@
                     <div class="git-layout">
                         <div class="git-status-card card">
                             <div class="card-header">
-                                <h4><i class="fa-brands fa-git-alt"></i> Status do Repositório Git</h4>
-                                <button class="btn btn-sm btn-secondary" id="btn-git-status-refresh"><i class="fa-solid fa-rotate"></i> Atualizar Status</button>
+                                <h4><i data-lucide="git-branch"></i> Status do Repositório Git</h4>
+                                <button class="btn btn-sm btn-secondary" id="btn-git-status-refresh"><i data-lucide="refresh-cw"></i> Atualizar Status</button>
                             </div>
                             <div id="git-status-detail">
                                 <!-- Preenchido via JS -->
@@ -364,11 +376,11 @@
 
                         <div class="git-operations-card card">
                             <div class="card-header">
-                                <h4><i class="fa-solid fa-cloud-arrow-up"></i> Ações e Deploy Automático</h4>
+                                <h4><i data-lucide="cloud-upload"></i> Ações e Deploy Automático</h4>
                             </div>
                             <div class="card-body">
                                 <div class="git-init-section" id="git-init-panel" style="display: none;">
-                                    <p class="warning-text"><i class="fa-solid fa-circle-exclamation"></i> Este projeto não está inicializado como um repositório Git ou não possui arquivos commados.</p>
+                                    <p class="warning-text"><i data-lucide="circle-alert"></i> Este projeto não está inicializado como um repositório Git ou não possui arquivos commados.</p>
                                     <div class="form-group inline-form">
                                         <input type="text" id="git-remote-url-input" class="text-input" placeholder="https://github.com/usuario/repositorio.git (Opcional)">
                                         <button class="btn btn-primary" id="btn-git-init"><i class="fa-solid fa-folder-plus"></i> Inicializar Git / Configurar Remoto</button>
@@ -381,8 +393,8 @@
                                     </div>
                                     <div class="form-group inline-form">
                                          <select id="git-branch-input" class="select-input" style="flex: 1; min-width: 150px;"></select>
-                                         <button class="btn btn-primary" id="btn-git-deploy"><i class="fa-solid fa-rocket"></i> Commitar e Fazer Deploy (Push)</button>
-                                         <button class="btn btn-secondary" id="btn-git-pull"><i class="fa-solid fa-cloud-arrow-down"></i> Sincronizar (Pull)</button>
+                                         <button class="btn btn-primary" id="btn-git-deploy"><i data-lucide="rocket"></i> Commitar e Fazer Deploy (Push)</button>
+                                         <button class="btn btn-secondary" id="btn-git-pull"><i data-lucide="cloud-download"></i> Sincronizar (Pull)</button>
                                      </div>
                                 </div>
                             </div>
@@ -397,6 +409,26 @@
                             <div class="card-body" style="padding-top: 10px;">
                                 <div id="git-graph-container" style="overflow-x: auto; font-family: monospace; font-size: 12px; line-height: 1.6; color: #f8fafc; max-height: 300px; overflow-y: auto; background: rgba(0,0,0,0.3); padding: 15px; border-radius: var(--border-radius, 8px); border: 1px solid var(--border-color); white-space: pre;">
                                     <!-- Árvore de commits renderizada via JS -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="git-credentials-card card" style="margin-top: 14px;">
+                            <div class="card-header">
+                                <h4><i data-lucide="key-round"></i> Autenticação com Token (Personal Access Token)</h4>
+                            </div>
+                            <div class="card-body" style="padding: 16px; display: flex; flex-direction: column; gap: 12px;">
+                                <p style="font-size: 13px; color: var(--text-muted); margin: 0;">Insira seu Token do GitHub para gerar e aplicar o comando de autenticação no repositório ativo:</p>
+                                <div style="display: flex; gap: 10px; align-items: center;">
+                                    <input type="password" id="git-pat-token-input" class="text-input" placeholder="ghp_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX" style="flex: 1;">
+                                    <button class="btn btn-secondary" id="btn-toggle-pat-visibility" type="button" style="padding: 8px 12px;"><i data-lucide="eye"></i></button>
+                                </div>
+                                <div class="generated-command-container" style="background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); padding: 12px; border-radius: 8px; font-family: var(--font-mono); font-size: 12px; word-break: break-all; position: relative;">
+                                    <span id="git-generated-command-text" style="color: var(--text-muted);">Digite o token acima para gerar o comando...</span>
+                                    <button type="button" class="btn-icon-copy" id="btn-copy-generated-git-cmd" title="Copiar Comando" style="position: absolute; right: 10px; top: 10px; display: none;"><i data-lucide="copy"></i></button>
+                                </div>
+                                <div style="display: flex; gap: 10px;">
+                                    <button class="btn btn-primary" id="btn-run-generated-git-cmd" disabled><i data-lucide="play-circle"></i> Executar Comando no Terminal</button>
                                 </div>
                             </div>
                         </div>
@@ -546,6 +578,16 @@ cloudflared tunnel --url http://localhost:8000</pre>
                                             <button class="btn btn-primary" id="btn-copy-token-settings" style="padding: 6px 12px; font-size: 12px;"><i class="fa-solid fa-copy"></i> Copiar Token</button>
                                         </div>
                                     </li>
+                                    <li style="font-size: 13px; line-height: 1.4;">
+                                        <strong>Configure as Instruções do GPT (GPT Instructions):</strong>
+                                        <p style="margin: 4px 0; color: var(--text-muted);">Copie as instruções abaixo e cole no campo <strong>Instructions</strong> do seu Custom GPT no ChatGPT para guiar a IA de forma segura:</p>
+                                        <div class="generated-command-container" style="background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); padding: 12px; border-radius: 8px; font-family: var(--font-mono); font-size: 11.5px; line-height: 1.4; word-break: break-word; position: relative; margin-top: 8px;">
+                                            <pre id="gpt-custom-instructions-text" style="white-space: pre-wrap; margin: 0; color: var(--text-light); max-height: 150px; overflow-y: auto;">Você é um Agente de Engenharia de Software conectado ao computador local do usuário via GitIDE.
+Antes de realizar qualquer tarefa de leitura, escrita ou execução de comandos, você DEVE verificar se existe o arquivo 'GPT_INSTRUCTIONS.md' na raiz do workspace do projeto atual (usando o endpoint de leitura de arquivos).
+Se o arquivo existir, leia e siga rigorosamente todas as diretrizes, fases de análise e o protocolo de execução contidos nele. Sempre elabore um plano de implementação detalhado em Markdown e aguarde a aprovação do usuário antes de modificar códigos ou rodar deploys.</pre>
+                                            <button type="button" class="btn btn-secondary btn-sm" id="btn-copy-gpt-custom-instructions" style="margin-top: 8px; padding: 6px 12px; font-size: 12px;"><i class="fa-solid fa-copy"></i> Copiar Instruções</button>
+                                        </div>
+                                    </li>
                                 </ol>
                             </div>
                         </div>
@@ -672,6 +714,94 @@ cloudflared tunnel --url http://localhost:8000</pre>
                         </div>
                     </div>
                 </div>
+
+                <!-- TAB: DOCUMENTS -->
+                <div id="tab-documents" class="tab-pane">
+                    <div class="documents-layout" style="display: flex; gap: 20px; height: 100%; min-height: 0; padding: 20px; flex-direction: row;">
+                        
+                        <!-- Painel Esquerdo: Lista de Documentos -->
+                        <div class="card" style="flex: 1.2; display: flex; flex-direction: column; min-width: 0; height: 100%; overflow: hidden; padding: 20px;">
+                            
+                            <!-- Header da área de documentos -->
+                            <div class="panel-header-simple" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 14px; margin-bottom: 20px; flex-shrink: 0;">
+                                <div style="display: flex; align-items: center; gap: 12px;">
+                                    <div style="background: rgba(99, 102, 241, 0.15); border: 1px solid rgba(99, 102, 241, 0.25); width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: var(--color-primary); font-size: 18px;">
+                                        <i class="fa-solid fa-file-word"></i>
+                                    </div>
+                                    <div>
+                                        <h3 style="margin: 0; font-size: 16px; font-weight: 600; color: var(--text-light);">Documentação Word</h3>
+                                        <p style="font-size: 12px; color: var(--text-muted); margin: 0; margin-top: 2px;">Geração e envio de relatórios técnicos (.docx).</p>
+                                    </div>
+                                </div>
+                                <div style="display: flex; gap: 10px;">
+                                    <button class="btn btn-secondary btn-sm" id="btn-refresh-documents" title="Recarregar lista"><i class="fa-solid fa-rotate"></i></button>
+                                    <button class="btn btn-secondary btn-sm" id="btn-upload-document"><i class="fa-solid fa-cloud-arrow-up"></i> Upload</button>
+                                    <input type="file" id="input-upload-document" accept=".docx" style="display: none;">
+                                    <button class="btn btn-primary btn-sm" id="btn-generate-test-doc"><i class="fa-solid fa-file-circle-plus"></i> Test Doc</button>
+                                </div>
+                            </div>
+                            
+                            <!-- Info banner / Prompt copy helper -->
+                            <div style="background: rgba(99, 102, 241, 0.08); border: 1px solid rgba(99, 102, 241, 0.16); padding: 12px 16px; border-radius: 8px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-shrink: 0;">
+                                <div style="display: flex; gap: 10px; align-items: flex-start; text-align: left;">
+                                    <i class="fa-solid fa-circle-info" style="color: var(--color-primary); font-size: 16px; margin-top: 2px;"></i>
+                                    <div>
+                                        <p style="margin: 0; font-size: 13px; font-weight: 500; color: var(--text-light);">Instruções para o Custom GPT</p>
+                                        <p style="margin: 0; font-size: 12px; color: var(--text-muted); margin-top: 2px;">Copie a instrução e cole no ChatGPT para forçá-lo a criar/editar os arquivos Word no GitIDE em vez de responder em texto corrido.</p>
+                                    </div>
+                                </div>
+                                <button type="button" class="btn btn-secondary btn-sm" id="btn-copy-doc-prompt-instructions" style="white-space: nowrap; display: flex; align-items: center; gap: 6px; padding: 6px 12px; min-height: 32px !important;">
+                                    <i class="fa-regular fa-copy"></i> Copiar Prompt
+                                </button>
+                            </div>
+
+                            <!-- Listagem de Documentos -->
+                            <div style="flex: 1; overflow-y: auto; min-height: 200px;">
+                                <table class="table" style="width: 100%; border-collapse: collapse; text-align: left;">
+                                    <thead>
+                                        <tr style="border-bottom: 2px solid var(--border-color); font-weight: 600; color: var(--text-light); font-size: 13px;">
+                                            <th style="padding: 12px 8px;">Nome do Arquivo</th>
+                                            <th style="padding: 12px 8px;">Tamanho</th>
+                                            <th style="padding: 12px 8px; text-align: right;">Ações</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="documents-table-body">
+                                        <!-- Preenchido via JS -->
+                                        <tr>
+                                            <td colspan="3" style="text-align: center; color: var(--text-muted); padding: 40px 0;">
+                                                <i class="fa-solid fa-folder-open" style="font-size: 32px; display: block; margin-bottom: 12px;"></i>
+                                                Nenhum documento Word gerado ainda neste projeto.
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Painel Direito: Visualizador A4 -->
+                        <div class="card" style="flex: 1; display: flex; flex-direction: column; min-width: 0; height: 100%; overflow: hidden; padding: 20px;">
+                            <div class="panel-header-simple" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 14px; margin-bottom: 20px; flex-shrink: 0;">
+                                <h4 style="margin: 0; font-size: 14px; font-weight: 600; color: var(--text-light); display: flex; align-items: center; gap: 8px;">
+                                    <i class="fa-solid fa-eye"></i> Prévia do Documento (Visualização A4)
+                                </h4>
+                                <span id="preview-filename-badge" class="badge" style="font-size: 11px; padding: 3px 8px; border-radius: 4px; background: rgba(255,255,255,0.05); color: var(--text-muted); display: none;"></span>
+                            </div>
+                            
+                            <div style="flex: 1; overflow-y: auto; display: flex; justify-content: center; background: rgba(0,0,0,0.25); padding: 20px; border-radius: 8px; min-height: 0;">
+                                <!-- Folha A4 Realista -->
+                                <div id="document-preview-sheet" style="display: none; width: 100%; max-width: 800px; min-height: 842px; height: fit-content; background: #ffffff; color: #1e293b; padding: 40px 50px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); border-radius: 4px; font-family: Calibri, sans-serif; box-sizing: border-box; text-align: left;">
+                                    <!-- Preenchido dinamicamente -->
+                                </div>
+                                
+                                <div id="document-preview-empty" style="display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--text-muted); gap: 12px; margin: auto; text-align: center; padding: 40px 20px;">
+                                    <i class="fa-solid fa-file-invoice" style="font-size: 48px; color: var(--color-primary); opacity: 0.5;"></i>
+                                    <span>Selecione um documento na tabela para visualizar a prévia em tempo real</span>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
             </main>
         </div>
     </div>
@@ -734,6 +864,18 @@ cloudflared tunnel --url http://localhost:8000</pre>
                             <div class="github-auth-status" id="github-auth-status">
                                 Waiting for user authorization...
                             </div>
+                        </div>
+
+                        <!-- SEÇÃO DE LOGIN ALTERNATIVO VIA PAT -->
+                        <div class="github-pat-section" style="margin-top: 24px; border-top: 1px dashed var(--border-color); padding-top: 16px;">
+                            <h6 style="margin: 0 0 8px 0; font-size: 12px; font-weight: 500; color: var(--text-light);">Ou use um Personal Access Token (PAT):</h6>
+                            <div style="display: flex; gap: 8px;">
+                                <input type="password" id="github-pat-input" class="text-input" placeholder="ghp_... ou github_pat_..." style="flex: 1; font-size: 12px; padding: 8px 10px; border-radius: 6px;">
+                                <button type="button" class="btn btn-primary" id="btn-save-github-pat" style="padding: 8px 12px; font-size: 12px; font-weight: 500; white-space: nowrap; border-radius: 6px;"><i class="fa-solid fa-key"></i> Conectar PAT</button>
+                            </div>
+                            <p style="margin: 6px 0 0 0; font-size: 11px; color: var(--text-muted); line-height: 1.4;">
+                                Necessário se sua conta possuir restrições para autorizar o App OAuth. Gere um token com permissão de <strong>repo</strong> em <a href="https://github.com/settings/tokens" target="_blank" style="color: var(--color-primary); text-decoration: none; font-weight: 500;">Configurações do GitHub</a>.
+                            </p>
                         </div>
                     </div>
 
@@ -823,6 +965,13 @@ cloudflared tunnel --url http://localhost:8000</pre>
                 <div class="dir-browser-nav" style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 12px;">
                     <div id="dir-browser-drives" style="display: flex; gap: 6px;"></div>
                     <div id="dir-browser-breadcrumbs" style="display: flex; gap: 4px; font-size: 13px; color: var(--text-muted); align-items: center; overflow-x: auto; white-space: nowrap; flex: 1;"></div>
+                </div>
+                <!-- Create Folder Section -->
+                <div class="dir-browser-create-folder" style="display: flex; gap: 8px; align-items: center; margin-top: 4px; margin-bottom: 4px; flex-shrink: 0;">
+                    <input type="text" id="dir-browser-new-folder-name" class="text-input" placeholder="Criar nova pasta..." style="flex: 1; padding: 6px 10px; font-size: 13px; height: 32px !important; min-height: 32px !important; line-height: 20px;">
+                    <button type="button" class="btn btn-sm btn-secondary" id="btn-dir-browser-create-folder" style="padding: 6px 12px; font-size: 13px; height: 32px !important; min-height: 32px !important; display: flex; align-items: center; gap: 6px; white-space: nowrap;">
+                        <i class="fa-solid fa-folder-plus"></i> Criar Pasta
+                    </button>
                 </div>
                 <!-- Directories List -->
                 <div id="dir-browser-list" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; min-height: 200px; background: rgba(0,0,0,0.2); padding: 8px; border-radius: 8px; border: 1px solid var(--border-color);">

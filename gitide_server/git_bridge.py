@@ -38,6 +38,21 @@ def update_remote_url_with_token(repo: Repo):
         url = origin.url
         token = get_github_token()
         if token and ("github.com" in url):
+            # Detecta se a URL já possui credenciais configuradas
+            has_credentials = False
+            current_token = ""
+            if "@" in url:
+                prefix = "https://" if url.startswith("https://") else "http://"
+                remainder = url[len(prefix):]
+                if "@" in remainder:
+                    has_credentials = True
+                    current_token = remainder.split("@", 1)[0]
+            
+            # Se já possui credenciais e elas não foram geradas pelo OAuth do GitIDE (não começam com gho_),
+            # não sobrescrevemos para respeitar a configuração manual do usuário (PAT ghp_...)
+            if has_credentials and not current_token.startswith("gho_"):
+                return
+                
             auth_url = get_authenticated_git_url(url, token)
             if url != auth_url:
                 origin.set_url(auth_url)
@@ -89,11 +104,13 @@ def clone_git(remote_url: str, target_path: str) -> dict:
         
     os.makedirs(abs_path, exist_ok=True)
     try:
-        repo = Repo.clone_from(remote_url, abs_path)
+        token = get_github_token()
+        auth_url = get_authenticated_git_url(remote_url, token)
+        repo = Repo.clone_from(auth_url, abs_path)
         return {
             "status": "success",
             "action": "cloned",
-            "current_branch": repo.active_branch.name,
+            "current_branch": repo.active_branch.name if not repo.head.is_detached else "DETACHED",
             "commit": repo.head.commit.hexsha
         }
     except GitCommandError as e:
@@ -104,6 +121,13 @@ def get_git_status(project_path: str) -> dict:
     try:
         repo = get_repo(project_path)
         
+        # Busca a URL remota de origin
+        remote_url = ""
+        try:
+            remote_url = repo.remotes.origin.url
+        except Exception:
+            pass
+
         # Verifica se é um repositório vazio (sem commits)
         if len(repo.refs) == 0 or not repo.head.is_valid():
             return {
@@ -113,7 +137,8 @@ def get_git_status(project_path: str) -> dict:
                 "modified": [],
                 "deleted": [],
                 "staged": [],
-                "current_branch": "main"  # Git default
+                "current_branch": "main",  # Git default
+                "remote_url": remote_url
             }
 
         untracked = repo.untracked_files
@@ -135,7 +160,8 @@ def get_git_status(project_path: str) -> dict:
             "modified": modified,
             "deleted": deleted,
             "staged": staged,
-            "is_clean": not any([untracked, modified, deleted, staged])
+            "is_clean": not any([untracked, modified, deleted, staged]),
+            "remote_url": remote_url
         }
     except ValueError:
         return {
@@ -146,7 +172,8 @@ def get_git_status(project_path: str) -> dict:
             "modified": [],
             "deleted": [],
             "staged": [],
-            "is_clean": True
+            "is_clean": True,
+            "remote_url": ""
         }
     except Exception as e:
         return {
@@ -288,10 +315,19 @@ def pull_git(project_path: str, branch: str = None) -> dict:
     except GitCommandError as e:
         raise RuntimeError(f"Falha ao rodar git pull: {e.stderr or str(e)}")
 
-def list_branches(project_path: str) -> dict:
+def list_branches(project_path: str, force_fetch: bool = False) -> dict:
     """Retorna uma lista de todas as branches locais e remotas."""
     repo = get_repo(project_path)
     
+    # Tenta fazer o fetch para atualizar a lista de branches do servidor remoto apenas se solicitado
+    if force_fetch:
+        try:
+            update_remote_url_with_token(repo)
+            if len(repo.remotes) > 0:
+                repo.remotes.origin.fetch()
+        except Exception:
+            pass
+        
     try:
         current_branch = repo.active_branch.name if not repo.head.is_detached else "DETACHED"
     except (TypeError, AttributeError):
@@ -316,6 +352,7 @@ def list_branches(project_path: str) -> dict:
         "remote": list(dict.fromkeys(remote_branches)),
         "all": all_branches
     }
+
 
 def create_branch(project_path: str, branch_name: str) -> dict:
     """Cria uma nova branch e faz o checkout dela."""
@@ -405,5 +442,24 @@ def abort_merge(project_path: str) -> dict:
     except Exception as e:
         raise RuntimeError(f"Erro ao abortar mesclagem: {str(e)}")
 
+def set_remote_token(project_path: str, token: str) -> dict:
+    """Configura o Personal Access Token (PAT) na URL de origin do Git."""
+    repo = get_repo(project_path)
+    try:
+        origin = repo.remote(name="origin")
+        url = origin.url
+        if not url:
+            raise ValueError("O repositório não possui um controle remoto 'origin' configurado.")
+            
+        # Reconstrói a URL injetando o token
+        auth_url = get_authenticated_git_url(url, token)
+        origin.set_url(auth_url)
+        return {
+            "status": "success",
+            "new_url": auth_url.split("@")[-1] if "@" in auth_url else auth_url,
+            "details": "Token configurado com sucesso no controle remoto origin."
+        }
+    except Exception as e:
+        raise RuntimeError(f"Erro ao configurar token: {str(e)}")
 
 

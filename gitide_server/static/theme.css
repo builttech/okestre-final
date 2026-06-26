@@ -1,0 +1,101 @@
+/* GitIDE Theme Variables — generated from tokens.json foundation */
+:root,
+:root[data-theme="dark"] {
+    color-scheme: dark;
+
+    /* Foundation / semantic */
+    --theme-bg: #0a0a0a;
+    --theme-surface: #111111;
+    --theme-surface-elevated: #1a1a1a;
+    --theme-surface-muted: #1f2228;
+    --theme-text: #ffffff;
+    --theme-text-secondary: #999999;
+    --theme-text-muted: #6f6f6f;
+    --theme-border: #1a1a1a;
+    --theme-border-strong: rgba(255, 255, 255, 0.15);
+    --theme-primary: #f5f5f5;
+    --theme-primary-soft: rgba(255, 255, 255, 0.10);
+    --theme-secondary: #b8bec8;
+    --theme-info: #79b8ff;
+    --theme-purple: #bc97ff;
+    --theme-success: #91c17a;
+    --theme-warning: #ffbd2e;
+    --theme-danger: #ff5f57;
+
+    /* Component tokens */
+    --theme-shell-bg: var(--theme-bg);
+    --theme-shell-canvas: var(--theme-surface);
+    --theme-topbar-height: 48px;
+    --theme-topbar-bg: rgba(10, 10, 10, 0.78);
+    --theme-sidebar-width: 270px;
+    --theme-sidebar-bg: rgba(17, 17, 17, 0.90);
+    --theme-card-bg: rgba(26, 26, 26, 0.84);
+    --theme-card-border: rgba(255, 255, 255, 0.085);
+    --theme-card-radius: 24px;
+    --theme-card-shadow: rgba(0, 0, 0, 0.38) 0px 24px 70px 0px;
+    --theme-button-height: 36px;
+    --theme-button-radius: 6px;
+    --theme-input-height: 36px;
+    --theme-input-bg: rgba(0, 0, 0, 0.28);
+    --theme-input-border: rgba(255, 255, 255, 0.085);
+    --theme-input-radius: 12px;
+    --theme-modal-bg: rgba(26, 26, 26, 0.92);
+    --theme-modal-backdrop: rgba(0, 0, 0, 0.68);
+    --theme-modal-radius: 24px;
+    --theme-agent-panel-bg: rgba(26, 26, 26, 0.84);
+    --theme-agent-composer-bg: rgba(0, 0, 0, 0.38);
+    --theme-db-explorer-width: 320px;
+    --theme-db-row-hover: rgba(255, 255, 255, 0.055);
+    --theme-db-row-active: rgba(249, 117, 131, 0.16);
+    --theme-git-sidebar-width: 380px;
+    --theme-git-console-height: 420px;
+}
+
+:root[data-theme="light"] {
+    color-scheme: light;
+
+    --theme-bg: #ffffff;
+    --theme-surface: #f7f7f7;
+    --theme-surface-elevated: #ffffff;
+    --theme-surface-muted: #f1f3f5;
+    --theme-text: #0a0a0a;
+    --theme-text-secondary: #666666;
+    --theme-text-muted: #999999;
+    --theme-border: #e6e6e6;
+    --theme-border-strong: rgba(10, 10, 10, 0.15);
+    --theme-primary: #f97583;
+    --theme-primary-soft: rgba(249, 117, 131, 0.14);
+    --theme-secondary: #179f99;
+    --theme-info: #2563eb;
+    --theme-purple: #7c3aed;
+    --theme-success: #3f8f46;
+    --theme-warning: #b7791f;
+    --theme-danger: #d92d20;
+
+    --theme-shell-bg: var(--theme-bg);
+    --theme-shell-canvas: var(--theme-surface);
+    --theme-topbar-height: 48px;
+    --theme-topbar-bg: rgba(255, 255, 255, 0.86);
+    --theme-sidebar-width: 270px;
+    --theme-sidebar-bg: rgba(247, 247, 247, 0.92);
+    --theme-card-bg: rgba(255, 255, 255, 0.86);
+    --theme-card-border: rgba(10, 10, 10, 0.085);
+    --theme-card-radius: 24px;
+    --theme-card-shadow: rgba(10, 10, 10, 0.10) 0px 24px 70px 0px;
+    --theme-button-height: 36px;
+    --theme-button-radius: 6px;
+    --theme-input-height: 36px;
+    --theme-input-bg: rgba(255, 255, 255, 0.9);
+    --theme-input-border: rgba(10, 10, 10, 0.085);
+    --theme-input-radius: 12px;
+    --theme-modal-bg: rgba(255, 255, 255, 0.94);
+    --theme-modal-backdrop: rgba(10, 10, 10, 0.38);
+    --theme-modal-radius: 24px;
+    --theme-agent-panel-bg: rgba(255, 255, 255, 0.86);
+    --theme-agent-composer-bg: rgba(255, 255, 255, 0.86);
+    --theme-db-explorer-width: 320px;
+    --theme-db-row-hover: rgba(10, 10, 10, 0.045);
+    --theme-db-row-active: rgba(249, 117, 131, 0.14);
+    --theme-git-sidebar-width: 380px;
+    --theme-git-console-height: 420px;
+}

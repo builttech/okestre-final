@@ -22,8 +22,11 @@ const state = {
     activeTokenTheme: null
 };
 
+// --- CUSTOM SELECT COMPONENT ---
+
 // --- INICIALIZAÇÃO ---
 document.addEventListener('DOMContentLoaded', () => {
+    initCustomSelects();
     initApp();
     setupEventListeners();
     
@@ -184,6 +187,12 @@ function selectProject(projectId) {
 
 // --- ABAS ---
 function switchTab(tabId) {
+    // Cancela polling de comandos pendentes ao mudar de aba
+    if (window.pendingCommandsInterval) {
+        clearInterval(window.pendingCommandsInterval);
+        window.pendingCommandsInterval = null;
+    }
+
     state.activeTab = tabId;
     localStorage.setItem('gitide_active_tab', tabId);
     
@@ -237,8 +246,12 @@ function switchTab(tabId) {
         } else if (tabId === 'tab-database') {
             loadDbTables();
             loadProjectDbCredentials();
+        } else if (tabId === 'tab-documents') {
+            loadDocuments();
         } else if (tabId === 'tab-terminal') {
             loadPendingCommands();
+            startPendingCommandsPolling();
+        }
         }
     }
 }
@@ -1114,10 +1127,11 @@ async function runSqlQuery() {
 }
 
 // --- GIT BRIDGE ---
-async function loadGitStatus() {
+async function loadGitStatus(forceFetch = false) {
     const container = document.getElementById('git-status-detail');
     const initPanel = document.getElementById('git-init-panel');
     const deployPanel = document.getElementById('git-deploy-panel');
+    const shouldFetch = forceFetch === true;
     
     try {
         const res = await fetch(`/api/projects/${state.activeProjectId}/git/status`);
@@ -1139,7 +1153,9 @@ async function loadGitStatus() {
         initPanel.style.display = 'none';
         deployPanel.style.display = 'block';
         
-        await loadGitBranches(status.current_branch);
+        await loadGitBranches(status.current_branch, shouldFetch);
+        state.activeProjectRemoteUrl = status.remote_url || '';
+        updateGitGeneratedCommand();
         
         let html = `
             <div class="git-status-info" style="margin-bottom: 14px;">
@@ -1213,7 +1229,7 @@ async function loadGitStatus() {
             document.getElementById('btn-dropdown-refresh-branches').addEventListener('click', (e) => {
                 e.stopPropagation();
                 closeAllDropdowns();
-                loadGitStatus();
+                loadGitStatus(true);
             });
             
             document.getElementById('btn-dropdown-git-pull').addEventListener('click', (e) => {
@@ -1324,14 +1340,14 @@ function parseGitGraphLine(line) {
     
     return drawingPart + textPart;
 }
-}
 
-async function loadGitBranches(currentBranch) {
+async function loadGitBranches(currentBranch, forceFetch = false) {
     const branchSelect = document.getElementById('git-branch-input');
     if (!branchSelect) return;
 
     try {
-        const res = await fetch(`/api/projects/${state.activeProjectId}/git/branches`);
+        const url = `/api/projects/${state.activeProjectId}/git/branches` + (forceFetch ? '?fetch=true' : '');
+        const res = await fetch(url);
         const data = await res.json();
         if (data.status === 'success') {
             const currentSelected = currentBranch || data.current_branch || 'main';
@@ -1403,7 +1419,11 @@ async function initGitRepo() {
             }
             loadGitStatus();
         } else {
-            appendGitConsole(`Erro ao inicializar Git: ${data.detail}`, true);
+            let errorMsg = data.detail;
+            if (typeof errorMsg === 'object') {
+                errorMsg = JSON.stringify(errorMsg);
+            }
+            appendGitConsole(`Erro ao inicializar Git: ${errorMsg || 'Erro desconhecido'}`, true);
         }
         
     } catch (err) {
@@ -1591,6 +1611,9 @@ async function openDirectoryBrowser(targetInputId) {
     const modal = document.getElementById('modal-dir-browser');
     modal.classList.add('active');
     
+    const inputFolder = document.getElementById('dir-browser-new-folder-name');
+    if (inputFolder) inputFolder.value = '';
+    
     // Inicia no caminho já digitado ou vazio (home)
     let startPath = '';
     if (targetInputId === 'local-selected-path') {
@@ -1744,6 +1767,57 @@ async function loadBrowserDirectories(path) {
     }
 }
 
+async function handleCreateFolderBrowser() {
+    const input = document.getElementById('dir-browser-new-folder-name');
+    if (!input) return;
+    const folderName = input.value.trim();
+    if (!folderName) {
+        alert('Por favor, digite o nome da pasta.');
+        return;
+    }
+    
+    const parentPath = state.currentBrowserPath;
+    if (!parentPath) return;
+    
+    const btn = document.getElementById('btn-dir-browser-create-folder');
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> Criando...`;
+    
+    try {
+        const res = await fetch('/api/system/dirs', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                parent_path: parentPath,
+                name: folderName
+            })
+        });
+        
+        const data = await res.json();
+        
+        if (!res.ok) {
+            throw new Error(data.detail || 'Erro ao criar pasta');
+        }
+        
+        // Limpa input
+        input.value = '';
+        
+        // Recarrega o diretório atual para mostrar a nova pasta criada
+        await loadBrowserDirectories(parentPath);
+        
+        // Alerta opcional de sucesso
+        alert(data.message || 'Pasta criada com sucesso!');
+    } catch (err) {
+        alert(`Erro: ${err.message}`);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+    }
+}
+
 function confirmDirectorySelection() {
     if (state.dirBrowserTargetInput === 'local-selected-path') {
         const path = state.currentBrowserPath;
@@ -1853,6 +1927,7 @@ function setupEventListeners() {
     document.getElementById('btn-github-connect').addEventListener('click', startGitHubDeviceFlow);
     document.getElementById('btn-copy-github-code').addEventListener('click', copyGitHubCode);
     document.getElementById('btn-github-logout').addEventListener('click', logoutGitHub);
+    document.getElementById('btn-save-github-pat').addEventListener('click', saveGitHubPat);
 
     // 3.1. Tab Navigation Events
     document.querySelectorAll('.modal-tab-btn').forEach(btn => {
@@ -1893,6 +1968,13 @@ function setupEventListeners() {
         btn.addEventListener('click', closeDirectoryBrowser);
     });
     document.getElementById('btn-dir-browser-confirm').addEventListener('click', confirmDirectorySelection);
+    document.getElementById('btn-dir-browser-create-folder').addEventListener('click', handleCreateFolderBrowser);
+    document.getElementById('dir-browser-new-folder-name').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            handleCreateFolderBrowser();
+        }
+    });
 
     // 3.7. Deletar/Remover Projeto Ativo
     document.getElementById('btn-delete-project').addEventListener('click', async () => {
@@ -2321,6 +2403,69 @@ function setupEventListeners() {
             }
         });
     }
+
+    // Ações do Painel de Autenticação Git (PAT Token)
+    const patInput = document.getElementById('git-pat-token-input');
+    if (patInput) {
+        patInput.addEventListener('input', updateGitGeneratedCommand);
+    }
+    
+    const togglePatBtn = document.getElementById('btn-toggle-pat-visibility');
+    if (togglePatBtn) {
+        togglePatBtn.addEventListener('click', () => {
+            const input = document.getElementById('git-pat-token-input');
+            const icon = togglePatBtn.querySelector('i');
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.className = 'fa-solid fa-eye-slash';
+            } else {
+                input.type = 'password';
+                icon.className = 'fa-solid fa-eye';
+            }
+        });
+    }
+    
+    const copyGitCmdBtn = document.getElementById('btn-copy-generated-git-cmd');
+    if (copyGitCmdBtn) {
+        copyGitCmdBtn.addEventListener('click', () => {
+            const text = document.getElementById('git-generated-command-text').textContent;
+            navigator.clipboard.writeText(text).then(() => {
+                const icon = copyGitCmdBtn.querySelector('i');
+                const originalClass = icon.className;
+                icon.className = 'fa-solid fa-check';
+                icon.style.color = 'var(--color-success)';
+                setTimeout(() => {
+                    icon.className = originalClass;
+                    icon.style.color = '';
+                }, 2000);
+            });
+        });
+    }
+    
+    const runGitCmdBtn = document.getElementById('btn-run-generated-git-cmd');
+    if (runGitCmdBtn) {
+        runGitCmdBtn.addEventListener('click', runGitSetTokenAPI);
+    }
+    
+    // 12. Documentos Word
+    const refreshDocsBtn = document.getElementById('btn-refresh-documents');
+    if (refreshDocsBtn) {
+        refreshDocsBtn.addEventListener('click', loadDocuments);
+    }
+    const uploadDocBtn = document.getElementById('btn-upload-document');
+    const uploadDocInput = document.getElementById('input-upload-document');
+    if (uploadDocBtn && uploadDocInput) {
+        uploadDocBtn.addEventListener('click', () => uploadDocInput.click());
+        uploadDocInput.addEventListener('change', handleDocumentUpload);
+    }
+    const generateTestDocBtn = document.getElementById('btn-generate-test-doc');
+    if (generateTestDocBtn) {
+        generateTestDocBtn.addEventListener('click', generateTestDocument);
+    }
+    const copyDocPromptBtn = document.getElementById('btn-copy-doc-prompt-instructions');
+    if (copyDocPromptBtn) {
+        copyDocPromptBtn.addEventListener('click', copyDocPromptInstructions);
+    }
 }
 
 // --- IMPORT APP TABBED MODAL FUNCTIONS ---
@@ -2548,8 +2693,13 @@ async function executeProjectImport(name, path, remoteUrl) {
                 git_remote: remoteUrl
             })
         });
-        
-        const data = await res.json();
+        const text = await res.text();
+        let data;
+        try {
+            data = JSON.parse(text);
+        } catch (jsonErr) {
+            throw new Error(text || `Erro do servidor (Status: ${res.status})`);
+        }
         
         if (res.status === 200 && data.status === 'success') {
             document.getElementById('modal-project').classList.remove('active');
@@ -2571,7 +2721,7 @@ async function executeProjectImport(name, path, remoteUrl) {
             alert(`Erro ao importar projeto: ${data.detail || 'Verifique se a pasta já existe ou se as informações estão corretas.'}`);
         }
     } catch (err) {
-        alert(`Falha de conexão ao importar projeto: ${err.message}`);
+        alert(`Falha ao importar projeto: ${err.message}`);
     } finally {
         importBtn.disabled = false;
         importBtn.innerHTML = originalText;
@@ -2775,6 +2925,42 @@ async function logoutGitHub() {
         checkGitHubStatus();
     } catch (err) {
         console.error('Erro ao desconectar do GitHub:', err);
+    }
+}
+
+async function saveGitHubPat() {
+    const input = document.getElementById('github-pat-input');
+    const token = input.value.trim();
+    if (!token) {
+        alert('Por favor, insira o token clássico (PAT) do GitHub.');
+        return;
+    }
+    
+    const btn = document.getElementById('btn-save-github-pat');
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Conectando...';
+    
+    try {
+        const res = await fetch('/api/github/auth/token', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: token })
+        });
+        
+        const data = await res.json();
+        if (res.status === 200 && data.status === 'success') {
+            input.value = '';
+            alert('Token do GitHub (PAT) conectado e salvo com sucesso!');
+            checkGitHubStatus();
+        } else {
+            alert(`Erro ao salvar token: ${data.detail || 'Erro desconhecido'}`);
+        }
+    } catch (err) {
+        alert(`Erro de conexão ao salvar token: ${err.message}`);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
     }
 }
 
@@ -4181,4 +4367,1048 @@ async function runGitAbortMerge() {
     }
 }
 
+function updateGitGeneratedCommand() {
+    const patInput = document.getElementById('git-pat-token-input');
+    const cmdText = document.getElementById('git-generated-command-text');
+    const copyBtn = document.getElementById('btn-copy-generated-git-cmd');
+    const runBtn = document.getElementById('btn-run-generated-git-cmd');
+    
+    if (!patInput || !cmdText || !copyBtn || !runBtn) return;
+    
+    // Remove <> e espaços
+    const token = patInput.value.replace(/[<> ]/g, '');
+    
+    if (!token) {
+        cmdText.textContent = 'Digite o token acima para gerar o comando...';
+        cmdText.style.color = 'var(--text-muted)';
+        copyBtn.style.display = 'none';
+        runBtn.disabled = true;
+        return;
+    }
+    
+    // Limpa a URL de origin caso já tenha token
+    let cleanUrl = '';
+    if (state.activeProject && state.activeProject.git_remote) {
+        cleanUrl = state.activeProject.git_remote;
+    } else {
+        cleanUrl = state.activeProjectRemoteUrl || '';
+    }
+    
+    if (cleanUrl.includes('@')) {
+        const prefix = cleanUrl.startsWith('https://') ? 'https://' : 'http://';
+        const remainder = cleanUrl.substring(prefix.length);
+        if (remainder.includes('@')) {
+            cleanUrl = prefix + remainder.split('@')[1];
+        }
+    }
 
+    
+    let displayUrl = cleanUrl || 'https://github.com/usuario/repositorio.git';
+    let authUrl = displayUrl;
+    
+    if (displayUrl.startsWith('https://github.com/')) {
+        authUrl = displayUrl.replace('https://github.com/', `https://${token}@github.com/`);
+    } else if (displayUrl.startsWith('http://github.com/')) {
+        authUrl = displayUrl.replace('http://github.com/', `http://${token}@github.com/`);
+    }
+    
+    cmdText.textContent = `git remote set-url origin ${authUrl}`;
+    cmdText.style.color = 'var(--color-primary)';
+    copyBtn.style.display = 'block';
+    runBtn.disabled = false;
+}
+
+async function runGitSetTokenAPI() {
+    if (!state.activeProjectId) return;
+    
+    const patInput = document.getElementById('git-pat-token-input');
+    if (!patInput) return;
+    
+    const token = patInput.value.replace(/[<> ]/g, '');
+    if (!token) {
+        alert('Digite um token de acesso válido.');
+        return;
+    }
+    
+    appendGitConsole(`Configurando Personal Access Token no repositório local...`);
+    try {
+        const res = await fetch(`/api/projects/${state.activeProjectId}/git/token`, {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify({ token: token })
+        });
+        
+        const data = await res.json();
+        
+        if (!res.ok) {
+            throw new Error(data.detail || 'Erro desconhecido');
+        }
+        
+        appendGitConsole(`Token configurado com sucesso!`);
+        alert('Token de acesso configurado com sucesso no controle remoto!');
+        
+        // Limpa o input do token por privacidade
+        patInput.value = '';
+        updateGitGeneratedCommand();
+        
+        loadGitStatus();
+    } catch (err) {
+        appendGitConsole(`Erro ao configurar token: ${err.message}`, true);
+        alert(`Erro ao configurar token: ${err.message}`);
+    }
+}
+
+// --- SISTEMA DE DOCUMENTOS WORD ---
+
+async function loadDocuments() {
+    if (!state.activeProjectId) return;
+    
+    const tbody = document.getElementById('documents-table-body');
+    if (!tbody) return;
+    
+    tbody.innerHTML = `
+        <tr>
+            <td colspan="3" style="text-align: center; color: var(--text-muted); padding: 40px 0;">
+                <i class="fa-solid fa-circle-notch fa-spin" style="font-size: 24px; margin-bottom: 8px;"></i><br>
+                Carregando documentos...
+            </td>
+        </tr>
+    `;
+    
+    try {
+        const res = await fetch(`/api/projects/${state.activeProjectId}/documents`);
+        const documents = await res.json();
+        
+        if (!res.ok) {
+            throw new Error(documents.detail || 'Erro ao carregar documentos');
+        }
+        
+        if (documents.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="3" style="text-align: center; color: var(--text-muted); padding: 40px 0;">
+                        <i class="fa-solid fa-folder-open" style="font-size: 32px; display: block; margin-bottom: 12px;"></i>
+                        Nenhum documento Word gerado ainda neste projeto.
+                    </td>
+                </tr>
+            `;
+            
+            // Oculta prévia e mostra vazio
+            const sheet = document.getElementById('document-preview-sheet');
+            const empty = document.getElementById('document-preview-empty');
+            const badge = document.getElementById('preview-filename-badge');
+            if (sheet) sheet.style.display = 'none';
+            if (empty) empty.style.display = 'flex';
+            if (badge) badge.style.display = 'none';
+            return;
+        }
+        
+        tbody.innerHTML = '';
+        documents.forEach(doc => {
+            const tr = document.createElement('tr');
+            tr.style.borderBottom = '1px solid var(--border-color)';
+            tr.style.fontSize = '13px';
+            tr.style.cursor = 'pointer';
+            
+            const sizeKB = (doc.size_bytes / 1024).toFixed(1);
+            
+            // Verifica se este documento é o ativo no estado
+            const isSelected = state.selectedDocumentFilename === doc.filename;
+            if (isSelected) {
+                tr.style.background = 'rgba(99, 102, 241, 0.1)';
+            }
+            
+            tr.innerHTML = `
+                <td style="padding: 12px 8px; color: var(--text-light); font-weight: 500;" class="doc-name-cell">
+                    <i class="fa-regular fa-file-word" style="color: var(--color-primary); margin-right: 6px;"></i> ${doc.filename}
+                </td>
+                <td style="padding: 12px 8px; color: var(--text-muted);">${sizeKB} KB</td>
+                <td style="padding: 12px 8px; text-align: right; display: flex; gap: 6px; justify-content: flex-end;">
+                    <button class="btn btn-sm btn-primary btn-download-doc" data-filename="${doc.filename}" style="padding: 4px 8px; font-size: 11px;">
+                        <i class="fa-solid fa-download"></i> Baixar
+                    </button>
+                    <button class="btn btn-sm btn-danger btn-delete-doc" data-filename="${doc.filename}" style="padding: 4px 8px; font-size: 11px;">
+                        <i class="fa-solid fa-trash-can"></i> Excluir
+                    </button>
+                </td>
+            `;
+            
+            // Event listener para seleção/preview
+            const selectRow = () => {
+                tbody.querySelectorAll('tr').forEach(r => r.style.background = '');
+                tr.style.background = 'rgba(99, 102, 241, 0.1)';
+                state.selectedDocumentFilename = doc.filename;
+                loadDocumentPreview(doc.filename);
+            };
+            
+            tr.querySelector('.doc-name-cell').addEventListener('click', selectRow);
+            
+            // Event listener para download
+            tr.querySelector('.btn-download-doc').addEventListener('click', (e) => {
+                e.stopPropagation(); // Impede seleção da linha
+                const filename = e.currentTarget.getAttribute('data-filename');
+                downloadDocumentFile(filename);
+            });
+            
+            // Event listener para exclusão
+            tr.querySelector('.btn-delete-doc').addEventListener('click', (e) => {
+                e.stopPropagation(); // Impede seleção da linha
+                const filename = e.currentTarget.getAttribute('data-filename');
+                deleteDocumentFile(filename);
+            });
+            
+            tbody.appendChild(tr);
+        });
+        
+        // Seleciona o primeiro por padrão caso não tenha seleção ativa válida
+        let docToSelect = documents[0];
+        if (state.selectedDocumentFilename) {
+            const found = documents.find(d => d.filename === state.selectedDocumentFilename);
+            if (found) docToSelect = found;
+        }
+        
+        if (docToSelect) {
+            state.selectedDocumentFilename = docToSelect.filename;
+            loadDocumentPreview(docToSelect.filename);
+            
+            // Destaca a linha correspondente
+            const rows = tbody.querySelectorAll('tr');
+            documents.forEach((d, idx) => {
+                if (d.filename === docToSelect.filename && rows[idx]) {
+                    rows[idx].style.background = 'rgba(99, 102, 241, 0.1)';
+                }
+            });
+        }
+        
+    } catch (err) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="3" style="text-align: center; color: var(--color-danger); padding: 40px 0;">
+                    <i class="fa-solid fa-triangle-exclamation" style="font-size: 32px; display: block; margin-bottom: 12px;"></i>
+                    Erro ao listar documentos: ${err.message}
+                </td>
+            </tr>
+        `;
+    }
+}
+
+async function downloadDocumentFile(filename) {
+    if (!state.activeProjectId) return;
+    try {
+        const url = `/api/projects/${state.activeProjectId}/documents/${encodeURIComponent(filename)}/download`;
+        
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+    } catch (err) {
+        alert(`Erro ao fazer download: ${err.message}`);
+    }
+}
+
+async function deleteDocumentFile(filename) {
+    if (!state.activeProjectId) return;
+    if (!confirm(`Tem certeza que deseja excluir o documento "${filename}"?`)) return;
+    
+    try {
+        const res = await fetch(`/api/projects/${state.activeProjectId}/documents/${encodeURIComponent(filename)}`, {
+            method: 'DELETE',
+            headers: getHeaders()
+        });
+        
+        const data = await res.json();
+        if (!res.ok) {
+            throw new Error(data.detail || 'Erro ao excluir o documento');
+        }
+        
+        // Se o documento excluído for o que estava selecionado no estado, limpa a seleção
+        if (state.selectedDocumentFilename === filename) {
+            state.selectedDocumentFilename = null;
+        }
+        
+        loadDocuments();
+    } catch (err) {
+        alert(`Erro ao excluir documento: ${err.message}`);
+    }
+}
+
+async function generateTestDocument() {
+    if (!state.activeProjectId) return;
+    
+    const btn = document.getElementById('btn-generate-test-doc');
+    if (!btn) return;
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> Gerando...`;
+    
+    try {
+        const docPayload = {
+            title: "Especificação Técnica - Projeto " + state.activeProject.name,
+            sections: [
+                {
+                    heading: "1. Introdução",
+                    text: "Este documento apresenta a especificação técnica e de arquitetura do projeto. O escopo contempla a análise de código, controle de versão nativo integrado com o Git, e integração de ferramentas avançadas.",
+                    type: "paragraph"
+                },
+                {
+                    heading: "2. Destaques do Projeto",
+                    text: "Desenvolvimento rápido utilizando Python e FastAPI.\\nBanco de dados local leve com suporte a migrações em tempo real.\\nDesign moderno com suporte a tokens customizados.",
+                    type: "bullet"
+                },
+                {
+                    heading: "3. Nota Importante",
+                    text: "Certifique-se de que todas as dependências estão devidamente instaladas executando 'pip install -r requirements.txt' antes de iniciar o servidor em ambiente de homologação ou produção.",
+                    type: "highlight"
+                },
+                {
+                    heading: "4. Exemplo de Código do Endpoint",
+                    text: "@app.get(\\\"/api/info\\\")\\ndef get_server_info():\\n    return {\\\"status\\\": \\\"online\\\", \\\"version\\\": \\\"1.0.0\\\"}",
+                    type: "code"
+                },
+                {
+                    heading: "5. Tabela de Versões e Status",
+                    text: '[["Componente", "Versão", "Status"], ["FastAPI", "0.110.0", "Homologado"], ["Python-docx", "1.1.0", "Adicionado"], ["SQLite", "3.x", "Ativo"]]',
+                    type: "table"
+                }
+            ]
+        };
+        
+        const res = await fetch(`/api/projects/${state.activeProjectId}/documents/word`, {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify(docPayload)
+        });
+        
+        const data = await res.json();
+        
+        if (!res.ok) {
+            throw new Error(data.detail || 'Erro ao gerar o documento');
+        }
+        
+        alert(`Documento "${data.filename}" gerado com sucesso!`);
+        loadDocuments();
+    } catch (err) {
+        alert(`Erro ao gerar documento de teste: ${err.message}`);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+    }
+}
+
+async function handleDocumentUpload(e) {
+    if (!state.activeProjectId) return;
+    const fileInput = e.target;
+    if (!fileInput.files || fileInput.files.length === 0) return;
+    
+    const file = fileInput.files[0];
+    if (!file.name.endsWith('.docx')) {
+        alert('Por favor, envie apenas arquivos com extensão .docx (Word).');
+        fileInput.value = '';
+        return;
+    }
+    
+    const uploadBtn = document.getElementById('btn-upload-document');
+    let originalText = '';
+    if (uploadBtn) {
+        originalText = uploadBtn.innerHTML;
+        uploadBtn.disabled = true;
+        uploadBtn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> Enviando...`;
+    }
+    
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    try {
+        const res = await fetch(`/api/projects/${state.activeProjectId}/documents/upload`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${state.apiKey}`
+            },
+            body: formData
+        });
+        
+        const data = await res.json();
+        
+        if (!res.ok) {
+            throw new Error(data.detail || 'Erro ao realizar upload');
+        }
+        
+        alert(`Documento "${data.filename}" enviado com sucesso!`);
+        loadDocuments();
+    } catch (err) {
+        alert(`Erro ao enviar documento: ${err.message}`);
+    } finally {
+        fileInput.value = '';
+        if (uploadBtn) {
+            uploadBtn.disabled = false;
+            uploadBtn.innerHTML = originalText;
+        }
+    }
+}
+
+function copyDocPromptInstructions() {
+    if (!state.activeProject) {
+        alert('Por favor, selecione um projeto primeiro.');
+        return;
+    }
+    
+    const instructions = `Você é um engenheiro de software e documentador técnico assistindo o usuário no projeto ativo "${state.activeProject.name}" (ID: ${state.activeProjectId}) através do GitIDE.
+Sempre que o usuário solicitar para você criar, editar, revisar ou atualizar qualquer tipo de documentação, especificação técnica, relatório, manual ou roteiro:
+1. Você DEVE usar a ferramenta 'POST /api/projects/${state.activeProjectId}/documents/word' para gerar e salvar o documento real fisicamente como um arquivo Word (.docx).
+2. NUNCA envie o conteúdo completo da documentação diretamente como texto ou markdown no chat do ChatGPT. Em vez disso, utilize o endpoint para persistir o arquivo e depois dê apenas uma breve explicação ao usuário sobre o que foi gerado.
+3. Formate a requisição estruturando o conteúdo em seções ("sections"). Cada seção pode conter os seguintes tipos de formatação (campo "type"):
+   - "paragraph": para texto corrido.
+   - "bullet": para listas de tópicos (separe os itens com quebras de linha '\\n').
+   - "highlight": para caixas de destaque ou observações importantes.
+   - "code": para blocos de código fonte (preservando indentação e quebras de linha).
+   - "table": para tabelas. O campo "text" deve conter uma matriz JSON válida em formato string, por exemplo: '[["Coluna 1", "Coluna 2"], ["Dado A", "Dado B"]]'.
+4. Certifique-se de que o título do documento ("title") seja descritivo e claro.`;
+
+    navigator.clipboard.writeText(instructions).then(() => {
+        const btn = document.getElementById('btn-copy-doc-prompt-instructions');
+        if (btn) {
+            const originalText = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = `<i class="fa-solid fa-check" style="color: var(--color-success);"></i> Copiado!`;
+            setTimeout(() => {
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            }, 2000);
+        }
+    }).catch(err => {
+        console.error('Erro ao copiar para clipboard:', err);
+        alert('Não foi possível copiar as instruções.');
+    });
+}
+
+async function loadDocumentPreview(filename) {
+    if (!state.activeProjectId) return;
+    
+    const sheet = document.getElementById('document-preview-sheet');
+    const empty = document.getElementById('document-preview-empty');
+    const badge = document.getElementById('preview-filename-badge');
+    
+    if (!sheet || !empty) return;
+    
+    sheet.style.display = 'block';
+    empty.style.display = 'none';
+    
+    if (badge) {
+        badge.textContent = filename;
+        badge.style.display = 'inline-block';
+    }
+    
+    sheet.innerHTML = `
+        <div style="display: flex; justify-content: center; align-items: center; min-height: 200px; color: #475569;">
+            <i class="fa-solid fa-circle-notch fa-spin" style="font-size: 32px; margin-right: 12px; color: #4F46E5;"></i>
+            <span>Processando prévia do documento...</span>
+        </div>
+    `;
+    
+    try {
+        const res = await fetch(`/api/projects/${state.activeProjectId}/documents/${encodeURIComponent(filename)}/preview`);
+        const data = await res.json();
+        
+        if (!res.ok) {
+            throw new Error(data.detail || 'Erro ao carregar prévia');
+        }
+        
+        renderDocumentPreview(data);
+    } catch (err) {
+        sheet.innerHTML = `
+            <div style="color: #ef4444; padding: 20px; text-align: center;">
+                <i class="fa-solid fa-triangle-exclamation" style="font-size: 32px; margin-bottom: 12px;"></i>
+                <p style="font-weight: bold;">Erro ao carregar prévia:</p>
+                <p style="font-size: 13px;">${err.message}</p>
+            </div>
+        `;
+    }
+}
+
+function renderDocumentPreview(data) {
+    const sheet = document.getElementById('document-preview-sheet');
+    if (!sheet) return;
+    
+    sheet.innerHTML = '';
+    
+    // 1. Título do Documento
+    const titleEl = document.createElement('h1');
+    titleEl.textContent = data.title || 'Documento';
+    titleEl.style.fontFamily = 'Arial, sans-serif';
+    titleEl.style.fontSize = '20px';
+    titleEl.style.fontWeight = 'bold';
+    titleEl.style.color = '#000000'; // Black
+    titleEl.style.margin = '0 0 4px 0';
+    sheet.appendChild(titleEl);
+    
+    // Linha divisória
+    const divider = document.createElement('div');
+    divider.style.width = '100%';
+    divider.style.height = '1.5px';
+    divider.style.background = '#000000';
+    divider.style.marginBottom = '16px';
+    sheet.appendChild(divider);
+    
+    // Metadados
+    const meta = document.createElement('p');
+    meta.style.fontFamily = 'Calibri, sans-serif';
+    meta.style.fontSize = '8.5pt';
+    meta.style.color = '#4B5563'; // Gray-600
+    meta.style.fontStyle = 'italic';
+    meta.style.margin = '0 0 20px 0';
+    meta.style.lineHeight = '1.4';
+    meta.innerHTML = `Data de Geração: ${new Date().toLocaleString()}<br>Gerado via: Agente GitIDE`;
+    sheet.appendChild(meta);
+    
+    // 2. Seções
+    if (data.sections && data.sections.length > 0) {
+        data.sections.forEach(sec => {
+            // Se houver heading, renderiza
+            if (sec.heading && sec.heading.trim() !== '') {
+                const headingEl = document.createElement('h2');
+                headingEl.textContent = sec.heading.trim();
+                headingEl.style.fontFamily = 'Arial, sans-serif';
+                headingEl.style.fontSize = '13px';
+                headingEl.style.fontWeight = 'bold';
+                headingEl.style.color = '#000000';
+                headingEl.style.marginTop = '14px';
+                headingEl.style.marginBottom = '6px';
+                sheet.appendChild(headingEl);
+            }
+            
+            if (!sec.text || sec.text.trim() === '') return;
+            
+            const type = (sec.type || 'paragraph').toLowerCase().trim();
+            
+            if (type === 'paragraph') {
+                const p = document.createElement('p');
+                p.textContent = sec.text;
+                p.style.fontFamily = 'Calibri, sans-serif';
+                p.style.fontSize = '10pt';
+                p.style.color = '#111827';
+                p.style.lineHeight = '1.15';
+                p.style.marginBottom = '8px';
+                sheet.appendChild(p);
+                
+            } else if (type === 'bullet') {
+                const ul = document.createElement('ul');
+                ul.style.paddingLeft = '20px';
+                ul.style.marginBottom = '8px';
+                ul.style.listStyleType = 'disc';
+                
+                const lines = sec.text.split('\n');
+                lines.forEach(line => {
+                    const cleanLine = line.trim().replace(/^[-*]\s+/, '');
+                    if (cleanLine) {
+                        const li = document.createElement('li');
+                        li.textContent = cleanLine;
+                        li.style.fontFamily = 'Calibri, sans-serif';
+                        li.style.fontSize = '10pt';
+                        li.style.color = '#111827';
+                        li.style.marginBottom = '3px';
+                        ul.appendChild(li);
+                    }
+                });
+                sheet.appendChild(ul);
+                
+            } else if (type === 'highlight') {
+                const callout = document.createElement('div');
+                callout.style.background = '#F9FAFB';
+                callout.style.borderLeft = '1.5px solid #9CA3AF';
+                callout.style.padding = '8px 12px';
+                callout.style.marginBottom = '12px';
+                callout.style.borderRadius = '2px';
+                
+                const p = document.createElement('p');
+                p.textContent = sec.text;
+                p.style.fontFamily = 'Calibri, sans-serif';
+                p.style.fontSize = '9.5pt';
+                p.style.color = '#4B5563';
+                p.style.fontStyle = 'italic';
+                p.style.margin = '0';
+                p.style.lineHeight = '1.4';
+                callout.appendChild(p);
+                sheet.appendChild(callout);
+                
+            } else if (type === 'code') {
+                const pre = document.createElement('pre');
+                pre.style.background = '#F9FAFB';
+                pre.style.padding = '10px';
+                pre.style.borderRadius = '4px';
+                pre.style.overflowX = 'auto';
+                pre.style.marginBottom = '12px';
+                pre.style.border = '1px solid #E5E7EB';
+                
+                const code = document.createElement('code');
+                code.textContent = sec.text;
+                code.style.fontFamily = 'Consolas, monospace';
+                code.style.fontSize = '9pt';
+                code.style.color = '#374151';
+                pre.appendChild(code);
+                sheet.appendChild(pre);
+                
+            } else if (type === 'table') {
+                try {
+                    const matrix = JSON.parse(sec.text);
+                    if (Array.isArray(matrix) && matrix.length > 0) {
+                        const table = document.createElement('table');
+                        table.style.width = '100%';
+                        table.style.borderCollapse = 'collapse';
+                        table.style.marginBottom = '12px';
+                        table.style.fontFamily = 'Calibri, sans-serif';
+                        table.style.fontSize = '9.5pt';
+                        
+                        matrix.forEach((rowData, rIdx) => {
+                            const tr = document.createElement('tr');
+                            const isHeader = rIdx === 0;
+                            
+                            rowData.forEach(cellVal => {
+                                const cell = document.createElement(isHeader ? 'th' : 'td');
+                                cell.textContent = cellVal;
+                                cell.style.border = '1px solid #D1D5DB';
+                                cell.style.padding = '6px';
+                                
+                                if (isHeader) {
+                                    cell.style.background = '#374151';
+                                    cell.style.color = '#ffffff';
+                                    cell.style.fontWeight = 'bold';
+                                    cell.style.textAlign = 'center';
+                                } else {
+                                    cell.style.color = '#111827';
+                                    if (rIdx % 2 === 1) {
+                                        cell.style.background = '#F9FAFB';
+                                    }
+                                }
+                                tr.appendChild(cell);
+                            });
+                            table.appendChild(tr);
+                        });
+                        sheet.appendChild(table);
+                    }
+                } catch (err) {
+                    const fallback = document.createElement('p');
+                    fallback.textContent = `[Tabela: ${sec.text}]`;
+                    fallback.style.color = '#ef4444';
+                    fallback.style.fontStyle = 'italic';
+                    sheet.appendChild(fallback);
+                }
+            }
+        });
+    }
+}
+
+// --- CUSTOM SELECT COMPONENT ---
+
+function initCustomSelects() {
+    // 1. Sobrescrever o setter de .value do HTMLSelectElement para podermos escutar modificações programáticas
+    const originalValueDescriptor = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value');
+    Object.defineProperty(HTMLSelectElement.prototype, 'value', {
+        get() {
+            return originalValueDescriptor.get.call(this);
+        },
+        set(val) {
+            originalValueDescriptor.set.call(this, val);
+            // Sincroniza o custom select correspondente se existir
+            const wrapper = this.nextElementSibling;
+            if (wrapper && wrapper.classList.contains('custom-select-container')) {
+                syncCustomSelectValue(this, wrapper);
+            }
+        }
+    });
+
+    // 2. Inicializa cada select.select-input no DOM
+    const selectElements = document.querySelectorAll('select.select-input');
+    selectElements.forEach(select => {
+        setupCustomSelect(select);
+    });
+
+    // 3. Listener global para fechar dropdowns ao clicar fora
+    document.addEventListener('click', () => {
+        document.querySelectorAll('.custom-select-container.open').forEach(container => {
+            container.classList.remove('open');
+        });
+    });
+}
+
+function setupCustomSelect(select) {
+    if (select.nextElementSibling && select.nextElementSibling.classList.contains('custom-select-container')) {
+        return; // Já inicializado
+    }
+
+    // Oculta o select nativo
+    select.style.display = 'none';
+
+    // Cria o wrapper e elementos do custom select
+    const container = document.createElement('div');
+    container.className = 'custom-select-container';
+    if (select.id) {
+        container.id = `custom-select-for-${select.id}`;
+    }
+
+    const trigger = document.createElement('div');
+    trigger.className = 'custom-select-trigger';
+    trigger.setAttribute('tabindex', '0');
+    if (select.disabled) {
+        trigger.classList.add('disabled');
+        trigger.setAttribute('tabindex', '-1');
+    }
+
+    const valueSpan = document.createElement('span');
+    valueSpan.className = 'custom-select-value';
+    
+    const arrowIcon = document.createElement('i');
+    arrowIcon.className = 'fa-solid fa-chevron-down custom-select-arrow';
+
+    trigger.appendChild(valueSpan);
+    trigger.appendChild(arrowIcon);
+
+    const dropdown = document.createElement('div');
+    dropdown.className = 'custom-select-dropdown';
+
+    container.appendChild(trigger);
+    container.appendChild(dropdown);
+
+    // Insere o wrapper logo após o select original
+    select.parentNode.insertBefore(container, select.nextSibling);
+
+    // Índice de opção atualmente realçada via teclado
+    let highlightedIndex = -1;
+
+    // Função para renderizar as opções do dropdown com base no select original
+    function renderOptions() {
+        dropdown.innerHTML = '';
+        highlightedIndex = -1;
+
+        const children = Array.from(select.children);
+
+        children.forEach(child => {
+            if (child.tagName === 'OPTGROUP') {
+                const groupContainer = document.createElement('div');
+                groupContainer.className = 'custom-select-group';
+
+                const groupTitle = document.createElement('div');
+                groupTitle.className = 'custom-select-group-title';
+                groupTitle.textContent = child.label;
+                groupContainer.appendChild(groupTitle);
+
+                const options = Array.from(child.querySelectorAll('option'));
+                options.forEach(opt => {
+                    const optionEl = createOptionElement(opt);
+                    groupContainer.appendChild(optionEl);
+                });
+
+                dropdown.appendChild(groupContainer);
+            } else if (child.tagName === 'OPTION') {
+                const optionEl = createOptionElement(child);
+                dropdown.appendChild(optionEl);
+            }
+        });
+
+        // Atualiza o texto selecionado no trigger
+        updateTriggerText();
+    }
+
+    function createOptionElement(nativeOpt) {
+        const optEl = document.createElement('div');
+        optEl.className = 'custom-select-option';
+        optEl.textContent = nativeOpt.textContent;
+        optEl.setAttribute('data-value', nativeOpt.value);
+
+        if (nativeOpt.selected) {
+            optEl.classList.add('selected');
+        }
+
+        optEl.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (select.disabled) return;
+            
+            // Define o valor no select original
+            select.value = nativeOpt.value;
+            // Dispara o evento de mudança nativo
+            select.dispatchEvent(new Event('change', { bubbles: true }));
+            
+            closeDropdown();
+        });
+
+        return optEl;
+    }
+
+    function updateTriggerText() {
+        const selectedOpt = select.options[select.selectedIndex];
+        valueSpan.textContent = selectedOpt ? selectedOpt.textContent : '';
+    }
+
+    // Sincroniza estado de seleção visual
+    function syncSelection() {
+        const val = select.value;
+        const options = dropdown.querySelectorAll('.custom-select-option');
+        options.forEach(opt => {
+            if (opt.getAttribute('data-value') === val) {
+                opt.classList.add('selected');
+            } else {
+                opt.classList.remove('selected');
+            }
+        });
+        updateTriggerText();
+    }
+
+    // Abre/fecha dropdown
+    function toggleDropdown() {
+        if (select.disabled) return;
+        
+        const isOpen = container.classList.contains('open');
+        if (isOpen) {
+            closeDropdown();
+        } else {
+            // Fecha outros dropdowns abertos antes
+            document.querySelectorAll('.custom-select-container.open').forEach(c => {
+                if (c !== container) c.classList.remove('open');
+            });
+            container.classList.add('open');
+            container.classList.add('focused');
+            // Foca o trigger para habilitar escuta de teclado
+            trigger.focus();
+            highlightedIndex = -1;
+            highlightFirstSelected();
+        }
+    }
+
+    function closeDropdown() {
+        container.classList.remove('open');
+        removeHighlight();
+    }
+
+    function highlightFirstSelected() {
+        const options = Array.from(dropdown.querySelectorAll('.custom-select-option'));
+        const selectedIdx = options.findIndex(opt => opt.classList.contains('selected'));
+        if (selectedIdx !== -1) {
+            highlightOption(selectedIdx);
+        }
+    }
+
+    function highlightOption(index) {
+        const options = Array.from(dropdown.querySelectorAll('.custom-select-option'));
+        removeHighlight();
+        if (index >= 0 && index < options.length) {
+            highlightedIndex = index;
+            const opt = options[index];
+            opt.classList.add('highlighted');
+            // Garante scroll visibility
+            opt.scrollIntoView({ block: 'nearest' });
+        }
+    }
+
+    function removeHighlight() {
+        dropdown.querySelectorAll('.custom-select-option.highlighted').forEach(o => o.classList.remove('highlighted'));
+    }
+
+    // Handlers de eventos
+    trigger.addEventListener('click', (e) => {
+        e.stopPropagation();
+        toggleDropdown();
+    });
+
+    trigger.addEventListener('focus', () => {
+        if (!select.disabled) {
+            container.classList.add('focused');
+        }
+    });
+
+    trigger.addEventListener('blur', () => {
+        container.classList.remove('focused');
+        // Fecha com um pequeno delay para capturar o click caso clique em uma opção
+        setTimeout(() => {
+            if (!container.classList.contains('focused')) {
+                closeDropdown();
+            }
+        }, 150);
+    });
+
+    // Navegação via teclado
+    trigger.addEventListener('keydown', (e) => {
+        if (select.disabled) return;
+        const options = Array.from(dropdown.querySelectorAll('.custom-select-option'));
+
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            if (!container.classList.contains('open')) {
+                toggleDropdown();
+            } else {
+                let nextIdx = highlightedIndex + 1;
+                if (nextIdx >= options.length) nextIdx = 0;
+                highlightOption(nextIdx);
+            }
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            if (!container.classList.contains('open')) {
+                toggleDropdown();
+            } else {
+                let prevIdx = highlightedIndex - 1;
+                if (prevIdx < 0) prevIdx = options.length - 1;
+                highlightOption(prevIdx);
+            }
+        } else if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            if (!container.classList.contains('open')) {
+                toggleDropdown();
+            } else {
+                if (highlightedIndex >= 0 && highlightedIndex < options.length) {
+                    options[highlightedIndex].click();
+                } else {
+                    closeDropdown();
+                }
+            }
+        } else if (e.key === 'Escape' || e.key === 'Tab') {
+            closeDropdown();
+        }
+    });
+
+    // Render inicial
+    renderOptions();
+
+    // 3. Usa MutationObserver para escutar mudanças no select original
+    const observer = new MutationObserver((mutations) => {
+        mutations.forEach(mutation => {
+            if (mutation.type === 'childList') {
+                renderOptions();
+            } else if (mutation.type === 'attributes' && mutation.attributeName === 'disabled') {
+                if (select.disabled) {
+                    trigger.classList.add('disabled');
+                    trigger.setAttribute('tabindex', '-1');
+                    closeDropdown();
+                } else {
+                    trigger.classList.remove('disabled');
+                    trigger.setAttribute('tabindex', '0');
+                }
+            }
+        });
+    });
+
+    observer.observe(select, { 
+        childList: true, 
+        attributes: true, 
+        attributeFilter: ['disabled'] 
+    });
+
+    // Registra uma referência de sincronização de valor para uso pelo setter modificado
+    container.syncValue = syncSelection;
+}
+
+function syncCustomSelectValue(select, wrapper) {
+    if (wrapper && typeof wrapper.syncValue === 'function') {
+        wrapper.syncValue();
+    }
+}
+
+// --- PENDING COMMANDS APPROVAL ---
+
+async function loadPendingCommands() {
+    if (!state.activeProjectId) return;
+    
+    const panel = document.getElementById('pending-commands-panel');
+    const list = document.getElementById('pending-commands-list');
+    if (!panel || !list) return;
+    
+    try {
+        const res = await fetch(`/api/projects/${state.activeProjectId}/execute/pending`, {
+            headers: getHeaders()
+        });
+        const data = await res.json();
+        
+        if (data && data.length > 0) {
+            panel.style.display = 'block';
+            list.innerHTML = '';
+            
+            data.forEach(cmd => {
+                const item = document.createElement('div');
+                item.className = 'pending-command-item';
+                item.style.display = 'flex';
+                item.style.justifyContent = 'space-between';
+                item.style.alignItems = 'center';
+                item.style.background = 'rgba(255,255,255,0.02)';
+                item.style.border = '1px solid var(--border-color)';
+                item.style.borderRadius = '6px';
+                item.style.padding = '10px 14px';
+                
+                const dateStr = new Date(cmd.created_at).toLocaleString('pt-BR');
+                
+                item.innerHTML = `
+                    <div style="display: flex; flex-direction: column; gap: 4px; min-width: 0; flex: 1; text-align: left;">
+                        <span style="font-family: var(--font-mono); font-size: 13px; color: var(--text-light); word-break: break-all;">${cmd.command}</span>
+                        <span style="font-size: 11px; color: var(--text-dark);">Recebido em: ${dateStr}</span>
+                    </div>
+                    <div style="display: flex; gap: 8px; flex-shrink: 0; margin-left: 14px;">
+                        <button class="btn btn-sm" id="btn-approve-${cmd.id}" style="background: var(--color-success); border-color: rgba(255,255,255,0.05); min-height: 28px !important; padding: 4px 10px; font-size: 12px; cursor: pointer; color: white;">
+                            <i class="fa-solid fa-check"></i> Permitir
+                        </button>
+                        <button class="btn btn-sm" id="btn-reject-${cmd.id}" style="background: var(--color-danger); border-color: rgba(255,255,255,0.05); min-height: 28px !important; padding: 4px 10px; font-size: 12px; cursor: pointer; color: white;">
+                            <i class="fa-solid fa-xmark"></i> Rejeitar
+                        </button>
+                    </div>
+                `;
+                
+                list.appendChild(item);
+                
+                // Event listeners
+                document.getElementById(`btn-approve-${cmd.id}`).addEventListener('click', () => approveCommand(cmd.id));
+                document.getElementById(`btn-reject-${cmd.id}`).addEventListener('click', () => rejectCommand(cmd.id));
+            });
+        } else {
+            panel.style.display = 'none';
+        }
+    } catch (err) {
+        console.error('Erro ao buscar comandos pendentes:', err);
+    }
+}
+
+function startPendingCommandsPolling() {
+    if (window.pendingCommandsInterval) {
+        clearInterval(window.pendingCommandsInterval);
+    }
+    window.pendingCommandsInterval = setInterval(() => {
+        if (state.activeTab === 'tab-terminal' && state.activeProjectId) {
+            loadPendingCommands();
+        } else {
+            clearInterval(window.pendingCommandsInterval);
+            window.pendingCommandsInterval = null;
+        }
+    }, 4000);
+}
+
+async function approveCommand(commandId) {
+    if (!state.activeProjectId) return;
+    try {
+        const res = await fetch(`/api/projects/${state.activeProjectId}/execute/pending/${commandId}/approve`, {
+            method: 'POST',
+            headers: getHeaders()
+        });
+        const data = await res.json();
+        if (data.status === 'success') {
+            loadPendingCommands();
+        } else {
+            alert(`Erro ao aprovar comando: ${data.detail}`);
+        }
+    } catch (err) {
+        alert(`Erro ao aprovar comando: ${err.message}`);
+    }
+}
+
+async function rejectCommand(commandId) {
+    if (!state.activeProjectId) return;
+    try {
+        const res = await fetch(`/api/projects/${state.activeProjectId}/execute/pending/${commandId}/reject`, {
+            method: 'POST',
+            headers: getHeaders()
+        });
+        const data = await res.json();
+        if (data.status === 'success') {
+            loadPendingCommands();
+        } else {
+            alert(`Erro ao rejeitar comando: ${data.detail}`);
+        }
+    } catch (err) {
+        alert(`Erro ao rejeitar comando: ${err.message}`);
+    }
+}

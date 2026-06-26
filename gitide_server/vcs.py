@@ -5,42 +5,6 @@ from datetime import datetime
 from sqlalchemy.orm import Session
 from gitide_server.database import Project, FileSnapshot, ActivityLog
 
-def load_gitideignore(project_path: str) -> list[str]:
-    ignore_file = os.path.join(project_path, ".gitideignore")
-    patterns = []
-    if os.path.exists(ignore_file):
-        try:
-            with open(ignore_file, 'r', encoding='utf-8') as f:
-                for line in f:
-                    line = line.strip()
-                    if line and not line.startswith('#'):
-                        patterns.append(line)
-        except Exception:
-            pass
-    return patterns
-
-def is_ignored(filepath: str, patterns: list[str]) -> bool:
-    # Normalize filepath to use forward slashes for matching and strip leading/trailing slashes
-    filepath = filepath.replace('\\', '/').strip('/')
-    
-    # Always ignore .gitideignore itself to prevent external read/write access
-    if filepath == ".gitideignore":
-        return True
-        
-    for pattern in patterns:
-        pattern = pattern.strip().replace('\\', '/').strip('/')
-        if not pattern:
-            continue
-            
-        if '/' in pattern:
-            if fnmatch.fnmatchcase(filepath, pattern) or fnmatch.fnmatchcase(filepath, pattern + "/*"):
-                return True
-        else:
-            parts = filepath.split('/')
-            if any(fnmatch.fnmatchcase(part, pattern) for part in parts):
-                return True
-    return False
-
 def get_safe_path(project_path: str, filepath: str) -> str:
     """
     Retorna o caminho completo e seguro para um arquivo dentro do projeto,
@@ -61,6 +25,59 @@ def get_safe_path(project_path: str, filepath: str) -> str:
         raise ValueError(f"Caminho inválido ou fora do workspace do projeto: {filepath}")
         
     return full_path
+
+def load_gitideignore(project_path: str) -> list[str]:
+    """Lê os padrões de ignorar definidos no arquivo .gitideignore."""
+    ignore_path = os.path.join(project_path, ".gitideignore")
+    if not os.path.exists(ignore_path):
+        return []
+    
+    patterns = []
+    try:
+        with open(ignore_path, "r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith("#"):
+                    # Normaliza contra contra-barras do Windows
+                    patterns.append(line.replace('\\', '/'))
+    except Exception:
+        pass
+    return patterns
+
+def is_ignored(project_path: str, filepath: str) -> bool:
+    """Verifica se um arquivo/caminho relativo corresponde a algum padrão do .gitideignore."""
+    patterns = load_gitideignore(project_path)
+    # Se não há padrões, bloqueia por padrão apenas o próprio arquivo .gitideignore
+    if not patterns:
+        return filepath.replace('\\', '/') == ".gitideignore"
+        
+    # Normaliza o caminho de entrada para ser relativo ao projeto com barras normais
+    abs_project_path = os.path.abspath(project_path)
+    if os.path.isabs(filepath):
+        abs_file_path = os.path.abspath(filepath)
+    else:
+        abs_file_path = os.path.abspath(os.path.join(abs_project_path, filepath))
+        
+    rel_path = os.path.relpath(abs_file_path, abs_project_path).replace('\\', '/')
+    
+    # Bloqueia a leitura do próprio arquivo .gitideignore por segurança
+    if rel_path == ".gitideignore":
+        return True
+
+    for pattern in patterns:
+        # Se for um diretório e terminar com /
+        if pattern.endswith('/'):
+            if rel_path.startswith(pattern) or rel_path.startswith(pattern[:-1] + '/'):
+                return True
+        else:
+            # Caso contrário, testa fnmatch no caminho completo ou em partes dele
+            if fnmatch.fnmatch(rel_path, pattern) or fnmatch.fnmatch(os.path.basename(rel_path), pattern):
+                return True
+            # Caso seja uma pasta sem / no final (ex: 'secrets'), valida se o caminho começa com 'secrets/'
+            if rel_path.startswith(pattern + '/'):
+                return True
+                
+    return False
 
 def compute_sha256(content: str) -> str:
     """Calcula a hash SHA256 do conteúdo de um arquivo."""
@@ -96,7 +113,7 @@ def list_project_files(project_path: str) -> list[dict]:
             full_path = os.path.join(root, file)
             rel_path = os.path.relpath(full_path, abs_project_path).replace('\\', '/')
             
-            if is_ignored(rel_path, patterns):
+            if is_ignored(project_path, rel_path):
                 continue
                 
             try:
@@ -114,11 +131,9 @@ def list_project_files(project_path: str) -> list[dict]:
 
 def read_project_file(project_path: str, filepath: str) -> str:
     """Lê o conteúdo de um arquivo no projeto."""
+    if is_ignored(project_path, filepath):
+        raise ValueError(f"Acesso ao arquivo bloqueado pelo .gitideignore: {filepath}")
     full_path = get_safe_path(project_path, filepath)
-    rel_path = os.path.relpath(full_path, os.path.abspath(project_path)).replace('\\', '/')
-    patterns = load_gitideignore(project_path)
-    if is_ignored(rel_path, patterns):
-        raise ValueError("Acesso negado: o arquivo está na lista de ignorados (.gitideignore)")
         
     if not os.path.exists(full_path):
         raise FileNotFoundError(f"Arquivo não encontrado: {filepath}")
@@ -134,11 +149,9 @@ def write_project_file(db: Session, project: Project, filepath: str, content: st
     Se o arquivo já existia, salva a nova versão como um FileSnapshot
     no banco de dados antes/depois da escrita para controle de versão.
     """
+    if is_ignored(project.path, filepath):
+        raise ValueError(f"Acesso ao arquivo bloqueado pelo .gitideignore: {filepath}")
     full_path = get_safe_path(project.path, filepath)
-    rel_path = os.path.relpath(full_path, os.path.abspath(project.path)).replace('\\', '/')
-    patterns = load_gitideignore(project.path)
-    if is_ignored(rel_path, patterns):
-        raise ValueError("Acesso negado: o arquivo está na lista de ignorados (.gitideignore)")
         
     # Cria os diretórios pais se não existirem
     os.makedirs(os.path.dirname(full_path), exist_ok=True)
@@ -182,11 +195,9 @@ def delete_project_file(db: Session, project: Project, filepath: str, activity_l
     Exclui um arquivo do projeto após salvar um snapshot final do seu conteúdo
     para permitir que seja restaurado posteriormente.
     """
+    if is_ignored(project.path, filepath):
+        raise ValueError(f"Acesso ao arquivo bloqueado pelo .gitideignore: {filepath}")
     full_path = get_safe_path(project.path, filepath)
-    rel_path = os.path.relpath(full_path, os.path.abspath(project.path)).replace('\\', '/')
-    patterns = load_gitideignore(project.path)
-    if is_ignored(rel_path, patterns):
-        raise ValueError("Acesso negado: o arquivo está na lista de ignorados (.gitideignore)")
         
     if not os.path.exists(full_path):
         raise FileNotFoundError(f"Arquivo não encontrado para exclusão: {filepath}")
@@ -227,9 +238,8 @@ def rollback_project_file(db: Session, project: Project, snapshot_id: int) -> di
     if not snapshot:
         raise ValueError(f"Snapshot ID {snapshot_id} não encontrado para este projeto.")
         
-    patterns = load_gitideignore(project.path)
-    if is_ignored(snapshot.filepath, patterns):
-        raise ValueError("Acesso negado: o arquivo está na lista de ignorados (.gitideignore)")
+    if is_ignored(project.path, snapshot.filepath):
+        raise ValueError(f"Acesso ao arquivo bloqueado pelo .gitideignore: {snapshot.filepath}")
         
     full_path = get_safe_path(project.path, snapshot.filepath)
     os.makedirs(os.path.dirname(full_path), exist_ok=True)
@@ -340,9 +350,8 @@ def patch_project_file(db: Session, project: Project, filepath: str, target_cont
     Substitui um trecho específico de um arquivo.
     Lança ValueError se as condições de busca/substituição não forem atendidas.
     """
-    patterns = load_gitideignore(project.path)
-    if is_ignored(filepath, patterns):
-        raise ValueError("Acesso negado: o arquivo está na lista de ignorados (.gitideignore)")
+    if is_ignored(project.path, filepath):
+        raise ValueError(f"Acesso ao arquivo bloqueado pelo .gitideignore: {filepath}")
         
     content = read_project_file(project.path, filepath)
     occurrences = content.count(target_content)
