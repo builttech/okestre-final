@@ -345,6 +345,26 @@ textarea {
     box-shadow: 0 0 0 3px rgba(0,153,255,0.12) !important;
 }
 
+select.select-input{
+    display:block!important;
+    width:100%;
+    min-width:0;
+    min-height:40px;
+    padding:0 36px 0 12px!important;
+    appearance:auto!important;
+    -webkit-appearance:menulist!important;
+    background-color:var(--flat-panel-muted)!important;
+    color:var(--text-main)!important;
+    font:inherit;
+    font-size:13px!important;
+    font-weight:600!important;
+}
+
+select.select-input option{
+    background:var(--bg-base);
+    color:var(--text-main);
+}
+
 .file-node,
 .db-table-item,
 .log-card,
@@ -1802,99 +1822,6 @@ html[data-theme="light"]{
     content:none!important;
 }
 
-/* GitIDE Native Select */
-.gitide-select-original{
-    display:none!important;
-    position:absolute!important;
-    opacity:0!important;
-    pointer-events:none!important;
-}
-
-.gitide-select{
-    position:relative;
-    width:100%;
-}
-
-.gitide-select-trigger{
-    width:100%;
-    height:40px;
-    padding:0 12px;
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    border:1px solid var(--flat-border);
-    border-radius:10px;
-    background:var(--flat-panel-muted);
-    color:var(--text-main);
-}
-
-.gitide-select-menu{
-    display:none;
-    position:absolute;
-    top:calc(100% + 6px);
-    left:0;
-    right:0;
-    z-index:2000;
-    border:1px solid var(--flat-border);
-    border-radius:10px;
-    background:var(--bg-base);
-    overflow:hidden;
-}
-
-.gitide-select.is-open .gitide-select-menu{
-    display:block;
-}
-
-.gitide-select-option{
-    width:100%;
-    text-align:left;
-    padding:10px 12px;
-    border:0;
-    background:transparent;
-    color:var(--text-main);
-}
-
-.gitide-select-option:hover,
-.gitide-select-option.is-selected{
-    background:var(--flat-active);
-}
-
-.gitide-select-option:disabled{
-    cursor:default;
-    opacity:1;
-    color:var(--text-muted);
-    background:transparent!important;
-    font-size:10px;
-    font-weight:800;
-    letter-spacing:.08em;
-    text-transform:uppercase;
-    min-height:26px;
-    padding:10px 12px 4px;
-}
-
-.gitide-select-option:disabled:first-child{
-    padding-top:4px;
-}
-
-.custom-select-option.disabled{
-    cursor:default!important;
-    opacity:1!important;
-    color:var(--text-muted)!important;
-    background:transparent!important;
-    font-size:10px!important;
-    font-weight:800!important;
-    letter-spacing:.08em!important;
-    text-transform:uppercase!important;
-    min-height:26px!important;
-    padding:10px 12px 4px!important;
-    pointer-events:none;
-}
-
-.gitide-select-icon{
-    font-size:11px;
-    opacity:.7;
-}
-
 /* Global page layout standard — spacious rounded workspace */
 .tab-pane.active{
     height:100%!important;
@@ -2231,9 +2158,7 @@ html[data-theme="light"]{
     gap:8px!important;
 }
 
-#tab-database #db-type-select,
-#tab-database #db-type-select.gitide-select-original,
-#tab-database .db-config-row select.gitide-select-original{
+#tab-database #db-type-select{
     position:absolute!important;
     width:1px!important;
     height:1px!important;
@@ -2321,15 +2246,12 @@ html[data-theme="light"]{
     background:var(--theme-db-row-active);
 }
 
-#tab-database .db-config-row .gitide-select,
-#tab-database .db-config-row .gitide-select-trigger,
 #tab-database .db-config-row .text-input,
 #tab-database .db-config-row .db-type-select-shell{
     width:100%!important;
     min-width:0!important;
 }
 
-#tab-database .db-config-row .gitide-select-trigger,
 #tab-database .db-config-row .text-input{
     min-height:46px!important;
     border-radius:14px!important;
@@ -2783,29 +2705,8 @@ input[type="checkbox"]:focus-visible{
     gap:12px!important;
 }
 
-.git-operations-card select.select-input,
-.git-operations-card .gitide-select,
-.git-operations-card .gitide-select-trigger{
+.git-operations-card select.select-input{
     width:100%!important;
-}
-
-.git-operations-card .gitide-select{
-    display:block!important;
-}
-
-.git-operations-card .gitide-select-original{
-    display:none!important;
-}
-
-.git-operations-card .gitide-select-trigger{
-    height:42px!important;
-    border-radius:12px!important;
-    background:rgba(255,255,255,.025)!important;
-}
-
-.git-operations-card .gitide-select-menu{
-    max-height:220px!important;
-    overflow:auto!important;
 }
 
 .git-operations-card #btn-git-deploy,
@@ -2911,46 +2812,6 @@ input[type="checkbox"]:focus-visible{
 #git-branch-input{
     width:100%;
     min-height:44px!important;
-}
-
-.git-deploy-branch-field .custom-select-container{
-    width:100%;
-}
-
-.git-deploy-branch-field .custom-select-trigger{
-    min-height:44px;
-    padding:0 14px;
-    border-radius:14px;
-    background:rgba(255,255,255,.035);
-    border:1px solid var(--frame-border);
-    font-weight:700;
-    color:var(--text-main);
-}
-
-.git-deploy-branch-field .custom-select-value{
-    min-width:0;
-    overflow:hidden;
-    text-overflow:ellipsis;
-    white-space:nowrap;
-}
-
-.git-deploy-branch-field .custom-select-dropdown{
-    margin-top:8px;
-    border-radius:14px;
-    background:var(--bg-base);
-    border-color:var(--frame-border-strong);
-    box-shadow:0 18px 40px rgba(0,0,0,.42);
-    overflow:hidden;
-}
-
-.git-deploy-branch-field .custom-select-option{
-    min-height:38px;
-    font-weight:600;
-}
-
-.git-deploy-branch-field .custom-select-option.selected{
-    background:var(--theme-db-row-active)!important;
-    color:var(--text-main)!important;
 }
 
 .git-dev-hint{
@@ -3070,35 +2931,11 @@ input[type="checkbox"]:focus-visible{
     line-height:1.25;
 }
 
-#git-commit-msg,
-.git-deploy-branch-field .custom-select-trigger{
+#git-commit-msg{
     height:auto!important;
     min-height:46px!important;
     display:flex!important;
     align-items:center!important;
-}
-
-.git-deploy-branch-field .custom-select-container{
-    position:relative;
-    display:block;
-    overflow:visible;
-}
-
-.git-deploy-branch-field .custom-select-dropdown{
-    position:static!important;
-    width:100%!important;
-    max-height:220px!important;
-    overflow-y:auto!important;
-    margin-top:8px!important;
-    transform:none!important;
-}
-
-.git-deploy-branch-field .custom-select-container:not(.open) .custom-select-dropdown{
-    display:none!important;
-}
-
-.git-deploy-branch-field .custom-select-container.open .custom-select-dropdown{
-    display:block!important;
 }
 
 .git-dev-hint{
@@ -3740,12 +3577,8 @@ input[type="checkbox"]:focus-visible{
     margin:0;
 }
 
-#tab-git .git-deploy-branch-field > .custom-select-container,
 #tab-git .git-deploy-branch-field > .git-branch-switcher,
-#tab-git .git-deploy-branch-field > .gitide-select,
-#tab-git .git-branch-select-action-row > .custom-select-container,
-#tab-git .git-branch-select-action-row > .git-branch-switcher,
-#tab-git .git-branch-select-action-row > .gitide-select{
+#tab-git .git-branch-select-action-row > .git-branch-switcher{
     display:none!important;
 }
 
