@@ -25,7 +25,12 @@ const state = {
     gridActiveTable: null,
     gridCurrentPage: 1,
     gridTotalRows: 0,
-    gridColumns: []
+    gridColumns: [],
+
+    // Git conflict resolver
+    gitConflicts: [],
+    gitConflictActiveFile: null,
+    gitConflictBlocks: []
 };
 
 // --- CUSTOM SELECT COMPONENT ---
@@ -1773,6 +1778,13 @@ async function loadGitStatus(forceFetch = false) {
         container.innerHTML = html;
         clearGitStatusFileList();
         renderGitChangedFiles(status);
+        if (status.has_conflicts || (status.conflicted && status.conflicted.length)) {
+            loadGitConflicts();
+        } else {
+            state.gitConflicts = [];
+            state.gitConflictActiveFile = null;
+            hideGitConflictsPanelIfEmpty();
+        }
         
         const dropdownBtn = document.getElementById('btn-branch-actions');
         const dropdownMenu = document.getElementById('branch-actions-menu');
@@ -2152,11 +2164,14 @@ async function runGitPull() {
             appendGitConsole(`Git pull concluído:\n${data.details.join('\n')}`);
             loadGitStatus();
         } else {
-            appendGitConsole(`Erro no Git Pull: ${data.detail}`, true);
+            const detail = normalizeGitErrorDetail(data.detail);
+            appendGitConsole(`Erro no Git Pull: ${detail.message || data.detail}`, true);
+            await maybeLoadGitConflicts(detail);
         }
         
     } catch (err) {
         appendGitConsole(`Erro de conexão no Git Pull: ${err.message}`, true);
+        await loadGitConflicts();
     }
 }
 
@@ -2167,6 +2182,186 @@ function appendGitConsole(text, isError = false) {
     line.textContent = `[${new Date().toLocaleTimeString()}] ${text}`;
     consoleDiv.appendChild(line);
     consoleDiv.scrollTop = consoleDiv.scrollHeight;
+}
+
+function normalizeGitErrorDetail(detail) {
+    if (!detail) return { message: 'Erro desconhecido' };
+    if (typeof detail === 'string') return { message: detail };
+    return detail;
+}
+
+async function maybeLoadGitConflicts(detail = null) {
+    const normalized = normalizeGitErrorDetail(detail);
+    if (normalized.has_conflicts && Array.isArray(normalized.conflicts)) {
+        state.gitConflicts = normalized.conflicts;
+        renderGitConflictFiles();
+        showGitConflictsPanel();
+        if (state.gitConflicts[0]) await loadGitConflictFile(state.gitConflicts[0].filepath);
+        return true;
+    }
+    return loadGitConflicts();
+}
+
+function showGitConflictsPanel() {
+    const card = document.getElementById('git-conflicts-card');
+    if (card) card.style.display = 'flex';
+}
+
+function hideGitConflictsPanelIfEmpty() {
+    const card = document.getElementById('git-conflicts-card');
+    if (card && (!state.gitConflicts || state.gitConflicts.length === 0)) {
+        card.style.display = 'none';
+    }
+}
+
+async function loadGitConflicts() {
+    if (!state.activeProjectId) return false;
+    try {
+        const res = await fetch(`/api/projects/${state.activeProjectId}/git/conflicts`, { headers: getHeaders() });
+        const data = await res.json();
+        state.gitConflicts = data.files || [];
+        renderGitConflictFiles();
+        if (state.gitConflicts.length) {
+            showGitConflictsPanel();
+            if (!state.gitConflictActiveFile) await loadGitConflictFile(state.gitConflicts[0].filepath);
+            return true;
+        }
+        state.gitConflictActiveFile = null;
+        state.gitConflictBlocks = [];
+        renderGitConflictBlocks([]);
+        hideGitConflictsPanelIfEmpty();
+        return false;
+    } catch (err) {
+        appendGitConsole(`Erro ao carregar conflitos: ${err.message}`, true);
+        return false;
+    }
+}
+
+function renderGitConflictFiles() {
+    const list = document.getElementById('git-conflict-files-list');
+    if (!list) return;
+    if (!state.gitConflicts.length) {
+        list.innerHTML = '<div class="git-side-empty-state">Nenhum conflito encontrado.</div>';
+        return;
+    }
+    list.innerHTML = state.gitConflicts.map(file => `
+        <button type="button" class="git-conflict-file ${state.gitConflictActiveFile === file.filepath ? 'active' : ''}" data-filepath="${escapeGitConflictHtml(file.filepath)}">
+            <i data-lucide="file-warning"></i>
+            <span>${escapeGitConflictHtml(file.filepath)}</span>
+            <strong>${file.blocks_count}</strong>
+        </button>
+    `).join('');
+    list.querySelectorAll('.git-conflict-file').forEach(btn => {
+        btn.addEventListener('click', () => loadGitConflictFile(btn.dataset.filepath));
+    });
+    if (window.lucide) lucide.createIcons();
+}
+
+async function loadGitConflictFile(filepath) {
+    if (!state.activeProjectId || !filepath) return;
+    try {
+        const res = await fetch(`/api/projects/${state.activeProjectId}/git/conflicts/file?filepath=${encodeURIComponent(filepath)}`, { headers: getHeaders() });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || 'Erro ao carregar arquivo em conflito');
+        state.gitConflictActiveFile = filepath;
+        state.gitConflictBlocks = data.blocks || [];
+        document.getElementById('git-conflict-active-file').textContent = filepath;
+        document.getElementById('btn-git-conflict-save-file').disabled = !state.gitConflictBlocks.length;
+        renderGitConflictFiles();
+        renderGitConflictBlocks(state.gitConflictBlocks);
+    } catch (err) {
+        appendGitConsole(`Erro ao abrir conflito: ${err.message}`, true);
+    }
+}
+
+function escapeGitConflictHtml(value) {
+    return String(value || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
+function renderGitConflictBlocks(blocks) {
+    const container = document.getElementById('git-conflict-blocks');
+    if (!container) return;
+    if (!blocks.length) {
+        container.innerHTML = '<div class="git-side-empty-state">Nenhum bloco conflitante neste arquivo.</div>';
+        return;
+    }
+    container.innerHTML = blocks.map(block => `
+        <article class="git-conflict-block" data-index="${block.index}">
+            <header>
+                <div>
+                    <span>Bloco ${block.index + 1}</span>
+                    <strong>Linhas ${block.start_line}-${block.end_line}</strong>
+                </div>
+                <div class="git-conflict-choice">
+                    <button type="button" class="btn btn-sm btn-secondary" data-choice="ours">Manter Meu</button>
+                    <button type="button" class="btn btn-sm btn-secondary" data-choice="theirs">Manter Remoto</button>
+                    <button type="button" class="btn btn-sm btn-primary" data-choice="manual">Manual</button>
+                </div>
+            </header>
+            <div class="git-conflict-three-way">
+                <section>
+                    <h5>Meu (${escapeGitConflictHtml(block.ours_label)})</h5>
+                    <pre>${escapeGitConflictHtml(block.ours)}</pre>
+                </section>
+                <section>
+                    <h5>Remoto (${escapeGitConflictHtml(block.theirs_label)})</h5>
+                    <pre>${escapeGitConflictHtml(block.theirs)}</pre>
+                </section>
+            </div>
+            <label class="git-conflict-manual-label">Merge manual</label>
+            <textarea class="git-conflict-manual text-input">${escapeGitConflictHtml(block.ours || block.theirs)}</textarea>
+        </article>
+    `).join('');
+    container.querySelectorAll('.git-conflict-block').forEach(blockEl => {
+        blockEl.dataset.resolution = 'manual';
+        blockEl.querySelectorAll('[data-choice]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                blockEl.dataset.resolution = btn.dataset.choice;
+                blockEl.querySelectorAll('[data-choice]').forEach(b => b.classList.toggle('active', b === btn));
+                const idx = Number(blockEl.dataset.index);
+                const block = state.gitConflictBlocks.find(item => item.index === idx);
+                const manual = blockEl.querySelector('.git-conflict-manual');
+                if (btn.dataset.choice === 'ours') manual.value = block?.ours || '';
+                if (btn.dataset.choice === 'theirs') manual.value = block?.theirs || '';
+            });
+        });
+    });
+}
+
+async function applyGitConflictResolutions() {
+    if (!state.activeProjectId || !state.gitConflictActiveFile) return;
+    const blockEls = Array.from(document.querySelectorAll('.git-conflict-block'));
+    const resolutions = blockEls.map(el => ({
+        index: Number(el.dataset.index),
+        resolution: el.dataset.resolution || 'manual',
+        content: el.querySelector('.git-conflict-manual')?.value || ''
+    }));
+    try {
+        const res = await fetch(`/api/projects/${state.activeProjectId}/git/conflicts/resolve`, {
+            method: 'POST',
+            headers: { ...getHeaders(), 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                filepath: state.gitConflictActiveFile,
+                resolutions,
+                stage_file: true
+            })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || 'Erro ao aplicar resoluções');
+        appendGitConsole(`Conflitos resolvidos em ${state.gitConflictActiveFile}. Restantes: ${data.remaining_blocks}`);
+        gitideNotify({ title: 'Conflito resolvido', message: state.gitConflictActiveFile, variant: 'success' });
+        state.gitConflictActiveFile = null;
+        await loadGitConflicts();
+        loadGitStatus();
+    } catch (err) {
+        appendGitConsole(`Erro ao resolver conflito: ${err.message}`, true);
+        gitideNotify({ title: 'Erro ao resolver conflito', message: err.message, variant: 'danger' });
+    }
 }
 
 // --- HISTÓRICO & LOGS GERAIS ---
@@ -2910,6 +3105,9 @@ function setupEventListeners() {
     document.getElementById('btn-git-init').addEventListener('click', initGitRepo);
     document.getElementById('btn-git-deploy').addEventListener('click', runGitDeploy);
     document.getElementById('btn-git-pull').addEventListener('click', runGitPull);
+    document.getElementById('btn-git-conflicts-refresh').addEventListener('click', loadGitConflicts);
+    document.getElementById('btn-git-conflict-save-file').addEventListener('click', applyGitConflictResolutions);
+    document.getElementById('btn-git-conflicts-abort').addEventListener('click', runGitAbortMerge);
     
     // Merge Dialog Close & Confirm Events
     document.querySelectorAll('.merge-close').forEach(btn => {
@@ -3864,7 +4062,10 @@ async function runGitMerge() {
         const data = await res.json();
         
         if (!res.ok) {
-            throw new Error(data.detail || 'Erro desconhecido');
+            const detail = normalizeGitErrorDetail(data.detail);
+            appendGitConsole(`Erro ao mesclar branch: ${detail.message || 'Erro desconhecido'}`, true);
+            await maybeLoadGitConflicts(detail);
+            return;
         }
         
         appendGitConsole(`Branch "${selectedBranch}" mesclada com sucesso!\n\n${data.detail || ''}`);
@@ -3872,7 +4073,7 @@ async function runGitMerge() {
         loadGitStatus();
     } catch (err) {
         appendGitConsole(`Erro ao mesclar branch: ${err.message}`, true);
-        alert(`Erro ao mesclar branch: ${err.message}`);
+        await loadGitConflicts();
     }
 }
 
@@ -5123,9 +5324,14 @@ async function runGitPush() {
 async function runGitAbortMerge() {
     if (!state.activeProjectId) return;
     
-    if (!confirm('Tem certeza que deseja abortar a mesclagem em andamento? Todas as alterações não resolvidas do merge serão descartadas.')) {
-        return;
-    }
+    const confirmed = await gitideConfirm({
+        title: 'Abortar merge',
+        kicker: 'Git conflicts',
+        message: 'Todas as alterações não resolvidas do merge serão descartadas.',
+        confirmText: 'Abortar merge',
+        variant: 'danger'
+    });
+    if (!confirmed) return;
     
     appendGitConsole(`Abortando mesclagem (git merge --abort)...`);
     try {
@@ -5141,11 +5347,16 @@ async function runGitAbortMerge() {
         }
         
         appendGitConsole(`Mesclagem abortada com sucesso!`);
-        alert('Mesclagem abortada com sucesso!');
+        gitideNotify({ title: 'Merge abortado', message: 'O repositório voltou ao estado anterior ao merge.', variant: 'success' });
+        state.gitConflicts = [];
+        state.gitConflictActiveFile = null;
+        renderGitConflictFiles();
+        renderGitConflictBlocks([]);
+        hideGitConflictsPanelIfEmpty();
         loadGitStatus();
     } catch (err) {
         appendGitConsole(`Erro ao abortar mesclagem: ${err.message}`, true);
-        alert(`Erro ao abortar mesclagem: ${err.message}`);
+        gitideNotify({ title: 'Erro ao abortar merge', message: err.message, variant: 'danger' });
     }
 }
 

@@ -456,6 +456,33 @@
                             </div>
                         </div>
 
+                        <div class="git-conflicts-card card" id="git-conflicts-card" style="display: none;">
+                            <div class="card-header">
+                                <div>
+                                    <h4><i data-lucide="git-merge"></i> Resolução Visual de Conflitos</h4>
+                                    <p class="git-conflicts-subtitle">Resolva blocos conflitantes com atalhos ou edite manualmente antes de concluir o merge.</p>
+                                </div>
+                                <div class="git-conflicts-actions">
+                                    <button class="btn btn-sm btn-secondary" id="btn-git-conflicts-refresh"><i data-lucide="refresh-cw"></i> Atualizar</button>
+                                    <button class="btn btn-sm btn-secondary" id="btn-git-conflicts-abort"><i data-lucide="ban"></i> Abort merge</button>
+                                </div>
+                            </div>
+                            <div class="git-conflicts-layout">
+                                <aside class="git-conflict-files" id="git-conflict-files-list">
+                                    <div class="git-side-empty-state">Nenhum conflito carregado.</div>
+                                </aside>
+                                <section class="git-conflict-editor">
+                                    <div class="git-conflict-editor-header">
+                                        <span id="git-conflict-active-file">Selecione um arquivo em conflito</span>
+                                        <button class="btn btn-sm btn-primary" id="btn-git-conflict-save-file" disabled><i data-lucide="check"></i> Aplicar resoluções</button>
+                                    </div>
+                                    <div class="git-conflict-blocks" id="git-conflict-blocks">
+                                        <div class="git-side-empty-state">Quando um pull ou merge falhar por conflito, os blocos aparecem aqui.</div>
+                                    </div>
+                                </section>
+                            </div>
+                        </div>
+
                         <div class="git-credentials-card card">
                             <div class="card-header">
                                 <h4><i data-lucide="key-round"></i> Autenticação com Token (Personal Access Token)</h4>

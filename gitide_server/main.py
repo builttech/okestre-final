@@ -175,6 +175,16 @@ class GitPushRequest(BaseModel):
 class GitSetTokenRequest(BaseModel):
     token: str = Field(..., description="Personal Access Token do GitHub")
 
+class GitConflictResolveBlock(BaseModel):
+    index: int = Field(..., description="Índice do bloco de conflito no arquivo")
+    resolution: str = Field(..., description="Estratégia: ours, theirs ou manual")
+    content: Optional[str] = Field(None, description="Conteúdo manual para substituir o bloco")
+
+class GitConflictResolveRequest(BaseModel):
+    filepath: str = Field(..., description="Caminho relativo do arquivo em conflito")
+    resolutions: List[GitConflictResolveBlock] = Field(..., description="Resoluções por bloco")
+    stage_file: bool = Field(True, description="Adicionar o arquivo ao index após resolver")
+
 class GitPullRequestCreate(BaseModel):
     title: str = Field(..., description="Título do Pull Request")
     base: str = Field(..., description="Branch de destino (ex: main, master)")
@@ -1055,6 +1065,13 @@ def git_pull(branch: Optional[str] = Query(None),
         
         return result
     except Exception as e:
+        conflicts = git_bridge.list_conflicts(project.path)
+        if conflicts.get("files"):
+            raise HTTPException(status_code=409, detail={
+                "message": str(e),
+                "has_conflicts": True,
+                "conflicts": conflicts.get("files", [])
+            })
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/projects/{project_id}/git/deploy", tags=["Git Bridge"])
@@ -1128,6 +1145,50 @@ def git_merge_branch(req: GitMergeRequest,
         db.add(log)
         db.commit()
         
+        return result
+    except Exception as e:
+        conflicts = git_bridge.list_conflicts(project.path)
+        if conflicts.get("files"):
+            raise HTTPException(status_code=409, detail={
+                "message": str(e),
+                "has_conflicts": True,
+                "conflicts": conflicts.get("files", [])
+            })
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/projects/{project_id}/git/conflicts", tags=["Git Bridge"])
+def git_list_conflicts(project: Project = Depends(get_project_or_404)):
+    """Lista arquivos e blocos com marcadores de conflito Git."""
+    try:
+        return git_bridge.list_conflicts(project.path)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/projects/{project_id}/git/conflicts/file", tags=["Git Bridge"])
+def git_get_conflict_file(filepath: str = Query(...),
+                          project: Project = Depends(get_project_or_404)):
+    """Retorna o conteúdo e os blocos de conflito de um arquivo."""
+    try:
+        return git_bridge.get_conflict_file(project.path, filepath)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/projects/{project_id}/git/conflicts/resolve", tags=["Git Bridge"])
+def git_resolve_conflict(req: GitConflictResolveRequest,
+                         project: Project = Depends(get_project_or_404),
+                         db: Session = Depends(get_db),
+                         _ = Depends(get_api_key)):
+    """Resolve blocos de conflito em um arquivo e adiciona ao stage quando não restarem conflitos."""
+    try:
+        payload = [item.model_dump() for item in req.resolutions]
+        result = git_bridge.resolve_conflict_file(project.path, req.filepath, payload, req.stage_file)
+        log = ActivityLog(
+            project_id=project.id,
+            action_type="GIT_CONFLICT_RESOLVE",
+            details=f"Conflitos resolvidos em {req.filepath}. Restantes: {result.get('remaining_blocks')}"
+        )
+        db.add(log)
+        db.commit()
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
