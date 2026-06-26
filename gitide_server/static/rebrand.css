@@ -4056,3 +4056,308 @@ input[type="checkbox"]:focus-visible{
         padding:28px 24px;
     }
 }
+
+/* Spec-Driven Development (SDD) Layout */
+#tab-sdd.active {
+    padding: 24px !important;
+}
+
+.sdd-layout {
+    display: grid !important;
+    grid-template-columns: 320px minmax(0, 1fr) !important;
+    gap: 24px !important;
+    height: 100% !important;
+    width: 100% !important;
+    margin: 0 !important;
+}
+
+.sdd-sidebar,
+.sdd-workspace {
+    border-radius: 24px !important;
+    border: 1px solid var(--flat-border) !important;
+    background: rgba(255, 255, 255, 0.018) !important;
+    box-shadow: none !important;
+    overflow: hidden !important;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.sdd-sidebar-header,
+.sdd-workspace-header {
+    padding: 16px 20px !important;
+    border-bottom: 1px solid var(--flat-border-soft) !important;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.sdd-sidebar-header h4,
+.sdd-workspace-header h4 {
+    font-size: 15px !important;
+    letter-spacing: -0.04em !important;
+    margin: 0;
+    font-weight: 600;
+}
+
+.sdd-sidebar-body,
+.sdd-workspace-body {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 20px !important;
+}
+
+.specs-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.spec-item {
+    padding: 12px 14px;
+    border-radius: 14px;
+    border: 1px solid var(--flat-border);
+    background: transparent;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    transition: all 0.2s ease;
+    text-align: left;
+    width: 100%;
+}
+
+.spec-item:hover {
+    background: rgba(255, 255, 255, 0.025) !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+.spec-item.active {
+    background: rgba(255, 255, 255, 0.035) !important;
+    border-color: rgba(255, 255, 255, 0.15) !important;
+}
+
+.spec-item-title {
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--text-main);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.spec-item-meta {
+    font-size: 11px;
+    color: var(--text-muted);
+    display: flex;
+    justify-content: space-between;
+}
+
+.specs-empty-state,
+.sdd-empty-workspace {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    color: var(--text-muted);
+    padding: 40px 20px;
+}
+
+.sdd-empty-workspace {
+    height: 100%;
+}
+
+.sdd-empty-workspace h3 {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-main);
+    margin-bottom: 8px;
+}
+
+.sdd-empty-workspace p {
+    font-size: 13px;
+    max-width: 420px;
+    margin-bottom: 20px;
+}
+
+/* SDD Workspace Subtabs Navigation */
+.sdd-workspace-nav {
+    display: flex;
+    gap: 6px;
+}
+
+.sdd-nav-btn {
+    padding: 6px 12px;
+    border-radius: 10px;
+    border: 1px solid transparent;
+    background: transparent;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.sdd-nav-btn:hover {
+    color: var(--text-main);
+    background: rgba(255,255,255,0.02);
+}
+
+.sdd-nav-btn.active {
+    color: var(--text-main);
+    background: rgba(255,255,255,0.04);
+    border-color: var(--flat-border);
+}
+
+.sdd-tab-content {
+    display: none;
+    height: 100%;
+}
+
+.sdd-tab-content.active {
+    display: block;
+}
+
+/* Markdown Rendering */
+.sdd-markdown-preview {
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--text-main);
+    height: 100%;
+    overflow-y: auto;
+}
+
+.sdd-markdown-preview h1,
+.sdd-markdown-preview h2,
+.sdd-markdown-preview h3,
+.sdd-markdown-preview h4 {
+    margin-top: 24px;
+    margin-bottom: 12px;
+    font-weight: 600;
+    color: var(--text-main);
+}
+
+.sdd-markdown-preview h1 { font-size: 22px; border-bottom: 1px solid var(--flat-border-soft); padding-bottom: 8px; }
+.sdd-markdown-preview h2 { font-size: 18px; border-bottom: 1px solid var(--flat-border-soft); padding-bottom: 6px; }
+.sdd-markdown-preview h3 { font-size: 15px; }
+
+.sdd-markdown-preview ul,
+.sdd-markdown-preview ol {
+    padding-left: 20px;
+    margin-bottom: 16px;
+}
+
+.sdd-markdown-preview li {
+    margin-bottom: 6px;
+}
+
+.sdd-markdown-preview code {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    background: rgba(0,0,0,0.3);
+    padding: 2px 6px;
+    border-radius: 4px;
+    color: var(--color-primary-light, #818cf8);
+}
+
+.sdd-markdown-preview pre {
+    background: rgba(0,0,0,0.4);
+    padding: 14px;
+    border-radius: 8px;
+    overflow-x: auto;
+    margin-bottom: 16px;
+    border: 1px solid var(--flat-border-soft);
+}
+
+.sdd-markdown-preview pre code {
+    background: transparent;
+    padding: 0;
+    color: #f8fafc;
+}
+
+/* Checklist Interativa */
+.sdd-checklist-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--flat-border-soft);
+    padding-bottom: 14px;
+}
+
+.sdd-checklist-header h5 {
+    margin: 0 0 4px 0;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.sdd-checklist-progress {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+    min-width: 140px;
+}
+
+.sdd-checklist-progress span {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-muted);
+}
+
+.sdd-progress-bar {
+    width: 100%;
+    height: 6px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+#sdd-progress-fill {
+    height: 100%;
+    background: #10b981;
+    border-radius: 999px;
+    transition: width 0.3s ease;
+}
+
+.sdd-checklist-body {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding-top: 8px;
+}
+
+.sdd-criteria-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    background: rgba(255,255,255,0.01);
+    border: 1px solid var(--flat-border-soft);
+    transition: all 0.15s ease;
+}
+
+.sdd-criteria-row:hover {
+    background: rgba(255,255,255,0.025);
+    border-color: rgba(255,255,255,0.08);
+}
+
+.sdd-criteria-row.checked {
+    border-color: rgba(16, 185, 129, 0.2);
+    background: rgba(16, 185, 129, 0.015);
+}
+
+.sdd-criteria-text {
+    font-size: 13px;
+    color: var(--text-main);
+    line-height: 1.45;
+}
+
+.sdd-criteria-row.checked .sdd-criteria-text {
+    text-decoration: line-through;
+    color: var(--text-muted);
+}
+
