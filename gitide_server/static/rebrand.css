@@ -3695,7 +3695,7 @@ input[type="checkbox"]:focus-visible{
     opacity:.8;
 }
 
-/* Git deploy branch select: use the default GitIDE select component */
+/* Git deploy branch readonly indicator */
 #tab-git .git-deploy-branch-field{
     overflow:visible!important;
 }
@@ -3707,15 +3707,23 @@ input[type="checkbox"]:focus-visible{
     width:100%;
 }
 
-#tab-git .git-branch-select-action-row > #git-branch-input{
-    position:absolute!important;
-    opacity:0!important;
-    pointer-events:none!important;
-}
-
-#tab-git .git-branch-select-action-row > .gitide-select{
+#tab-git .git-current-branch-readonly{
     flex:1 1 auto!important;
     min-width:0!important;
+    min-height:42px;
+    padding:0 13px;
+    display:flex;
+    align-items:center;
+    border-radius:12px;
+    border:1px solid var(--flat-border);
+    background:rgba(255,255,255,.025);
+    color:var(--text-main);
+    font-family:var(--font-mono);
+    font-size:13px;
+    font-weight:700;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
 }
 
 #tab-git .git-branch-checkout-inline{
@@ -3733,8 +3741,10 @@ input[type="checkbox"]:focus-visible{
 
 #tab-git .git-deploy-branch-field > .custom-select-container,
 #tab-git .git-deploy-branch-field > .git-branch-switcher,
+#tab-git .git-deploy-branch-field > .gitide-select,
 #tab-git .git-branch-select-action-row > .custom-select-container,
-#tab-git .git-branch-select-action-row > .git-branch-switcher{
+#tab-git .git-branch-select-action-row > .git-branch-switcher,
+#tab-git .git-branch-select-action-row > .gitide-select{
     display:none!important;
 }
 

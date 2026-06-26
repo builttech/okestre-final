@@ -1749,7 +1749,7 @@ async function loadGitStatus(forceFetch = false) {
         initPanel.style.display = 'none';
         deployPanel.style.display = 'block';
         
-        await loadGitBranches(status.current_branch, shouldFetch);
+        setGitCurrentBranchLabel(status.current_branch);
         state.activeProjectRemoteUrl = status.remote_url || '';
         updateGitGeneratedCommand();
         
@@ -1952,115 +1952,16 @@ function normalizeGitBranchName(branchName) {
         .trim();
 }
 
-function findGitBranchOption(selectEl, preferredBranch) {
-    const normalizedPreferred = normalizeGitBranchName(preferredBranch);
-    return Array.from(selectEl.options).find(option => normalizeGitBranchName(option.value) === normalizedPreferred);
-}
-
-function cleanupGitBranchSelectArtifacts() {
-    const branchSelect = document.getElementById('git-branch-input');
-    if (!branchSelect) return;
-
-    branchSelect.classList.remove('git-branch-native', 'git-branch-select-native-hidden');
-
-    const field = branchSelect.closest('.git-deploy-branch-field');
-    if (!field) return;
-
-    field.querySelectorAll('.custom-select-container, .git-branch-switcher').forEach(wrapper => {
-        wrapper.remove();
-    });
-
-    const gitideWrappers = Array.from(field.querySelectorAll('.gitide-select'));
-    gitideWrappers.slice(1).forEach(wrapper => wrapper.remove());
-}
-
-function syncGitBranchCustomSelect() {
-    cleanupGitBranchSelectArtifacts();
+function setGitCurrentBranchLabel(branch) {
+    const label = document.getElementById('git-current-branch-readonly');
+    if (!label) return;
+    label.textContent = branch ? normalizeGitBranchName(branch) : '-';
 }
 
 function getGitDeployBranchValue() {
-    const branchSelect = document.getElementById('git-branch-input');
-    if (!branchSelect) return '';
-
-    const selectedValue = branchSelect.value.trim();
-    if (selectedValue) {
-        return normalizeGitBranchName(selectedValue);
-    }
-
-    const firstBranchOption = Array.from(branchSelect.options).find(option => option.value && !option.disabled);
-    if (firstBranchOption) {
-        branchSelect.value = firstBranchOption.value;
-        syncGitBranchCustomSelect();
-        return normalizeGitBranchName(firstBranchOption.value);
-    }
-
-    return '';
-}
-
-async function loadGitBranches(currentBranch, forceFetch = false) {
-    const branchSelect = document.getElementById('git-branch-input');
-    if (!branchSelect) return;
-
-    cleanupGitBranchSelectArtifacts();
-
-    try {
-        const url = `/api/projects/${state.activeProjectId}/git/branches` + (forceFetch ? '?fetch=true' : '');
-        const res = await fetch(url);
-        const data = await res.json();
-        if (data.status === 'success') {
-            const fallbackBranch = currentBranch || data.current_branch || '';
-            
-            branchSelect.innerHTML = '';
-
-            const appendBranchHeader = (label) => {
-                const opt = document.createElement('option');
-                opt.value = '';
-                opt.disabled = true;
-                opt.textContent = label;
-                opt.dataset.groupHeader = 'true';
-                branchSelect.appendChild(opt);
-            };
-
-            const appendBranchOption = (branch, scope) => {
-                const normalized = normalizeGitBranchName(branch);
-                const opt = document.createElement('option');
-                opt.value = branch;
-                opt.textContent = normalized;
-                opt.dataset.scope = scope;
-                opt.dataset.branch = normalized;
-                branchSelect.appendChild(opt);
-            };
-
-            const localBranches = Array.from(new Set((data.local || []).map(normalizeGitBranchName).filter(Boolean)));
-            const remoteBranches = Array.from(new Set((data.remote || []).map(normalizeGitBranchName).filter(Boolean)));
-
-            if (localBranches.length > 0) {
-                appendBranchHeader('Branches locais');
-                localBranches.forEach(branch => appendBranchOption(branch, 'local'));
-            }
-            
-            if (remoteBranches.length > 0) {
-                appendBranchHeader('Branches remotas');
-                remoteBranches.forEach(branch => appendBranchOption(`origin/${branch}`, 'remota'));
-            }
-
-            if (branchSelect.options.length === 0) {
-                const opt = document.createElement('option');
-                opt.value = '';
-                opt.textContent = 'Nenhuma branch disponível';
-                opt.disabled = true;
-                branchSelect.appendChild(opt);
-            }
-            
-            const activeOption = findGitBranchOption(branchSelect, fallbackBranch);
-            const firstBranchOption = Array.from(branchSelect.options).find(option => option.value && !option.disabled);
-            branchSelect.value = activeOption ? activeOption.value : (firstBranchOption?.value || '');
-            branchSelect.dispatchEvent(new Event('change', { bubbles: true }));
-            syncGitBranchCustomSelect();
-        }
-    } catch (err) {
-        console.error('Erro ao carregar branches:', err);
-    }
+    const label = document.getElementById('git-current-branch-readonly');
+    const branch = label?.textContent?.trim();
+    return branch && branch !== '-' ? normalizeGitBranchName(branch) : '';
 }
 
 async function initGitRepo() {
@@ -2104,6 +2005,11 @@ async function runGitDeploy() {
         alert('Digite uma mensagem de commit/deploy.');
         return;
     }
+    if (!branch) {
+        appendGitConsole('Não foi possível identificar a branch atual para deploy.', true);
+        gitideNotify({ title: 'Branch atual indisponível', message: 'Atualize o status do Git antes de executar o deploy.', variant: 'warning' });
+        return;
+    }
     
     appendGitConsole(`Iniciando deploy (Staging + Commit + Push para branch "${branch}")...`);
     const btn = document.getElementById('btn-git-deploy');
@@ -2143,8 +2049,8 @@ async function runGitDeploy() {
 async function runGitPull() {
     const branch = getGitDeployBranchValue();
     if (!branch) {
-        appendGitConsole('Selecione uma branch antes de sincronizar.', true);
-        gitideNotify({ title: 'Branch não selecionada', message: 'Escolha uma branch de destino antes de sincronizar.', variant: 'warning' });
+        appendGitConsole('Não foi possível identificar a branch atual para sincronizar.', true);
+        gitideNotify({ title: 'Branch atual indisponível', message: 'Atualize o status do Git antes de sincronizar.', variant: 'warning' });
         return;
     }
     appendGitConsole(`Puxando alterações (Git Pull) para branch "${branch}"...`);
@@ -3146,10 +3052,6 @@ function setupEventListeners() {
     document.getElementById('btn-token-editor-save').addEventListener('click', saveTokenFromModal);
     document.getElementById('token-editor-type').addEventListener('change', (e) => {
         updateTokenEditorFormFields(e.target.value);
-    });
-    
-    document.getElementById('git-branch-input').addEventListener('change', () => {
-        syncGitBranchCustomSelect();
     });
     
     // 8. Logs
