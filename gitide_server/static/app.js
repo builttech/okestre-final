@@ -252,7 +252,6 @@ function switchTab(tabId) {
             loadPendingCommands();
             startPendingCommandsPolling();
         }
-        }
     }
 }
 
