@@ -1804,6 +1804,7 @@ html[data-theme="light"]{
 
 /* GitIDE Native Select */
 .gitide-select-original{
+    display:none!important;
     position:absolute!important;
     opacity:0!important;
     pointer-events:none!important;

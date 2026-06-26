@@ -5146,20 +5146,20 @@ function openCheckoutModal() {
             const current = data.current_branch || 'main';
             selector.innerHTML = '';
             
-            // Lista todas as branches disponíveis
-            const branches = data.all || [];
+            // Checkout só faz sentido para alternar para outra branch.
+            const branches = (data.all || []).filter(branch => branch !== current);
             if (branches.length === 0) {
-                selector.innerHTML = '<option value="">Nenhuma branch disponível</option>';
+                selector.innerHTML = '<option value="">Nenhuma outra branch disponível</option>';
                 return;
             }
             
             branches.forEach(b => {
                 const opt = document.createElement('option');
                 opt.value = b;
-                opt.textContent = b === current ? `${b} (ativa)` : b;
+                opt.textContent = b;
                 selector.appendChild(opt);
             });
-            selector.value = current;
+            selector.value = branches[0];
         } else {
             selector.innerHTML = '<option value="">Erro ao carregar lista de branches</option>';
         }
