@@ -909,45 +909,35 @@ Se o arquivo existir, leia e siga rigorosamente todas as diretrizes, fases de an
                                     <span id="sdd-active-spec-filename" class="badge" style="display: none;"></span>
                                 </div>
                                 <div class="sdd-workspace-nav" id="sdd-workspace-nav-tabs" style="display: none;">
-                                    <button class="sdd-nav-btn active" data-sdd-tab="sdd-tab-preview">Visualizar</button>
-                                    <button class="sdd-nav-btn" data-sdd-tab="sdd-tab-edit">Editar</button>
-                                    <button class="sdd-nav-btn" data-sdd-tab="sdd-tab-checklist">Checklist</button>
-                                    <button class="sdd-nav-btn" data-sdd-tab="sdd-tab-ia-wizard">Geração IA</button>
-                                    <button class="sdd-nav-btn" data-sdd-tab="sdd-tab-tests">Gerar Testes</button>
+                                    <button class="sdd-nav-btn active" data-sdd-tab="sdd-tab-preview"><span>1</span> Specify</button>
+                                    <button class="sdd-nav-btn" data-sdd-tab="sdd-tab-edit"><span>2</span> Design</button>
+                                    <button class="sdd-nav-btn" data-sdd-tab="sdd-tab-checklist"><span>3</span> Task List</button>
+                                    <button class="sdd-nav-btn" data-sdd-tab="sdd-tab-tests"><span>4</span> Execute</button>
                                 </div>
                             </div>
 
                             <div class="sdd-workspace-body">
-                                <div class="sdd-flow-strip" id="sdd-flow-strip" style="display: none;">
-                                    <div class="sdd-flow-breadcrumb" id="sdd-flow-breadcrumb">specs &gt; nova-spec.md &gt; fluxo SDD</div>
-                                    <div class="sdd-flow-steps">
-                                        <button class="sdd-flow-step active" data-sdd-flow-tab="sdd-tab-preview">
-                                            <i data-lucide="file-text"></i>
-                                            <span>Spec</span>
-                                        </button>
-                                        <button class="sdd-flow-step" data-sdd-flow-tab="sdd-tab-preview">
-                                            <strong>1</strong>
-                                            <span>Requirements</span>
-                                        </button>
-                                        <button class="sdd-flow-step" data-sdd-flow-tab="sdd-tab-edit">
-                                            <strong>2</strong>
-                                            <span>Design</span>
-                                        </button>
-                                        <button class="sdd-flow-step" data-sdd-flow-tab="sdd-tab-checklist">
-                                            <strong>3</strong>
-                                            <span>Task List</span>
-                                        </button>
-                                        <button class="sdd-flow-step" data-sdd-flow-tab="sdd-tab-tests">
-                                            <i data-lucide="play-circle"></i>
-                                            <span>Execute</span>
-                                        </button>
-                                    </div>
-                                </div>
-
-                                <!-- SUBTAB: PREVIEW -->
+                                <!-- STEP 1: SPECIFY -->
                                 <div id="sdd-tab-preview" class="sdd-tab-content active">
-                                    <div class="sdd-markdown-preview markdown-body" id="sdd-spec-markdown-render">
-                                        <div class="sdd-empty-workspace">
+                                    <div class="sdd-stage-grid">
+                                        <section class="sdd-stage-main">
+                                            <div class="sdd-stage-title">
+                                                <div>
+                                                    <span>Specify - Especificação</span>
+                                                    <h5>Documentação de negócio e requisitos</h5>
+                                                </div>
+                                                <button class="btn btn-primary btn-sm" id="btn-sdd-save-specify"><i data-lucide="save"></i> Salvar</button>
+                                            </div>
+                                            <textarea id="sdd-specify-editor" class="sdd-doc-editor text-input" placeholder="# Requisitos de negócio..."></textarea>
+                                        </section>
+                                        <aside class="sdd-stage-aside">
+                                            <h5><i data-lucide="sparkles"></i> Assistente IA</h5>
+                                            <p>Gere ou refine a documentação de negócio. Cada requisito deve ter código único, como <code>REQ-001</code>.</p>
+                                            <input type="text" id="sdd-wizard-title" class="text-input" placeholder="Título da feature">
+                                            <textarea id="sdd-wizard-prompt" class="text-input" placeholder="Descreva regras de negócio, usuários, restrições e requisitos..."></textarea>
+                                            <button class="btn btn-primary" id="btn-sdd-generate-spec-ia"><i data-lucide="sparkles"></i> Gerar Specify com IA</button>
+                                        </aside>
+                                        <div class="sdd-empty-workspace" id="sdd-empty-workspace">
                                             <i data-lucide="sparkles" style="width: 48px; height: 48px; color: var(--color-primary); opacity: 0.6; margin-bottom: 12px;"></i>
                                             <h3>Fluxo Spec-Driven Development</h3>
                                             <p>Crie ou selecione uma feature para conduzir Specify, Design, Tasks e Execute no mesmo artefato Markdown.</p>
@@ -956,28 +946,40 @@ Se o arquivo existir, leia e siga rigorosamente todas as diretrizes, fases de an
                                     </div>
                                 </div>
 
-                                <!-- SUBTAB: EDIT -->
+                                <!-- STEP 2: DESIGN -->
                                 <div id="sdd-tab-edit" class="sdd-tab-content">
-                                    <div class="sdd-editor-wrapper" style="display: flex; flex-direction: column; height: 100%; gap: 12px;">
-                                        <div class="form-group" style="display: flex; gap: 10px; align-items: center;">
-                                            <label for="sdd-edit-filename" style="margin-bottom: 0;">Nome do arquivo:</label>
-                                            <input type="text" id="sdd-edit-filename" class="text-input" placeholder="ex: carrinho_de_compras.md" style="max-width: 250px;">
-                                        </div>
-                                        <textarea id="sdd-spec-editor-textarea" class="text-input" style="flex: 1; font-family: var(--font-mono); font-size: 13px; resize: none; background: rgba(0,0,0,0.15); border: 1px solid var(--border-color);" placeholder="# Minha Especificação..."></textarea>
-                                        <div style="display: flex; justify-content: flex-end; gap: 10px;">
-                                            <button class="btn btn-secondary" id="btn-sdd-delete" style="background: rgba(239, 68, 68, 0.1); border-color: rgba(239, 68, 68, 0.2); color: #ef4444;"><i data-lucide="trash-2"></i> Excluir</button>
-                                            <button class="btn btn-primary" id="btn-sdd-save"><i data-lucide="save"></i> Salvar Alterações</button>
-                                        </div>
+                                    <div class="sdd-stage-grid">
+                                        <section class="sdd-stage-main">
+                                            <div class="sdd-stage-title">
+                                                <div>
+                                                    <span>Design - Planejamento</span>
+                                                    <h5>Arquitetura proposta</h5>
+                                                </div>
+                                                <button class="btn btn-primary btn-sm" id="btn-sdd-save-design"><i data-lucide="save"></i> Salvar</button>
+                                            </div>
+                                            <textarea id="sdd-design-editor" class="sdd-doc-editor text-input" placeholder="## Arquitetura proposta..."></textarea>
+                                        </section>
+                                        <aside class="sdd-stage-aside">
+                                            <h5><i data-lucide="sparkles"></i> Assistente IA</h5>
+                                            <p>A IA deve ler sempre o Specify/requisito e propor arquitetura, componentes, dados, integrações e contratos técnicos.</p>
+                                            <textarea id="sdd-design-ai-prompt" class="text-input" placeholder="Ex: proponha a arquitetura para os requisitos REQ-001 a REQ-004..."></textarea>
+                                            <button class="btn btn-primary" id="btn-sdd-design-ai"><i data-lucide="wand-2"></i> Preparar Prompt de Design</button>
+                                        </aside>
                                     </div>
                                 </div>
 
-                                <!-- SUBTAB: CHECKLIST INTERATIVO -->
+                                <input type="hidden" id="sdd-edit-filename">
+                                <textarea id="sdd-spec-editor-textarea" style="display:none;"></textarea>
+                                <button id="btn-sdd-save" style="display:none;" type="button"></button>
+                                <button id="btn-sdd-delete" style="display:none;" type="button"></button>
+
+                                <!-- STEP 3: TASK LIST -->
                                 <div id="sdd-tab-checklist" class="sdd-tab-content">
                                     <div class="sdd-checklist-wrapper" style="display: flex; flex-direction: column; height: 100%; gap: 16px;">
                                         <div class="sdd-checklist-header">
                                             <div style="display: flex; flex-direction: column;">
-                                                <h5>Checklist Interativo</h5>
-                                                <p style="font-size: 12px; color: var(--text-muted); margin: 0;">Critérios e tarefas em Markdown <code>- [ ]</code> ficam interativos. Marcar ou desmarcar atualiza o arquivo local no disco.</p>
+                                                <h5>Task List - Tarefas</h5>
+                                                <p style="font-size: 12px; color: var(--text-muted); margin: 0;">Quebre o plano em tarefas pequenas. Use o seletor para mandar uma task para Execute.</p>
                                             </div>
                                             <div class="sdd-checklist-progress">
                                                 <span id="sdd-checklist-progress-text">0/0 concluídos</span>
@@ -990,17 +992,23 @@ Se o arquivo existir, leia e siga rigorosamente todas as diretrizes, fases de an
                                     </div>
                                 </div>
 
-                                <!-- SUBTAB: GERAR TESTES -->
+                                <!-- STEP 4: EXECUTE -->
                                 <div id="sdd-tab-tests" class="sdd-tab-content">
-                                    <div class="sdd-tests-wrapper" style="display: flex; flex-direction: column; height: 100%; gap: 18px; max-width: 680px; margin: 0 auto; padding-top: 14px;">
-                                        <div style="text-align: center; margin-bottom: 8px;">
-                                            <i data-lucide="badge-check" style="width: 48px; height: 48px; color: #10b981; margin-bottom: 12px;"></i>
-                                            <h4>Gerador de Testes</h4>
-                                            <p style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">A IA lerá a especificação selecionada e criará testes unitários ou de integração correspondentes, salvando o arquivo na estrutura do projeto.</p>
-                                        </div>
-                                        <div class="card" style="padding: 20px; background: rgba(255,255,255,0.015); border: 1px solid var(--border-color);">
+                                    <div class="sdd-execute-grid">
+                                        <section class="sdd-stage-main">
+                                            <div class="sdd-stage-title">
+                                                <div>
+                                                    <span>Execute - Implementação</span>
+                                                    <h5>Tarefa pronta para agente/programador</h5>
+                                                </div>
+                                            </div>
+                                            <textarea id="sdd-execute-instructions" class="sdd-doc-editor text-input" placeholder="Selecione uma tarefa como Executar na aba Task List."></textarea>
+                                        </section>
+                                        <aside class="sdd-stage-aside">
+                                            <h5><i data-lucide="badge-check"></i> Validação</h5>
+                                            <p>Gere testes contra a especificação e a tarefa selecionada.</p>
                                             <div class="form-group">
-                                                <label for="sdd-test-framework">Framework de Teste Alvo:</label>
+                                                <label for="sdd-test-framework">Framework de Teste:</label>
                                                 <select id="sdd-test-framework" class="select-input">
                                                     <option value="pytest">Pytest (Python)</option>
                                                     <option value="jest">Jest (JavaScript / TypeScript)</option>
@@ -1008,36 +1016,14 @@ Se o arquivo existir, leia e siga rigorosamente todas as diretrizes, fases de an
                                                     <option value="mocha">Mocha / Chai (Node.js)</option>
                                                 </select>
                                             </div>
-                                            <button class="btn btn-primary" id="btn-sdd-generate-tests" style="width: 100%; height: 44px; font-weight: 500; font-size: 14px; margin-top: 12px;"><i data-lucide="play-circle"></i> Gerar Arquivo de Testes com IA</button>
-                                        </div>
-                                        <div id="sdd-test-result-panel" class="card" style="display: none; flex: 1; min-height: 200px; display: flex; flex-direction: column; overflow: hidden; background: rgba(0,0,0,0.25);">
-                                            <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px;">
+                                            <button class="btn btn-primary" id="btn-sdd-generate-tests"><i data-lucide="play-circle"></i> Gerar Testes com IA</button>
+                                        </aside>
+                                        <div id="sdd-test-result-panel" class="sdd-test-result" style="display: none;">
+                                            <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-bottom:1px solid var(--flat-border-soft);">
                                                 <span style="font-size: 12px; font-family: var(--font-mono); color: #10b981;" id="sdd-test-result-filepath"></span>
                                                 <button class="btn-icon-copy" id="btn-copy-sdd-test-code" title="Copiar Código"><i data-lucide="copy"></i></button>
                                             </div>
                                             <pre style="flex: 1; overflow: auto; padding: 14px; font-family: var(--font-mono); font-size: 12px; line-height: 1.5; color: #f8fafc; margin: 0; white-space: pre-wrap;" id="sdd-test-result-code"></pre>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- SUBTAB: ASSISTENTE GERADOR IA -->
-                                <div id="sdd-tab-ia-wizard" class="sdd-tab-content">
-                                    <div class="sdd-wizard-wrapper" style="display: flex; flex-direction: column; height: 100%; gap: 18px; max-width: 680px; margin: 0 auto; padding-top: 14px;">
-                                        <div style="text-align: center; margin-bottom: 8px;">
-                                            <i data-lucide="wand-2" style="width: 48px; height: 48px; color: var(--color-primary); margin-bottom: 12px;"></i>
-                                            <h4>Assistente de Fluxo SDD com IA</h4>
-                                            <p style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">Descreva o recurso ou módulo. A IA irá montar Specify, Design, Tasks e Execute em Markdown para guiar implementação e testes.</p>
-                                        </div>
-                                        <div class="card" style="padding: 20px; background: rgba(255,255,255,0.015); border: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 14px;">
-                                            <div class="form-group">
-                                                <label for="sdd-wizard-title">Nome / Título da Feature (opcional):</label>
-                                                <input type="text" id="sdd-wizard-title" class="text-input" placeholder="ex: Autenticação JWT com Refresh Token">
-                                            </div>
-                                            <div class="form-group">
-                                                <label for="sdd-wizard-prompt">Descreva as funcionalidades e objetivos:</label>
-                                                <textarea id="sdd-wizard-prompt" class="text-input" style="height: 120px; resize: none;" placeholder="ex: Criar uma tela de login onde o usuário entra com email/senha, recebe um JWT com expiração de 15 minutos e um refresh token gravado em cookie HttpOnly para renovação automática..."></textarea>
-                                            </div>
-                                            <button class="btn btn-primary" id="btn-sdd-generate-spec-ia" style="height: 44px; font-weight: 500; font-size: 14px;"><i data-lucide="sparkles"></i> Gerar Especificação via IA</button>
                                         </div>
                                     </div>
                                 </div>

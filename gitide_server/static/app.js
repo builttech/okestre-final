@@ -6199,7 +6199,8 @@ async function rejectCommand(commandId) {
 const sddState = {
     activeFilename: null,
     activeContent: '',
-    specs: []
+    specs: [],
+    executeTask: null
 };
 
 // --- Simple Markdown Renderer (lightweight, no external deps) ---
@@ -6329,9 +6330,89 @@ function sddExtractTitle(content) {
     return match ? match[1].trim() : null;
 }
 
+function sddExtractSection(content, sectionNames) {
+    const names = Array.isArray(sectionNames) ? sectionNames : [sectionNames];
+    const lines = (content || '').split('\n');
+    let start = -1;
+    let end = lines.length;
+
+    for (let i = 0; i < lines.length; i++) {
+        const normalized = lines[i].replace(/^#+\s*\d*\.?\s*/, '').toLowerCase();
+        if (names.some(name => normalized.includes(name.toLowerCase()))) {
+            start = i;
+            break;
+        }
+    }
+
+    if (start === -1) return '';
+
+    const level = (lines[start].match(/^#+/) || ['##'])[0].length;
+    for (let i = start + 1; i < lines.length; i++) {
+        const heading = lines[i].match(/^(#+)\s+/);
+        if (heading && heading[1].length <= level) {
+            end = i;
+            break;
+        }
+    }
+
+    return lines.slice(start, end).join('\n').trim();
+}
+
+function sddReplaceSection(content, sectionNames, fallbackHeading, sectionContent) {
+    const names = Array.isArray(sectionNames) ? sectionNames : [sectionNames];
+    const lines = (content || '').split('\n');
+    let start = -1;
+    let end = lines.length;
+
+    for (let i = 0; i < lines.length; i++) {
+        const normalized = lines[i].replace(/^#+\s*\d*\.?\s*/, '').toLowerCase();
+        if (names.some(name => normalized.includes(name.toLowerCase()))) {
+            start = i;
+            break;
+        }
+    }
+
+    const cleanSection = (sectionContent || fallbackHeading).trim();
+    if (start === -1) {
+        return `${(content || '').trim()}\n\n${cleanSection}\n`;
+    }
+
+    const level = (lines[start].match(/^#+/) || ['##'])[0].length;
+    for (let i = start + 1; i < lines.length; i++) {
+        const heading = lines[i].match(/^(#+)\s+/);
+        if (heading && heading[1].length <= level) {
+            end = i;
+            break;
+        }
+    }
+
+    return [
+        ...lines.slice(0, start),
+        ...cleanSection.split('\n'),
+        ...lines.slice(end)
+    ].join('\n').trim() + '\n';
+}
+
+function sddPopulateStageEditors(content) {
+    const specify = sddExtractSection(content, ['Specify', 'Especificação', 'Requisitos']) || content;
+    const design = sddExtractSection(content, ['Design', 'Planejamento', 'Arquitetura']);
+    const specifyEditor = document.getElementById('sdd-specify-editor');
+    const designEditor = document.getElementById('sdd-design-editor');
+    const fullEditor = document.getElementById('sdd-spec-editor-textarea');
+    if (specifyEditor) specifyEditor.value = specify;
+    if (designEditor) designEditor.value = design || '## 2. Design - Planejamento\n\n### Arquitetura proposta\n\n### Dados, bibliotecas e integrações\n\n### Contratos técnicos\n';
+    if (fullEditor) fullEditor.value = content;
+    const empty = document.getElementById('sdd-empty-workspace');
+    const previewTab = document.getElementById('sdd-tab-preview');
+    const hasContent = Boolean(sddState.activeFilename || content);
+    if (empty) empty.style.display = hasContent ? 'none' : 'flex';
+    if (previewTab) previewTab.classList.toggle('has-content', hasContent);
+}
+
 function sddPopulatePreview(content) {
     const container = document.getElementById('sdd-spec-markdown-render');
-    container.innerHTML = sddRenderMarkdown(content);
+    if (container) container.innerHTML = sddRenderMarkdown(content);
+    sddPopulateStageEditors(content);
     if (window.lucide) lucide.createIcons();
 }
 
@@ -6419,7 +6500,28 @@ function sddRenderCriteria(criteria) {
                    onchange="sddToggleCriteria(${c.line_no}, this.checked)" 
                    style="width:16px;height:16px;cursor:pointer;accent-color:var(--color-primary);flex-shrink:0;">
             <span class="sdd-criteria-text">${c.text}</span>
+            <select class="sdd-task-status select-input" onchange="sddSetTaskStatus(${c.line_no}, this.value)">
+                <option value="todo">todo</option>
+                <option value="execute">executar</option>
+            </select>
         </div>`).join('');
+}
+
+function sddSetTaskStatus(lineNo, value) {
+    if (value !== 'execute') return;
+    const row = document.querySelector(`.sdd-criteria-row[data-line="${lineNo}"]`);
+    const taskText = row?.querySelector('.sdd-criteria-text')?.textContent?.trim() || '';
+    sddState.executeTask = { lineNo, text: taskText };
+    sddPopulateExecuteInstructions(taskText);
+    sddSwitchTab('sdd-tab-tests');
+}
+
+function sddPopulateExecuteInstructions(taskText) {
+    const textarea = document.getElementById('sdd-execute-instructions');
+    if (!textarea) return;
+    const specify = sddExtractSection(sddState.activeContent, ['Specify', 'Especificação', 'Requisitos']);
+    const design = sddExtractSection(sddState.activeContent, ['Design', 'Planejamento', 'Arquitetura']);
+    textarea.value = `# Execute\n\n## Tarefa selecionada\n${taskText || 'Nenhuma tarefa selecionada.'}\n\n## Instruções para IA/agente\nExecute estritamente esta tarefa contra a especificação e o design abaixo. Não implemente escopo fora da task selecionada. Ao terminar, indique arquivos alterados e testes executados.\n\n## Specify de referência\n${specify || 'Specify não encontrado.'}\n\n## Design de referência\n${design || 'Design não encontrado.'}\n`;
 }
 
 async function sddToggleCriteria(lineNo, checked) {
@@ -6487,6 +6589,47 @@ async function sddSaveSpec() {
     }
 }
 
+async function sddSaveStage(stage) {
+    if (!state.activeProjectId) return;
+    const filenameInput = document.getElementById('sdd-edit-filename');
+    let filename = filenameInput?.value.trim() || sddState.activeFilename;
+    if (!filename) {
+        const title = sddExtractTitle(document.getElementById('sdd-specify-editor')?.value || '') || 'nova_spec';
+        filename = title.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '') + '.md';
+        if (filenameInput) filenameInput.value = filename;
+    }
+    if (!filename.endsWith('.md')) filename += '.md';
+
+    const specifyEditor = document.getElementById('sdd-specify-editor');
+    const designEditor = document.getElementById('sdd-design-editor');
+    let content = sddState.activeContent || `# ${sddExtractTitle(specifyEditor?.value || '') || 'Nova Feature'}\n`;
+
+    if (stage === 'specify') {
+        content = sddReplaceSection(
+            content,
+            ['Specify', 'Especificação', 'Requisitos'],
+            '## 1. Specify - Especificação',
+            specifyEditor?.value || ''
+        );
+    }
+
+    if (stage === 'design') {
+        content = sddReplaceSection(
+            content,
+            ['Design', 'Planejamento', 'Arquitetura'],
+            '## 2. Design - Planejamento',
+            designEditor?.value || ''
+        );
+    }
+
+    document.getElementById('sdd-spec-editor-textarea').value = content;
+    if (filenameInput) filenameInput.value = filename;
+    await sddSaveSpec();
+    sddState.activeContent = content;
+    sddPopulateStageEditors(content);
+    sddSwitchTab(stage === 'design' ? 'sdd-tab-edit' : 'sdd-tab-preview');
+}
+
 // --- Delete Spec ---
 async function sddDeleteSpec() {
     if (!state.activeProjectId || !sddState.activeFilename) return;
@@ -6532,10 +6675,13 @@ function sddNewManualSpec() {
     document.getElementById('sdd-active-spec-title').textContent = 'Nova Especificação';
     document.getElementById('sdd-active-spec-filename').style.display = 'none';
     document.getElementById('sdd-edit-filename').value = '';
-    document.getElementById('sdd-spec-editor-textarea').value = `# Título da Feature\n\n## 1. Specify - Especificação\n\n### Objetivo\nDescreva o que o software deve fazer.\n\n### Comportamento esperado\n- Descreva os fluxos principais do usuário ou do sistema.\n\n### Restrições arquiteturais\n- Liste limites, padrões obrigatórios, requisitos não funcionais ou decisões já tomadas.\n\n### Critérios de aceitação\n- [ ] Critério de aceite 1\n- [ ] Critério de aceite 2\n\n## 2. Design - Planejamento\n\n### Arquitetura proposta\nDescreva como o sistema vai operar.\n\n### Dados, bibliotecas e integrações\n- Banco de dados: \n- Bibliotecas: \n- Integrações: \n\n### Contratos técnicos\n- APIs, eventos, serviços ou componentes afetados.\n\n## 3. Tasks - Tarefas\n\n- [ ] Implementar a primeira parte pequena e testável.\n- [ ] Implementar a segunda parte pequena e testável.\n- [ ] Atualizar ou criar testes automatizados.\n\n## 4. Execute - Implementação\n\n### Ordem de execução\n1. Execute cada tarefa contra esta especificação.\n2. Rode os testes gerados ou existentes.\n3. Marque as tasks concluídas somente quando o comportamento estiver validado.\n`;
+    const template = `# Título da Feature\n\n## 1. Specify - Especificação\n\n### Visão de negócio\nDescreva o problema, objetivo e contexto da feature.\n\n### Requisitos\n- REQ-001: Primeiro requisito de negócio.\n- REQ-002: Segundo requisito de negócio.\n\n### Regras de negócio\n- RN-001: Primeira regra de negócio.\n\n## 2. Design - Planejamento\n\n### Arquitetura proposta\nDescreva como o sistema vai operar.\n\n### Dados, bibliotecas e integrações\n- Banco de dados:\n- Bibliotecas:\n- Integrações:\n\n### Contratos técnicos\n- APIs, eventos, serviços ou componentes afetados.\n\n## 3. Task List - Tarefas\n\n- [ ] TASK-001: Implementar a primeira parte pequena e testável.\n- [ ] TASK-002: Criar testes automatizados.\n\n## 4. Execute - Implementação\n\nSelecione uma tarefa na aba Task List para montar as instruções de execução.\n`;
+    sddState.activeContent = template;
+    document.getElementById('sdd-spec-editor-textarea').value = template;
+    sddPopulateStageEditors(template);
     document.querySelectorAll('.sdd-nav-btn').forEach(b => b.classList.remove('active'));
     document.querySelectorAll('.sdd-tab-content').forEach(t => t.classList.remove('active'));
-    sddSwitchTab('sdd-tab-edit');
+    sddSwitchTab('sdd-tab-preview');
     // Remove sidebar active
     document.querySelectorAll('.spec-item').forEach(el => el.classList.remove('active'));
 }
@@ -6650,6 +6796,12 @@ function setupSddEventListeners() {
     const btnSave = document.getElementById('btn-sdd-save');
     if (btnSave) btnSave.addEventListener('click', sddSaveSpec);
 
+    const btnSaveSpecify = document.getElementById('btn-sdd-save-specify');
+    if (btnSaveSpecify) btnSaveSpecify.addEventListener('click', () => sddSaveStage('specify'));
+
+    const btnSaveDesign = document.getElementById('btn-sdd-save-design');
+    if (btnSaveDesign) btnSaveDesign.addEventListener('click', () => sddSaveStage('design'));
+
     // Delete spec
     const btnDelete = document.getElementById('btn-sdd-delete');
     if (btnDelete) btnDelete.addEventListener('click', sddDeleteSpec);
@@ -6657,6 +6809,16 @@ function setupSddEventListeners() {
     // Generate spec via IA
     const btnGenSpec = document.getElementById('btn-sdd-generate-spec-ia');
     if (btnGenSpec) btnGenSpec.addEventListener('click', sddGenerateSpecIA);
+
+    const btnDesignAi = document.getElementById('btn-sdd-design-ai');
+    if (btnDesignAi) btnDesignAi.addEventListener('click', () => {
+        const prompt = document.getElementById('sdd-design-ai-prompt');
+        const specify = sddExtractSection(sddState.activeContent, ['Specify', 'Especificação', 'Requisitos']) || document.getElementById('sdd-specify-editor')?.value || '';
+        if (prompt) {
+            prompt.value = `Com base no Specify abaixo, gere somente a seção "## 2. Design - Planejamento" com arquitetura proposta, dados, integrações, bibliotecas e contratos técnicos. Não gere tarefas.\n\n${specify}`;
+            prompt.focus();
+        }
+    });
 
     // Generate tests via IA
     const btnGenTests = document.getElementById('btn-sdd-generate-tests');

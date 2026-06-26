@@ -4209,6 +4209,21 @@ input[type="checkbox"]:focus-visible{
     cursor: pointer;
     transition: all 0.2s;
     white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+}
+
+.sdd-nav-btn span {
+    width: 18px;
+    height: 18px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255,255,255,0.05);
+    color: var(--text-muted);
+    font-size: 10px;
 }
 
 .sdd-nav-btn:hover {
@@ -4222,6 +4237,11 @@ input[type="checkbox"]:focus-visible{
     border-color: var(--flat-border);
 }
 
+.sdd-nav-btn.active span {
+    background: var(--color-primary);
+    color: #fff;
+}
+
 .sdd-tab-content {
     display: none;
     flex: 1;
@@ -4231,6 +4251,108 @@ input[type="checkbox"]:focus-visible{
 
 .sdd-tab-content.active {
     display: block;
+}
+
+.sdd-stage-grid,
+.sdd-execute-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 320px;
+    gap: 18px;
+    height: 100%;
+    min-height: 0;
+}
+
+#sdd-tab-preview:not(.has-content) .sdd-stage-main,
+#sdd-tab-preview:not(.has-content) .sdd-stage-aside {
+    display: none;
+}
+
+#sdd-tab-preview.has-content #sdd-empty-workspace {
+    display: none !important;
+}
+
+.sdd-stage-main,
+.sdd-stage-aside,
+.sdd-test-result {
+    min-height: 0;
+    border: 1px solid var(--flat-border-soft);
+    border-radius: 14px;
+    background: rgba(255,255,255,0.012);
+}
+
+.sdd-stage-main {
+    display: flex;
+    flex-direction: column;
+}
+
+.sdd-stage-aside {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 16px;
+}
+
+.sdd-stage-aside h5,
+.sdd-stage-title h5 {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 650;
+}
+
+.sdd-stage-aside h5 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.sdd-stage-aside p {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 12px;
+    line-height: 1.45;
+}
+
+.sdd-stage-aside textarea {
+    min-height: 150px;
+    resize: vertical;
+}
+
+.sdd-stage-title {
+    min-height: 58px;
+    padding: 12px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    border-bottom: 1px solid var(--flat-border-soft);
+}
+
+.sdd-stage-title span {
+    display: block;
+    color: var(--text-muted);
+    font-size: 11px;
+    margin-bottom: 3px;
+}
+
+.sdd-doc-editor {
+    flex: 1;
+    min-height: 0;
+    resize: none;
+    border: 0 !important;
+    border-radius: 0 0 14px 14px !important;
+    background: rgba(0,0,0,0.16) !important;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    line-height: 1.55;
+    padding: 16px !important;
+}
+
+.sdd-task-status {
+    width: 112px;
+    min-width: 112px;
+    height: 34px;
+    font-size: 12px;
+    padding: 0 10px;
 }
 
 .sdd-flow-strip {
