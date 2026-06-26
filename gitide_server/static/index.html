@@ -444,7 +444,12 @@
                                     <div class="git-deploy-target-row">
                                         <div class="git-deploy-branch-field">
                                             <label for="git-branch-input">Branch de destino:</label>
-                                            <select id="git-branch-input" class="select-input"></select>
+                                            <div class="git-branch-select-action-row">
+                                                <select id="git-branch-input" class="select-input"></select>
+                                                <button class="btn btn-secondary git-branch-checkout-inline" id="btn-git-checkout-inline" type="button" title="Checkout branch" aria-label="Checkout branch">
+                                                    <i class="fa-solid fa-right-to-bracket"></i>
+                                                </button>
+                                            </div>
                                             <span class="git-dev-hint"><i class="fa-solid fa-code-branch"></i> Deploy será feito na branch selecionada.</span>
                                         </div>
                                         <div class="git-deploy-buttons">

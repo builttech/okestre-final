@@ -3139,6 +3139,7 @@ function setupEventListeners() {
         btn.addEventListener('click', () => closeCustomModal('modal-checkout'));
     });
     document.getElementById('btn-checkout-confirm').addEventListener('click', runGitCheckout);
+    document.getElementById('btn-git-checkout-inline')?.addEventListener('click', openCheckoutModal);
 
     
     // 7.5. Ações do Design System (Tokens)

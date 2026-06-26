@@ -3668,19 +3668,41 @@ input[type="checkbox"]:focus-visible{
     overflow:visible!important;
 }
 
-#tab-git .git-deploy-branch-field > #git-branch-input{
+#tab-git .git-branch-select-action-row{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    width:100%;
+}
+
+#tab-git .git-branch-select-action-row > #git-branch-input{
     position:absolute!important;
     opacity:0!important;
     pointer-events:none!important;
 }
 
-#tab-git .git-deploy-branch-field > .gitide-select{
-    width:100%!important;
+#tab-git .git-branch-select-action-row > .gitide-select{
+    flex:1 1 auto!important;
     min-width:0!important;
 }
 
+#tab-git .git-branch-checkout-inline{
+    flex:0 0 44px;
+    width:44px!important;
+    min-width:44px!important;
+    height:42px!important;
+    padding:0!important;
+    justify-content:center;
+}
+
+#tab-git .git-branch-checkout-inline i{
+    margin:0;
+}
+
 #tab-git .git-deploy-branch-field > .custom-select-container,
-#tab-git .git-deploy-branch-field > .git-branch-switcher{
+#tab-git .git-deploy-branch-field > .git-branch-switcher,
+#tab-git .git-branch-select-action-row > .custom-select-container,
+#tab-git .git-branch-select-action-row > .git-branch-switcher{
     display:none!important;
 }
 
