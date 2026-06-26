@@ -477,6 +477,9 @@
                                 <button type="button" class="git-side-tab" data-git-side-tab="graph" role="tab" aria-selected="false" aria-controls="git-graph-panel">
                                     <i class="fa-solid fa-diagram-project"></i> Git Graph
                                 </button>
+                                <button type="button" class="git-side-tab" data-git-side-tab="files" role="tab" aria-selected="false" aria-controls="git-side-files-pane">
+                                    <i class="fa-solid fa-file-lines"></i> Arquivos
+                                </button>
                             </div>
                             <div class="git-side-panel-content">
                                 <section class="git-side-panel-pane active" id="git-side-console-pane" data-git-side-pane="console" role="tabpanel">
@@ -484,9 +487,14 @@
                                         <div class="terminal-line system-msg">Log de operações do Git Bridge.</div>
                                     </div>
                                 </section>
-                                <section class="git-side-panel-pane" id="git-graph-panel" data-git-side-pane="graph" role="tabpanel">
+                                <section class="git-side-panel-pane" id="git-graph-panel" data-git-side-pane="graph" role="tabpanel" hidden>
                                     <div id="git-graph-container">
                                         <!-- Árvore de commits renderizada via JS -->
+                                    </div>
+                                </section>
+                                <section class="git-side-panel-pane" id="git-side-files-pane" data-git-side-pane="files" role="tabpanel" hidden>
+                                    <div id="git-changed-files-list" class="git-changed-files-list">
+                                        <div class="git-side-empty-state">Nenhuma alteração carregada ainda.</div>
                                     </div>
                                 </section>
                             </div>

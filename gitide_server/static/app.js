@@ -1648,6 +1648,66 @@ async function deleteSelectedGridRows() {
     }
 }
 
+function renderGitChangedFiles(status) {
+    const container = document.getElementById('git-changed-files-list');
+    if (!container) return;
+
+    container.innerHTML = '';
+
+    const groups = [
+        { key: 'staged', label: 'Staged', tag: 'staged', files: status?.staged || [] },
+        { key: 'modified', label: 'Modificados', tag: 'modified', files: status?.modified || [] },
+        { key: 'untracked', label: 'Untracked', tag: 'untracked', files: status?.untracked || [] },
+        { key: 'deleted', label: 'Removidos', tag: 'deleted', files: status?.deleted || [] }
+    ].filter(group => group.files.length > 0);
+
+    if (!groups.length) {
+        const emptyState = document.createElement('div');
+        emptyState.className = 'git-side-empty-state';
+        emptyState.innerHTML = '<i class="fa-solid fa-circle-check"></i><span>Nenhum arquivo alterado no momento.</span>';
+        container.appendChild(emptyState);
+        return;
+    }
+
+    groups.forEach(group => {
+        const section = document.createElement('section');
+        section.className = 'git-changed-files-group';
+
+        const header = document.createElement('div');
+        header.className = 'git-changed-files-group-header';
+
+        const title = document.createElement('span');
+        title.textContent = group.label;
+
+        const count = document.createElement('strong');
+        count.textContent = String(group.files.length);
+
+        header.appendChild(title);
+        header.appendChild(count);
+        section.appendChild(header);
+
+        group.files.forEach(file => {
+            const item = document.createElement('div');
+            item.className = 'git-file-item git-changed-file-item';
+
+            const name = document.createElement('span');
+            name.className = 'git-changed-file-name';
+            name.textContent = file;
+            name.title = file;
+
+            const badge = document.createElement('span');
+            badge.className = `git-tag ${group.tag}`;
+            badge.textContent = group.tag;
+
+            item.appendChild(name);
+            item.appendChild(badge);
+            section.appendChild(item);
+        });
+
+        container.appendChild(section);
+    });
+}
+
 // --- GIT BRIDGE ---
 async function loadGitStatus(forceFetch = false) {
     const container = document.getElementById('git-status-detail');
@@ -1667,8 +1727,7 @@ async function loadGitStatus(forceFetch = false) {
             `;
             initPanel.style.display = 'block';
             deployPanel.style.display = 'none';
-            const graphPanel = document.getElementById('git-graph-panel');
-            if (graphPanel) graphPanel.style.display = 'none';
+            renderGitChangedFiles({ staged: [], modified: [], untracked: [], deleted: [] });
             return;
         }
         
@@ -1704,24 +1763,8 @@ async function loadGitStatus(forceFetch = false) {
             </div>
         `;
         
-        if (!status.is_clean) {
-            html += '<div class="git-files-list">';
-            status.staged.forEach(f => {
-                html += `<div class="git-file-item"><span>${f}</span><span class="git-tag staged">staged</span></div>`;
-            });
-            status.modified.forEach(f => {
-                html += `<div class="git-file-item"><span>${f}</span><span class="git-tag modified">modificado</span></div>`;
-            });
-            status.untracked.forEach(f => {
-                html += `<div class="git-file-item"><span>${f}</span><span class="git-tag untracked">untracked</span></div>`;
-            });
-            status.deleted.forEach(f => {
-                html += `<div class="git-file-item"><span>${f}</span><span class="git-tag deleted">removido</span></div>`;
-            });
-            html += '</div>';
-        }
-        
         container.innerHTML = html;
+        renderGitChangedFiles(status);
         
         const dropdownBtn = document.getElementById('btn-branch-actions');
         const dropdownMenu = document.getElementById('branch-actions-menu');
