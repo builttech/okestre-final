@@ -2623,6 +2623,99 @@ input[type="checkbox"]:focus-visible{
     }
 }
 
+/* Git deploy card height/stacking refinements */
+.git-layout{
+    align-items:start!important;
+    overflow:auto!important;
+}
+
+.git-operations-card{
+    height:auto!important;
+    min-height:0!important;
+    align-self:start!important;
+    overflow:visible!important;
+}
+
+.git-operations-card .card-header{
+    margin-bottom:0!important;
+    padding-bottom:14px!important;
+}
+
+.git-operations-card .card-body{
+    height:auto!important;
+    min-height:0!important;
+    overflow:visible!important;
+    padding-top:16px!important;
+}
+
+.git-deploy-section,
+.git-deploy-target-row,
+.git-deploy-branch-field{
+    height:auto!important;
+    overflow:visible!important;
+}
+
+.git-deploy-section{
+    gap:18px!important;
+}
+
+.git-deploy-field,
+.git-deploy-branch-field{
+    gap:9px!important;
+}
+
+.git-deploy-field label,
+.git-deploy-branch-field label{
+    line-height:1.25;
+}
+
+#git-commit-msg,
+.git-deploy-branch-field .custom-select-trigger{
+    height:auto!important;
+    min-height:46px!important;
+    display:flex!important;
+    align-items:center!important;
+}
+
+.git-deploy-branch-field .custom-select-container{
+    position:relative;
+    display:block;
+    overflow:visible;
+}
+
+.git-deploy-branch-field .custom-select-dropdown{
+    position:static!important;
+    width:100%!important;
+    max-height:220px!important;
+    overflow-y:auto!important;
+    margin-top:8px!important;
+    transform:none!important;
+}
+
+.git-deploy-branch-field .custom-select-container:not(.open) .custom-select-dropdown{
+    display:none!important;
+}
+
+.git-deploy-branch-field .custom-select-container.open .custom-select-dropdown{
+    display:block!important;
+}
+
+.git-dev-hint{
+    margin-top:2px;
+    padding:8px 10px;
+    border-radius:12px;
+    background:rgba(255,255,255,.025);
+    border:1px solid var(--frame-border);
+}
+
+.git-deploy-buttons{
+    margin-top:2px;
+}
+
+.git-deploy-buttons .btn{
+    min-height:44px!important;
+}
+
 /* Documents Word view */
 #tab-documents.active{
     display:flex!important;
