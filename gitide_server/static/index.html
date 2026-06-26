@@ -96,6 +96,9 @@
                     <button class="nav-item" data-tab="tab-documents">
                         <i data-lucide="file-text"></i> Documentos (Word)
                     </button>
+                    <button class="nav-item" data-tab="tab-sdd">
+                        <i data-lucide="file-check"></i> Especificações (SDD)
+                    </button>
                 </nav>
 
                 <!-- Footer Info -->
@@ -860,6 +863,148 @@ Se o arquivo existir, leia e siga rigorosamente todas as diretrizes, fases de an
                             </div>
                         </section>
 
+                    </div>
+                </div>
+
+                <!-- TAB: SPEC-DRIVEN DEVELOPMENT (SDD) -->
+                <div id="tab-sdd" class="tab-pane">
+                    <div class="sdd-layout">
+                        <!-- Painel Esquerdo: Lista de Especificações -->
+                        <section class="sdd-sidebar card">
+                            <div class="sdd-sidebar-header">
+                                <h4><i data-lucide="file-text"></i> Especificações</h4>
+                                <div style="display: flex; gap: 6px;">
+                                    <button class="btn btn-sm btn-secondary btn-icon-only" id="btn-refresh-sdd-specs" title="Recarregar"><i data-lucide="refresh-cw"></i></button>
+                                    <button class="btn btn-sm btn-primary btn-icon-only" id="btn-new-sdd-spec-manual" title="Nova Manual"><i data-lucide="plus"></i></button>
+                                </div>
+                            </div>
+                            <div class="sdd-sidebar-body">
+                                <div class="specs-list" id="sdd-specs-list">
+                                    <!-- Preenchido via JS -->
+                                    <div class="specs-empty-state">
+                                        <i data-lucide="file-question"></i>
+                                        <span>Nenhuma especificação encontrada. Use o assistente ao lado para gerar ou crie uma manual.</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+
+                        <!-- Painel Direito: Espaço de Trabalho SDD -->
+                        <section class="sdd-workspace card">
+                            <!-- Nav Header da Área de Trabalho -->
+                            <div class="sdd-workspace-header">
+                                <div class="sdd-active-spec-info">
+                                    <h4 id="sdd-active-spec-title">Nenhuma Especificação Selecionada</h4>
+                                    <span id="sdd-active-spec-filename" class="badge" style="display: none;"></span>
+                                </div>
+                                <div class="sdd-workspace-nav" id="sdd-workspace-nav-tabs" style="display: none;">
+                                    <button class="sdd-nav-btn active" data-sdd-tab="sdd-tab-preview">Visualizar</button>
+                                    <button class="sdd-nav-btn" data-sdd-tab="sdd-tab-edit">Editar</button>
+                                    <button class="sdd-nav-btn" data-sdd-tab="sdd-tab-checklist">Critérios de Aceitação</button>
+                                    <button class="sdd-nav-btn" data-sdd-tab="sdd-tab-tests">Gerar Testes (QA)</button>
+                                </div>
+                            </div>
+
+                            <div class="sdd-workspace-body">
+                                <!-- SUBTAB: PREVIEW -->
+                                <div id="sdd-tab-preview" class="sdd-tab-content active">
+                                    <div class="sdd-markdown-preview markdown-body" id="sdd-spec-markdown-render">
+                                        <div class="sdd-empty-workspace">
+                                            <i data-lucide="sparkles" style="width: 48px; height: 48px; color: var(--color-primary); opacity: 0.6; margin-bottom: 12px;"></i>
+                                            <h3>Desenvolvimento Orientado por Especificação (SDD)</h3>
+                                            <p>Selecione uma especificação da lista à esquerda ou utilize o assistente para criar uma nova e orientar a IA.</p>
+                                            <button class="btn btn-primary" id="btn-switch-to-ia-generator"><i data-lucide="plus-circle"></i> Assistente de Especificação IA</button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- SUBTAB: EDIT -->
+                                <div id="sdd-tab-edit" class="sdd-tab-content">
+                                    <div class="sdd-editor-wrapper" style="display: flex; flex-direction: column; height: 100%; gap: 12px;">
+                                        <div class="form-group" style="display: flex; gap: 10px; align-items: center;">
+                                            <label for="sdd-edit-filename" style="margin-bottom: 0;">Nome do arquivo:</label>
+                                            <input type="text" id="sdd-edit-filename" class="text-input" placeholder="ex: carrinho_de_compras.md" style="max-width: 250px;">
+                                        </div>
+                                        <textarea id="sdd-spec-editor-textarea" class="text-input" style="flex: 1; font-family: var(--font-mono); font-size: 13px; resize: none; background: rgba(0,0,0,0.15); border: 1px solid var(--border-color);" placeholder="# Minha Especificação..."></textarea>
+                                        <div style="display: flex; justify-content: flex-end; gap: 10px;">
+                                            <button class="btn btn-secondary" id="btn-sdd-delete" style="background: rgba(239, 68, 68, 0.1); border-color: rgba(239, 68, 68, 0.2); color: #ef4444;"><i data-lucide="trash-2"></i> Excluir</button>
+                                            <button class="btn btn-primary" id="btn-sdd-save"><i data-lucide="save"></i> Salvar Alterações</button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- SUBTAB: CHECKLIST INTERATIVO -->
+                                <div id="sdd-tab-checklist" class="sdd-tab-content">
+                                    <div class="sdd-checklist-wrapper" style="display: flex; flex-direction: column; height: 100%; gap: 16px;">
+                                        <div class="sdd-checklist-header">
+                                            <div style="display: flex; flex-direction: column;">
+                                                <h5>Critérios de Aceitação Interativos</h5>
+                                                <p style="font-size: 12px; color: var(--text-muted); margin: 0;">Esses itens são extraídos do arquivo Markdown. Marcar ou desmarcar atualiza o arquivo local no disco.</p>
+                                            </div>
+                                            <div class="sdd-checklist-progress">
+                                                <span id="sdd-checklist-progress-text">0/0 concluídos</span>
+                                                <div class="sdd-progress-bar"><div id="sdd-progress-fill" style="width: 0%;"></div></div>
+                                            </div>
+                                        </div>
+                                        <div class="sdd-checklist-body" id="sdd-criteria-checklist-container">
+                                            <!-- Checkboxes inseridos via JS -->
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- SUBTAB: GERAR TESTES -->
+                                <div id="sdd-tab-tests" class="sdd-tab-content">
+                                    <div class="sdd-tests-wrapper" style="display: flex; flex-direction: column; height: 100%; gap: 18px; max-width: 680px; margin: 0 auto; padding-top: 14px;">
+                                        <div style="text-align: center; margin-bottom: 8px;">
+                                            <i data-lucide="badge-check" style="width: 48px; height: 48px; color: #10b981; margin-bottom: 12px;"></i>
+                                            <h4>Geração Automatizada de Testes Baseada em Spec</h4>
+                                            <p style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">A IA lerá os Critérios de Aceitação desta especificação e criará uma suite de testes unitários ou de integração correspondente, salvando o arquivo na pasta correta do projeto.</p>
+                                        </div>
+                                        <div class="card" style="padding: 20px; background: rgba(255,255,255,0.015); border: 1px solid var(--border-color);">
+                                            <div class="form-group">
+                                                <label for="sdd-test-framework">Framework de Teste Alvo:</label>
+                                                <select id="sdd-test-framework" class="select-input">
+                                                    <option value="pytest">Pytest (Python)</option>
+                                                    <option value="jest">Jest (JavaScript / TypeScript)</option>
+                                                    <option value="phpunit">PHPUnit (PHP)</option>
+                                                    <option value="mocha">Mocha / Chai (Node.js)</option>
+                                                </select>
+                                            </div>
+                                            <button class="btn btn-primary" id="btn-sdd-generate-tests" style="width: 100%; height: 44px; font-weight: 500; font-size: 14px; margin-top: 12px;"><i data-lucide="play-circle"></i> Gerar Arquivo de Testes com IA</button>
+                                        </div>
+                                        <div id="sdd-test-result-panel" class="card" style="display: none; flex: 1; min-height: 200px; display: flex; flex-direction: column; overflow: hidden; background: rgba(0,0,0,0.25);">
+                                            <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px;">
+                                                <span style="font-size: 12px; font-family: var(--font-mono); color: #10b981;" id="sdd-test-result-filepath"></span>
+                                                <button class="btn-icon-copy" id="btn-copy-sdd-test-code" title="Copiar Código"><i data-lucide="copy"></i></button>
+                                            </div>
+                                            <pre style="flex: 1; overflow: auto; padding: 14px; font-family: var(--font-mono); font-size: 12px; line-height: 1.5; color: #f8fafc; margin: 0; white-space: pre-wrap;" id="sdd-test-result-code"></pre>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- SUBTAB: ASSISTENTE GERADOR IA -->
+                                <div id="sdd-tab-ia-wizard" class="sdd-tab-content">
+                                    <div class="sdd-wizard-wrapper" style="display: flex; flex-direction: column; height: 100%; gap: 18px; max-width: 680px; margin: 0 auto; padding-top: 14px;">
+                                        <div style="text-align: center; margin-bottom: 8px;">
+                                            <i data-lucide="wand-2" style="width: 48px; height: 48px; color: var(--color-primary); margin-bottom: 12px;"></i>
+                                            <h4>Assistente de Geração de Especificações com IA</h4>
+                                            <p style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">Descreva o recurso ou módulo que deseja implementar. A IA irá estruturar objetivos, modelo de dados, rotas de API e critérios de aceitação automáticos para você.</p>
+                                        </div>
+                                        <div class="card" style="padding: 20px; background: rgba(255,255,255,0.015); border: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 14px;">
+                                            <div class="form-group">
+                                                <label for="sdd-wizard-title">Nome / Título da Feature (opcional):</label>
+                                                <input type="text" id="sdd-wizard-title" class="text-input" placeholder="ex: Autenticação JWT com Refresh Token">
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="sdd-wizard-prompt">Descreva as funcionalidades e objetivos:</label>
+                                                <textarea id="sdd-wizard-prompt" class="text-input" style="height: 120px; resize: none;" placeholder="ex: Criar uma tela de login onde o usuário entra com email/senha, recebe um JWT com expiração de 15 minutos e um refresh token gravado em cookie HttpOnly para renovação automática..."></textarea>
+                                            </div>
+                                            <button class="btn btn-primary" id="btn-sdd-generate-spec-ia" style="height: 44px; font-weight: 500; font-size: 14px;"><i data-lucide="sparkles"></i> Gerar Especificação via IA</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
                     </div>
                 </div>
             </main>
