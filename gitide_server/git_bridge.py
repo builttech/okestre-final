@@ -308,12 +308,13 @@ def pull_git(project_path: str, branch: str = None) -> dict:
         # Atualiza a URL com o token caso necessário
         update_remote_url_with_token(repo)
         
-        origin = repo.remote(name="origin")
-        pull_info = origin.pull(refspec=f"{branch}")
+        # Git 2.27+ can refuse pulls on divergent branches unless the strategy is
+        # explicit. The GitIDE "Sincronizar" action uses merge semantics.
+        output = repo.git.pull("--no-rebase", "origin", branch)
         return {
             "status": "success",
             "action": "pull",
-            "details": [str(info) for info in pull_info]
+            "details": output.splitlines() or ["Already up to date."]
         }
     except GitCommandError as e:
         raise RuntimeError(f"Falha ao rodar git pull: {e.stderr or str(e)}")
