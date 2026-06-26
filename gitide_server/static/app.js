@@ -2028,36 +2028,43 @@ async function loadGitBranches(currentBranch, forceFetch = false) {
             const fallbackBranch = currentBranch || data.current_branch || 'dev';
             
             branchSelect.innerHTML = '';
-            
-            if (data.local && data.local.length > 0) {
-                const localGroup = document.createElement('optgroup');
-                localGroup.label = 'Branches Locais';
-                data.local.forEach(branch => {
-                    const opt = document.createElement('option');
-                    opt.value = branch;
-                    opt.textContent = normalizeGitBranchName(branch) === 'dev' ? `${branch} · padrão` : branch;
-                    localGroup.appendChild(opt);
-                });
-                branchSelect.appendChild(localGroup);
+
+            const appendBranchHeader = (label) => {
+                const opt = document.createElement('option');
+                opt.value = '';
+                opt.disabled = true;
+                opt.textContent = label;
+                opt.dataset.groupHeader = 'true';
+                branchSelect.appendChild(opt);
+            };
+
+            const appendBranchOption = (branch, scope) => {
+                const normalized = normalizeGitBranchName(branch);
+                const opt = document.createElement('option');
+                opt.value = branch;
+                opt.textContent = `${normalized} · ${scope}${normalized === 'dev' ? ' · padrão' : ''}`;
+                opt.dataset.scope = scope;
+                opt.dataset.branch = normalized;
+                branchSelect.appendChild(opt);
+            };
+
+            const localBranches = Array.from(new Set((data.local || []).map(normalizeGitBranchName).filter(Boolean)));
+            const remoteBranches = Array.from(new Set((data.remote || []).map(normalizeGitBranchName).filter(Boolean)));
+
+            if (localBranches.length > 0) {
+                appendBranchHeader('Branches locais');
+                localBranches.forEach(branch => appendBranchOption(branch, 'local'));
             }
             
-            if (data.remote && data.remote.length > 0) {
-                const remoteGroup = document.createElement('optgroup');
-                remoteGroup.label = 'Branches Remotas';
-                data.remote.forEach(branch => {
-                    const displayVal = branch.startsWith('origin/') ? branch : `origin/${branch}`;
-                    const opt = document.createElement('option');
-                    opt.value = branch;
-                    opt.textContent = normalizeGitBranchName(branch) === 'dev' ? `${displayVal} · padrão` : displayVal;
-                    remoteGroup.appendChild(opt);
-                });
-                branchSelect.appendChild(remoteGroup);
+            if (remoteBranches.length > 0) {
+                appendBranchHeader('Branches remotas');
+                remoteBranches.forEach(branch => appendBranchOption(`origin/${branch}`, 'remota'));
             }
 
             if (branchSelect.options.length === 0) {
                 const opt = document.createElement('option');
                 opt.value = 'dev';
-                opt.textContent = 'dev · padrão';
+                opt.textContent = 'dev · local · padrão';
                 branchSelect.appendChild(opt);
             }
             
@@ -6152,13 +6159,18 @@ function setupCustomSelect(select) {
         optEl.textContent = nativeOpt.textContent;
         optEl.setAttribute('data-value', nativeOpt.value);
 
+        if (nativeOpt.disabled) {
+            optEl.classList.add('disabled');
+            optEl.setAttribute('aria-disabled', 'true');
+        }
+
         if (nativeOpt.selected) {
             optEl.classList.add('selected');
         }
 
         optEl.addEventListener('click', (e) => {
             e.stopPropagation();
-            if (select.disabled) return;
+            if (select.disabled || nativeOpt.disabled) return;
             
             // Define o valor no select original
             select.value = nativeOpt.value;

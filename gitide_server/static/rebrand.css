@@ -1858,6 +1858,37 @@ html[data-theme="light"]{
     background:var(--flat-active);
 }
 
+.gitide-select-option:disabled{
+    cursor:default;
+    opacity:1;
+    color:var(--text-muted);
+    background:transparent!important;
+    font-size:10px;
+    font-weight:800;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+    min-height:26px;
+    padding:10px 12px 4px;
+}
+
+.gitide-select-option:disabled:first-child{
+    padding-top:4px;
+}
+
+.custom-select-option.disabled{
+    cursor:default!important;
+    opacity:1!important;
+    color:var(--text-muted)!important;
+    background:transparent!important;
+    font-size:10px!important;
+    font-weight:800!important;
+    letter-spacing:.08em!important;
+    text-transform:uppercase!important;
+    min-height:26px!important;
+    padding:10px 12px 4px!important;
+    pointer-events:none;
+}
+
 .gitide-select-icon{
     font-size:11px;
     opacity:.7;
