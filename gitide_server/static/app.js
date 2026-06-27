@@ -6351,15 +6351,14 @@ async function sddSelectSpec(filename) {
 
     // Show workspace nav
     document.getElementById('sdd-workspace-nav-tabs').style.display = 'flex';
-    document.getElementById('sdd-active-spec-filename').textContent = filename;
-    document.getElementById('sdd-active-spec-filename').style.display = 'inline';
+    sddSetActiveSpecHeader({ filename });
 
     // Load content
     try {
         const res = await fetch(`/api/projects/${state.activeProjectId}/sdd/specs/${encodeURIComponent(filename)}`, { headers: getHeaders() });
         const data = await res.json();
         sddState.activeContent = data.content || '';
-        document.getElementById('sdd-active-spec-title').textContent = sddExtractTitle(sddState.activeContent) || filename;
+        sddSetActiveSpecHeader({ filename, content: sddState.activeContent });
 
         // Populate tabs
         sddPopulatePreview(sddState.activeContent);
@@ -6382,6 +6381,31 @@ async function sddSelectSpec(filename) {
 function sddExtractTitle(content) {
     const match = content.match(/^#\s+(.+)$/m);
     return match ? match[1].trim() : null;
+}
+
+function sddExtractRequirementId(value) {
+    const match = (value || '').match(/\bREQ[-_ ]?(\d{3,6})\b/i);
+    return match ? `REQ-${match[1]}` : '';
+}
+
+function sddCleanRequirementTitle(title) {
+    const cleaned = (title || '').replace(/^\s*REQ[-_ ]?\d{3,6}\s*[-:–—]?\s*/i, '').trim();
+    return cleaned || title || '';
+}
+
+function sddSetActiveSpecHeader({ title, filename, content }) {
+    const rawTitle = title || sddExtractTitle(content || '') || filename || 'Nova Especificação';
+    const cleanTitle = sddCleanRequirementTitle(rawTitle);
+    const reqId = sddExtractRequirementId(rawTitle) || sddExtractRequirementId(filename);
+    const metaParts = [reqId, filename].filter(Boolean);
+    const titleEl = document.getElementById('sdd-active-spec-title');
+    const filenameEl = document.getElementById('sdd-active-spec-filename');
+
+    if (titleEl) titleEl.textContent = cleanTitle;
+    if (filenameEl) {
+        filenameEl.textContent = metaParts.join(' · ');
+        filenameEl.style.display = metaParts.length ? 'inline' : 'none';
+    }
 }
 
 function sddExtractSection(content, sectionNames) {
@@ -6627,8 +6651,7 @@ async function sddSaveSpec() {
             sddState.activeFilename = filename;
             sddState.activeContent = content;
             sddPopulatePreview(content);
-            document.getElementById('sdd-active-spec-filename').textContent = filename;
-            document.getElementById('sdd-active-spec-title').textContent = sddExtractTitle(content) || filename;
+            sddSetActiveSpecHeader({ filename, content });
             await sddLoadSpecs();
             sddSwitchTab('sdd-tab-preview');
         } else {
@@ -6873,10 +6896,8 @@ function sddCreateRequirementFromModal() {
 
     sddState.activeFilename = null;
     document.getElementById('sdd-workspace-nav-tabs').style.display = 'flex';
-    document.getElementById('sdd-active-spec-title').textContent = `${id} - ${title}`;
-    document.getElementById('sdd-active-spec-filename').style.display = 'inline';
     const filename = `${id.toLowerCase()}_${sddSlugify(title)}.md`;
-    document.getElementById('sdd-active-spec-filename').textContent = filename;
+    sddSetActiveSpecHeader({ title: `${id} - ${title}`, filename });
     document.getElementById('sdd-edit-filename').value = filename;
     const template = sddBuildRequirementTemplate({ id, title, owner });
     sddState.activeContent = template;
@@ -6917,9 +6938,7 @@ async function sddGenerateSpecIA() {
         if (data.filename && generatedContent !== undefined) {
             sddState.activeFilename = data.filename;
             sddState.activeContent = generatedContent;
-            document.getElementById('sdd-active-spec-title').textContent = data.title || sddExtractTitle(generatedContent) || data.filename;
-            document.getElementById('sdd-active-spec-filename').textContent = data.filename;
-            document.getElementById('sdd-active-spec-filename').style.display = 'inline';
+            sddSetActiveSpecHeader({ title: data.title, filename: data.filename, content: generatedContent });
             document.getElementById('sdd-workspace-nav-tabs').style.display = 'flex';
             sddPopulatePreview(generatedContent);
             document.getElementById('sdd-spec-editor-textarea').value = generatedContent;
