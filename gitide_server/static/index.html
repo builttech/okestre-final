@@ -1332,6 +1332,34 @@ Se o arquivo existir, leia e siga rigorosamente todas as diretrizes, fases de an
 
     <div class="gitide-toast-viewport" id="gitide-toast-viewport" aria-live="polite" aria-atomic="true"></div>
 
+    <!-- MODAL: NEW REQUIREMENT -->
+    <div class="modal-backdrop" id="modal-sdd-new-requirement">
+        <div class="modal-card" style="max-width: 520px;">
+            <div class="modal-header">
+                <h3>Novo Requisito</h3>
+                <button class="btn-icon sdd-requirement-close"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body" style="padding: 20px; display: flex; flex-direction: column; gap: 14px;">
+                <div class="form-group">
+                    <label for="sdd-new-requirement-id">ID Único</label>
+                    <input type="text" id="sdd-new-requirement-id" class="text-input" readonly>
+                </div>
+                <div class="form-group">
+                    <label for="sdd-new-requirement-title">Título / Resumo</label>
+                    <input type="text" id="sdd-new-requirement-title" class="text-input" placeholder="Ex: Exportação do extrato financeiro em PDF">
+                </div>
+                <div class="form-group">
+                    <label for="sdd-new-requirement-author">Autor / Responsável</label>
+                    <input type="text" id="sdd-new-requirement-author" class="text-input" placeholder="Ex: Augusto / Squad Produto">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary sdd-requirement-close">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="btn-sdd-create-requirement"><i data-lucide="plus"></i> Criar Requisito</button>
+            </div>
+        </div>
+    </div>
+
     <!-- MODAL: MERGE BRANCH -->
     <div class="modal-backdrop" id="modal-merge">
         <div class="modal-card" style="max-width: 450px;">
@@ -1538,7 +1566,7 @@ Se o arquivo existir, leia e siga rigorosamente todas as diretrizes, fases de an
     </div>
 
     <!-- Custom JavaScript -->
-    <script src="/static/app.js?v=24"></script>
+    <script src="/static/app.js?v=25"></script>
     <script src="/static/theme-toggle.js?v=1"></script>
 </body>
 </html>

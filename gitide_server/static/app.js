@@ -6732,13 +6732,153 @@ async function sddDeleteSpec() {
 }
 
 // --- New Manual Spec ---
-function sddNewManualSpec() {
+function sddSlugify(value) {
+    return (value || '')
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9]+/g, '_')
+        .replace(/^_|_$/g, '')
+        .slice(0, 60) || 'requisito';
+}
+
+function sddGenerateRequirementId() {
+    const usedNumbers = (sddState.specs || [])
+        .map(spec => `${spec.filename || ''} ${spec.title || ''}`.match(/\bREQ[-_ ]?(\d{3,6})\b/i))
+        .filter(Boolean)
+        .map(match => Number(match[1]))
+        .filter(Number.isFinite);
+
+    const next = usedNumbers.length ? Math.max(...usedNumbers) + 1 : Math.floor(1000 + Math.random() * 9000);
+    return `REQ-${String(next).padStart(4, '0')}`;
+}
+
+function sddBuildRequirementTemplate({ id, title, owner }) {
+    const attribution = owner || 'Autor: \nResponsável atual: ';
+    return `# ${id} - ${title}
+
+## 1. Specify - Especificação
+
+### 1. Identificação e Metadados Básicos
+
+**ID Único:** ${id}
+
+**Título / Resumo:** ${title}
+
+**Atribuição:** ${attribution}
+
+### 2. O Coração do Requisito (O "Quê")
+
+**Descrição:** O sistema deve permitir que...
+
+**História de Usuário:**
+
+Como um [tipo de usuário], eu quero [ação/funcionalidade], para que [valor/benefício].
+
+**Critérios de Aceite:**
+
+- [ ] **Dado que** [contexto inicial], **quando** [ação do usuário ocorre], **então** [resultado esperado no sistema].
+- [ ] **Dado que** [contexto inicial], **quando** [ação do usuário ocorre], **então** [resultado esperado no sistema].
+
+### 3. Rastreabilidade
+
+**Links Ascendentes (Pais):**
+
+- Épico / Feature / Regra de Negócio:
+
+**Links Descendentes (Filhos):**
+
+- Tasks técnicas:
+
+**Código e Deploy:**
+
+- Commits:
+- Pull Requests:
+- Pipelines:
+
+**Casos de Teste (Test Cases):**
+
+- Testes de QA:
+
+### 4. Gestão e Planejamento
+
+**Prioridade:** P2
+
+**Status (Workflow):** Novo
+
+**Estimativa / Esforço:** A definir
+
+**Iteração / Release:** A definir
+
+### 5. Contexto Adicional
+
+**Anexos:**
+
+- Protótipos:
+- Diagramas:
+- Planilhas:
+
+**Trilha de Auditoria e Comentários:**
+
+- Criado no GitIDE Harness Engineering.
+
+## 2. Design - Planejamento
+
+### Arquitetura proposta
+
+Descreva como o sistema vai operar para atender o requisito ${id}.
+
+### Dados, bibliotecas e integrações
+
+- Banco de dados:
+- Bibliotecas:
+- Integrações:
+
+### Contratos técnicos
+
+- APIs, eventos, serviços ou componentes afetados.
+
+## 3. Task List - Tarefas
+
+- [ ] TASK-001: Detalhar implementação técnica do requisito ${id}.
+- [ ] TASK-002: Implementar comportamento principal.
+- [ ] TASK-003: Criar ou atualizar testes automatizados.
+
+## 4. Execute - Implementação
+
+Selecione uma tarefa na aba Task List para montar as instruções de execução.
+`;
+}
+
+function sddOpenNewRequirementModal() {
+    const idInput = document.getElementById('sdd-new-requirement-id');
+    const titleInput = document.getElementById('sdd-new-requirement-title');
+    const authorInput = document.getElementById('sdd-new-requirement-author');
+    if (idInput) idInput.value = sddGenerateRequirementId();
+    if (titleInput) titleInput.value = '';
+    if (authorInput) authorInput.value = '';
+    openCustomModal('modal-sdd-new-requirement');
+    setTimeout(() => titleInput?.focus(), 40);
+}
+
+function sddCreateRequirementFromModal() {
+    const id = document.getElementById('sdd-new-requirement-id')?.value.trim() || sddGenerateRequirementId();
+    const title = document.getElementById('sdd-new-requirement-title')?.value.trim();
+    const owner = document.getElementById('sdd-new-requirement-author')?.value.trim();
+    if (!title) {
+        gitideNotify({ title: 'Título obrigatório', message: 'Informe um título para criar o requisito.', variant: 'warning' });
+        document.getElementById('sdd-new-requirement-title')?.focus();
+        return;
+    }
+
     sddState.activeFilename = null;
     document.getElementById('sdd-workspace-nav-tabs').style.display = 'flex';
-    document.getElementById('sdd-active-spec-title').textContent = 'Nova Especificação';
-    document.getElementById('sdd-active-spec-filename').style.display = 'none';
-    document.getElementById('sdd-edit-filename').value = '';
-    const template = `# Título da Feature\n\n## 1. Specify - Especificação\n\n### Visão de negócio\nDescreva o problema, objetivo e contexto da feature.\n\n### Requisitos\n- REQ-001: Primeiro requisito de negócio.\n- REQ-002: Segundo requisito de negócio.\n\n### Regras de negócio\n- RN-001: Primeira regra de negócio.\n\n## 2. Design - Planejamento\n\n### Arquitetura proposta\nDescreva como o sistema vai operar.\n\n### Dados, bibliotecas e integrações\n- Banco de dados:\n- Bibliotecas:\n- Integrações:\n\n### Contratos técnicos\n- APIs, eventos, serviços ou componentes afetados.\n\n## 3. Task List - Tarefas\n\n- [ ] TASK-001: Implementar a primeira parte pequena e testável.\n- [ ] TASK-002: Criar testes automatizados.\n\n## 4. Execute - Implementação\n\nSelecione uma tarefa na aba Task List para montar as instruções de execução.\n`;
+    document.getElementById('sdd-active-spec-title').textContent = `${id} - ${title}`;
+    document.getElementById('sdd-active-spec-filename').style.display = 'inline';
+    const filename = `${id.toLowerCase()}_${sddSlugify(title)}.md`;
+    document.getElementById('sdd-active-spec-filename').textContent = filename;
+    document.getElementById('sdd-edit-filename').value = filename;
+    const template = sddBuildRequirementTemplate({ id, title, owner });
     sddState.activeContent = template;
     document.getElementById('sdd-spec-editor-textarea').value = template;
     sddPopulateStageEditors(template);
@@ -6747,6 +6887,7 @@ function sddNewManualSpec() {
     sddSwitchTab('sdd-tab-preview');
     // Remove sidebar active
     document.querySelectorAll('.spec-item').forEach(el => el.classList.remove('active'));
+    closeCustomModal('modal-sdd-new-requirement');
 }
 
 // --- AI Spec Generation ---
@@ -6854,7 +6995,21 @@ function setupSddEventListeners() {
 
     // Sidebar: New Manual
     const btnNew = document.getElementById('btn-new-sdd-spec-manual');
-    if (btnNew) btnNew.addEventListener('click', sddNewManualSpec);
+    if (btnNew) btnNew.addEventListener('click', sddOpenNewRequirementModal);
+
+    document.querySelectorAll('.sdd-requirement-close').forEach(btn => {
+        btn.addEventListener('click', () => closeCustomModal('modal-sdd-new-requirement'));
+    });
+
+    const btnCreateRequirement = document.getElementById('btn-sdd-create-requirement');
+    if (btnCreateRequirement) btnCreateRequirement.addEventListener('click', sddCreateRequirementFromModal);
+
+    const requirementTitleInput = document.getElementById('sdd-new-requirement-title');
+    if (requirementTitleInput) {
+        requirementTitleInput.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') sddCreateRequirementFromModal();
+        });
+    }
 
     // Switch to IA wizard from empty workspace
     const btnToWizard = document.getElementById('btn-switch-to-ia-generator');
