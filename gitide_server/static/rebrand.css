@@ -3796,6 +3796,85 @@ input[type="checkbox"]:focus-visible{
     padding:18px;
 }
 
+.ops-infra-grid.compact{
+    grid-template-columns:1fr 140px;
+    padding:0;
+}
+
+.ops-flow-tabs{
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+    padding:14px 18px 0;
+    border-top:1px solid var(--flat-border-soft);
+}
+
+.ops-flow-tab{
+    min-height:36px;
+    padding:0 12px;
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    border:1px solid transparent;
+    border-radius:12px;
+    background:transparent;
+    color:var(--text-muted);
+    font-size:12px;
+    font-weight:700;
+    cursor:pointer;
+}
+
+.ops-flow-tab span{
+    width:18px;
+    height:18px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    border-radius:999px;
+    background:rgba(255,255,255,.06);
+    font-size:10px;
+}
+
+.ops-flow-tab.active{
+    color:var(--text-main);
+    border-color:var(--flat-border);
+    background:rgba(255,255,255,.045);
+}
+
+.ops-flow-tab.active span{
+    background:var(--color-primary);
+    color:#fff;
+}
+
+.ops-flow-panel{
+    display:none;
+    padding:18px;
+}
+
+.ops-flow-panel.active{
+    display:block;
+}
+
+.ops-info-band{
+    display:flex;
+    align-items:flex-start;
+    gap:10px;
+    margin-bottom:14px;
+    padding:12px;
+    border:1px solid var(--flat-border);
+    border-radius:14px;
+    background:rgba(255,255,255,.025);
+    color:var(--text-muted);
+    font-size:13px;
+    line-height:1.45;
+}
+
+.ops-info-band i,
+.ops-info-band svg{
+    flex:0 0 auto;
+    color:var(--color-primary);
+}
+
 .ops-infra-field{
     display:flex;
     flex-direction:column;
@@ -3812,12 +3891,12 @@ input[type="checkbox"]:focus-visible{
     display:flex;
     flex-wrap:wrap;
     gap:10px;
-    padding:0 18px 18px;
+    padding:0 0 18px;
 }
 
 .ops-infra-detected,
 .ops-infra-plan{
-    margin:0 18px 18px;
+    margin:0 0 18px;
     padding:14px;
     border:1px solid var(--flat-border);
     border-radius:14px;
@@ -3865,14 +3944,6 @@ input[type="checkbox"]:focus-visible{
     color:var(--text-main);
     font-size:13px;
     line-height:1.55;
-}
-
-.ops-caddy-card{
-    margin:0 18px 18px;
-    padding:14px;
-    border:1px solid var(--flat-border);
-    border-radius:14px;
-    background:rgba(255,255,255,.018);
 }
 
 .ops-caddy-header{

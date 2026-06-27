@@ -2804,6 +2804,15 @@ function getOpsInfraPayload() {
     };
 }
 
+function opsInfraSwitchFlowTab(tabName) {
+    document.querySelectorAll('.ops-flow-tab').forEach(tab => {
+        tab.classList.toggle('active', tab.dataset.opsFlowTab === tabName);
+    });
+    document.querySelectorAll('.ops-flow-panel').forEach(panel => {
+        panel.classList.toggle('active', panel.dataset.opsFlowPanel === tabName);
+    });
+}
+
 function renderOpsDetected(data) {
     const target = document.getElementById('ops-detected-card');
     if (!target) return;
@@ -3278,8 +3287,12 @@ function setupEventListeners() {
     document.getElementById('btn-ops-detect')?.addEventListener('click', opsInfraDetect);
     document.getElementById('btn-ops-plan')?.addEventListener('click', opsInfraPlan);
     document.getElementById('btn-ops-artifacts')?.addEventListener('click', opsInfraGenerateArtifacts);
+    document.getElementById('btn-ops-artifacts-deploy')?.addEventListener('click', opsInfraGenerateArtifacts);
     document.getElementById('btn-ops-caddy-preview')?.addEventListener('click', opsInfraCaddyPreview);
     document.getElementById('btn-ops-caddy-apply')?.addEventListener('click', opsInfraCaddyApply);
+    document.querySelectorAll('.ops-flow-tab').forEach(btn => {
+        btn.addEventListener('click', () => opsInfraSwitchFlowTab(btn.dataset.opsFlowTab));
+    });
     document.querySelectorAll('[data-ops-command]').forEach(btn => {
         btn.addEventListener('click', () => opsInfraRunCommand(btn.dataset.opsCommand));
     });

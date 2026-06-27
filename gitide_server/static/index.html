@@ -1087,42 +1087,83 @@ Se o arquivo existir, leia e siga rigorosamente todas as diretrizes, fases de an
                             <div class="card-header">
                                 <div>
                                     <h4><i data-lucide="server-cog"></i> Ops Infra</h4>
-                                    <p class="ops-infra-subtitle">Deploy, ambientes, Docker, domínio e banco com assistência de IA.</p>
+                                    <p class="ops-infra-subtitle">Fluxo para operar uma VM já criada pelo usuário. O GitIDE recebe o acesso, configura ambiente, proxy, banco e deploy.</p>
                                 </div>
                                 <button class="btn btn-sm btn-secondary git-icon-action" id="btn-ops-detect" type="button" title="Detectar stack" aria-label="Detectar stack"><i data-lucide="scan-search"></i></button>
                             </div>
-                            <div class="ops-infra-grid">
-                                <div class="ops-infra-field">
-                                    <label for="ops-env-select">Ambiente</label>
-                                    <select id="ops-env-select" class="select-input">
-                                        <option value="prod">prod</option>
-                                        <option value="homolog">homolog</option>
-                                        <option value="dev">dev</option>
-                                    </select>
+
+                            <div class="ops-flow-tabs" role="tablist" aria-label="Fluxo Ops Infra">
+                                <button type="button" class="ops-flow-tab active" data-ops-flow-tab="vm"><span>1</span> VM / Acesso</button>
+                                <button type="button" class="ops-flow-tab" data-ops-flow-tab="environment"><span>2</span> Ambiente</button>
+                                <button type="button" class="ops-flow-tab" data-ops-flow-tab="domain"><span>3</span> Domínio</button>
+                                <button type="button" class="ops-flow-tab" data-ops-flow-tab="database"><span>4</span> Banco</button>
+                                <button type="button" class="ops-flow-tab" data-ops-flow-tab="deploy"><span>5</span> Deploy</button>
+                                <button type="button" class="ops-flow-tab" data-ops-flow-tab="logs"><span>6</span> Operação</button>
+                            </div>
+
+                            <div class="ops-flow-panel active" data-ops-flow-panel="vm">
+                                <div class="ops-info-band">
+                                    <i data-lucide="info"></i>
+                                    <span>O GitIDE não cria a VM. Crie a máquina no provedor de sua escolha e informe aqui os dados de acesso SSH.</span>
                                 </div>
+                                <div class="ops-infra-field">
+                                    <label for="ops-vm-host">IP ou host da VM</label>
+                                    <input type="text" id="ops-vm-host" class="text-input" placeholder="ex: 203.0.113.10">
+                                </div>
+                                <div class="ops-infra-grid compact">
+                                    <div class="ops-infra-field">
+                                        <label for="ops-vm-user">Usuário SSH</label>
+                                        <input type="text" id="ops-vm-user" class="text-input" placeholder="root ou deploy">
+                                    </div>
+                                    <div class="ops-infra-field">
+                                        <label for="ops-vm-port">Porta SSH</label>
+                                        <input type="number" id="ops-vm-port" class="text-input" value="22">
+                                    </div>
+                                </div>
+                                <div class="ops-infra-field">
+                                    <label for="ops-vm-path">Diretório do app na VM</label>
+                                    <input type="text" id="ops-vm-path" class="text-input" placeholder="/opt/apps/meu-app">
+                                </div>
+                                <div class="ops-infra-actions">
+                                    <button class="btn btn-secondary" type="button" disabled><i data-lucide="plug-zap"></i> Testar SSH em breve</button>
+                                </div>
+                            </div>
+
+                            <div class="ops-flow-panel" data-ops-flow-panel="environment">
+                                <div class="ops-infra-grid">
+                                    <div class="ops-infra-field">
+                                        <label for="ops-env-select">Ambiente</label>
+                                        <select id="ops-env-select" class="select-input">
+                                            <option value="prod">prod</option>
+                                            <option value="homolog">homolog</option>
+                                            <option value="dev">dev</option>
+                                        </select>
+                                    </div>
+                                    <div class="ops-infra-field">
+                                        <label for="ops-db-select">Banco</label>
+                                        <select id="ops-db-select" class="select-input">
+                                            <option value="">sem banco</option>
+                                            <option value="postgres">Postgres</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="ops-infra-actions">
+                                    <button class="btn btn-secondary" id="btn-ops-plan"><i data-lucide="sparkles"></i> Gerar plano com IA</button>
+                                    <button class="btn btn-primary" id="btn-ops-artifacts"><i data-lucide="file-plus-2"></i> Gerar arquivos</button>
+                                </div>
+                                <div class="ops-infra-detected" id="ops-detected-card">
+                                    <span class="ops-muted">Stack ainda não detectada.</span>
+                                </div>
+                                <div class="ops-infra-plan" id="ops-plan-output">
+                                    <span class="ops-muted">O plano de deploy aparecerá aqui.</span>
+                                </div>
+                            </div>
+
+                            <div class="ops-flow-panel" data-ops-flow-panel="domain">
                                 <div class="ops-infra-field">
                                     <label for="ops-domain-input">Domínio</label>
                                     <input type="text" id="ops-domain-input" class="text-input" placeholder="app.seudominio.com">
                                 </div>
-                                <div class="ops-infra-field">
-                                    <label for="ops-db-select">Banco</label>
-                                    <select id="ops-db-select" class="select-input">
-                                        <option value="">sem banco</option>
-                                        <option value="postgres">Postgres</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="ops-infra-actions">
-                                <button class="btn btn-secondary" id="btn-ops-plan"><i data-lucide="sparkles"></i> Gerar plano com IA</button>
-                                <button class="btn btn-primary" id="btn-ops-artifacts"><i data-lucide="file-plus-2"></i> Gerar arquivos</button>
-                            </div>
-                            <div class="ops-infra-detected" id="ops-detected-card">
-                                <span class="ops-muted">Stack ainda não detectada.</span>
-                            </div>
-                            <div class="ops-infra-plan" id="ops-plan-output">
-                                <span class="ops-muted">O plano de deploy aparecerá aqui.</span>
-                            </div>
-                            <div class="ops-caddy-card">
                                 <div class="ops-caddy-header">
                                     <div>
                                         <h5><i data-lucide="globe-2"></i> Domínio com Caddy</h5>
@@ -1135,6 +1176,34 @@ Se o arquivo existir, leia e siga rigorosamente todas as diretrizes, fases de an
                                 </div>
                                 <div class="ops-caddy-preview" id="ops-caddy-output">
                                     <span class="ops-muted">Informe um domínio e clique em Prévia.</span>
+                                </div>
+                            </div>
+
+                            <div class="ops-flow-panel" data-ops-flow-panel="database">
+                                <div class="ops-info-band">
+                                    <i data-lucide="database"></i>
+                                    <span>Nesta etapa, o GitIDE prepara o serviço de banco no Docker Compose. A criação em produção depende do deploy na VM.</span>
+                                </div>
+                                <div class="ops-infra-field">
+                                    <label for="ops-db-select-mirror">Banco selecionado</label>
+                                    <input type="text" id="ops-db-select-mirror" class="text-input" value="Use o campo Banco na aba Ambiente" readonly>
+                                </div>
+                            </div>
+
+                            <div class="ops-flow-panel" data-ops-flow-panel="deploy">
+                                <div class="ops-info-band">
+                                    <i data-lucide="rocket"></i>
+                                    <span>Gere os arquivos, envie o projeto para a VM e execute o deploy via Docker Compose.</span>
+                                </div>
+                                <div class="ops-infra-actions">
+                                    <button class="btn btn-primary" id="btn-ops-artifacts-deploy"><i data-lucide="file-plus-2"></i> Gerar arquivos de deploy</button>
+                                </div>
+                            </div>
+
+                            <div class="ops-flow-panel" data-ops-flow-panel="logs">
+                                <div class="ops-info-band">
+                                    <i data-lucide="activity"></i>
+                                    <span>Use os comandos de operação ao lado para acompanhar containers, logs e reinícios.</span>
                                 </div>
                             </div>
                         </section>
