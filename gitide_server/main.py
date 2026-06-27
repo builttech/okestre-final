@@ -254,6 +254,16 @@ class OpsInfraDomainRequest(BaseModel):
     environment: str = Field("prod", description="Ambiente alvo")
     overwrite: bool = Field(True, description="Sobrescrever Caddyfile existente")
 
+class OpsInfraEnvItem(BaseModel):
+    key: str
+    value: str = ""
+    secret: bool = False
+
+class OpsInfraEnvRequest(BaseModel):
+    environment: str = Field("prod", description="Ambiente alvo")
+    variables: List[OpsInfraEnvItem] = Field(default_factory=list)
+    write_env_file: bool = Field(True, description="Gerar arquivo .env.<ambiente>")
+
 # Dependência para buscar projeto do DB
 def get_project_or_404(project_id: int, db: Session = Depends(get_db)) -> Project:
     project = db.query(Project).filter(Project.id == project_id).first()
@@ -2028,6 +2038,91 @@ def _ops_domain_preview(project_path: str, domain: str) -> dict:
         ]
     }
 
+def _ops_env_dir(project_path: str) -> str:
+    path = os.path.join(project_path, ".gitide", "ops-infra")
+    os.makedirs(path, exist_ok=True)
+    return path
+
+def _ops_secret_key() -> bytes:
+    key_path = os.path.join(CONFIG_DIR, "ops_secret.key")
+    os.makedirs(CONFIG_DIR, exist_ok=True)
+    if os.path.exists(key_path):
+        with open(key_path, "rb") as f:
+            return f.read()
+    try:
+        from cryptography.fernet import Fernet
+        key = Fernet.generate_key()
+    except Exception:
+        key = secrets.token_urlsafe(32).encode("utf-8")
+    with open(key_path, "wb") as f:
+        f.write(key)
+    return key
+
+def _ops_encrypt_secret(value: str) -> str:
+    try:
+        from cryptography.fernet import Fernet
+        return "fernet:" + Fernet(_ops_secret_key()).encrypt(value.encode("utf-8")).decode("utf-8")
+    except Exception:
+        import base64
+        return "b64:" + base64.b64encode(value.encode("utf-8")).decode("utf-8")
+
+def _ops_decrypt_secret(value: str) -> str:
+    try:
+        if value.startswith("fernet:"):
+            from cryptography.fernet import Fernet
+            return Fernet(_ops_secret_key()).decrypt(value.replace("fernet:", "", 1).encode("utf-8")).decode("utf-8")
+        if value.startswith("b64:"):
+            import base64
+            return base64.b64decode(value.replace("b64:", "", 1)).decode("utf-8")
+    except Exception:
+        return ""
+    return value
+
+def _ops_env_path(project_path: str, environment: str) -> str:
+    safe_env = re.sub(r"[^a-zA-Z0-9_-]", "", environment or "prod") or "prod"
+    return os.path.join(_ops_env_dir(project_path), f"{safe_env}.json")
+
+def _ops_read_env(project_path: str, environment: str, reveal: bool = False) -> dict:
+    path = _ops_env_path(project_path, environment)
+    if not os.path.exists(path):
+        return {"environment": environment, "variables": []}
+    with open(path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+    variables = []
+    for item in data.get("variables", []):
+        value = item.get("value", "")
+        is_secret = bool(item.get("secret"))
+        variables.append({
+            "key": item.get("key", ""),
+            "value": _ops_decrypt_secret(value) if is_secret and reveal else "********" if is_secret else value,
+            "secret": is_secret
+        })
+    return {"environment": data.get("environment", environment), "variables": variables}
+
+def _ops_write_env(project_path: str, req: OpsInfraEnvRequest) -> dict:
+    variables = []
+    for item in req.variables:
+        key = re.sub(r"[^A-Z0-9_]", "_", item.key.strip().upper())
+        if not key:
+            continue
+        variables.append({
+            "key": key,
+            "value": _ops_encrypt_secret(item.value) if item.secret else item.value,
+            "secret": item.secret
+        })
+    payload = {"environment": req.environment, "variables": variables}
+    with open(_ops_env_path(project_path, req.environment), "w", encoding="utf-8") as f:
+        json.dump(payload, f, indent=2)
+
+    env_file = None
+    if req.write_env_file:
+        env_file = f".env.{req.environment}"
+        with open(os.path.join(project_path, env_file), "w", encoding="utf-8") as f:
+            for item in variables:
+                value = _ops_decrypt_secret(item["value"]) if item["secret"] else item["value"]
+                f.write(f"{item['key']}={value}\n")
+    return {"environment": req.environment, "variables": _ops_read_env(project_path, req.environment)["variables"], "env_file": env_file}
+
 @app.get("/api/projects/{project_id}/ops-infra/detect", tags=["Ops Infra"])
 def ops_infra_detect(project: Project = Depends(get_project_or_404), _ = Depends(get_api_key)):
     return {"status": "success", **_ops_detect_stack(project.path)}
@@ -2105,6 +2200,50 @@ def ops_infra_domain_apply(req: OpsInfraDomainRequest,
     db.add(ActivityLog(project_id=project.id, action_type="OPS_INFRA_DOMAIN", details=f"Caddyfile configurado para {preview['domain']}"))
     db.commit()
     return {"status": "success", "written": ["Caddyfile"], **preview}
+
+@app.get("/api/projects/{project_id}/ops-infra/env/{environment}", tags=["Ops Infra"])
+def ops_infra_get_env(environment: str,
+                      project: Project = Depends(get_project_or_404),
+                      _ = Depends(get_api_key)):
+    return {"status": "success", **_ops_read_env(project.path, environment)}
+
+@app.post("/api/projects/{project_id}/ops-infra/env", tags=["Ops Infra"])
+def ops_infra_save_env(req: OpsInfraEnvRequest,
+                       project: Project = Depends(get_project_or_404),
+                       db: Session = Depends(get_db),
+                       _ = Depends(get_api_key)):
+    result = _ops_write_env(project.path, req)
+    db.add(ActivityLog(project_id=project.id, action_type="OPS_INFRA_ENV", details=f"Ambiente {req.environment} salvo. Env file: {result.get('env_file')}"))
+    db.commit()
+    return {"status": "success", **result}
+
+@app.post("/api/projects/{project_id}/ops-infra/env/validate", tags=["Ops Infra"])
+def ops_infra_validate_env(req: OpsInfraEnvRequest,
+                           project: Project = Depends(get_project_or_404),
+                           _ = Depends(get_api_key)):
+    detected = _ops_detect_stack(project.path)
+    keys = [re.sub(r"[^A-Z0-9_]", "_", item.key.strip().upper()) for item in req.variables if item.key.strip()]
+    issues = []
+    if "APP_ENV" not in keys:
+        issues.append("APP_ENV ausente.")
+    if "APP_PORT" not in keys:
+        issues.append("APP_PORT ausente.")
+    if (req.environment or "").lower() == "prod" and not any(k in keys for k in ["APP_DOMAIN", "DOMAIN"]):
+        issues.append("Domínio de produção não informado em APP_DOMAIN ou DOMAIN.")
+    if detected.get("runtime") == "node" and not any(k in keys for k in ["NODE_ENV", "APP_ENV"]):
+        issues.append("NODE_ENV recomendado para projetos Node.")
+    if detected.get("runtime") == "python" and not any(k in keys for k in ["PYTHONUNBUFFERED", "APP_ENV"]):
+        issues.append("PYTHONUNBUFFERED=1 recomendado para logs Python em container.")
+    return {
+        "status": "success",
+        "valid": not issues,
+        "issues": issues,
+        "suggested": [
+            {"key": "APP_ENV", "value": req.environment, "secret": False},
+            {"key": "APP_PORT", "value": str(detected.get("port", 8080)), "secret": False},
+            {"key": "APP_DOMAIN", "value": "", "secret": False},
+        ]
+    }
 
 @app.post("/api/projects/{project_id}/ops-infra/command", tags=["Ops Infra"])
 def ops_infra_command(req: OpsInfraCommandRequest,

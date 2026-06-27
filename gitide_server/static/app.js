@@ -30,7 +30,10 @@ const state = {
     // Git conflict resolver
     gitConflicts: [],
     gitConflictActiveFile: null,
-    gitConflictBlocks: []
+    gitConflictBlocks: [],
+
+    // Ops Infra
+    opsEnvVariables: []
 };
 
 // --- CUSTOM SELECT COMPONENT ---
@@ -265,6 +268,7 @@ function switchTab(tabId) {
             sddLoadSpecs();
         } else if (tabId === 'tab-ops-infra') {
             opsInfraDetect();
+            opsInfraLoadEnv();
         }
     }
 }
@@ -2811,6 +2815,99 @@ function opsInfraSwitchFlowTab(tabName) {
     document.querySelectorAll('.ops-flow-panel').forEach(panel => {
         panel.classList.toggle('active', panel.dataset.opsFlowPanel === tabName);
     });
+    if (tabName === 'environment') opsInfraLoadEnv();
+}
+
+function renderOpsEnvVariables() {
+    const target = document.getElementById('ops-env-list');
+    if (!target) return;
+    if (!state.opsEnvVariables.length) {
+        target.innerHTML = '<span class="ops-muted">Nenhuma variável cadastrada para este ambiente.</span>';
+        return;
+    }
+    target.innerHTML = state.opsEnvVariables.map((item, index) => `
+        <div class="ops-env-row" data-ops-env-row="${index}">
+            <input class="text-input ops-env-key" value="${escapeHtml(item.key || '')}" placeholder="APP_KEY">
+            <input class="text-input ops-env-value" value="${escapeHtml(item.value || '')}" placeholder="valor" ${item.secret ? 'type="password"' : 'type="text"'}>
+            <label class="ops-env-secret"><input type="checkbox" class="ops-env-secret-input" ${item.secret ? 'checked' : ''}> secret</label>
+            <button class="btn btn-secondary ops-env-remove" type="button"><i class="fa-solid fa-trash"></i></button>
+        </div>
+    `).join('');
+    target.querySelectorAll('.ops-env-row').forEach(row => {
+        const index = Number(row.dataset.opsEnvRow);
+        row.querySelector('.ops-env-key').addEventListener('input', e => state.opsEnvVariables[index].key = e.target.value);
+        row.querySelector('.ops-env-value').addEventListener('input', e => state.opsEnvVariables[index].value = e.target.value);
+        row.querySelector('.ops-env-secret-input').addEventListener('change', e => {
+            state.opsEnvVariables[index].secret = e.target.checked;
+            renderOpsEnvVariables();
+        });
+        row.querySelector('.ops-env-remove').addEventListener('click', () => {
+            state.opsEnvVariables.splice(index, 1);
+            renderOpsEnvVariables();
+        });
+    });
+}
+
+function opsInfraAddEnvVariable(key = '', value = '', secret = false) {
+    state.opsEnvVariables.push({ key, value, secret });
+    renderOpsEnvVariables();
+}
+
+async function opsInfraLoadEnv() {
+    if (!state.activeProjectId) return;
+    const env = document.getElementById('ops-env-select')?.value || 'prod';
+    try {
+        const res = await fetch(`/api/projects/${state.activeProjectId}/ops-infra/env/${encodeURIComponent(env)}`, { headers: getHeaders() });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || 'Erro ao carregar ambiente.');
+        state.opsEnvVariables = data.variables || [];
+        renderOpsEnvVariables();
+    } catch (err) {
+        state.opsEnvVariables = [];
+        renderOpsEnvVariables();
+        gitideNotify({ title: 'Erro ao carregar .env', message: err.message, variant: 'error' });
+    }
+}
+
+async function opsInfraSaveEnv() {
+    if (!state.activeProjectId) return;
+    const env = document.getElementById('ops-env-select')?.value || 'prod';
+    try {
+        const res = await fetch(`/api/projects/${state.activeProjectId}/ops-infra/env`, {
+            method: 'POST',
+            headers: { ...getHeaders(), 'Content-Type': 'application/json' },
+            body: JSON.stringify({ environment: env, variables: state.opsEnvVariables, write_env_file: true })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || 'Erro ao salvar ambiente.');
+        state.opsEnvVariables = data.variables || [];
+        renderOpsEnvVariables();
+        gitideNotify({ title: 'Ambiente salvo', message: `${env} salvo e ${data.env_file || '.env'} gerado.`, variant: 'success' });
+        loadFiles();
+    } catch (err) {
+        gitideNotify({ title: 'Erro ao salvar ambiente', message: err.message, variant: 'error' });
+    }
+}
+
+async function opsInfraValidateEnv() {
+    if (!state.activeProjectId) return;
+    const env = document.getElementById('ops-env-select')?.value || 'prod';
+    const target = document.getElementById('ops-env-validation');
+    if (target) target.innerHTML = '<span class="ops-muted">Validando .env...</span>';
+    try {
+        const res = await fetch(`/api/projects/${state.activeProjectId}/ops-infra/env/validate`, {
+            method: 'POST',
+            headers: { ...getHeaders(), 'Content-Type': 'application/json' },
+            body: JSON.stringify({ environment: env, variables: state.opsEnvVariables, write_env_file: false })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || 'Erro ao validar .env.');
+        target.innerHTML = data.valid
+            ? '<span class="ops-valid">.env válido para o deploy.</span>'
+            : `<ul>${(data.issues || []).map(issue => `<li>${escapeHtml(issue)}</li>`).join('')}</ul>`;
+    } catch (err) {
+        if (target) target.innerHTML = `<span class="ops-error">${escapeHtml(err.message)}</span>`;
+    }
 }
 
 function renderOpsDetected(data) {
@@ -3288,6 +3385,10 @@ function setupEventListeners() {
     document.getElementById('btn-ops-plan')?.addEventListener('click', opsInfraPlan);
     document.getElementById('btn-ops-artifacts')?.addEventListener('click', opsInfraGenerateArtifacts);
     document.getElementById('btn-ops-artifacts-deploy')?.addEventListener('click', opsInfraGenerateArtifacts);
+    document.getElementById('btn-ops-env-add')?.addEventListener('click', () => opsInfraAddEnvVariable());
+    document.getElementById('btn-ops-env-save')?.addEventListener('click', opsInfraSaveEnv);
+    document.getElementById('btn-ops-env-validate')?.addEventListener('click', opsInfraValidateEnv);
+    document.getElementById('ops-env-select')?.addEventListener('change', opsInfraLoadEnv);
     document.getElementById('btn-ops-caddy-preview')?.addEventListener('click', opsInfraCaddyPreview);
     document.getElementById('btn-ops-caddy-apply')?.addEventListener('click', opsInfraCaddyApply);
     document.querySelectorAll('.ops-flow-tab').forEach(btn => {
