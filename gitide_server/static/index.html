@@ -17,7 +17,7 @@
     <link rel="stylesheet" href="/static/workspace-switcher-refactor.css?v=2">
     <link rel="stylesheet" href="/static/workspace-native-fallback.css?v=1">
     <link rel="stylesheet" href="/static/settings-tabs.css?v=1">
-    <link rel="stylesheet" href="/static/rebrand.css?v=12">
+    <link rel="stylesheet" href="/static/rebrand.css?v=13">
     <script src="/static/lucide-bootstrap.js"></script>
     <script defer src="/static/ui/workspace-switcher.js?v=2"></script>
     <script defer src="/static/settings-tabs.js?v=3"></script>
@@ -1122,6 +1122,21 @@ Se o arquivo existir, leia e siga rigorosamente todas as diretrizes, fases de an
                             <div class="ops-infra-plan" id="ops-plan-output">
                                 <span class="ops-muted">O plano de deploy aparecerá aqui.</span>
                             </div>
+                            <div class="ops-caddy-card">
+                                <div class="ops-caddy-header">
+                                    <div>
+                                        <h5><i data-lucide="globe-2"></i> Domínio com Caddy</h5>
+                                        <p>Gere o proxy reverso com SSL automático para o domínio informado.</p>
+                                    </div>
+                                    <div class="ops-caddy-actions">
+                                        <button class="btn btn-secondary" id="btn-ops-caddy-preview"><i data-lucide="eye"></i> Prévia</button>
+                                        <button class="btn btn-primary" id="btn-ops-caddy-apply"><i data-lucide="check"></i> Aplicar Caddyfile</button>
+                                    </div>
+                                </div>
+                                <div class="ops-caddy-preview" id="ops-caddy-output">
+                                    <span class="ops-muted">Informe um domínio e clique em Prévia.</span>
+                                </div>
+                            </div>
                         </section>
                         <aside class="ops-infra-side card">
                             <div class="card-header">
@@ -1555,7 +1570,7 @@ Se o arquivo existir, leia e siga rigorosamente todas as diretrizes, fases de an
     </div>
 
     <!-- Custom JavaScript -->
-    <script src="/static/app.js?v=23"></script>
+    <script src="/static/app.js?v=24"></script>
     <script src="/static/theme-toggle.js?v=1"></script>
 </body>
 </html>

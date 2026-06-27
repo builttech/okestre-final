@@ -2885,6 +2885,66 @@ async function opsInfraGenerateArtifacts() {
     }
 }
 
+function renderOpsCaddyPreview(data) {
+    const target = document.getElementById('ops-caddy-output');
+    if (!target) return;
+    target.innerHTML = `
+        <div class="ops-caddy-domain"><span>Domínio</span><strong>${escapeHtml(data.domain || '-')}</strong></div>
+        <h5>DNS necessário</h5>
+        <ul>${(data.dns || []).map(item => `<li>${escapeHtml(item)}</li>`).join('')}</ul>
+        <h5>Caddyfile</h5>
+        <pre>${escapeHtml(data.caddyfile || '')}</pre>
+        <h5>Docker Compose</h5>
+        <ul>${(data.compose_notes || []).map(item => `<li>${escapeHtml(item)}</li>`).join('')}</ul>
+    `;
+}
+
+async function opsInfraCaddyPreview() {
+    if (!state.activeProjectId) return;
+    const domain = document.getElementById('ops-domain-input')?.value?.trim();
+    if (!domain) {
+        gitideNotify({ title: 'Domínio obrigatório', message: 'Informe o domínio antes de gerar a prévia do Caddy.', variant: 'warning' });
+        return;
+    }
+    const target = document.getElementById('ops-caddy-output');
+    if (target) target.innerHTML = '<span class="ops-muted">Gerando prévia do Caddy...</span>';
+    try {
+        const res = await fetch(`/api/projects/${state.activeProjectId}/ops-infra/domain/preview`, {
+            method: 'POST',
+            headers: { ...getHeaders(), 'Content-Type': 'application/json' },
+            body: JSON.stringify({ domain, environment: document.getElementById('ops-env-select')?.value || 'prod' })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || 'Erro ao gerar prévia do Caddy.');
+        renderOpsCaddyPreview(data);
+    } catch (err) {
+        if (target) target.innerHTML = `<span class="ops-error">${escapeHtml(err.message)}</span>`;
+    }
+}
+
+async function opsInfraCaddyApply() {
+    if (!state.activeProjectId) return;
+    const domain = document.getElementById('ops-domain-input')?.value?.trim();
+    if (!domain) {
+        gitideNotify({ title: 'Domínio obrigatório', message: 'Informe o domínio antes de aplicar o Caddyfile.', variant: 'warning' });
+        return;
+    }
+    try {
+        const res = await fetch(`/api/projects/${state.activeProjectId}/ops-infra/domain/apply`, {
+            method: 'POST',
+            headers: { ...getHeaders(), 'Content-Type': 'application/json' },
+            body: JSON.stringify({ domain, environment: document.getElementById('ops-env-select')?.value || 'prod', overwrite: true })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || 'Erro ao aplicar Caddyfile.');
+        renderOpsCaddyPreview(data);
+        gitideNotify({ title: 'Caddyfile aplicado', message: `Domínio configurado: ${data.domain}`, variant: 'success' });
+        loadFiles();
+    } catch (err) {
+        gitideNotify({ title: 'Erro no Caddy', message: err.message, variant: 'error' });
+    }
+}
+
 async function opsInfraRunCommand(action) {
     if (!state.activeProjectId) return;
     const consoleEl = document.getElementById('ops-console-output');
@@ -3218,6 +3278,8 @@ function setupEventListeners() {
     document.getElementById('btn-ops-detect')?.addEventListener('click', opsInfraDetect);
     document.getElementById('btn-ops-plan')?.addEventListener('click', opsInfraPlan);
     document.getElementById('btn-ops-artifacts')?.addEventListener('click', opsInfraGenerateArtifacts);
+    document.getElementById('btn-ops-caddy-preview')?.addEventListener('click', opsInfraCaddyPreview);
+    document.getElementById('btn-ops-caddy-apply')?.addEventListener('click', opsInfraCaddyApply);
     document.querySelectorAll('[data-ops-command]').forEach(btn => {
         btn.addEventListener('click', () => opsInfraRunCommand(btn.dataset.opsCommand));
     });

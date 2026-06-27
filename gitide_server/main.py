@@ -249,6 +249,11 @@ class OpsInfraArtifactRequest(BaseModel):
 class OpsInfraCommandRequest(BaseModel):
     action: str = Field(..., description="Ação: build, up, down, restart, logs ou ps")
 
+class OpsInfraDomainRequest(BaseModel):
+    domain: str = Field(..., description="Domínio que apontará para a aplicação")
+    environment: str = Field("prod", description="Ambiente alvo")
+    overwrite: bool = Field(True, description="Sobrescrever Caddyfile existente")
+
 # Dependência para buscar projeto do DB
 def get_project_or_404(project_id: int, db: Session = Depends(get_db)) -> Project:
     project = db.query(Project).filter(Project.id == project_id).first()
@@ -1907,6 +1912,7 @@ def _ops_detect_stack(project_path: str) -> dict:
 def _ops_artifacts(project_path: str, env: str, domain: Optional[str], database: Optional[str]) -> dict:
     detected = _ops_detect_stack(project_path)
     port = detected["port"]
+    clean_domain = (domain or "").strip()
     if detected["runtime"] == "python":
         dockerfile = (
             "FROM python:3.12-slim\nWORKDIR /app\n"
@@ -1933,15 +1939,43 @@ def _ops_artifacts(project_path: str, env: str, domain: Optional[str], database:
         "    restart: unless-stopped",
         "    env_file:",
         "      - .env",
-        "    ports:",
-        f"      - \"${{APP_PORT:-{port}}}:{port}\"",
     ]
-    env_lines = [f"APP_ENV={env}", "APP_NAME=gitide-app", f"APP_PORT={port}", f"APP_DOMAIN={domain or ''}"]
-
-    if (database or "").lower().strip() == "postgres":
+    uses_postgres = (database or "").lower().strip() == "postgres"
+    if uses_postgres:
         services += [
             "    depends_on:",
             "      - postgres",
+        ]
+    if clean_domain:
+        services += [
+            "    expose:",
+            f"      - \"{port}\"",
+            "  caddy:",
+            "    image: caddy:2-alpine",
+            f"    container_name: ${{APP_NAME:-gitide-app}}-{env}-caddy",
+            "    restart: unless-stopped",
+            "    depends_on:",
+            "      - app",
+            "    ports:",
+            "      - \"80:80\"",
+            "      - \"443:443\"",
+            "    volumes:",
+            "      - ./Caddyfile:/etc/caddy/Caddyfile:ro",
+            "      - caddy_data:/data",
+            "      - caddy_config:/config",
+        ]
+    else:
+        services += [
+            "    ports:",
+            f"      - \"${{APP_PORT:-{port}}}:{port}\"",
+        ]
+    env_lines = [f"APP_ENV={env}", "APP_NAME=gitide-app", f"APP_PORT={port}", f"APP_DOMAIN={domain or ''}"]
+    volumes = []
+    if clean_domain:
+        volumes += ["  caddy_data:", "  caddy_config:"]
+
+    if uses_postgres:
+        services += [
             "  postgres:",
             "    image: postgres:16-alpine",
             "    restart: unless-stopped",
@@ -1951,17 +1985,48 @@ def _ops_artifacts(project_path: str, env: str, domain: Optional[str], database:
             "      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change_me}",
             "    volumes:",
             "      - postgres_data:/var/lib/postgresql/data",
-            "volumes:",
-            "  postgres_data:",
         ]
+        volumes.append("  postgres_data:")
         env_lines += ["POSTGRES_DB=app", "POSTGRES_USER=app", "POSTGRES_PASSWORD=change_me", "DATABASE_URL=postgresql://app:change_me@postgres:5432/app"]
+
+    if volumes:
+        services += ["volumes:", *volumes]
     else:
         services += ["volumes: {}"]
 
     compose = "\n".join(services) + "\n"
     env_example = "\n".join(env_lines) + "\n"
-    caddyfile = f"{domain or 'example.com'} {{\n    reverse_proxy app:{port}\n}}\n"
+    caddyfile = _ops_caddyfile(clean_domain or "example.com", port)
     return {"detected": detected, "files": {"Dockerfile": dockerfile, "docker-compose.yml": compose, ".env.example": env_example, "Caddyfile": caddyfile}}
+
+def _ops_caddyfile(domain: str, app_port: int) -> str:
+    return (
+        f"{domain} {{\n"
+        "    encode gzip zstd\n"
+        f"    reverse_proxy app:{app_port}\n"
+        "}\n"
+    )
+
+def _ops_domain_preview(project_path: str, domain: str) -> dict:
+    detected = _ops_detect_stack(project_path)
+    clean_domain = domain.strip().lower()
+    root_domain = ".".join(clean_domain.split(".")[-2:]) if "." in clean_domain else clean_domain
+    return {
+        "domain": clean_domain,
+        "stack": detected,
+        "caddyfile": _ops_caddyfile(clean_domain, detected["port"]),
+        "dns": [
+            f"Crie um registro A para {clean_domain} apontando para o IP publico do servidor.",
+            f"Se usar subdominio, voce tambem pode criar CNAME de {clean_domain} para {root_domain}.",
+            "Libere as portas 80 e 443 no firewall do servidor.",
+            "O Caddy emitira e renovara SSL automaticamente quando o DNS estiver propagado."
+        ],
+        "compose_notes": [
+            "O servico caddy publica 80:80 e 443:443.",
+            f"O app fica interno no Docker e o Caddy encaminha para app:{detected['port']}.",
+            "Os volumes caddy_data e caddy_config preservam certificados e configuracoes."
+        ]
+    }
 
 @app.get("/api/projects/{project_id}/ops-infra/detect", tags=["Ops Infra"])
 def ops_infra_detect(project: Project = Depends(get_project_or_404), _ = Depends(get_api_key)):
@@ -2015,6 +2080,31 @@ def ops_infra_artifacts(req: OpsInfraArtifactRequest,
     db.add(ActivityLog(project_id=project.id, action_type="OPS_INFRA_ARTIFACTS", details=f"Arquivos gerados: {', '.join(written)}"))
     db.commit()
     return {"status": "success", "written": written, "skipped": skipped, **artifacts}
+
+@app.post("/api/projects/{project_id}/ops-infra/domain/preview", tags=["Ops Infra"])
+def ops_infra_domain_preview(req: OpsInfraDomainRequest,
+                             project: Project = Depends(get_project_or_404),
+                             _ = Depends(get_api_key)):
+    if not req.domain.strip():
+        raise HTTPException(status_code=400, detail="Informe um domínio para configurar o Caddy.")
+    return {"status": "success", **_ops_domain_preview(project.path, req.domain)}
+
+@app.post("/api/projects/{project_id}/ops-infra/domain/apply", tags=["Ops Infra"])
+def ops_infra_domain_apply(req: OpsInfraDomainRequest,
+                           project: Project = Depends(get_project_or_404),
+                           db: Session = Depends(get_db),
+                           _ = Depends(get_api_key)):
+    if not req.domain.strip():
+        raise HTTPException(status_code=400, detail="Informe um domínio para configurar o Caddy.")
+    preview = _ops_domain_preview(project.path, req.domain)
+    caddy_path = os.path.join(project.path, "Caddyfile")
+    if os.path.exists(caddy_path) and not req.overwrite:
+        return {"status": "skipped", "message": "Caddyfile já existe.", **preview}
+    with open(caddy_path, "w", encoding="utf-8") as f:
+        f.write(preview["caddyfile"])
+    db.add(ActivityLog(project_id=project.id, action_type="OPS_INFRA_DOMAIN", details=f"Caddyfile configurado para {preview['domain']}"))
+    db.commit()
+    return {"status": "success", "written": ["Caddyfile"], **preview}
 
 @app.post("/api/projects/{project_id}/ops-infra/command", tags=["Ops Infra"])
 def ops_infra_command(req: OpsInfraCommandRequest,
