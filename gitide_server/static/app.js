@@ -6153,6 +6153,19 @@ function sddSwitchHarnessPanel(panelId) {
     }
 }
 
+async function sddWriteCharterFallback(content) {
+    const res = await fetch(`/api/projects/${state.activeProjectId}/files/write`, {
+        method: 'POST',
+        headers: { ...getHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ filepath: '.documents/project-charter.md', content })
+    });
+    const data = await res.json();
+    if (!res.ok || data.status === 'error') {
+        throw new Error(data.detail || data.message || 'Erro ao salvar TAP');
+    }
+    return data;
+}
+
 async function sddLoadCharter(force = false) {
     if (!state.activeProjectId) return;
     if (sddState.charterLoaded && sddState.charterProjectId === state.activeProjectId && !force) return;
@@ -6163,7 +6176,15 @@ async function sddLoadCharter(force = false) {
     try {
         const res = await fetch(`/api/projects/${state.activeProjectId}/sdd/charter`, { headers: getHeaders() });
         const data = await res.json();
-        if (!res.ok) throw new Error(data.detail || 'Erro ao carregar TAP');
+        if (!res.ok) {
+            if (res.status === 404) {
+                editor.value = `# Termo de Abertura do Projeto - ${state.activeProject?.name || 'Projeto'}\n\n## 1. Contexto\n\n## 2. Objetivo do Projeto\n\n## 3. Escopo Inicial\n\n### Dentro do escopo\n\n- \n\n### Fora do escopo\n\n- \n\n## 4. Stakeholders\n\n- Solicitante:\n- Usuários impactados:\n- Responsável técnico:\n\n## 5. Premissas e Restrições\n\n- \n\n## 6. Riscos Iniciais\n\n- \n\n## 7. Critérios de Sucesso\n\n- [ ] \n\n## 8. Próximo Passo\n\nCrie as especificações funcionais a partir deste TAP.\n`;
+                sddState.charterLoaded = true;
+                sddState.charterProjectId = state.activeProjectId;
+                return;
+            }
+            throw new Error(data.detail || 'Erro ao carregar TAP');
+        }
         editor.value = data.content || '';
         sddState.charterLoaded = true;
         sddState.charterProjectId = state.activeProjectId;
@@ -6187,7 +6208,11 @@ async function sddSaveCharter() {
             body: JSON.stringify({ content: editor.value })
         });
         const data = await res.json();
-        if (!res.ok || data.status !== 'success') throw new Error(data.detail || data.message || 'Erro ao salvar TAP');
+        if (res.status === 404) {
+            await sddWriteCharterFallback(editor.value);
+        } else if (!res.ok || data.status !== 'success') {
+            throw new Error(data.detail || data.message || 'Erro ao salvar TAP');
+        }
         sddState.charterLoaded = true;
         sddState.charterProjectId = state.activeProjectId;
         gitideNotify({ title: 'TAP salvo', message: 'Project Charter atualizado no projeto.', variant: 'success' });
