@@ -221,6 +221,13 @@ class SddSpecGenerateRequest(BaseModel):
     prompt: str = Field(..., description="Prompt descrevendo a feature a ser especificada")
     title: Optional[str] = Field(None, description="Título opcional para a especificação")
 
+class SddCharterSaveRequest(BaseModel):
+    content: str = Field(..., description="Conteúdo em Markdown do Project Charter/TAP")
+
+class SddCharterGenerateRequest(BaseModel):
+    prompt: str = Field(..., description="Contexto do projeto para gerar o TAP")
+    title: Optional[str] = Field(None, description="Nome opcional do projeto")
+
 class SddCriteriaItem(BaseModel):
     line_no: int = Field(..., description="Número da linha (1-indexed) do critério no Markdown")
     checked: bool = Field(..., description="Estado de verificação do critério")
@@ -1788,6 +1795,154 @@ def delete_document(
         raise HTTPException(status_code=500, detail=f"Erro ao deletar documento: {str(e)}")
 
 # --- ENDPOINTS DO SPEC-DRIVEN DEVELOPMENT (SDD) ---
+
+def _sdd_documents_dir(project: Project) -> str:
+    docs_dir = os.path.join(project.path, ".documents")
+    os.makedirs(docs_dir, exist_ok=True)
+    return docs_dir
+
+def _sdd_charter_path(project: Project) -> str:
+    return os.path.join(_sdd_documents_dir(project), "project-charter.md")
+
+def _default_sdd_charter(project: Project) -> str:
+    project_name = project.name or "Projeto"
+    return (
+        f"# Termo de Abertura do Projeto - {project_name}\n\n"
+        "## 1. Contexto\n\n"
+        "Descreva o problema, oportunidade ou necessidade que justifica este projeto.\n\n"
+        "## 2. Objetivo do Projeto\n\n"
+        "Defina o resultado esperado em linguagem de negócio.\n\n"
+        "## 3. Escopo Inicial\n\n"
+        "### Dentro do escopo\n\n"
+        "- \n\n"
+        "### Fora do escopo\n\n"
+        "- \n\n"
+        "## 4. Stakeholders\n\n"
+        "- Solicitante:\n"
+        "- Usuários impactados:\n"
+        "- Responsável técnico:\n\n"
+        "## 5. Premissas e Restrições\n\n"
+        "- \n\n"
+        "## 6. Riscos Iniciais\n\n"
+        "- \n\n"
+        "## 7. Critérios de Sucesso\n\n"
+        "- [ ] \n\n"
+        "## 8. Próximo Passo\n\n"
+        "A partir deste TAP, crie as especificações funcionais em Specify, Design, Tasks e Execute.\n"
+    )
+
+@app.get("/api/projects/{project_id}/sdd/charter", tags=["Spec-Driven Development"])
+def get_sdd_charter(project: Project = Depends(get_project_or_404)):
+    """Retorna o Project Charter/TAP do projeto."""
+    charter_path = _sdd_charter_path(project)
+    if not os.path.exists(charter_path):
+        return {
+            "status": "empty",
+            "filename": "project-charter.md",
+            "content": _default_sdd_charter(project)
+        }
+
+    try:
+        with open(charter_path, "r", encoding="utf-8") as f:
+            content = f.read()
+        return {
+            "status": "success",
+            "filename": "project-charter.md",
+            "content": content
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao ler TAP do projeto: {str(e)}")
+
+@app.post("/api/projects/{project_id}/sdd/charter", tags=["Spec-Driven Development"])
+def save_sdd_charter(
+    req: SddCharterSaveRequest,
+    project: Project = Depends(get_project_or_404),
+    db: Session = Depends(get_db),
+    _ = Depends(get_api_key)
+):
+    """Cria ou atualiza o Project Charter/TAP do projeto."""
+    charter_path = _sdd_charter_path(project)
+    try:
+        with open(charter_path, "w", encoding="utf-8") as f:
+            f.write(req.content)
+
+        log = ActivityLog(
+            project_id=project.id,
+            action_type="SDD_CHARTER_SAVED",
+            details="Project Charter/TAP salvo: project-charter.md"
+        )
+        db.add(log)
+        db.commit()
+
+        return {"status": "success", "filename": "project-charter.md", "message": "TAP salvo com sucesso."}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao salvar TAP do projeto: {str(e)}")
+
+@app.post("/api/projects/{project_id}/sdd/generate-charter", tags=["Spec-Driven Development"])
+def generate_sdd_charter(
+    req: SddCharterGenerateRequest,
+    project: Project = Depends(get_project_or_404),
+    db: Session = Depends(get_db),
+    _ = Depends(get_api_key)
+):
+    """Gera o Project Charter/TAP do projeto usando IA."""
+    config = agent.load_agent_config()
+    provider = config.get("provider")
+    model = config.get("model")
+    api_key = config.get("api_key")
+
+    if not api_key:
+        raise HTTPException(status_code=400, detail="Chave de API da LLM não configurada no Agente IA.")
+
+    title = req.title or project.name or "Projeto"
+    system_prompt = (
+        "Você é um Product Manager e Arquiteto de Software especialista em Project Charter/TAP.\n"
+        "Gere um Termo de Abertura do Projeto em Markdown para orientar especificações funcionais futuras.\n"
+        "O documento deve ser executivo, claro para pessoas leigas e útil para engenharia.\n\n"
+        "Use obrigatoriamente esta estrutura de títulos Markdown:\n"
+        f"# Termo de Abertura do Projeto - {title}\n"
+        "## 1. Contexto\n"
+        "## 2. Objetivo do Projeto\n"
+        "## 3. Escopo Inicial\n"
+        "  Inclua 'Dentro do escopo' e 'Fora do escopo'.\n"
+        "## 4. Stakeholders\n"
+        "## 5. Premissas e Restrições\n"
+        "## 6. Riscos Iniciais\n"
+        "## 7. Critérios de Sucesso\n"
+        "  Critérios devem usar checklist Markdown '- [ ]'.\n"
+        "## 8. Próximo Passo\n"
+        "  Explique quais specs funcionais devem nascer a partir deste TAP.\n\n"
+        "Retorne somente Markdown, sem bloco de código e sem JSON."
+    )
+
+    messages = [
+        {"role": "user", "content": f"Projeto: {title}\n\nContexto informado:\n{req.prompt}"}
+    ]
+
+    try:
+        markdown_content = agent.call_llm(provider, model, api_key, messages, system_prompt).strip()
+        markdown_content = re.sub(r"^```(?:markdown|md)?\s*", "", markdown_content, flags=re.IGNORECASE).strip()
+        markdown_content = re.sub(r"\s*```$", "", markdown_content).strip() + "\n"
+
+        charter_path = _sdd_charter_path(project)
+        with open(charter_path, "w", encoding="utf-8") as f:
+            f.write(markdown_content)
+
+        log = ActivityLog(
+            project_id=project.id,
+            action_type="SDD_CHARTER_GENERATED",
+            details="Project Charter/TAP gerado por IA: project-charter.md"
+        )
+        db.add(log)
+        db.commit()
+
+        return {
+            "status": "success",
+            "filename": "project-charter.md",
+            "content": markdown_content
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao gerar TAP por IA: {str(e)}")
 
 @app.get("/api/projects/{project_id}/sdd/specs", tags=["Spec-Driven Development"])
 def list_sdd_specs(project: Project = Depends(get_project_or_404)):

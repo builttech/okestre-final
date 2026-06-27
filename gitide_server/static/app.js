@@ -262,6 +262,7 @@ function switchTab(tabId) {
             loadPendingCommands();
             startPendingCommandsPolling();
         } else if (tabId === 'tab-sdd') {
+            sddLoadCharter();
             sddLoadSpecs();
         }
     }
@@ -6123,8 +6124,113 @@ const sddState = {
     activeFilename: null,
     activeContent: '',
     specs: [],
-    executeTask: null
+    executeTask: null,
+    charterLoaded: false,
+    charterProjectId: null
 };
+
+function sddSetButtonLoading(button, loading, loadingText, defaultHtml) {
+    if (!button) return;
+    button.disabled = loading;
+    button.innerHTML = loading
+        ? `<i data-lucide="loader-2" style="animation:spin 1s linear infinite;"></i> ${loadingText}`
+        : defaultHtml;
+    if (window.lucide) lucide.createIcons();
+}
+
+function sddSwitchHarnessPanel(panelId) {
+    document.querySelectorAll('.harness-panel').forEach(panel => {
+        panel.classList.toggle('active', panel.id === panelId);
+    });
+    document.querySelectorAll('.harness-top-tab').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.harnessPanel === panelId);
+    });
+
+    if (panelId === 'harness-charter-panel') {
+        sddLoadCharter();
+    } else if (panelId === 'harness-specs-panel') {
+        sddLoadSpecs();
+    }
+}
+
+async function sddLoadCharter(force = false) {
+    if (!state.activeProjectId) return;
+    if (sddState.charterLoaded && sddState.charterProjectId === state.activeProjectId && !force) return;
+    const editor = document.getElementById('sdd-charter-editor');
+    if (!editor) return;
+
+    editor.value = 'Carregando TAP...';
+    try {
+        const res = await fetch(`/api/projects/${state.activeProjectId}/sdd/charter`, { headers: getHeaders() });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || 'Erro ao carregar TAP');
+        editor.value = data.content || '';
+        sddState.charterLoaded = true;
+        sddState.charterProjectId = state.activeProjectId;
+    } catch (e) {
+        editor.value = '';
+        gitideNotify({ title: 'Erro ao carregar TAP', message: e.message, variant: 'danger' });
+    }
+}
+
+async function sddSaveCharter() {
+    if (!state.activeProjectId) return;
+    const editor = document.getElementById('sdd-charter-editor');
+    const btn = document.getElementById('btn-sdd-save-charter');
+    if (!editor) return;
+
+    sddSetButtonLoading(btn, true, 'Salvando...', '<i data-lucide="save"></i> Salvar TAP');
+    try {
+        const res = await fetch(`/api/projects/${state.activeProjectId}/sdd/charter`, {
+            method: 'POST',
+            headers: { ...getHeaders(), 'Content-Type': 'application/json' },
+            body: JSON.stringify({ content: editor.value })
+        });
+        const data = await res.json();
+        if (!res.ok || data.status !== 'success') throw new Error(data.detail || data.message || 'Erro ao salvar TAP');
+        sddState.charterLoaded = true;
+        sddState.charterProjectId = state.activeProjectId;
+        gitideNotify({ title: 'TAP salvo', message: 'Project Charter atualizado no projeto.', variant: 'success' });
+    } catch (e) {
+        gitideNotify({ title: 'Erro ao salvar TAP', message: e.message, variant: 'danger' });
+    } finally {
+        sddSetButtonLoading(btn, false, '', '<i data-lucide="save"></i> Salvar TAP');
+    }
+}
+
+async function sddGenerateCharterIA() {
+    if (!state.activeProjectId) {
+        alert('Selecione um projeto primeiro.');
+        return;
+    }
+    const title = document.getElementById('sdd-charter-title')?.value.trim() || '';
+    const prompt = document.getElementById('sdd-charter-prompt')?.value.trim() || '';
+    const editor = document.getElementById('sdd-charter-editor');
+    const btn = document.getElementById('btn-sdd-generate-charter-ia');
+    if (!prompt) {
+        gitideNotify({ title: 'Contexto obrigatório', message: 'Descreva o projeto para a IA gerar o TAP.', variant: 'warning' });
+        return;
+    }
+
+    sddSetButtonLoading(btn, true, 'Gerando TAP...', '<i data-lucide="wand-2"></i> Gerar TAP com IA');
+    try {
+        const res = await fetch(`/api/projects/${state.activeProjectId}/sdd/generate-charter`, {
+            method: 'POST',
+            headers: { ...getHeaders(), 'Content-Type': 'application/json' },
+            body: JSON.stringify({ title, prompt })
+        });
+        const data = await res.json();
+        if (!res.ok || data.status !== 'success') throw new Error(data.detail || 'Erro ao gerar TAP');
+        if (editor) editor.value = data.content || '';
+        sddState.charterLoaded = true;
+        sddState.charterProjectId = state.activeProjectId;
+        gitideNotify({ title: 'TAP gerado', message: 'Project Charter criado e salvo em .documents/project-charter.md.', variant: 'success' });
+    } catch (e) {
+        gitideNotify({ title: 'Erro ao gerar TAP', message: e.message, variant: 'danger' });
+    } finally {
+        sddSetButtonLoading(btn, false, '', '<i data-lucide="wand-2"></i> Gerar TAP com IA');
+    }
+}
 
 // --- Simple Markdown Renderer (lightweight, no external deps) ---
 function sddRenderMarkdown(md) {
@@ -6707,6 +6813,16 @@ async function sddGenerateTests() {
 
 // --- SDD Event Listener Setup (called from setupEventListeners) ---
 function setupSddEventListeners() {
+    document.querySelectorAll('.harness-top-tab').forEach(btn => {
+        btn.addEventListener('click', () => sddSwitchHarnessPanel(btn.dataset.harnessPanel));
+    });
+
+    const btnSaveCharter = document.getElementById('btn-sdd-save-charter');
+    if (btnSaveCharter) btnSaveCharter.addEventListener('click', sddSaveCharter);
+
+    const btnGenCharter = document.getElementById('btn-sdd-generate-charter-ia');
+    if (btnGenCharter) btnGenCharter.addEventListener('click', sddGenerateCharterIA);
+
     // Sidebar: Refresh
     const btnRefresh = document.getElementById('btn-refresh-sdd-specs');
     if (btnRefresh) btnRefresh.addEventListener('click', sddLoadSpecs);
