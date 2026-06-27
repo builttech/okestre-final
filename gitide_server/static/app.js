@@ -263,6 +263,8 @@ function switchTab(tabId) {
             startPendingCommandsPolling();
         } else if (tabId === 'tab-sdd') {
             sddLoadSpecs();
+        } else if (tabId === 'tab-ops-infra') {
+            opsInfraDetect();
         }
     }
 }
@@ -2793,6 +2795,116 @@ function initDbTypeSelectShell() {
     syncDbTypeSelectShell();
 }
 
+// --- OPS INFRA ---
+function getOpsInfraPayload() {
+    return {
+        environment: document.getElementById('ops-env-select')?.value || 'prod',
+        domain: document.getElementById('ops-domain-input')?.value?.trim() || null,
+        database: document.getElementById('ops-db-select')?.value || null
+    };
+}
+
+function renderOpsDetected(data) {
+    const target = document.getElementById('ops-detected-card');
+    if (!target) return;
+    target.innerHTML = `
+        <div class="ops-detected-row"><span>Stack</span><strong>${data.stack || '-'}</strong></div>
+        <div class="ops-detected-row"><span>Runtime</span><strong>${data.runtime || '-'}</strong></div>
+        <div class="ops-detected-row"><span>Porta</span><strong>${data.port || '-'}</strong></div>
+        <div class="ops-detected-row"><span>Build</span><code>${data.build_command || '-'}</code></div>
+        <div class="ops-detected-row"><span>Start</span><code>${data.start_command || '-'}</code></div>
+    `;
+}
+
+function renderOpsPlan(data) {
+    const target = document.getElementById('ops-plan-output');
+    if (!target) return;
+    const ai = data.ai;
+    const steps = ai?.steps || data.steps || [];
+    const risks = ai?.risks || [];
+    target.innerHTML = `
+        ${ai?.summary ? `<p>${escapeHtml(ai.summary)}</p>` : ''}
+        <h5>Plano de deploy</h5>
+        <ol>${steps.map(step => `<li>${escapeHtml(String(step))}</li>`).join('')}</ol>
+        ${risks.length ? `<h5>Riscos</h5><ul>${risks.map(risk => `<li>${escapeHtml(String(risk))}</li>`).join('')}</ul>` : ''}
+    `;
+}
+
+async function opsInfraDetect() {
+    if (!state.activeProjectId) return;
+    const target = document.getElementById('ops-detected-card');
+    if (target) target.innerHTML = '<span class="ops-muted">Detectando stack...</span>';
+    try {
+        const res = await fetch(`/api/projects/${state.activeProjectId}/ops-infra/detect`, { headers: getHeaders() });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || 'Erro ao detectar stack.');
+        renderOpsDetected(data);
+    } catch (err) {
+        if (target) target.innerHTML = `<span class="ops-error">${escapeHtml(err.message)}</span>`;
+    }
+}
+
+async function opsInfraPlan() {
+    if (!state.activeProjectId) return;
+    const target = document.getElementById('ops-plan-output');
+    if (target) target.innerHTML = '<span class="ops-muted">Gerando plano...</span>';
+    try {
+        const res = await fetch(`/api/projects/${state.activeProjectId}/ops-infra/plan`, {
+            method: 'POST',
+            headers: { ...getHeaders(), 'Content-Type': 'application/json' },
+            body: JSON.stringify(getOpsInfraPayload())
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || 'Erro ao gerar plano.');
+        renderOpsDetected(data.detected || {});
+        renderOpsPlan(data);
+    } catch (err) {
+        if (target) target.innerHTML = `<span class="ops-error">${escapeHtml(err.message)}</span>`;
+    }
+}
+
+async function opsInfraGenerateArtifacts() {
+    if (!state.activeProjectId) return;
+    try {
+        const res = await fetch(`/api/projects/${state.activeProjectId}/ops-infra/artifacts`, {
+            method: 'POST',
+            headers: { ...getHeaders(), 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ...getOpsInfraPayload(), overwrite: false })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || 'Erro ao gerar arquivos.');
+        gitideNotify({
+            title: 'Arquivos Ops gerados',
+            message: `Criados: ${data.written.join(', ') || 'nenhum'}${data.skipped.length ? ` | Mantidos: ${data.skipped.join(', ')}` : ''}`,
+            variant: 'success'
+        });
+        renderOpsDetected(data.detected || {});
+        loadFiles();
+    } catch (err) {
+        gitideNotify({ title: 'Erro no Ops Infra', message: err.message, variant: 'error' });
+    }
+}
+
+async function opsInfraRunCommand(action) {
+    if (!state.activeProjectId) return;
+    const consoleEl = document.getElementById('ops-console-output');
+    if (consoleEl) consoleEl.textContent = `Executando ${action}...`;
+    try {
+        const res = await fetch(`/api/projects/${state.activeProjectId}/ops-infra/command`, {
+            method: 'POST',
+            headers: { ...getHeaders(), 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action })
+        });
+        const data = await res.json();
+        if (consoleEl) {
+            consoleEl.textContent = `$ ${data.command}\n\n[exit ${data.exit_code}]\n\n${data.stdout || ''}${data.stderr ? `\n[stderr]\n${data.stderr}` : ''}`;
+        }
+        if (!res.ok || data.status === 'error') throw new Error(data.stderr || data.detail || 'Comando falhou.');
+    } catch (err) {
+        if (consoleEl) consoleEl.textContent += `\n\nErro: ${err.message}`;
+    }
+}
+
 // --- EVENT LISTENERS & UI EVENTS ---
 function setupEventListeners() {
     // SDD Module
@@ -3101,6 +3213,14 @@ function setupEventListeners() {
     // 8. Logs
     document.getElementById('btn-refresh-logs').addEventListener('click', loadActivityLogs);
     document.getElementById('btn-refresh-all-snapshots').addEventListener('click', loadAllSnapshots);
+
+    // Ops Infra
+    document.getElementById('btn-ops-detect')?.addEventListener('click', opsInfraDetect);
+    document.getElementById('btn-ops-plan')?.addEventListener('click', opsInfraPlan);
+    document.getElementById('btn-ops-artifacts')?.addEventListener('click', opsInfraGenerateArtifacts);
+    document.querySelectorAll('[data-ops-command]').forEach(btn => {
+        btn.addEventListener('click', () => opsInfraRunCommand(btn.dataset.opsCommand));
+    });
     
     // 9. Copiar Token
     const copyTokenFunc = () => {

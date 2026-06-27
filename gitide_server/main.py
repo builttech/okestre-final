@@ -235,6 +235,20 @@ class SddTestGenerateRequest(BaseModel):
     filename: str = Field(..., description="Nome do arquivo de especificação (.md)")
     framework: str = Field(..., description="Framework de teste (ex: pytest, jest, phpunit, mocha)")
 
+class OpsInfraPlanRequest(BaseModel):
+    environment: str = Field("prod", description="Ambiente alvo: dev, homolog ou prod")
+    domain: Optional[str] = Field(None, description="Domínio desejado para a aplicação")
+    database: Optional[str] = Field(None, description="Banco desejado: postgres, mysql, redis ou nenhum")
+
+class OpsInfraArtifactRequest(BaseModel):
+    environment: str = Field("prod", description="Ambiente alvo")
+    domain: Optional[str] = None
+    database: Optional[str] = None
+    overwrite: bool = Field(False, description="Sobrescrever arquivos existentes")
+
+class OpsInfraCommandRequest(BaseModel):
+    action: str = Field(..., description="Ação: build, up, down, restart, logs ou ps")
+
 # Dependência para buscar projeto do DB
 def get_project_or_404(project_id: int, db: Session = Depends(get_db)) -> Project:
     project = db.query(Project).filter(Project.id == project_id).first()
@@ -1846,6 +1860,181 @@ def delete_document(
         return {"status": "success", "message": "Documento deletado com sucesso."}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro ao deletar documento: {str(e)}")
+
+# --- ENDPOINTS OPS INFRA ---
+
+def _ops_detect_stack(project_path: str) -> dict:
+    files = set(os.listdir(project_path)) if os.path.isdir(project_path) else set()
+
+    def exists(name: str) -> bool:
+        return name in files or os.path.exists(os.path.join(project_path, name))
+
+    if exists("package.json"):
+        scripts = {}
+        try:
+            with open(os.path.join(project_path, "package.json"), "r", encoding="utf-8") as f:
+                scripts = json.load(f).get("scripts", {})
+        except Exception:
+            pass
+        stack = "nextjs" if exists("next.config.js") or exists("next.config.mjs") else "vite" if exists("vite.config.js") or exists("vite.config.ts") else "node"
+        return {
+            "stack": stack,
+            "runtime": "node",
+            "port": 3000 if stack == "nextjs" else 5173 if stack == "vite" else 3000,
+            "build_command": "npm run build" if "build" in scripts else "npm install",
+            "start_command": "npm run start" if "start" in scripts else "npm run dev",
+            "evidence": ["package.json"]
+        }
+    if exists("requirements.txt") or exists("pyproject.toml"):
+        if exists("main.py"):
+            app_module = "main:app"
+        elif exists("app.py"):
+            app_module = "app:app"
+        elif exists(os.path.join("gitide_server", "main.py")):
+            app_module = "gitide_server.main:app"
+        else:
+            app_module = "main:app"
+        return {
+            "stack": "python",
+            "runtime": "python",
+            "port": 8000,
+            "build_command": "pip install -r requirements.txt" if exists("requirements.txt") else "pip install .",
+            "start_command": f"uvicorn {app_module} --host 0.0.0.0 --port 8000",
+            "evidence": ["requirements.txt" if exists("requirements.txt") else "pyproject.toml"]
+        }
+    return {"stack": "unknown", "runtime": "unknown", "port": 8080, "build_command": "", "start_command": "", "evidence": []}
+
+def _ops_artifacts(project_path: str, env: str, domain: Optional[str], database: Optional[str]) -> dict:
+    detected = _ops_detect_stack(project_path)
+    port = detected["port"]
+    if detected["runtime"] == "python":
+        dockerfile = (
+            "FROM python:3.12-slim\nWORKDIR /app\n"
+            "COPY requirements.txt* pyproject.toml* ./\n"
+            "RUN if [ -f requirements.txt ]; then pip install --no-cache-dir -r requirements.txt; else pip install --no-cache-dir .; fi\n"
+            "COPY . .\n"
+            f"EXPOSE {port}\n"
+            f'CMD ["sh", "-c", "{detected["start_command"]}"]\n'
+        )
+    else:
+        dockerfile = (
+            "FROM node:20-alpine\nWORKDIR /app\nCOPY package*.json ./\n"
+            "RUN npm ci || npm install\nCOPY . .\n"
+            f"RUN {detected['build_command']}\n"
+            f"EXPOSE {port}\n"
+            f'CMD ["sh", "-c", "{detected["start_command"]}"]\n'
+        )
+
+    services = [
+        "services:",
+        "  app:",
+        "    build: .",
+        f"    container_name: ${{APP_NAME:-gitide-app}}-{env}",
+        "    restart: unless-stopped",
+        "    env_file:",
+        "      - .env",
+        "    ports:",
+        f"      - \"${{APP_PORT:-{port}}}:{port}\"",
+    ]
+    env_lines = [f"APP_ENV={env}", "APP_NAME=gitide-app", f"APP_PORT={port}", f"APP_DOMAIN={domain or ''}"]
+
+    if (database or "").lower().strip() == "postgres":
+        services += [
+            "    depends_on:",
+            "      - postgres",
+            "  postgres:",
+            "    image: postgres:16-alpine",
+            "    restart: unless-stopped",
+            "    environment:",
+            "      POSTGRES_DB: ${POSTGRES_DB:-app}",
+            "      POSTGRES_USER: ${POSTGRES_USER:-app}",
+            "      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change_me}",
+            "    volumes:",
+            "      - postgres_data:/var/lib/postgresql/data",
+            "volumes:",
+            "  postgres_data:",
+        ]
+        env_lines += ["POSTGRES_DB=app", "POSTGRES_USER=app", "POSTGRES_PASSWORD=change_me", "DATABASE_URL=postgresql://app:change_me@postgres:5432/app"]
+    else:
+        services += ["volumes: {}"]
+
+    compose = "\n".join(services) + "\n"
+    env_example = "\n".join(env_lines) + "\n"
+    caddyfile = f"{domain or 'example.com'} {{\n    reverse_proxy app:{port}\n}}\n"
+    return {"detected": detected, "files": {"Dockerfile": dockerfile, "docker-compose.yml": compose, ".env.example": env_example, "Caddyfile": caddyfile}}
+
+@app.get("/api/projects/{project_id}/ops-infra/detect", tags=["Ops Infra"])
+def ops_infra_detect(project: Project = Depends(get_project_or_404), _ = Depends(get_api_key)):
+    return {"status": "success", **_ops_detect_stack(project.path)}
+
+@app.post("/api/projects/{project_id}/ops-infra/plan", tags=["Ops Infra"])
+def ops_infra_plan(req: OpsInfraPlanRequest, project: Project = Depends(get_project_or_404), _ = Depends(get_api_key)):
+    detected = _ops_detect_stack(project.path)
+    plan = {
+        "status": "success",
+        "detected": detected,
+        "steps": [
+            "Validar variáveis de ambiente e secrets",
+            "Gerar Dockerfile, docker-compose.yml, .env.example e Caddyfile",
+            "Executar docker compose build",
+            "Executar docker compose up -d",
+            "Validar containers, logs e health check",
+            "Configurar proxy/SSL no servidor quando a camada SSH estiver cadastrada"
+        ]
+    }
+    conf = agent.load_agent_config()
+    if conf.get("api_key"):
+        try:
+            raw = agent.call_llm(
+                conf.get("provider"),
+                conf.get("model"),
+                conf.get("api_key"),
+                [{"role": "user", "content": f"Planeje deploy para {detected}, env={req.environment}, dominio={req.domain}, banco={req.database}."}],
+                "Voce e um especialista DevOps. Responda JSON com summary, risks e steps."
+            )
+            plan["ai"] = agent.extract_json(raw)
+        except Exception as e:
+            plan["ai_error"] = str(e)
+    return plan
+
+@app.post("/api/projects/{project_id}/ops-infra/artifacts", tags=["Ops Infra"])
+def ops_infra_artifacts(req: OpsInfraArtifactRequest,
+                        project: Project = Depends(get_project_or_404),
+                        db: Session = Depends(get_db),
+                        _ = Depends(get_api_key)):
+    artifacts = _ops_artifacts(project.path, req.environment, req.domain, req.database)
+    written, skipped = [], []
+    for rel_path, content in artifacts["files"].items():
+        full_path = os.path.join(project.path, rel_path)
+        if os.path.exists(full_path) and not req.overwrite:
+            skipped.append(rel_path)
+            continue
+        with open(full_path, "w", encoding="utf-8") as f:
+            f.write(content)
+        written.append(rel_path)
+    db.add(ActivityLog(project_id=project.id, action_type="OPS_INFRA_ARTIFACTS", details=f"Arquivos gerados: {', '.join(written)}"))
+    db.commit()
+    return {"status": "success", "written": written, "skipped": skipped, **artifacts}
+
+@app.post("/api/projects/{project_id}/ops-infra/command", tags=["Ops Infra"])
+def ops_infra_command(req: OpsInfraCommandRequest,
+                      project: Project = Depends(get_project_or_404),
+                      db: Session = Depends(get_db),
+                      _ = Depends(get_api_key)):
+    commands = {
+        "build": "docker compose build",
+        "up": "docker compose up -d",
+        "down": "docker compose down",
+        "restart": "docker compose restart",
+        "logs": "docker compose logs --tail=120",
+        "ps": "docker compose ps",
+    }
+    if req.action not in commands:
+        raise HTTPException(status_code=400, detail="Ação inválida para Ops Infra.")
+    result = subprocess.run(commands[req.action], cwd=project.path, shell=True, text=True, capture_output=True, timeout=120)
+    db.add(ActivityLog(project_id=project.id, action_type="OPS_INFRA_COMMAND", details=f"{commands[req.action]}\nExit: {result.returncode}"))
+    db.commit()
+    return {"status": "success" if result.returncode == 0 else "error", "command": commands[req.action], "exit_code": result.returncode, "stdout": result.stdout, "stderr": result.stderr}
 
 # --- ENDPOINTS DO SPEC-DRIVEN DEVELOPMENT (SDD) ---
 

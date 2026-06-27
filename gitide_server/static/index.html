@@ -17,7 +17,7 @@
     <link rel="stylesheet" href="/static/workspace-switcher-refactor.css?v=2">
     <link rel="stylesheet" href="/static/workspace-native-fallback.css?v=1">
     <link rel="stylesheet" href="/static/settings-tabs.css?v=1">
-    <link rel="stylesheet" href="/static/rebrand.css?v=11">
+    <link rel="stylesheet" href="/static/rebrand.css?v=12">
     <script src="/static/lucide-bootstrap.js"></script>
     <script defer src="/static/ui/workspace-switcher.js?v=2"></script>
     <script defer src="/static/settings-tabs.js?v=3"></script>
@@ -97,6 +97,9 @@
                     </button>
                     <button class="nav-item" data-tab="tab-sdd">
                         <i data-lucide="file-check"></i> Especificações (SDD)
+                    </button>
+                    <button class="nav-item" data-tab="tab-ops-infra">
+                        <i data-lucide="server-cog"></i> Ops Infra
                     </button>
                 </nav>
 
@@ -1076,6 +1079,66 @@ Se o arquivo existir, leia e siga rigorosamente todas as diretrizes, fases de an
                         </section>
                     </div>
                 </div>
+
+                <!-- TAB: OPS INFRA -->
+                <div id="tab-ops-infra" class="tab-pane">
+                    <div class="ops-infra-layout">
+                        <section class="ops-infra-main card">
+                            <div class="card-header">
+                                <div>
+                                    <h4><i data-lucide="server-cog"></i> Ops Infra</h4>
+                                    <p class="ops-infra-subtitle">Deploy, ambientes, Docker, domínio e banco com assistência de IA.</p>
+                                </div>
+                                <button class="btn btn-sm btn-secondary git-icon-action" id="btn-ops-detect" type="button" title="Detectar stack" aria-label="Detectar stack"><i data-lucide="scan-search"></i></button>
+                            </div>
+                            <div class="ops-infra-grid">
+                                <div class="ops-infra-field">
+                                    <label for="ops-env-select">Ambiente</label>
+                                    <select id="ops-env-select" class="select-input">
+                                        <option value="prod">prod</option>
+                                        <option value="homolog">homolog</option>
+                                        <option value="dev">dev</option>
+                                    </select>
+                                </div>
+                                <div class="ops-infra-field">
+                                    <label for="ops-domain-input">Domínio</label>
+                                    <input type="text" id="ops-domain-input" class="text-input" placeholder="app.seudominio.com">
+                                </div>
+                                <div class="ops-infra-field">
+                                    <label for="ops-db-select">Banco</label>
+                                    <select id="ops-db-select" class="select-input">
+                                        <option value="">sem banco</option>
+                                        <option value="postgres">Postgres</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="ops-infra-actions">
+                                <button class="btn btn-secondary" id="btn-ops-plan"><i data-lucide="sparkles"></i> Gerar plano com IA</button>
+                                <button class="btn btn-primary" id="btn-ops-artifacts"><i data-lucide="file-plus-2"></i> Gerar arquivos</button>
+                            </div>
+                            <div class="ops-infra-detected" id="ops-detected-card">
+                                <span class="ops-muted">Stack ainda não detectada.</span>
+                            </div>
+                            <div class="ops-infra-plan" id="ops-plan-output">
+                                <span class="ops-muted">O plano de deploy aparecerá aqui.</span>
+                            </div>
+                        </section>
+                        <aside class="ops-infra-side card">
+                            <div class="card-header">
+                                <h4><i data-lucide="terminal"></i> Deploy local</h4>
+                            </div>
+                            <div class="ops-command-grid">
+                                <button class="btn btn-secondary" data-ops-command="build">Build</button>
+                                <button class="btn btn-secondary" data-ops-command="up">Up -d</button>
+                                <button class="btn btn-secondary" data-ops-command="restart">Restart</button>
+                                <button class="btn btn-secondary" data-ops-command="ps">Status</button>
+                                <button class="btn btn-secondary" data-ops-command="logs">Logs</button>
+                                <button class="btn btn-secondary git-danger-action" data-ops-command="down">Down</button>
+                            </div>
+                            <pre class="ops-infra-console" id="ops-console-output">Aguardando ação...</pre>
+                        </aside>
+                    </div>
+                </div>
             </main>
         </div>
     </div>
@@ -1492,7 +1555,7 @@ Se o arquivo existir, leia e siga rigorosamente todas as diretrizes, fases de an
     </div>
 
     <!-- Custom JavaScript -->
-    <script src="/static/app.js?v=22"></script>
+    <script src="/static/app.js?v=23"></script>
     <script src="/static/theme-toggle.js?v=1"></script>
 </body>
 </html>

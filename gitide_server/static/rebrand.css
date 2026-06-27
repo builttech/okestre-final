@@ -3762,6 +3762,140 @@ input[type="checkbox"]:focus-visible{
     gap:6px;
 }
 
+/* Ops Infra */
+#tab-ops-infra.active{
+    display:flex!important;
+    height:100%!important;
+    padding:24px!important;
+    overflow:auto!important;
+}
+
+.ops-infra-layout{
+    width:100%;
+    display:grid;
+    grid-template-columns:minmax(0, 1fr) minmax(320px, 420px);
+    gap:18px;
+    align-items:start;
+}
+
+.ops-infra-main,
+.ops-infra-side{
+    overflow:hidden;
+}
+
+.ops-infra-subtitle{
+    margin:4px 0 0;
+    color:var(--text-muted);
+    font-size:12px;
+}
+
+.ops-infra-grid{
+    display:grid;
+    grid-template-columns:repeat(3, minmax(0, 1fr));
+    gap:12px;
+    padding:18px;
+}
+
+.ops-infra-field{
+    display:flex;
+    flex-direction:column;
+    gap:7px;
+}
+
+.ops-infra-field label{
+    color:var(--text-muted);
+    font-size:12px;
+    font-weight:700;
+}
+
+.ops-infra-actions{
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
+    padding:0 18px 18px;
+}
+
+.ops-infra-detected,
+.ops-infra-plan{
+    margin:0 18px 18px;
+    padding:14px;
+    border:1px solid var(--flat-border);
+    border-radius:14px;
+    background:rgba(255,255,255,.018);
+}
+
+.ops-detected-row{
+    display:grid;
+    grid-template-columns:110px minmax(0, 1fr);
+    gap:10px;
+    align-items:center;
+    padding:8px 0;
+    border-bottom:1px solid var(--flat-border-soft);
+}
+
+.ops-detected-row:last-child{
+    border-bottom:0;
+}
+
+.ops-detected-row span,
+.ops-muted{
+    color:var(--text-muted);
+    font-size:12px;
+}
+
+.ops-detected-row code{
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+}
+
+.ops-error{
+    color:var(--color-danger);
+}
+
+.ops-infra-plan h5{
+    margin:12px 0 8px;
+    font-size:13px;
+}
+
+.ops-infra-plan ol,
+.ops-infra-plan ul{
+    margin:0;
+    padding-left:20px;
+    color:var(--text-main);
+    font-size:13px;
+    line-height:1.55;
+}
+
+.ops-command-grid{
+    display:grid;
+    grid-template-columns:repeat(2, minmax(0, 1fr));
+    gap:8px;
+    padding:16px;
+}
+
+.ops-infra-console{
+    min-height:300px;
+    margin:0 16px 16px;
+    padding:14px;
+    border:1px solid var(--flat-border);
+    border-radius:14px;
+    background:rgba(0,0,0,.26);
+    color:var(--text-main);
+    white-space:pre-wrap;
+    overflow:auto;
+}
+
+@media (max-width: 1100px){
+    .ops-infra-layout{
+        grid-template-columns:1fr;
+    }
+
+    .ops-infra-grid{
+        grid-template-columns:1fr;
+    }
+}
+
 @media (max-width: 560px){
     .git-merge-flow-preview{
         grid-template-columns:1fr;
