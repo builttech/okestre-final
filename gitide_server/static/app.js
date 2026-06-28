@@ -7314,29 +7314,24 @@ function sddBuildUniqueRequirementFilename(id, title) {
 }
 
 function sddBuildDriTemplate(id, interfaceName) {
+    const riCode = `RI-${id.replace(/^REQ-?/i, '')}`;
     return `## 3. DRI - Documento de Requisito de Interface
 
-### RI-${id.replace(/^REQ-?/i, '')} - ${interfaceName}
+### ${riCode} - ${interfaceName}
 
 ### 1. Identificação da Interface
 
-**Código:** RI-${id.replace(/^REQ-?/i, '')}
-
-**Nome da interface:** ${interfaceName}
-
-**Módulo:** A definir
-
-**RF relacionado:** ${id}
-
-**SubRFs relacionados:** A definir
-
-**Tipo de interface:** Página | Modal | Drawer | Formulário | Grid | Dashboard | Detalhe
-
-**Perfil de usuário:** A definir
-
-**Dispositivo prioritário:** Desktop | Mobile | Responsivo
-
-**Objetivo da tela:** Descrever em uma frase o resultado operacional esperado.
+| Campo | Valor |
+| --- | --- |
+| Código | ${riCode} |
+| Nome da interface | ${interfaceName} |
+| Módulo | [Ex.: Profissionais / Conta] |
+| RF relacionado | ${id} |
+| SubRFs relacionados | [Ex.: SubRF-01.01, SubRF-01.02] |
+| Tipo de interface | Página \\| Modal \\| Drawer \\| Formulário \\| Grid \\| Dashboard \\| Detalhe |
+| Perfil de usuário | [Ex.: Profissional, Admin, Gestor, Cliente] |
+| Dispositivo prioritário | Desktop \\| Mobile \\| Responsivo |
+| Objetivo da tela | [Descrever em uma frase o resultado operacional esperado] |
 
 ### 2. Objetivo da Interface
 
@@ -7344,36 +7339,37 @@ Descreva o propósito da tela, quais dados ou decisões ela sustenta, qual resul
 
 ### 3. Contexto de Uso
 
-**Quem usa:** A definir
-
-**Quando usa:** A definir
-
-**Por que usa:** A definir
-
-**Gatilho de acesso:** Menu, onboarding, notificação, link, workflow ou ação anterior.
-
-**Resultado esperado:** A definir
+| Campo | Valor |
+| --- | --- |
+| Quem usa | [Perfil principal de usuário] |
+| Quando usa | [Momento do fluxo ou rotina operacional] |
+| Por que usa | [Motivação e necessidade do usuário] |
+| Gatilho de acesso | [Menu, onboarding, notificação, link, workflow, ação anterior] |
+| Resultado esperado | [Estado desejado após uso da interface] |
 
 ### 4. Arquitetura da Informação
 
 | Ordem | Seção | Objetivo | Tipo de componente |
 | --- | --- | --- | --- |
-| 1 | A definir | A definir | Header, formulário, lista, tabela, card ou painel |
-| 2 | A definir | A definir | A definir |
-| 3 | A definir | A definir | A definir |
+| 1 | [Nome da seção] | [Objetivo funcional da seção] | [Header, formulário, lista, tabela, card, painel] |
+| 2 | [Nome da seção] | [Objetivo funcional da seção] | [Tipo de componente] |
+| 3 | [Nome da seção] | [Objetivo funcional da seção] | [Tipo de componente] |
 
 ### 5. Mapa de Componentes
 
 | Componente | Tipo | Obrigatório | Editável | Comportamento esperado |
 | --- | --- | --- | --- | --- |
-| A definir | Input, select, badge, button | Sim/Não | Sim/Não | Validação, máscara, permissão, estado ou regra |
+| [Nome do campo/ação] | [Input, select, badge, button] | Sim/Não | Sim/Não | [Validação, máscara, permissão, estado ou regra de interação] |
+| [Nome do campo/ação] | [Tipo] | Sim/Não | Sim/Não | [Comportamento] |
+| [Nome do campo/ação] | [Tipo] | Sim/Não | Sim/Não | [Comportamento] |
 
 ### 6. Regras de Exibição
 
 | Código | Regra | Comportamento |
 | --- | --- | --- |
-| RI-RG-01 | A definir | A definir |
-| RI-RG-02 | A definir | A definir |
+| RI-RG-01 | [Nome da regra visual ou condicional] | [Comportamento esperado na interface] |
+| RI-RG-02 | [Nome da regra] | [Comportamento esperado] |
+| RI-RG-03 | [Nome da regra] | [Comportamento esperado] |
 
 ### 7. Estados da Interface
 
@@ -7393,48 +7389,61 @@ Descreva o propósito da tela, quais dados ou decisões ela sustenta, qual resul
 | Ação do usuário | Resposta da interface | Resultado esperado |
 | --- | --- | --- |
 | Acessar interface | Sistema carrega dados e estados | Tela exibe informações atuais |
-| Clicar em ação principal | Sistema valida e executa fluxo | Resultado operacional é produzido |
+| Clicar em editar | Campos autorizados são habilitados | Usuário pode alterar dados |
+| Preencher campo obrigatório | Sistema valida preenchimento | Dados ficam aptos para salvamento |
+| Clicar em salvar | Sistema valida e envia dados | Informação é atualizada |
 | Campo inválido | Erro contextual é exibido | Usuário entende o ajuste necessário |
+| Cancelar | Alterações são descartadas | Dados anteriores são mantidos |
 
 ### 9. Mapeamento de Dados
 
 | Campo na tela | Nome técnico | Origem | Editável | Obrigatório |
 | --- | --- | --- | --- | --- |
-| A definir | snake_case | Collection, API, sistema ou usuário | Sim/Não | Sim/Não |
+| [Campo] | [snake_case] | [Collection, API, sistema, usuário] | Sim/Não | Sim/Não |
+| [Campo] | [snake_case] | [Origem] | Sim/Não | Sim/Não |
+| [Campo] | [snake_case] | [Origem] | Sim/Não | Sim/Não |
 
 ### 10. Hierarquia Visual
 
-**Prioridade Alta:** Informações críticas, status, ação principal, alertas e pendências.
+**Prioridade Alta**
 
-**Prioridade Média:** Dados de apoio, seções recorrentes, filtros e grupos secundários.
+- [Informações críticas, status, ação principal, alertas e pendências.]
 
-**Prioridade Baixa:** Informações auxiliares, histórico, textos explicativos e suporte.
+**Prioridade Média**
+
+- [Dados de apoio, seções recorrentes, filtros, grupos secundários.]
+
+**Prioridade Baixa**
+
+- [Informações auxiliares, histórico, textos explicativos e suporte.]
 
 ### 11. Microcopy da Interface
 
 | Elemento | Texto sugerido | Observação |
 | --- | --- | --- |
-| Título da tela | A definir | Evitar promessa genérica |
-| Descrição curta | A definir | Uma ou duas frases no máximo |
-| CTA principal | A definir | Verbo de ação claro |
-| Erro de validação | Informe o ajuste necessário | Mensagem contextual |
-| Toast de sucesso | Alterações salvas com sucesso | Confirmação curta |
+| Título da tela | [Texto objetivo e operacional] | [Evitar promessa genérica] |
+| Descrição curta | [Explicar a finalidade da tela] | [Uma ou duas frases no máximo] |
+| CTA principal | [Salvar alterações / Enviar para análise] | [Verbo de ação claro] |
+| Erro de validação | [Informe o ajuste necessário] | [Mensagem contextual] |
+| Toast de sucesso | [Alterações salvas com sucesso] | [Confirmação curta] |
 
 ### 12. Responsividade
 
-**Desktop:** A definir
-
-**Tablet:** A definir
-
-**Mobile:** A definir
+| Dispositivo | Comportamento esperado |
+| --- | --- |
+| Desktop | [Layout, colunas, largura, painéis laterais, tabela ou formulário completo] |
+| Tablet | [Reorganização de colunas, navegação e ações] |
+| Mobile | [Ordem das seções, ações fixas, campos em uma coluna, estados críticos] |
 
 ### 13. Acessibilidade
 
-- Labels persistentes e claros.
-- Contraste confortável e semântico.
-- Navegação por teclado com foco visível.
-- Mensagens de erro próximas ao campo.
-- Nomes acessíveis, estados e regiões relevantes para leitores de tela.
+| Item | Critério |
+| --- | --- |
+| Labels | [Todos os campos possuem label persistente e claro] |
+| Contraste | [Cores atendem leitura confortável e função semântica] |
+| Navegação por teclado | [Foco visível e ordem lógica] |
+| Mensagens de erro | [Erro próximo ao campo e linguagem acionável] |
+| Leitores de tela | [Nomes acessíveis, estados e regiões relevantes] |
 
 ### 14. Critérios de Aceite da Interface
 
@@ -7447,23 +7456,25 @@ Descreva o propósito da tela, quais dados ou decisões ela sustenta, qual resul
 | CA-RI-05 | Após sucesso, a interface deve confirmar a operação ao usuário. |
 | CA-RI-06 | Em caso de erro, a interface deve informar a falha e permitir nova tentativa. |
 | CA-RI-07 | A interface deve exibir status, pendências ou bloqueios relevantes. |
-| CA-RI-08 | A interface deve ser responsiva para desktop, tablet e mobile quando aplicável. |
+| CA-RI-08 | A interface deve ser responsiva para **desktop**, **tablet** e **mobile** quando aplicável. |
 
 ### 15. Lacunas e Premissas
 
 | Item | Tipo | Descrição |
 | --- | --- | --- |
-| 1 | Lacuna | A definir |
-| 2 | Premissa | A definir |
-| 3 | Risco | A definir |
+| 1 | Lacuna | [Informação ausente que impede decisão completa] |
+| 2 | Premissa | [Suposição usada para avançar o RI] |
+| 3 | Risco | [Risco de regra, dado, permissão ou experiência] |
 
 ### 16. Fora do Escopo
 
-- A definir
+- [Item, comportamento, regra ou integração que não faz parte deste RI.]
+- [Item fora do escopo.]
 
 ### 17. Possíveis Evoluções Futuras
 
-- A definir
+- [Melhoria futura, automação, componente avançado ou integração adicional.]
+- [Evolução futura.]
 `;
 }
 

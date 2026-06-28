@@ -99,7 +99,9 @@ Quando o usuário solicitar criação, revisão ou atualização de requisitos f
 3. **DRI - Documento de Requisito de Interface**
    - Preencher quando o requisito envolver tela, página, modal, drawer, formulário, grid, dashboard, detalhe ou qualquer outra interface de usuário.
    - O DRI deve ser escrito no próprio arquivo Markdown da Spec, na seção `## 3. DRI - Documento de Requisito de Interface`.
-   - Usar o template RI oficial: identificação da interface, objetivo, contexto de uso, arquitetura da informação, mapa de componentes, regras de exibição, estados, fluxo de interação, mapeamento de dados, hierarquia visual, microcopy, responsividade, acessibilidade, critérios de aceite da interface, lacunas, fora do escopo e evoluções futuras.
+   - Usar o template RI oficial com seções numeradas 1 a 17.
+   - Preservar tabelas Markdown para Identificação da Interface, Contexto de Uso, Arquitetura da Informação, Mapa de Componentes, Regras de Exibição, Estados, Fluxo de Interação, Mapeamento de Dados, Microcopy, Responsividade, Acessibilidade, Critérios de Aceite da Interface e Lacunas/Premissas.
+   - As seções `14. Critérios de Aceite da Interface`, `15. Lacunas e Premissas`, `16. Fora do Escopo` e `17. Possíveis Evoluções Futuras` são obrigatórias e não devem ser omitidas.
    - O DRI deve sempre se basear no Specify e no Design.
    - Não colocar tarefas técnicas dentro do DRI.
 
