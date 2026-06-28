@@ -12,7 +12,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://unpkg.com/lucide@latest"></script>
     <!-- Custom CSS -->
-    <link rel="stylesheet" href="/static/style.css?v=9">
+    <link rel="stylesheet" href="/static/style.css?v=10">
     <link rel="stylesheet" href="/static/lucide-icons.css?v=1">
     <link rel="stylesheet" href="/static/workspace-switcher-refactor.css?v=2">
     <link rel="stylesheet" href="/static/workspace-native-fallback.css?v=1">
@@ -130,7 +130,10 @@
                         <div class="file-tree-panel">
                             <div class="panel-header">
                                 <h4>Explorador de Arquivos</h4>
-                                <button class="btn-icon" id="btn-refresh-files" title="Recarregar"><i class="fa-solid fa-rotate"></i></button>
+                                <div class="file-tree-actions">
+                                    <button class="btn btn-sm btn-primary" id="btn-new-workspace-file" title="Adicionar novo arquivo"><i class="fa-solid fa-file-circle-plus"></i> Novo arquivo</button>
+                                    <button class="btn-icon" id="btn-refresh-files" title="Recarregar"><i class="fa-solid fa-rotate"></i></button>
+                                </div>
                             </div>
                             <div class="file-tree-container" id="file-tree">
                                 <!-- Preenchido via JS -->
@@ -1734,8 +1737,41 @@ Se o arquivo existir, leia e siga rigorosamente todas as diretrizes, fases de an
         </div>
     </div>
 
+    <!-- MODAL: CREATE WORKSPACE FILE -->
+    <div class="modal-backdrop" id="modal-workspace-new-file">
+        <div class="modal-card workspace-file-modal">
+            <div class="modal-header workspace-file-modal-header">
+                <div>
+                    <span class="modal-kicker">Arquivos do Workspace</span>
+                    <h3>Criar novo arquivo</h3>
+                    <p class="modal-description">Adicione um arquivo textual dentro do projeto ativo usando um caminho relativo seguro.</p>
+                </div>
+                <button type="button" class="btn-icon workspace-new-file-close" aria-label="Fechar modal"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body workspace-file-modal-body">
+                <div class="form-group">
+                    <label for="workspace-new-file-path">Caminho relativo do arquivo</label>
+                    <input type="text" id="workspace-new-file-path" class="text-input" placeholder="ex: docs/novo-arquivo.md">
+                    <p class="workspace-field-help">Use caminhos relativos ao projeto. Exemplos: <code>README-dev.md</code>, <code>docs/api.md</code>, <code>src/novo.js</code>.</p>
+                </div>
+                <div class="form-group workspace-file-content-group">
+                    <label for="workspace-new-file-content">Conteúdo inicial</label>
+                    <textarea id="workspace-new-file-content" class="workspace-new-file-content" placeholder="Opcional: escreva o conteúdo inicial do arquivo..."></textarea>
+                </div>
+                <div class="workspace-new-file-hint">
+                    <i class="fa-solid fa-shield-halved"></i>
+                    <span>O GitIDE bloqueia caminhos inválidos e não sobrescreve arquivos existentes por esta ação.</span>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary workspace-new-file-close">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="btn-workspace-create-file"><i class="fa-solid fa-file-circle-plus"></i> Criar arquivo</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Custom JavaScript -->
-    <script src="/static/app.js?v=30"></script>
+    <script src="/static/app.js?v=31"></script>
     <script src="/static/theme-toggle.js?v=1"></script>
 </body>
 </html>

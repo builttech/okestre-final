@@ -772,6 +772,88 @@ textarea:focus {
     color: var(--color-secondary);
 }
 
+.file-tree-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.workspace-file-modal {
+    max-width: 640px;
+}
+
+.workspace-file-modal-header {
+    align-items: flex-start;
+    gap: 16px;
+}
+
+.modal-kicker {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--color-primary);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+}
+
+.modal-description {
+    color: var(--text-muted);
+    font-size: 13px;
+    margin-top: 4px;
+}
+
+.workspace-file-modal-body {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.workspace-field-help {
+    color: var(--text-dark);
+    font-size: 11px;
+    margin-top: 6px;
+    line-height: 1.5;
+}
+
+.workspace-field-help code {
+    color: var(--text-muted);
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 1px 5px;
+}
+
+.workspace-file-content-group {
+    min-height: 180px;
+}
+
+.workspace-new-file-content {
+    min-height: 170px;
+    resize: vertical;
+    font-family: var(--font-mono);
+    line-height: 1.5;
+}
+
+.workspace-new-file-hint {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 12px;
+    border: 1px solid rgba(0, 153, 255, 0.22);
+    border-radius: var(--border-radius);
+    background: rgba(0, 153, 255, 0.08);
+    color: var(--text-muted);
+    font-size: 12px;
+}
+
+.workspace-new-file-hint i {
+    color: var(--color-primary);
+    margin-top: 2px;
+}
+
 /* Editor Panel */
 .editor-panel {
     flex: 1;

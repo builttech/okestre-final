@@ -449,6 +449,7 @@ A lista abaixo representa a decomposição operacional rastreável do requisito 
 - [ ] TASK-REQ-3087-018: Criar ou atualizar testes automatizados para listagem, leitura, escrita, patch e bloqueios de segurança.
 - [ ] TASK-REQ-3087-019: Executar validações técnicas aprovadas e registrar evidências de resultado.
 - [ ] TASK-REQ-3087-020: Atualizar rastreabilidade com commits, pull requests, validações e observações de entrega após execução das tarefas.
+- [ ] TASK-REQ-3087-021: Implementar criação de novo arquivo pelo painel Arquivos do Workspace, usando endpoint seguro de escrita, validação de caminho relativo, feedback visual, recarregamento da árvore e abertura automática do arquivo criado.
 
 As tarefas acima não substituem os critérios de aceite da etapa **Specify**. Cada item deve ser tratado como unidade de execução técnica, com plano próprio, aprovação explícita e verificação antes de ser marcado como concluído.
 

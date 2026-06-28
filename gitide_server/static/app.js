@@ -498,6 +498,105 @@ async function saveFile() {
     }
 }
 
+function openWorkspaceNewFileModal() {
+    if (!state.activeProjectId) {
+        gitideNotify({ title: 'Projeto obrigatório', message: 'Selecione um projeto antes de criar arquivos.', variant: 'warning' });
+        return;
+    }
+
+    const modal = document.getElementById('modal-workspace-new-file');
+    const pathInput = document.getElementById('workspace-new-file-path');
+    const contentInput = document.getElementById('workspace-new-file-content');
+    if (!modal || !pathInput || !contentInput) return;
+
+    pathInput.value = '';
+    contentInput.value = '';
+    modal.classList.add('active');
+    setTimeout(() => pathInput.focus(), 40);
+}
+
+function closeWorkspaceNewFileModal() {
+    const modal = document.getElementById('modal-workspace-new-file');
+    if (modal) modal.classList.remove('active');
+}
+
+function normalizeWorkspaceFilePath(rawPath) {
+    return String(rawPath || '').trim().replace(/\\+/g, '/').replace(/^\.\//, '');
+}
+
+function validateWorkspaceNewFilePath(filepath) {
+    if (!filepath) return 'Informe o caminho relativo do arquivo.';
+    if (filepath.endsWith('/')) return 'Informe também o nome do arquivo, não apenas a pasta.';
+    if (filepath.startsWith('/')) return 'Use caminho relativo, sem barra inicial.';
+    if (/^[a-zA-Z]:\//.test(filepath)) return 'Caminhos absolutos não são permitidos.';
+    if (filepath.split('/').some(part => part === '..')) return 'O caminho não pode conter "..".';
+    if (filepath.split('/').some(part => part.trim() === '')) return 'O caminho contém segmentos vazios ou barras duplicadas.';
+    return '';
+}
+
+async function workspaceFileExists(filepath) {
+    const res = await fetch(`/api/projects/${state.activeProjectId}/files/read?filepath=${encodeURIComponent(filepath)}`, {
+        headers: getHeaders()
+    });
+    if (res.ok) return true;
+    if (res.status === 404) return false;
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.detail || 'Não foi possível validar se o arquivo já existe.');
+}
+
+async function createWorkspaceFileFromModal() {
+    if (!state.activeProjectId) return;
+
+    const pathInput = document.getElementById('workspace-new-file-path');
+    const contentInput = document.getElementById('workspace-new-file-content');
+    const btn = document.getElementById('btn-workspace-create-file');
+    if (!pathInput || !contentInput || !btn) return;
+
+    const filepath = normalizeWorkspaceFilePath(pathInput.value);
+    const validationError = validateWorkspaceNewFilePath(filepath);
+    if (validationError) {
+        gitideNotify({ title: 'Caminho inválido', message: validationError, variant: 'warning' });
+        pathInput.focus();
+        return;
+    }
+
+    const originalHtml = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Criando...';
+
+    try {
+        const exists = await workspaceFileExists(filepath);
+        if (exists) {
+            gitideNotify({ title: 'Arquivo já existe', message: 'Escolha outro caminho para evitar sobrescrita.', variant: 'warning' });
+            pathInput.focus();
+            return;
+        }
+
+        const res = await fetch(`/api/projects/${state.activeProjectId}/files/write`, {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify({
+                filepath,
+                content: contentInput.value || ''
+            })
+        });
+        const data = await res.json();
+        if (!res.ok || data.status !== 'success') {
+            throw new Error(data.detail || 'Não foi possível criar o arquivo.');
+        }
+
+        closeWorkspaceNewFileModal();
+        gitideNotify({ title: 'Arquivo criado', message: filepath, variant: 'success' });
+        await loadFiles();
+        openFile(filepath, new Blob([contentInput.value || '']).size, new Date().toISOString());
+    } catch (err) {
+        gitideNotify({ title: 'Erro ao criar arquivo', message: err.message, variant: 'danger' });
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalHtml;
+    }
+}
+
 async function loadHistoryTimeline(filepath) {
     const list = document.getElementById('file-snapshots-list');
     const drawer = document.getElementById('file-snapshots-drawer');
@@ -3223,6 +3322,23 @@ function setupEventListeners() {
     // 4. Ações de Arquivos
     document.getElementById('btn-refresh-files').addEventListener('click', loadFiles);
     document.getElementById('btn-save-file').addEventListener('click', saveFile);
+    document.getElementById('btn-new-workspace-file')?.addEventListener('click', openWorkspaceNewFileModal);
+    document.getElementById('btn-workspace-create-file')?.addEventListener('click', createWorkspaceFileFromModal);
+    document.querySelectorAll('.workspace-new-file-close').forEach(btn => {
+        btn.addEventListener('click', closeWorkspaceNewFileModal);
+    });
+    document.getElementById('workspace-new-file-path')?.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            createWorkspaceFileFromModal();
+        }
+    });
+    document.getElementById('workspace-new-file-content')?.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) {
+            event.preventDefault();
+            createWorkspaceFileFromModal();
+        }
+    });
     
     // Sincronismo do editor de código
     const editorTextarea = document.getElementById('file-editor-textarea');
