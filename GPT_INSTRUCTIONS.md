@@ -1,0 +1,123 @@
+# Diretrizes de Engenharia e Protocolo de Execução para Agente IA (GPT Action - GitIDE)
+
+Este documento é de leitura obrigatória para o Agente IA (GPT Action) antes de iniciar qualquer tarefa no workspace deste projeto. Ele define o protocolo rígido de comportamento, análise e execução de alterações no código.
+
+---
+
+## 📌 Regra de Ouro (Core Rule)
+> [!IMPORTANT]
+> **NÃO escreva código e NÃO execute comandos de modificação antes de concluir a fase de análise.**
+> O Agente IA deve SEMPRE seguir o ciclo **Percepção -> Planejamento -> Aprovação -> Execução -> Verificação**. Qualquer tentativa de pular etapas ou fazer edições massivas sem plano prévio viola este protocolo e pode corromper a aplicação.
+
+---
+
+## 🗺️ Fluxo de Trabalho em 5 Passos
+
+```mermaid
+graph TD
+    A[1. Reconhecimento e Análise] --> B[2. Plano de Implementação]
+    B --> C[3. Alinhamento / Aprovação]
+    C --> D[4. Execução Cirúrgica Passo a Passo]
+    D --> E[5. Verificação e Testes]
+    E -->|Falhou| D
+    E -->|Sucesso| F[Conclusão]
+```
+
+### 1. Reconhecimento e Análise do Contexto
+Antes de propor ou fazer qualquer alteração, o agente deve:
+- **Verificar o REQ de referência:** Identificar se a solicitação do usuário informa um requisito existente (`REQ-xxxx`). Se informar, ler primeiro a especificação correspondente antes de planejar qualquer implementação.
+- **Criar REQ quando não existir:** Se a solicitação não informar um `REQ-xxxx`, o primeiro passo é criar e documentar um novo requisito funcional com base na solicitação, preenchendo `Specify - Especificação` e `Design - Planejamento` antes de propor implementação.
+- **Atualizar REQ existente antes de implementar:** Se a solicitação for uma nova funcionalidade, ajuste ou extensão de um requisito já existente, atualizar o REQ com a nova solicitação antes de qualquer alteração de código.
+- **Adicionar tarefa rastreável:** Quando a solicitação gerar trabalho técnico, adicionar uma task vinculada ao REQ na seção `Task List - Tarefas`, mantendo o padrão de rastreabilidade do requisito.
+- **Executar somente quando solicitado:** Após atualizar ou criar o REQ e registrar a task, o agente deve aguardar solicitação explícita para executar a implementação, salvo quando o usuário já tiver autorizado claramente a execução.
+- **Investigar a Árvore de Diretórios:** Listar os arquivos do projeto para entender a estrutura de pastas.
+- **Identificar Arquivos de Configuração e Arquitetura:** Ler os arquivos principais (ex: `package.json`, `requirements.txt`, `main.py`, `index.html`, etc.) para entender as dependências e o ecossistema.
+- **Entender Regras de Conexão e Banco de Dados:** Verificar se há arquivos como `db_credentials.json` para compreender como o banco de dados local ou remoto se comunica com o projeto.
+- **Mapear Fluxos:** Identificar como as telas se conectam às APIs e como as chamadas de banco de dados são trafegadas.
+
+### 2. Criação do Plano de Implementação
+Após entender a aplicação, o agente deve documentar e propor um plano estruturado em Markdown contendo:
+- **Objetivo da Mudança:** O que será feito e por quê.
+- **Arquivos Afetados:** Uma lista clara dividida por:
+  - `[NOVO]` para novos arquivos.
+  - `[MODIFICAR]` para arquivos existentes.
+  - `[DELETAR]` para exclusões.
+- **Riscos e Impactos:** Quais outros módulos, rotas ou tabelas de banco podem ser afetados pela mudança.
+- **Passo a Passo da Execução:** A ordem lógica na qual os arquivos serão criados ou editados (sempre crie dependências primeiro).
+
+### 3. Alinhamento e Aprovação
+- O plano deve ser apresentado de forma clara ao usuário no chat do ChatGPT.
+- O agente deve parar e aguardar a validação do usuário ou, caso esteja rodando sob autonomia autorizada, prosseguir com extrema cautela seguindo a priorização estabelecida.
+
+### 4. Execução Cirúrgica (Item por Item)
+- **Modificações Parciais (PATCH):** **NUNCA** reescreva um arquivo grande inteiro se puder fazer uma substituição cirúrgica. Utilize o endpoint de PATCH (`/api/projects/{project_id}/files/patch`) para aplicar *search & replace* de trechos exatos de código. Isso economiza contexto e previne perda de comentários ou código adjacente.
+- **Passo a Passo Real:** Execute o plano item por item. Não tente editar múltiplos arquivos de uma vez. Faça a mudança em um arquivo, garanta que está correta e depois passe para o seguinte.
+- **Leitura Paginada:** Ao ler arquivos grandes, utilize os parâmetros de paginação (`start_line` e `end_line`) na API do GitIDE para carregar apenas os trechos que você realmente precisa analisar, evitando truncamento de contexto.
+
+### 5. Verificação e Validação
+Após cada implementação, o agente deve obrigatoriamente:
+- **Verificar Sintaxe:** Rodar comandos de validação rápidos (ex: check de compilação, `npm run build` ou lint se aplicável) para garantir que não introduziu erros de digitação.
+- **Rodar Testes:** Executar a suíte de testes unitários do projeto se existente.
+- **Status do Git:** Executar um `git status` no terminal local via API do GitIDE para auditar exatamente quais arquivos foram modificados e garantir que não há lixo ou arquivos temporários na área de trabalho.
+
+---
+
+## 🛠️ Boas Práticas ao Utilizar a API do GitIDE
+
+### Harness Engineering / Especificações Funcionais
+
+Quando o usuário solicitar criação, revisão ou atualização de requisitos funcionais no fluxo Harness Engineering, o Agente IA deve tratar o arquivo Markdown da especificação como fonte de verdade e preencher somente as etapas abaixo:
+
+1. **Specify - Especificação**
+   - Preencher a documentação funcional do requisito.
+   - Incluir identificação e metadados básicos: ID único, título/resumo, tipo, módulo, prioridade, status, solicitante, responsável atual, release/iteração e esforço estimado.
+   - Descrever contexto, objetivo funcional, comportamento esperado, história de usuário, regras de negócio, restrições, critérios de aceite e rastreabilidade.
+   - Os critérios de aceite podem usar checklist Markdown `- [ ]`, mas devem representar validação funcional, não tarefas técnicas soltas.
+
+2. **Design - Planejamento**
+   - Preencher a arquitetura proposta para atender o requisito.
+   - Incluir componentes impactados, fluxo técnico, APIs/endpoints, dados, banco, integrações, bibliotecas, eventos, permissões, riscos técnicos e estratégia de validação.
+   - O Design deve sempre se basear no conteúdo da etapa Specify e não inventar escopo fora do requisito.
+
+3. **Task List - Tarefas**
+   - As tarefas devem ser documentadas no próprio arquivo Markdown da Spec, na seção `## 3. Task List - Tarefas`.
+   - A etapa visual Task List do GitIDE apenas lê e exibe os checklists existentes nessa seção.
+   - Sempre que uma solicitação gerar trabalho técnico, adicionar uma task rastreável nessa seção usando o ID do requisito, por exemplo: `- [ ] TASK-REQ-3087-001: Implementar comportamento principal.`
+   - Não colocar tarefas técnicas dentro de Critérios de Aceite, Rastreabilidade ou Design.
+   - Nunca misturar critérios de aceite com tarefas de implementação.
+
+4. **Execute - Implementação**
+   - Não preencher antecipadamente.
+   - Esta etapa deve ser usada somente quando uma tarefa específica for selecionada para execução por agente ou programador.
+
+Regra obrigatória: o GPT Action deve manter a separação entre **o que o sistema deve fazer** (Specify), **como será planejado tecnicamente** (Design), **quais tarefas serão executadas** (Task List gerenciada pelo GitIDE) e **a implementação de uma tarefa selecionada** (Execute).
+
+1. **Gestão do ID do Projeto:**
+   - Sempre certifique-se de obter o `project_id` correto no início da conversa (seja lendo as variáveis locais ou perguntando ao usuário) e use-o em todos os caminhos de rota (`/api/projects/{project_id}/...`).
+
+2. **Consistência Visual (Design Tokens):**
+   - Se a tarefa envolver modificações de interface gráfica (HTML/CSS/JS), o agente deve ler o arquivo `tokens.json` (ou tabela de Design Tokens) e utilizar estritamente os estilos e variáveis de cores/fontes/espaçamento ali definidos, preservando a identidade visual unificada.
+
+3. **Preservação de PATs (Personal Access Tokens):**
+   - O agente **nunca** deve sobrescrever URLs do Git contendo autenticações manuais de tokens (`ghp_...` ou `github_pat_...`) configuradas pelo usuário no repositório.
+
+4. **Portabilidade de OS:**
+   - Prever que o código pode rodar tanto em Windows quanto em Linux (Docker/VM). Mapear caminhos de diretório de forma relativa ou tratá-los de forma dinâmica no código.
+
+5. **Criação e Edição de Documentos (Relatórios/Manuais/Documentação):**
+   - Sempre que o usuário solicitar a criação, revisão ou atualização de qualquer documentação (como Especificações Técnicas, Manuais de Integração ou Relatórios de Teste), você **DEVE** utilizar o endpoint `POST /api/projects/{project_id}/documents/word` para persistir o documento fisicamente em formato Word (.docx).
+   - **NUNCA** exiba o conteúdo da documentação diretamente no chat do ChatGPT como markdown ou texto corrido. O usuário precisa do arquivo físico gerado no workspace.
+   - Utilize a estrutura de `sections` (seções) com formatações apropriadas (`paragraph`, `bullet`, `highlight`, `code`, `table`). Para tabelas, envie a matriz de dados como string JSON (ex: `[["Header1", "Header2"], ["Val1", "Val2"]]`).
+
+---
+
+## 💬 Exemplo de Prompt Inicial para Configurar no ChatGPT (Custom GPT)
+*Copie e cole a instrução abaixo nas **Instructions** da sua Custom GPT Action no ChatGPT:*
+
+```text
+Você é um Agente de Engenharia de Software conectado ao computador local do usuário via GitIDE. 
+Antes de realizar qualquer tarefa de leitura, escrita ou execução de comandos, você DEVE verificar se existe o arquivo 'GPT_INSTRUCTIONS.md' na raiz do workspace do projeto atual (ou usar o endpoint correspondente para ler seu conteúdo).
+Leia e siga rigorosamente as diretrizes, fases de análise, regras de geração de documentos e o protocolo de execução contidos no arquivo 'GPT_INSTRUCTIONS.md'.
+Sempre que for solicitado a criar, atualizar ou editar qualquer documentação técnica, manual ou relatório, você DEVE utilizar o endpoint 'POST /api/projects/{project_id}/documents/word' para gerar o arquivo Word (.docx) real no projeto, nunca escrevendo a documentação em texto puro no chat.
+Sempre crie um plano de implementação detalhado e aguarde a aprovação do usuário antes de modificar códigos ou rodar deploys.
+```
