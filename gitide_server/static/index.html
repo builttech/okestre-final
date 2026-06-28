@@ -12,17 +12,17 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://unpkg.com/lucide@latest"></script>
     <!-- Custom CSS -->
-    <link rel="stylesheet" href="/static/style.css?v=8">
-    <link rel="stylesheet" href="/static/select-layer-fix.css?v=1">
+    <link rel="stylesheet" href="/static/style.css?v=9">
     <link rel="stylesheet" href="/static/lucide-icons.css?v=1">
-    <link rel="stylesheet" href="/static/workspace-switcher-refactor.css?v=1">
+    <link rel="stylesheet" href="/static/workspace-switcher-refactor.css?v=2">
     <link rel="stylesheet" href="/static/workspace-native-fallback.css?v=1">
     <link rel="stylesheet" href="/static/settings-tabs.css?v=1">
+    <link rel="stylesheet" href="/static/rebrand.css?v=14">
     <script src="/static/lucide-bootstrap.js"></script>
     <script defer src="/static/ui/workspace-switcher.js?v=2"></script>
-    <script defer src="/static/settings-tabs.js?v=2"></script>
+    <script defer src="/static/settings-tabs.js?v=3"></script>
     <script defer src="/static/sidebar-workspace-footer.js?v=1"></script>
-    <script defer src="/static/navigation-unlock.js?v=1"></script>
+    <script defer src="/static/navigation-unlock.js?v=2"></script>
 </head>
 <body>
     <div class="app-container">
@@ -91,6 +91,15 @@
                     </button>
                     <button class="nav-item" data-tab="tab-agent">
                         <i data-lucide="bot"></i> Agente IA Nativo
+                    </button>
+                    <button class="nav-item" data-tab="tab-documents">
+                        <i data-lucide="file-text"></i> Documentos (Word)
+                    </button>
+                    <button class="nav-item" data-tab="tab-sdd">
+                        <i data-lucide="file-check"></i> Harness Engineering
+                    </button>
+                    <button class="nav-item" data-tab="tab-ops-infra">
+                        <i data-lucide="server-cog"></i> Ops Infra
                     </button>
                 </nav>
 
@@ -163,6 +172,17 @@
                 <!-- TAB: TERMINAL -->
                 <div id="tab-terminal" class="tab-pane">
                     <div class="terminal-panel">
+                        <!-- Pending Commands Card -->
+                        <div id="pending-commands-panel" style="display: none; background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.2); border-radius: 8px; padding: 16px; margin-bottom: 16px; flex-shrink: 0;">
+                            <h5 style="margin: 0 0 10px 0; color: var(--color-warning); font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 8px;">
+                                <i class="fa-solid fa-shield-halved"></i> Solicitações de Execução Externas Pendentes
+                                <span class="badge" id="pending-commands-count" style="background-color: #f59e0b; color: #0f172a; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: bold; margin-left: auto;">0</span>
+                            </h5>
+                            <div id="pending-commands-list" style="display: flex; flex-direction: column; gap: 10px;">
+                                <!-- Dynamically populated -->
+                            </div>
+                        </div>
+
                         <div class="panel-header">
                             <h4><i class="fa-solid fa-terminal"></i> Terminal Integrado</h4>
                             <div class="terminal-actions">
@@ -220,11 +240,22 @@
                                     <div class="db-config-row" style="display: flex; gap: 16px; flex-wrap: wrap; width: 100%;">
                                         <div style="flex: 1; min-width: 150px; display: flex; flex-direction: column; gap: 6px;">
                                             <label for="db-type-select" style="font-size: 12px; color: var(--text-muted);">Tipo de Banco:</label>
-                                            <select id="db-type-select" class="select-input">
+                                            <select id="db-type-select" class="select-input db-type-native-select">
                                                 <option value="sqlite">SQLite (Arquivo Local)</option>
                                                 <option value="postgresql">PostgreSQL (Produção/Remoto)</option>
                                                 <option value="mysql">MySQL (Produção/Remoto)</option>
                                             </select>
+                                            <div class="db-type-select-shell" id="db-type-select-shell">
+                                                <button type="button" class="db-type-select-trigger" id="db-type-select-trigger" aria-haspopup="listbox" aria-expanded="false">
+                                                    <span class="db-type-select-value" id="db-type-select-value">SQLite (Arquivo Local)</span>
+                                                    <i class="fa-solid fa-chevron-down"></i>
+                                                </button>
+                                                <div class="db-type-select-menu" id="db-type-select-menu" role="listbox">
+                                                    <button type="button" class="db-type-select-option is-selected" data-value="sqlite" role="option" aria-selected="true">SQLite (Arquivo Local)</button>
+                                                    <button type="button" class="db-type-select-option" data-value="postgresql" role="option" aria-selected="false">PostgreSQL (Produção/Remoto)</button>
+                                                    <button type="button" class="db-type-select-option" data-value="mysql" role="option" aria-selected="false">MySQL (Produção/Remoto)</button>
+                                                </div>
+                                            </div>
                                         </div>
                                         <div style="flex: 3; min-width: 280px; display: flex; flex-direction: column; gap: 6px;">
                                             <label id="lbl-db-conn" for="db-conn-input" style="font-size: 12px; color: var(--text-muted);">Arquivo do Banco (relativo ao projeto):</label>
@@ -240,13 +271,48 @@
                                     </div>
                                 </div>
                                 <!-- Query Results -->
-                                <div class="db-results-panel">
-                                    <div class="panel-header">
-                                        <h4>Resultados da Consulta</h4>
+                                <div class="db-results-panel" style="display: flex; flex-direction: column; flex: 1; min-height: 0;">
+                                    <div class="panel-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; margin-bottom: 16px;">
+                                        <div class="db-results-tabs" style="display: flex; gap: 6px;">
+                                            <button class="db-results-tab-btn active" id="btn-tab-raw-results" style="background: none; border: none; padding: 6px 12px; border-bottom: 2px solid var(--color-primary); color: var(--text-light); cursor: pointer; font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 6px; transition: all var(--transition-speed);">
+                                                <i class="fa-solid fa-list"></i> Resultados SQL
+                                            </button>
+                                            <button class="db-results-tab-btn" id="btn-tab-grid-editor" style="background: none; border: none; padding: 6px 12px; border-bottom: 2px solid transparent; color: var(--text-muted); cursor: pointer; font-size: 12px; font-weight: 500; display: flex; align-items: center; gap: 6px; transition: all var(--transition-speed);">
+                                                <i class="fa-solid fa-table"></i> Editor Visual (Data Grid)
+                                            </button>
+                                        </div>
                                         <span class="db-meta-status" id="db-query-status">Pronto para consulta</span>
                                     </div>
-                                    <div class="db-results-container" id="db-results-table-container">
+                                    
+                                    <!-- SQL Query Results -->
+                                    <div class="db-results-container" id="db-results-table-container" style="flex: 1; overflow-y: auto;">
                                         <p class="placeholder-text">Execute uma query SQL acima para exibir os resultados nesta tabela.</p>
+                                    </div>
+
+                                    <!-- Visual Grid Editor -->
+                                    <div class="db-grid-editor-container" id="db-grid-editor-container" style="display: none; flex-direction: column; gap: 12px; flex: 1; min-height: 0;">
+                                        <!-- Toolbar -->
+                                        <div class="db-grid-toolbar" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; padding: 8px 12px; background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color); border-radius: var(--border-radius, 8px);">
+                                            <div style="display: flex; gap: 8px; align-items: center;">
+                                                <span id="grid-table-name-label" style="font-weight: 600; color: var(--color-primary, #6366f1); font-size: 13px;">tabela</span>
+                                                <span style="color: var(--border-color);">|</span>
+                                                <button class="btn btn-primary" id="grid-btn-add" style="padding: 4px 8px; font-size: 11px; height: auto;"><i class="fa-solid fa-plus"></i> Inserir Linha</button>
+                                                <button class="btn btn-secondary" id="grid-btn-delete" style="padding: 4px 8px; font-size: 11px; height: auto; background-color: rgba(239, 68, 68, 0.2); border-color: rgba(239, 68, 68, 0.4); color: #f87171;"><i class="fa-solid fa-trash"></i> Excluir Selecionados</button>
+                                            </div>
+                                            <div style="display: flex; gap: 6px; align-items: center; font-size: 12px;">
+                                                <button class="btn btn-secondary" id="grid-btn-prev" style="padding: 4px 8px; font-size: 11px; height: auto;"><i class="fa-solid fa-chevron-left"></i> Anterior</button>
+                                                <span id="grid-page-info" style="color: var(--text-muted); font-size: 11px;">Página 1</span>
+                                                <button class="btn btn-secondary" id="grid-btn-next" style="padding: 4px 8px; font-size: 11px; height: auto;">Próxima <i class="fa-solid fa-chevron-right"></i></button>
+                                                <span id="grid-total-info" style="color: var(--text-muted); margin-left: 6px; font-size: 11px;">(Total: 0)</span>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Table Wrapper -->
+                                        <div class="db-grid-table-wrapper" style="flex: 1; overflow: auto; border: 1px solid var(--border-color); border-radius: var(--border-radius, 8px); background: rgba(0, 0, 0, 0.1);">
+                                            <table class="db-table db-grid-table" id="db-grid-table" style="width: 100%; border-collapse: collapse; font-family: var(--font-mono); font-size: 12px; text-align: left;">
+                                                <!-- Dynamic headers and body -->
+                                            </table>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -352,7 +418,7 @@
                         <div class="git-status-card card">
                             <div class="card-header">
                                 <h4><i data-lucide="git-branch"></i> Status do Repositório Git</h4>
-                                <button class="btn btn-sm btn-secondary" id="btn-git-status-refresh"><i data-lucide="refresh-cw"></i> Atualizar Status</button>
+                                <button class="btn btn-sm btn-secondary git-icon-action" id="btn-git-status-refresh" type="button" title="Atualizar status" aria-label="Atualizar status"><i data-lucide="refresh-cw"></i></button>
                             </div>
                             <div id="git-status-detail">
                                 <!-- Preenchido via JS -->
@@ -373,20 +439,69 @@
                                     </div>
                                 </div>
                                 <div class="git-deploy-section" id="git-deploy-panel">
-                                    <div class="form-group">
+                                    <div class="git-deploy-field">
                                         <label for="git-commit-msg">Mensagem de Deploy / Commit:</label>
-                                        <input type="text" id="git-commit-msg" class="text-input" placeholder="ex: feat: add dashboard module, fix api endpoint">
+                                        <div class="git-commit-input-shell">
+                                            <input type="text" id="git-commit-msg" class="text-input" placeholder="ex: feat: add dashboard module, fix api endpoint">
+                                            <button class="git-commit-ai-btn" id="btn-git-commit-ai" type="button" title="Gerar mensagem com IA" aria-label="Gerar mensagem com IA">
+                                                <i class="fa-solid fa-wand-magic-sparkles"></i>
+                                            </button>
+                                        </div>
                                     </div>
-                                    <div class="form-group inline-form">
-                                         <select id="git-branch-input" class="select-input" style="flex: 1; min-width: 150px;"></select>
-                                         <button class="btn btn-primary" id="btn-git-deploy"><i data-lucide="rocket"></i> Commitar e Fazer Deploy (Push)</button>
-                                         <button class="btn btn-secondary" id="btn-git-pull"><i data-lucide="cloud-download"></i> Sincronizar (Pull)</button>
+                                    <div class="git-deploy-target-row">
+                                        <div class="git-deploy-branch-field">
+                                            <label>Branch atual:</label>
+                                            <div class="git-branch-select-action-row">
+                                                <span class="git-current-branch-readonly" id="git-current-branch-readonly">-</span>
+                                                <button class="btn btn-secondary git-branch-checkout-inline" id="btn-git-checkout-inline" type="button" title="Checkout branch" aria-label="Checkout branch">
+                                                    <i class="fa-solid fa-right-to-bracket"></i>
+                                                </button>
+                                            </div>
+                                            <span class="git-dev-hint"><i class="fa-solid fa-code-branch"></i> Pull, push e deploy usam a branch atual.</span>
+                                        </div>
+                                        <div class="git-deploy-buttons">
+                                            <button class="btn btn-primary" id="btn-git-deploy"><i data-lucide="rocket"></i> Commitar e Fazer Deploy (Push)</button>
+                                            <button class="btn btn-secondary" id="btn-git-pull"><i data-lucide="cloud-download"></i> Sincronizar (Pull)</button>
+                                        </div>
+                                        <div class="git-advanced-actions" aria-label="Ações avançadas do Git">
+                                            <button class="btn btn-secondary" id="btn-git-push" type="button"><i class="fa-solid fa-cloud-arrow-up"></i> Git push</button>
+                                            <button class="btn btn-secondary" id="btn-git-merge" type="button"><i class="fa-solid fa-code-merge"></i> Git merge</button>
+                                            <button class="btn btn-secondary" id="btn-git-pr" type="button"><i class="fa-solid fa-code-pull-request"></i> Pull Request</button>
+                                            <button class="btn btn-secondary git-danger-action" id="btn-git-abort-merge" type="button"><i class="fa-solid fa-ban"></i> Abort merge</button>
+                                        </div>
                                      </div>
                                 </div>
                             </div>
                         </div>
 
-                        <div class="git-credentials-card card" style="margin-top: 14px;">
+                        <div class="git-conflicts-card card" id="git-conflicts-card" style="display: none;">
+                            <div class="card-header">
+                                <div>
+                                    <h4><i data-lucide="git-merge"></i> Resolução Visual de Conflitos</h4>
+                                    <p class="git-conflicts-subtitle">Resolva blocos conflitantes com atalhos ou edite manualmente antes de concluir o merge.</p>
+                                </div>
+                                <div class="git-conflicts-actions">
+                                    <button class="btn btn-sm btn-secondary" id="btn-git-conflicts-refresh"><i data-lucide="refresh-cw"></i> Atualizar</button>
+                                    <button class="btn btn-sm btn-secondary" id="btn-git-conflicts-abort"><i data-lucide="ban"></i> Abort merge</button>
+                                </div>
+                            </div>
+                            <div class="git-conflicts-layout">
+                                <aside class="git-conflict-files" id="git-conflict-files-list">
+                                    <div class="git-side-empty-state">Nenhum conflito carregado.</div>
+                                </aside>
+                                <section class="git-conflict-editor">
+                                    <div class="git-conflict-editor-header">
+                                        <span id="git-conflict-active-file">Selecione um arquivo em conflito</span>
+                                        <button class="btn btn-sm btn-primary" id="btn-git-conflict-save-file" disabled><i data-lucide="check"></i> Aplicar resoluções</button>
+                                    </div>
+                                    <div class="git-conflict-blocks" id="git-conflict-blocks">
+                                        <div class="git-side-empty-state">Quando um pull ou merge falhar por conflito, os blocos aparecem aqui.</div>
+                                    </div>
+                                </section>
+                            </div>
+                        </div>
+
+                        <div class="git-credentials-card card">
                             <div class="card-header">
                                 <h4><i data-lucide="key-round"></i> Autenticação com Token (Personal Access Token)</h4>
                             </div>
@@ -406,14 +521,43 @@
                             </div>
                         </div>
 
-                        <div class="git-console-card card">
-                            <div class="card-header">
-                                <h4>Console Git Output</h4>
+                        <aside class="git-side-panel card">
+                            <div class="git-side-panel-header">
+                                <div>
+                                    <span class="git-side-eyebrow">Painel Git</span>
+                                    <h4>Console e histórico</h4>
+                                </div>
+                                <button class="btn btn-sm btn-secondary git-icon-action" id="btn-git-graph-refresh" type="button" title="Atualizar graph" aria-label="Atualizar graph"><i class="fa-solid fa-rotate"></i></button>
                             </div>
-                            <div class="terminal-output" id="git-console-output">
-                                <div class="terminal-line system-msg">Log de operações do Git Bridge.</div>
+                            <div class="git-side-panel-tabs" role="tablist" aria-label="Painel lateral Git">
+                                <button type="button" class="git-side-tab active" data-git-side-tab="console" role="tab" aria-selected="true" aria-controls="git-side-console-pane">
+                                    <i class="fa-solid fa-terminal"></i> Console
+                                </button>
+                                <button type="button" class="git-side-tab" data-git-side-tab="graph" role="tab" aria-selected="false" aria-controls="git-graph-panel">
+                                    <i class="fa-solid fa-diagram-project"></i> Git Graph
+                                </button>
+                                <button type="button" class="git-side-tab" data-git-side-tab="files" role="tab" aria-selected="false" aria-controls="git-side-files-pane">
+                                    <i class="fa-solid fa-file-lines"></i> Arquivos
+                                </button>
                             </div>
-                        </div>
+                            <div class="git-side-panel-content">
+                                <section class="git-side-panel-pane active" id="git-side-console-pane" data-git-side-pane="console" role="tabpanel">
+                                    <div class="terminal-output" id="git-console-output">
+                                        <div class="terminal-line system-msg">Log de operações do Git Bridge.</div>
+                                    </div>
+                                </section>
+                                <section class="git-side-panel-pane" id="git-graph-panel" data-git-side-pane="graph" role="tabpanel" hidden>
+                                    <div id="git-graph-container">
+                                        <!-- Árvore de commits renderizada via JS -->
+                                    </div>
+                                </section>
+                                <section class="git-side-panel-pane" id="git-side-files-pane" data-git-side-pane="files" role="tabpanel" hidden>
+                                    <div id="git-changed-files-list" class="git-changed-files-list">
+                                        <div class="git-side-empty-state">Nenhuma alteração carregada ainda.</div>
+                                    </div>
+                                </section>
+                            </div>
+                        </aside>
                     </div>
                 </div>
 
@@ -551,6 +695,16 @@ cloudflared tunnel --url http://localhost:8000</pre>
                                             <button class="btn btn-primary" id="btn-copy-token-settings" style="padding: 6px 12px; font-size: 12px;"><i class="fa-solid fa-copy"></i> Copiar Token</button>
                                         </div>
                                     </li>
+                                    <li style="font-size: 13px; line-height: 1.4;">
+                                        <strong>Configure as Instruções do GPT (GPT Instructions):</strong>
+                                        <p style="margin: 4px 0; color: var(--text-muted);">Copie as instruções abaixo e cole no campo <strong>Instructions</strong> do seu Custom GPT no ChatGPT para guiar a IA de forma segura:</p>
+                                        <div class="generated-command-container" style="background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); padding: 12px; border-radius: 8px; font-family: var(--font-mono); font-size: 11.5px; line-height: 1.4; word-break: break-word; position: relative; margin-top: 8px;">
+                                            <pre id="gpt-custom-instructions-text" style="white-space: pre-wrap; margin: 0; color: var(--text-light); max-height: 150px; overflow-y: auto;">Você é um Agente de Engenharia de Software conectado ao computador local do usuário via GitIDE.
+Antes de realizar qualquer tarefa de leitura, escrita ou execução de comandos, você DEVE verificar se existe o arquivo 'GPT_INSTRUCTIONS.md' na raiz do workspace do projeto atual (usando o endpoint de leitura de arquivos).
+Se o arquivo existir, leia e siga rigorosamente todas as diretrizes, fases de análise e o protocolo de execução contidos nele. Sempre elabore um plano de implementação detalhado em Markdown e aguarde a aprovação do usuário antes de modificar códigos ou rodar deploys.</pre>
+                                            <button type="button" class="btn btn-secondary btn-sm" id="btn-copy-gpt-custom-instructions" style="margin-top: 8px; padding: 6px 12px; font-size: 12px;"><i class="fa-solid fa-copy"></i> Copiar Instruções</button>
+                                        </div>
+                                    </li>
                                 </ol>
                             </div>
                         </div>
@@ -677,6 +831,466 @@ cloudflared tunnel --url http://localhost:8000</pre>
                         </div>
                     </div>
                 </div>
+
+                <!-- TAB: DOCUMENTS -->
+                <div id="tab-documents" class="tab-pane">
+                    <div class="documents-layout">
+                        
+                        <!-- Painel Esquerdo: Lista de Documentos -->
+                        <section class="documents-card documents-list-card card">
+                            
+                            <!-- Header da área de documentos -->
+                            <div class="documents-header">
+                                <div class="documents-heading">
+                                    <div class="documents-icon-box">
+                                        <i class="fa-solid fa-file-word"></i>
+                                    </div>
+                                    <div class="documents-title-copy">
+                                        <h3>Documentação Word</h3>
+                                        <p>Geração e envio de relatórios técnicos (.docx).</p>
+                                    </div>
+                                </div>
+                                <div class="documents-actions">
+                                    <button class="btn btn-secondary btn-sm documents-icon-button" id="btn-refresh-documents" title="Recarregar lista" aria-label="Recarregar lista de documentos"><i class="fa-solid fa-rotate"></i></button>
+                                    <button class="btn btn-secondary btn-sm" id="btn-upload-document"><i class="fa-solid fa-cloud-arrow-up"></i> Upload</button>
+                                    <input type="file" id="input-upload-document" accept=".docx" class="documents-file-input">
+                                    <button class="btn btn-primary btn-sm" id="btn-generate-test-doc"><i class="fa-solid fa-file-circle-plus"></i> Test Doc</button>
+                                </div>
+                            </div>
+                            
+                            <!-- Info banner / Prompt copy helper -->
+                            <div class="documents-prompt-card">
+                                <div class="documents-prompt-copy">
+                                    <i class="fa-solid fa-circle-info"></i>
+                                    <div>
+                                        <p>Instruções para o Custom GPT</p>
+                                        <span>Copie a instrução e cole no ChatGPT para forçá-lo a criar/editar os arquivos Word no GitIDE em vez de responder em texto corrido.</span>
+                                    </div>
+                                </div>
+                                <button type="button" class="btn btn-secondary btn-sm documents-copy-button" id="btn-copy-doc-prompt-instructions">
+                                    <i class="fa-regular fa-copy"></i> Copiar Prompt
+                                </button>
+                            </div>
+
+                            <!-- Listagem de Documentos -->
+                            <div class="documents-table-shell">
+                                <table class="documents-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Nome do Arquivo</th>
+                                            <th>Tamanho</th>
+                                            <th>Ações</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="documents-table-body">
+                                        <!-- Preenchido via JS -->
+                                        <tr class="documents-state-row">
+                                            <td colspan="3">
+                                                <div class="documents-empty-state">
+                                                    <i class="fa-solid fa-folder-open"></i>
+                                                    <span>Nenhum documento Word gerado ainda neste projeto.</span>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </section>
+
+                        <!-- Painel Direito: Visualizador A4 -->
+                        <section class="documents-card documents-preview-card card">
+                            <div class="documents-preview-header">
+                                <h4>
+                                    <i class="fa-solid fa-eye"></i> Prévia do Documento
+                                </h4>
+                                <span id="preview-filename-badge" class="documents-preview-badge badge"></span>
+                            </div>
+                            
+                            <div class="documents-preview-shell">
+                                <!-- Folha A4 Realista -->
+                                <div id="document-preview-sheet" class="documents-preview-sheet">
+                                    <!-- Preenchido dinamicamente -->
+                                </div>
+                                
+                                <div id="document-preview-empty" class="documents-preview-empty">
+                                    <i class="fa-solid fa-file-invoice"></i>
+                                    <span>Selecione um documento na tabela para visualizar a prévia em tempo real.</span>
+                                </div>
+                            </div>
+                        </section>
+
+                    </div>
+                </div>
+
+                <!-- TAB: SPEC-DRIVEN DEVELOPMENT (SDD) -->
+                <div id="tab-sdd" class="tab-pane">
+                    <div class="harness-shell">
+                        <div class="harness-header">
+                            <div>
+                                <span>Harness Engineering</span>
+                                <h3>Projeto, requisitos e execução guiada</h3>
+                            </div>
+                            <div class="harness-top-nav">
+                                <button class="harness-top-tab active" data-harness-panel="harness-charter-panel">
+                                    <i data-lucide="scroll-text"></i> Project Charter / TAP
+                                </button>
+                                <button class="harness-top-tab" data-harness-panel="harness-specs-panel">
+                                    <i data-lucide="file-check"></i> Functional Specs
+                                </button>
+                            </div>
+                        </div>
+
+                        <div id="harness-charter-panel" class="harness-panel active">
+                            <section class="sdd-workspace card harness-charter-card">
+                                <div class="sdd-workspace-header">
+                                    <div class="sdd-active-spec-info">
+                                        <h4>Termo de Abertura do Projeto</h4>
+                                        <span class="badge">project-charter.md</span>
+                                    </div>
+                                    <button class="btn btn-primary btn-sm" id="btn-sdd-save-charter"><i data-lucide="save"></i> Salvar TAP</button>
+                                </div>
+                                <div class="sdd-workspace-body">
+                                    <div class="sdd-stage-grid harness-charter-grid">
+                                        <section class="sdd-stage-main">
+                                            <div class="sdd-stage-title">
+                                                <div>
+                                                    <span>Project Charter / TAP</span>
+                                                    <h5>Documento de abertura e alinhamento do projeto</h5>
+                                                </div>
+                                            </div>
+                                            <textarea id="sdd-charter-editor" class="sdd-doc-editor text-input" placeholder="# Termo de Abertura do Projeto..."></textarea>
+                                        </section>
+                                        <aside class="sdd-stage-aside">
+                                            <h5><i data-lucide="sparkles"></i> Assistente IA</h5>
+                                            <p>Gere o TAP com contexto executivo, escopo, riscos e critérios de sucesso. Depois disso, crie as specs funcionais a partir dele.</p>
+                                            <input type="text" id="sdd-charter-title" class="text-input" placeholder="Nome do projeto">
+                                            <textarea id="sdd-charter-prompt" class="text-input" placeholder="Descreva o produto, objetivo, público, restrições, riscos e resultado esperado..."></textarea>
+                                            <button class="btn btn-primary" id="btn-sdd-generate-charter-ia"><i data-lucide="wand-2"></i> Gerar TAP com IA</button>
+                                        </aside>
+                                    </div>
+                                </div>
+                            </section>
+                        </div>
+
+                        <div id="harness-specs-panel" class="harness-panel">
+                            <div class="sdd-layout">
+                        <!-- Painel Esquerdo: Lista de Especificações -->
+                        <section class="sdd-sidebar card">
+                            <div class="sdd-sidebar-header">
+                                <h4><i data-lucide="file-text"></i> Especificações</h4>
+                                <div style="display: flex; gap: 6px;">
+                                    <button class="btn btn-sm btn-secondary btn-icon-only" id="btn-refresh-sdd-specs" title="Recarregar"><i data-lucide="refresh-cw"></i></button>
+                                    <button class="btn btn-sm btn-primary btn-icon-only" id="btn-new-sdd-spec-manual" title="Nova Manual"><i data-lucide="plus"></i></button>
+                                </div>
+                            </div>
+                            <div class="sdd-sidebar-body">
+                                <div class="specs-list" id="sdd-specs-list">
+                                    <!-- Preenchido via JS -->
+                                    <div class="specs-empty-state">
+                                        <i data-lucide="file-question"></i>
+                                        <span>Nenhuma especificação encontrada. Use o assistente ao lado para gerar ou crie uma manual.</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+
+                        <!-- Painel Direito: Espaço de Trabalho SDD -->
+                        <section class="sdd-workspace card">
+                            <!-- Nav Header da Área de Trabalho -->
+                            <div class="sdd-workspace-header">
+                                <div class="sdd-active-spec-info">
+                                    <h4 id="sdd-active-spec-title">Nenhuma Especificação Selecionada</h4>
+                                    <span id="sdd-active-spec-filename" class="badge" style="display: none;"></span>
+                                </div>
+                                <div class="sdd-workspace-nav" id="sdd-workspace-nav-tabs" style="display: none;">
+                                    <button class="sdd-nav-btn active" data-sdd-tab="sdd-tab-preview"><span>1</span> Specify</button>
+                                    <button class="sdd-nav-btn" data-sdd-tab="sdd-tab-edit"><span>2</span> Design</button>
+                                    <button class="sdd-nav-btn" data-sdd-tab="sdd-tab-checklist"><span>3</span> Task List</button>
+                                    <button class="sdd-nav-btn" data-sdd-tab="sdd-tab-tests"><span>4</span> Execute</button>
+                                </div>
+                            </div>
+
+                            <div class="sdd-workspace-body">
+                                <!-- STEP 1: SPECIFY -->
+                                <div id="sdd-tab-preview" class="sdd-tab-content active">
+                                    <div class="sdd-stage-grid">
+                                        <section class="sdd-stage-main">
+                                            <div class="sdd-stage-title">
+                                                <div>
+                                                    <span>Specify - Especificação</span>
+                                                    <h5>Documentação de negócio e requisitos</h5>
+                                                </div>
+                                                <div class="sdd-stage-actions">
+                                                    <button class="btn btn-secondary btn-sm sdd-danger-action" id="btn-sdd-delete-specify" title="Excluir requisito"><i data-lucide="trash-2"></i></button>
+                                                    <button class="btn btn-primary btn-sm" id="btn-sdd-save-specify"><i data-lucide="save"></i> Salvar</button>
+                                                </div>
+                                            </div>
+                                            <textarea id="sdd-specify-editor" class="sdd-doc-editor text-input" placeholder="# Requisitos de negócio..."></textarea>
+                                        </section>
+                                        <aside class="sdd-stage-aside">
+                                            <h5><i data-lucide="sparkles"></i> Assistente IA</h5>
+                                            <p>Gere ou refine a documentação de negócio. Cada requisito deve ter código único, como <code>REQ-001</code>.</p>
+                                            <input type="text" id="sdd-wizard-title" class="text-input" placeholder="Título da feature">
+                                            <textarea id="sdd-wizard-prompt" class="text-input" placeholder="Descreva regras de negócio, usuários, restrições e requisitos..."></textarea>
+                                            <button class="btn btn-primary" id="btn-sdd-generate-spec-ia"><i data-lucide="sparkles"></i> Gerar Specify com IA</button>
+                                        </aside>
+                                        <div class="sdd-empty-workspace" id="sdd-empty-workspace">
+                                            <i data-lucide="sparkles" style="width: 48px; height: 48px; color: var(--color-primary); opacity: 0.6; margin-bottom: 12px;"></i>
+                                            <h3>Fluxo Spec-Driven Development</h3>
+                                            <p>Crie ou selecione uma feature para conduzir Specify, Design, Tasks e Execute no mesmo artefato Markdown.</p>
+                                            <button class="btn btn-primary" id="btn-switch-to-ia-generator"><i data-lucide="plus-circle"></i> Criar Fluxo com IA</button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- STEP 2: DESIGN -->
+                                <div id="sdd-tab-edit" class="sdd-tab-content">
+                                    <div class="sdd-stage-grid">
+                                        <section class="sdd-stage-main">
+                                            <div class="sdd-stage-title">
+                                                <div>
+                                                    <span>Design - Planejamento</span>
+                                                    <h5>Arquitetura proposta</h5>
+                                                </div>
+                                                <button class="btn btn-primary btn-sm" id="btn-sdd-save-design"><i data-lucide="save"></i> Salvar</button>
+                                            </div>
+                                            <textarea id="sdd-design-editor" class="sdd-doc-editor text-input" placeholder="## Arquitetura proposta..."></textarea>
+                                        </section>
+                                        <aside class="sdd-stage-aside">
+                                            <h5><i data-lucide="sparkles"></i> Assistente IA</h5>
+                                            <p>A IA deve ler sempre o Specify/requisito e propor arquitetura, componentes, dados, integrações e contratos técnicos.</p>
+                                            <textarea id="sdd-design-ai-prompt" class="text-input" placeholder="Ex: proponha a arquitetura para os requisitos REQ-001 a REQ-004..."></textarea>
+                                            <button class="btn btn-primary" id="btn-sdd-design-ai"><i data-lucide="wand-2"></i> Preparar Prompt de Design</button>
+                                        </aside>
+                                    </div>
+                                </div>
+
+                                <input type="hidden" id="sdd-edit-filename">
+                                <textarea id="sdd-spec-editor-textarea" style="display:none;"></textarea>
+                                <button id="btn-sdd-save" style="display:none;" type="button"></button>
+                                <button id="btn-sdd-delete" style="display:none;" type="button"></button>
+
+                                <!-- STEP 3: TASK LIST -->
+                                <div id="sdd-tab-checklist" class="sdd-tab-content">
+                                    <div class="sdd-checklist-wrapper" style="display: flex; flex-direction: column; height: 100%; gap: 16px;">
+                                        <div class="sdd-checklist-header">
+                                            <div style="display: flex; flex-direction: column;">
+                                                <h5>Task List - Tarefas</h5>
+                                                <p style="font-size: 12px; color: var(--text-muted); margin: 0;">Quebre o plano em tarefas pequenas. Use o seletor para mandar uma task para Execute.</p>
+                                            </div>
+                                            <div class="sdd-checklist-progress">
+                                                <span id="sdd-checklist-progress-text">0/0 concluídos</span>
+                                                <div class="sdd-progress-bar"><div id="sdd-progress-fill" style="width: 0%;"></div></div>
+                                            </div>
+                                        </div>
+                                        <div class="sdd-checklist-body" id="sdd-criteria-checklist-container">
+                                            <!-- Checkboxes inseridos via JS -->
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- STEP 4: EXECUTE -->
+                                <div id="sdd-tab-tests" class="sdd-tab-content">
+                                    <div class="sdd-execute-grid">
+                                        <section class="sdd-stage-main">
+                                            <div class="sdd-stage-title">
+                                                <div>
+                                                    <span>Execute - Implementação</span>
+                                                    <h5>Tarefa pronta para agente/programador</h5>
+                                                </div>
+                                            </div>
+                                            <textarea id="sdd-execute-instructions" class="sdd-doc-editor text-input" placeholder="Selecione uma tarefa como Executar na aba Task List."></textarea>
+                                        </section>
+                                        <aside class="sdd-stage-aside">
+                                            <h5><i data-lucide="badge-check"></i> Validação</h5>
+                                            <p>Gere testes contra a especificação e a tarefa selecionada.</p>
+                                            <div class="form-group">
+                                                <label for="sdd-test-framework">Framework de Teste:</label>
+                                                <select id="sdd-test-framework" class="select-input">
+                                                    <option value="pytest">Pytest (Python)</option>
+                                                    <option value="jest">Jest (JavaScript / TypeScript)</option>
+                                                    <option value="phpunit">PHPUnit (PHP)</option>
+                                                    <option value="mocha">Mocha / Chai (Node.js)</option>
+                                                </select>
+                                            </div>
+                                            <button class="btn btn-primary" id="btn-sdd-generate-tests"><i data-lucide="play-circle"></i> Gerar Testes com IA</button>
+                                        </aside>
+                                        <div id="sdd-test-result-panel" class="sdd-test-result" style="display: none;">
+                                            <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-bottom:1px solid var(--flat-border-soft);">
+                                                <span style="font-size: 12px; font-family: var(--font-mono); color: #10b981;" id="sdd-test-result-filepath"></span>
+                                                <button class="btn-icon-copy" id="btn-copy-sdd-test-code" title="Copiar Código"><i data-lucide="copy"></i></button>
+                                            </div>
+                                            <pre style="flex: 1; overflow: auto; padding: 14px; font-family: var(--font-mono); font-size: 12px; line-height: 1.5; color: #f8fafc; margin: 0; white-space: pre-wrap;" id="sdd-test-result-code"></pre>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB: OPS INFRA -->
+                <div id="tab-ops-infra" class="tab-pane">
+                    <div class="ops-infra-layout">
+                        <section class="ops-infra-main card">
+                            <div class="card-header">
+                                <div>
+                                    <h4><i data-lucide="server-cog"></i> Ops Infra</h4>
+                                    <p class="ops-infra-subtitle">Fluxo para operar uma VM já criada pelo usuário. O GitIDE recebe o acesso, configura ambiente, proxy, banco e deploy.</p>
+                                </div>
+                                <button class="btn btn-sm btn-secondary git-icon-action" id="btn-ops-detect" type="button" title="Detectar stack" aria-label="Detectar stack"><i data-lucide="scan-search"></i></button>
+                            </div>
+
+                            <div class="ops-flow-tabs" role="tablist" aria-label="Fluxo Ops Infra">
+                                <button type="button" class="ops-flow-tab active" data-ops-flow-tab="vm"><span>1</span> VM / Acesso</button>
+                                <button type="button" class="ops-flow-tab" data-ops-flow-tab="environment"><span>2</span> Ambiente</button>
+                                <button type="button" class="ops-flow-tab" data-ops-flow-tab="domain"><span>3</span> Domínio</button>
+                                <button type="button" class="ops-flow-tab" data-ops-flow-tab="database"><span>4</span> Banco</button>
+                                <button type="button" class="ops-flow-tab" data-ops-flow-tab="deploy"><span>5</span> Deploy</button>
+                                <button type="button" class="ops-flow-tab" data-ops-flow-tab="logs"><span>6</span> Operação</button>
+                            </div>
+
+                            <div class="ops-flow-panel active" data-ops-flow-panel="vm">
+                                <div class="ops-info-band">
+                                    <i data-lucide="info"></i>
+                                    <span>O GitIDE não cria a VM. Crie a máquina no provedor de sua escolha e informe aqui os dados de acesso SSH.</span>
+                                </div>
+                                <div class="ops-infra-field">
+                                    <label for="ops-vm-host">IP ou host da VM</label>
+                                    <input type="text" id="ops-vm-host" class="text-input" placeholder="ex: 203.0.113.10">
+                                </div>
+                                <div class="ops-infra-grid compact">
+                                    <div class="ops-infra-field">
+                                        <label for="ops-vm-user">Usuário SSH</label>
+                                        <input type="text" id="ops-vm-user" class="text-input" placeholder="root ou deploy">
+                                    </div>
+                                    <div class="ops-infra-field">
+                                        <label for="ops-vm-port">Porta SSH</label>
+                                        <input type="number" id="ops-vm-port" class="text-input" value="22">
+                                    </div>
+                                </div>
+                                <div class="ops-infra-field">
+                                    <label for="ops-vm-path">Diretório do app na VM</label>
+                                    <input type="text" id="ops-vm-path" class="text-input" placeholder="/opt/apps/meu-app">
+                                </div>
+                                <div class="ops-infra-actions">
+                                    <button class="btn btn-secondary" type="button" disabled><i data-lucide="plug-zap"></i> Testar SSH em breve</button>
+                                </div>
+                            </div>
+
+                            <div class="ops-flow-panel" data-ops-flow-panel="environment">
+                                <div class="ops-infra-grid">
+                                    <div class="ops-infra-field">
+                                        <label for="ops-env-select">Ambiente</label>
+                                        <select id="ops-env-select" class="select-input">
+                                            <option value="prod">prod</option>
+                                            <option value="homolog">homolog</option>
+                                            <option value="dev">dev</option>
+                                        </select>
+                                    </div>
+                                    <div class="ops-infra-field">
+                                        <label for="ops-db-select">Banco</label>
+                                        <select id="ops-db-select" class="select-input">
+                                            <option value="">sem banco</option>
+                                            <option value="postgres">Postgres</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="ops-infra-actions">
+                                    <button class="btn btn-secondary" id="btn-ops-plan"><i data-lucide="sparkles"></i> Gerar plano com IA</button>
+                                    <button class="btn btn-primary" id="btn-ops-artifacts"><i data-lucide="file-plus-2"></i> Gerar arquivos</button>
+                                </div>
+                                <div class="ops-env-card">
+                                    <div class="ops-env-header">
+                                        <div>
+                                            <h5><i data-lucide="key-round"></i> Variáveis e secrets do ambiente</h5>
+                                            <p>Secrets são armazenados criptografados e mascarados na interface. A IA pode validar o `.env` antes do deploy.</p>
+                                        </div>
+                                        <div class="ops-env-actions">
+                                            <button class="btn btn-secondary" id="btn-ops-env-add"><i data-lucide="plus"></i> Variável</button>
+                                            <button class="btn btn-secondary" id="btn-ops-env-validate"><i data-lucide="shield-check"></i> Validar .env</button>
+                                            <button class="btn btn-primary" id="btn-ops-env-save"><i data-lucide="save"></i> Salvar ambiente</button>
+                                        </div>
+                                    </div>
+                                    <div class="ops-env-list" id="ops-env-list"></div>
+                                    <div class="ops-env-validation" id="ops-env-validation">
+                                        <span class="ops-muted">A validação do .env aparecerá aqui.</span>
+                                    </div>
+                                </div>
+                                <div class="ops-infra-detected" id="ops-detected-card">
+                                    <span class="ops-muted">Stack ainda não detectada.</span>
+                                </div>
+                                <div class="ops-infra-plan" id="ops-plan-output">
+                                    <span class="ops-muted">O plano de deploy aparecerá aqui.</span>
+                                </div>
+                            </div>
+
+                            <div class="ops-flow-panel" data-ops-flow-panel="domain">
+                                <div class="ops-infra-field">
+                                    <label for="ops-domain-input">Domínio</label>
+                                    <input type="text" id="ops-domain-input" class="text-input" placeholder="app.seudominio.com">
+                                </div>
+                                <div class="ops-caddy-header">
+                                    <div>
+                                        <h5><i data-lucide="globe-2"></i> Domínio com Caddy</h5>
+                                        <p>Gere o proxy reverso com SSL automático para o domínio informado.</p>
+                                    </div>
+                                    <div class="ops-caddy-actions">
+                                        <button class="btn btn-secondary" id="btn-ops-caddy-preview"><i data-lucide="eye"></i> Prévia</button>
+                                        <button class="btn btn-primary" id="btn-ops-caddy-apply"><i data-lucide="check"></i> Aplicar Caddyfile</button>
+                                    </div>
+                                </div>
+                                <div class="ops-caddy-preview" id="ops-caddy-output">
+                                    <span class="ops-muted">Informe um domínio e clique em Prévia.</span>
+                                </div>
+                            </div>
+
+                            <div class="ops-flow-panel" data-ops-flow-panel="database">
+                                <div class="ops-info-band">
+                                    <i data-lucide="database"></i>
+                                    <span>Nesta etapa, o GitIDE prepara o serviço de banco no Docker Compose. A criação em produção depende do deploy na VM.</span>
+                                </div>
+                                <div class="ops-infra-field">
+                                    <label for="ops-db-select-mirror">Banco selecionado</label>
+                                    <input type="text" id="ops-db-select-mirror" class="text-input" value="Use o campo Banco na aba Ambiente" readonly>
+                                </div>
+                            </div>
+
+                            <div class="ops-flow-panel" data-ops-flow-panel="deploy">
+                                <div class="ops-info-band">
+                                    <i data-lucide="rocket"></i>
+                                    <span>Gere os arquivos, envie o projeto para a VM e execute o deploy via Docker Compose.</span>
+                                </div>
+                                <div class="ops-infra-actions">
+                                    <button class="btn btn-primary" id="btn-ops-artifacts-deploy"><i data-lucide="file-plus-2"></i> Gerar arquivos de deploy</button>
+                                </div>
+                            </div>
+
+                            <div class="ops-flow-panel" data-ops-flow-panel="logs">
+                                <div class="ops-info-band">
+                                    <i data-lucide="activity"></i>
+                                    <span>Use os comandos de operação ao lado para acompanhar containers, logs e reinícios.</span>
+                                </div>
+                            </div>
+                        </section>
+                        <aside class="ops-infra-side card">
+                            <div class="card-header">
+                                <h4><i data-lucide="terminal"></i> Deploy local</h4>
+                            </div>
+                            <div class="ops-command-grid">
+                                <button class="btn btn-secondary" data-ops-command="build">Build</button>
+                                <button class="btn btn-secondary" data-ops-command="up">Up -d</button>
+                                <button class="btn btn-secondary" data-ops-command="restart">Restart</button>
+                                <button class="btn btn-secondary" data-ops-command="ps">Status</button>
+                                <button class="btn btn-secondary" data-ops-command="logs">Logs</button>
+                                <button class="btn btn-secondary git-danger-action" data-ops-command="down">Down</button>
+                            </div>
+                            <pre class="ops-infra-console" id="ops-console-output">Aguardando ação...</pre>
+                        </aside>
+                    </div>
+                </div>
             </main>
         </div>
     </div>
@@ -739,6 +1353,18 @@ cloudflared tunnel --url http://localhost:8000</pre>
                             <div class="github-auth-status" id="github-auth-status">
                                 Waiting for user authorization...
                             </div>
+                        </div>
+
+                        <!-- SEÇÃO DE LOGIN ALTERNATIVO VIA PAT -->
+                        <div class="github-pat-section" style="margin-top: 24px; border-top: 1px dashed var(--border-color); padding-top: 16px;">
+                            <h6 style="margin: 0 0 8px 0; font-size: 12px; font-weight: 500; color: var(--text-light);">Ou use um Personal Access Token (PAT):</h6>
+                            <div style="display: flex; gap: 8px;">
+                                <input type="password" id="github-pat-input" class="text-input" placeholder="ghp_... ou github_pat_..." style="flex: 1; font-size: 12px; padding: 8px 10px; border-radius: 6px;">
+                                <button type="button" class="btn btn-primary" id="btn-save-github-pat" style="padding: 8px 12px; font-size: 12px; font-weight: 500; white-space: nowrap; border-radius: 6px;"><i class="fa-solid fa-key"></i> Conectar PAT</button>
+                            </div>
+                            <p style="margin: 6px 0 0 0; font-size: 11px; color: var(--text-muted); line-height: 1.4;">
+                                Necessário se sua conta possuir restrições para autorizar o App OAuth. Gere um token com permissão de <strong>repo</strong> em <a href="https://github.com/settings/tokens" target="_blank" style="color: var(--color-primary); text-decoration: none; font-weight: 500;">Configurações do GitHub</a>.
+                            </p>
                         </div>
                     </div>
 
@@ -829,6 +1455,13 @@ cloudflared tunnel --url http://localhost:8000</pre>
                     <div id="dir-browser-drives" style="display: flex; gap: 6px;"></div>
                     <div id="dir-browser-breadcrumbs" style="display: flex; gap: 4px; font-size: 13px; color: var(--text-muted); align-items: center; overflow-x: auto; white-space: nowrap; flex: 1;"></div>
                 </div>
+                <!-- Create Folder Section -->
+                <div class="dir-browser-create-folder" style="display: flex; gap: 8px; align-items: center; margin-top: 4px; margin-bottom: 4px; flex-shrink: 0;">
+                    <input type="text" id="dir-browser-new-folder-name" class="text-input" placeholder="Criar nova pasta..." style="flex: 1; padding: 6px 10px; font-size: 13px; height: 32px !important; min-height: 32px !important; line-height: 20px;">
+                    <button type="button" class="btn btn-sm btn-secondary" id="btn-dir-browser-create-folder" style="padding: 6px 12px; font-size: 13px; height: 32px !important; min-height: 32px !important; display: flex; align-items: center; gap: 6px; white-space: nowrap;">
+                        <i class="fa-solid fa-folder-plus"></i> Criar Pasta
+                    </button>
+                </div>
                 <!-- Directories List -->
                 <div id="dir-browser-list" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; min-height: 200px; background: rgba(0,0,0,0.2); padding: 8px; border-radius: 8px; border: 1px solid var(--border-color);">
                     <!-- Preenchido via JS -->
@@ -846,18 +1479,52 @@ cloudflared tunnel --url http://localhost:8000</pre>
     </div>
 
     <!-- MODAL: CONFIRM DIALOG -->
-    <div class="modal-backdrop" id="modal-confirm">
-        <div class="modal-card" style="max-width: 450px;">
-            <div class="modal-header">
-                <h3 id="confirm-title">Confirmar Ação</h3>
+    <div class="modal-backdrop gitide-notification-backdrop" id="modal-confirm">
+        <div class="modal-card gitide-notification-card">
+            <div class="gitide-notification-header">
+                <div class="gitide-notification-icon" id="confirm-icon"><i data-lucide="info"></i></div>
+                <div>
+                    <h3 id="confirm-title">Confirmar Ação</h3>
+                    <p id="confirm-kicker">GitIDE</p>
+                </div>
                 <button class="btn-icon confirm-close"><i class="fa-solid fa-xmark"></i></button>
             </div>
-            <div class="modal-body">
-                <p id="confirm-message" style="font-size: 14px; color: var(--text-muted); line-height: 1.6;"></p>
+            <div class="gitide-notification-body">
+                <p id="confirm-message"></p>
             </div>
-            <div class="modal-footer">
+            <div class="gitide-notification-footer">
                 <button type="button" class="btn btn-secondary confirm-close" id="btn-confirm-cancel">Cancelar</button>
                 <button type="button" class="btn btn-primary" id="btn-confirm-ok">Confirmar</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="gitide-toast-viewport" id="gitide-toast-viewport" aria-live="polite" aria-atomic="true"></div>
+
+    <!-- MODAL: NEW REQUIREMENT -->
+    <div class="modal-backdrop" id="modal-sdd-new-requirement">
+        <div class="modal-card" style="max-width: 520px;">
+            <div class="modal-header">
+                <h3>Novo Requisito</h3>
+                <button class="btn-icon sdd-requirement-close"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body" style="padding: 20px; display: flex; flex-direction: column; gap: 14px;">
+                <div class="form-group">
+                    <label for="sdd-new-requirement-id">ID Único</label>
+                    <input type="text" id="sdd-new-requirement-id" class="text-input" readonly>
+                </div>
+                <div class="form-group">
+                    <label for="sdd-new-requirement-title">Título / Resumo</label>
+                    <input type="text" id="sdd-new-requirement-title" class="text-input" placeholder="Ex: Exportação do extrato financeiro em PDF">
+                </div>
+                <div class="form-group">
+                    <label for="sdd-new-requirement-author">Autor / Responsável</label>
+                    <input type="text" id="sdd-new-requirement-author" class="text-input" placeholder="Ex: Augusto / Squad Produto">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary sdd-requirement-close">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="btn-sdd-create-requirement"><i data-lucide="plus"></i> Criar Requisito</button>
             </div>
         </div>
     </div>
@@ -869,9 +1536,23 @@ cloudflared tunnel --url http://localhost:8000</pre>
                 <h3>Mesclar Branch (Git Merge)</h3>
                 <button class="btn-icon modal-close merge-close"><i class="fa-solid fa-xmark"></i></button>
             </div>
-            <div class="modal-body" style="padding: 20px; display: flex; flex-direction: column; gap: 14px;">
-                <p style="font-size: 13px; color: var(--text-muted); margin: 0;">Selecione a branch que deseja mesclar na branch ativa (<strong id="merge-current-branch-name">...</strong>):</p>
-                <div class="form-group" style="display: flex; flex-direction: column; gap: 6px;">
+            <div class="modal-body git-merge-modal-body">
+                <p class="git-merge-helper">Escolha qual branch vai entrar na branch atual. O destino não muda.</p>
+                <div class="git-merge-flow-preview" aria-live="polite">
+                    <div class="git-merge-flow-node">
+                        <span class="git-merge-flow-label">Origem</span>
+                        <strong id="merge-source-branch-name">...</strong>
+                    </div>
+                    <div class="git-merge-flow-arrow" aria-hidden="true">
+                        <i class="fa-solid fa-arrow-right-long"></i>
+                    </div>
+                    <div class="git-merge-flow-node is-target">
+                        <span class="git-merge-flow-label">Destino atual</span>
+                        <strong id="merge-current-branch-name">...</strong>
+                    </div>
+                </div>
+                <p class="git-merge-plain-text"><strong id="merge-source-inline">...</strong> será mesclada dentro de <strong id="merge-target-inline">...</strong>.</p>
+                <div class="form-group git-merge-source-field">
                     <label for="merge-branch-selector">Branch de origem:</label>
                     <select id="merge-branch-selector" class="select-input">
                         <option value="">Carregando branches...</option>
@@ -1054,6 +1735,7 @@ cloudflared tunnel --url http://localhost:8000</pre>
     </div>
 
     <!-- Custom JavaScript -->
-    <script src="/static/app.js?v=12"></script>
+    <script src="/static/app.js?v=30"></script>
+    <script src="/static/theme-toggle.js?v=1"></script>
 </body>
 </html>

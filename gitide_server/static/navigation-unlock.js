@@ -12,6 +12,18 @@
 
     const noProjectState = document.getElementById('no-project-state');
     if (noProjectState) noProjectState.classList.remove('active');
+
+    // Persist active tab and load its data
+    if (typeof state !== 'undefined') {
+      state.activeTab = tabId;
+      localStorage.setItem('gitide_active_tab', tabId);
+      
+      if (state.activeProjectId && typeof window.switchTab === 'function') {
+        window.switchTab(tabId);
+      }
+    } else if (typeof window.switchTab === 'function') {
+      window.switchTab(tabId);
+    }
   }
 
   function handleNavClick(event) {

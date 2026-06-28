@@ -38,6 +38,21 @@ def update_remote_url_with_token(repo: Repo):
         url = origin.url
         token = get_github_token()
         if token and ("github.com" in url):
+            # Detecta se a URL já possui credenciais configuradas
+            has_credentials = False
+            current_token = ""
+            if "@" in url:
+                prefix = "https://" if url.startswith("https://") else "http://"
+                remainder = url[len(prefix):]
+                if "@" in remainder:
+                    has_credentials = True
+                    current_token = remainder.split("@", 1)[0]
+            
+            # Se já possui credenciais e elas não foram geradas pelo OAuth do GitIDE (não começam com gho_),
+            # não sobrescrevemos para respeitar a configuração manual do usuário (PAT ghp_...)
+            if has_credentials and not current_token.startswith("gho_"):
+                return
+                
             auth_url = get_authenticated_git_url(url, token)
             if url != auth_url:
                 origin.set_url(auth_url)
@@ -89,11 +104,13 @@ def clone_git(remote_url: str, target_path: str) -> dict:
         
     os.makedirs(abs_path, exist_ok=True)
     try:
-        repo = Repo.clone_from(remote_url, abs_path)
+        token = get_github_token()
+        auth_url = get_authenticated_git_url(remote_url, token)
+        repo = Repo.clone_from(auth_url, abs_path)
         return {
             "status": "success",
             "action": "cloned",
-            "current_branch": repo.active_branch.name,
+            "current_branch": repo.active_branch.name if not repo.head.is_detached else "DETACHED",
             "commit": repo.head.commit.hexsha
         }
     except GitCommandError as e:
@@ -128,6 +145,7 @@ def get_git_status(project_path: str) -> dict:
         modified = [item.a_path for item in repo.index.diff(None) if item.change_type == 'M']
         deleted = [item.a_path for item in repo.index.diff(None) if item.change_type == 'D']
         staged = [item.a_path for item in repo.index.diff("HEAD")]
+        conflicted = sorted([item[0] for item in repo.index.unmerged_blobs().items()])
         
         # Busca a branch ativa
         try:
@@ -143,7 +161,9 @@ def get_git_status(project_path: str) -> dict:
             "modified": modified,
             "deleted": deleted,
             "staged": staged,
-            "is_clean": not any([untracked, modified, deleted, staged]),
+            "conflicted": conflicted,
+            "has_conflicts": bool(conflicted),
+            "is_clean": not any([untracked, modified, deleted, staged, conflicted]),
             "remote_url": remote_url
         }
     except ValueError:
@@ -167,6 +187,85 @@ def get_git_status(project_path: str) -> dict:
             "deleted": [],
             "staged": []
         }
+
+def get_git_graph(project_path: str) -> dict:
+    """Retorna a árvore genealógica de commits formatada como um gráfico de texto."""
+    try:
+        repo = get_repo(project_path)
+        # Verifica se o repositório é vazio
+        if len(repo.refs) == 0 or not repo.head.is_valid():
+            return {
+                "is_git": True,
+                "is_empty": True,
+                "graph": []
+            }
+            
+        # Executa git log --graph
+        log_output = repo.git.log(
+            "--graph",
+            "--abbrev-commit",
+            "--decorate",
+            "--date=relative",
+            '--format=format:%h - %s (%cr) <%an>%d',
+            "--all",
+            "-n", "100"
+        )
+        
+        lines = log_output.split('\n')
+        return {
+            "is_git": True,
+            "is_empty": False,
+            "graph": lines
+        }
+    except ValueError:
+        return {
+            "is_git": False,
+            "is_empty": False,
+            "graph": []
+        }
+    except Exception as e:
+        return {
+            "is_git": True,
+            "error": str(e),
+            "graph": []
+        }
+
+def get_commit_context(project_path: str) -> dict:
+    """Retorna um resumo das alterações atuais para geração de mensagem de commit."""
+    repo = get_repo(project_path)
+    try:
+        branch = repo.active_branch.name
+    except TypeError:
+        branch = "DETACHED HEAD"
+
+    staged_files = [item.a_path for item in repo.index.diff("HEAD")]
+    modified_files = [item.a_path for item in repo.index.diff(None)]
+    untracked_files = repo.untracked_files
+    deleted_files = [item.a_path for item in repo.index.diff(None) if item.change_type == 'D']
+
+    name_status = repo.git.diff("--name-status", "HEAD") if repo.head.is_valid() else ""
+    diff_stat = repo.git.diff("--stat", "HEAD") if repo.head.is_valid() else ""
+    staged_diff = repo.git.diff("--cached", "--", ".") if repo.head.is_valid() else ""
+    unstaged_diff = repo.git.diff("--", ".")
+    diff_text = "\n".join(part for part in [staged_diff, unstaged_diff] if part).strip()
+
+    # Evita payload enorme para a LLM; nomes de arquivos já carregam boa parte do contexto.
+    max_diff_chars = 12000
+    if len(diff_text) > max_diff_chars:
+        diff_text = diff_text[:max_diff_chars] + "\n\n[diff truncado]"
+
+    return {
+        "status": "success",
+        "branch": branch,
+        "staged": staged_files,
+        "modified": modified_files,
+        "deleted": deleted_files,
+        "untracked": untracked_files,
+        "name_status": name_status,
+        "diff_stat": diff_stat,
+        "diff": diff_text,
+        "has_changes": bool(staged_files or modified_files or deleted_files or untracked_files)
+    }
 
 def deploy_git(project_path: str, commit_message: str, branch: str = None) -> dict:
     """
@@ -246,27 +345,29 @@ def pull_git(project_path: str, branch: str = None) -> dict:
         # Atualiza a URL com o token caso necessário
         update_remote_url_with_token(repo)
         
-        origin = repo.remote(name="origin")
-        pull_info = origin.pull(refspec=f"{branch}")
+        # Git 2.27+ can refuse pulls on divergent branches unless the strategy is
+        # explicit. The GitIDE "Sincronizar" action uses merge semantics.
+        output = repo.git.pull("--no-rebase", "origin", branch)
         return {
             "status": "success",
             "action": "pull",
-            "details": [str(info) for info in pull_info]
+            "details": output.splitlines() or ["Already up to date."]
         }
     except GitCommandError as e:
         raise RuntimeError(f"Falha ao rodar git pull: {e.stderr or str(e)}")
 
-def list_branches(project_path: str) -> dict:
+def list_branches(project_path: str, force_fetch: bool = False) -> dict:
     """Retorna uma lista de todas as branches locais e remotas."""
     repo = get_repo(project_path)
     
-    # Tenta fazer o fetch para atualizar a lista de branches do servidor remoto
-    try:
-        update_remote_url_with_token(repo)
-        if len(repo.remotes) > 0:
-            repo.remotes.origin.fetch()
-    except Exception:
-        pass
+    # Tenta fazer o fetch para atualizar a lista de branches do servidor remoto apenas se solicitado
+    if force_fetch:
+        try:
+            update_remote_url_with_token(repo)
+            if len(repo.remotes) > 0:
+                repo.remotes.origin.fetch()
+        except Exception:
+            pass
         
     try:
         current_branch = repo.active_branch.name if not repo.head.is_detached else "DETACHED"
@@ -382,6 +483,123 @@ def abort_merge(project_path: str) -> dict:
     except Exception as e:
         raise RuntimeError(f"Erro ao abortar mesclagem: {str(e)}")
 
+def _safe_project_path(project_path: str, filepath: str) -> str:
+    if os.path.isabs(filepath) or ".." in filepath.replace("\\", "/").split("/"):
+        raise ValueError("Caminho de arquivo inválido.")
+    root = os.path.abspath(project_path)
+    full_path = os.path.abspath(os.path.join(root, filepath))
+    if not full_path.startswith(root):
+        raise ValueError("Caminho de arquivo fora do projeto.")
+    return full_path
+
+def parse_conflict_blocks(content: str) -> list:
+    lines = content.splitlines(keepends=True)
+    blocks = []
+    i = 0
+    while i < len(lines):
+        if lines[i].startswith("<<<<<<< "):
+            start = i
+            ours_label = lines[i].strip().replace("<<<<<<<", "").strip() or "ours"
+            i += 1
+            ours_start = i
+            while i < len(lines) and not lines[i].startswith("======="):
+                i += 1
+            if i >= len(lines):
+                break
+            separator = i
+            i += 1
+            theirs_start = i
+            while i < len(lines) and not lines[i].startswith(">>>>>>> "):
+                i += 1
+            if i >= len(lines):
+                break
+            end = i
+            theirs_label = lines[i].strip().replace(">>>>>>>", "").strip() or "theirs"
+            blocks.append({
+                "index": len(blocks),
+                "start_line": start + 1,
+                "end_line": end + 1,
+                "ours_label": ours_label,
+                "theirs_label": theirs_label,
+                "ours": "".join(lines[ours_start:separator]),
+                "theirs": "".join(lines[theirs_start:end]),
+                "raw": "".join(lines[start:end + 1])
+            })
+        i += 1
+    return blocks
+
+def list_conflicts(project_path: str) -> dict:
+    repo = get_repo(project_path)
+    files = sorted([item[0] for item in repo.index.unmerged_blobs().items()])
+    result = []
+    for filepath in files:
+        full_path = _safe_project_path(project_path, filepath)
+        try:
+            with open(full_path, "r", encoding="utf-8") as f:
+                content = f.read()
+        except UnicodeDecodeError:
+            with open(full_path, "r", encoding="latin-1") as f:
+                content = f.read()
+        blocks = parse_conflict_blocks(content)
+        result.append({
+            "filepath": filepath,
+            "blocks_count": len(blocks),
+            "blocks": blocks
+        })
+    return {"status": "success", "files": result}
+
+def get_conflict_file(project_path: str, filepath: str) -> dict:
+    full_path = _safe_project_path(project_path, filepath)
+    try:
+        with open(full_path, "r", encoding="utf-8") as f:
+            content = f.read()
+    except UnicodeDecodeError:
+        with open(full_path, "r", encoding="latin-1") as f:
+            content = f.read()
+    return {
+        "status": "success",
+        "filepath": filepath,
+        "content": content,
+        "blocks": parse_conflict_blocks(content)
+    }
+
+def resolve_conflict_file(project_path: str, filepath: str, resolutions: list, stage_file: bool = True) -> dict:
+    repo = get_repo(project_path)
+    full_path = _safe_project_path(project_path, filepath)
+    with open(full_path, "r", encoding="utf-8") as f:
+        content = f.read()
+
+    blocks = parse_conflict_blocks(content)
+    resolution_map = {item["index"]: item for item in resolutions}
+    for block in reversed(blocks):
+        if block["index"] not in resolution_map:
+            continue
+        resolution = resolution_map[block["index"]]
+        mode = resolution.get("resolution")
+        if mode == "ours":
+            replacement = block["ours"]
+        elif mode == "theirs":
+            replacement = block["theirs"]
+        elif mode == "manual":
+            replacement = resolution.get("content") or ""
+        else:
+            raise ValueError(f"Resolução inválida para bloco {block['index']}: {mode}")
+        content = content.replace(block["raw"], replacement, 1)
+
+    remaining = parse_conflict_blocks(content)
+    with open(full_path, "w", encoding="utf-8", newline="") as f:
+        f.write(content)
+
+    if stage_file and not remaining:
+        repo.git.add(filepath)
+
+    return {
+        "status": "success",
+        "filepath": filepath,
+        "remaining_blocks": len(remaining),
+        "staged": stage_file and not remaining
+    }
+
 def set_remote_token(project_path: str, token: str) -> dict:
     """Configura o Personal Access Token (PAT) na URL de origin do Git."""
     repo = get_repo(project_path)
@@ -401,7 +619,5 @@ def set_remote_token(project_path: str, token: str) -> dict:
         }
     except Exception as e:
         raise RuntimeError(f"Erro ao configurar token: {str(e)}")
-
-
 
 
