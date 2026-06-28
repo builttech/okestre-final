@@ -96,7 +96,7 @@
                         <i data-lucide="file-text"></i> Documentos (Word)
                     </button>
                     <button class="nav-item" data-tab="tab-sdd">
-                        <i data-lucide="file-check"></i> Especificações (SDD)
+                        <i data-lucide="file-check"></i> Harness Engineering
                     </button>
                     <button class="nav-item" data-tab="tab-ops-infra">
                         <i data-lucide="server-cog"></i> Ops Infra
@@ -924,7 +924,56 @@ Se o arquivo existir, leia e siga rigorosamente todas as diretrizes, fases de an
 
                 <!-- TAB: SPEC-DRIVEN DEVELOPMENT (SDD) -->
                 <div id="tab-sdd" class="tab-pane">
-                    <div class="sdd-layout">
+                    <div class="harness-shell">
+                        <div class="harness-header">
+                            <div>
+                                <span>Harness Engineering</span>
+                                <h3>Projeto, requisitos e execução guiada</h3>
+                            </div>
+                            <div class="harness-top-nav">
+                                <button class="harness-top-tab active" data-harness-panel="harness-charter-panel">
+                                    <i data-lucide="scroll-text"></i> Project Charter / TAP
+                                </button>
+                                <button class="harness-top-tab" data-harness-panel="harness-specs-panel">
+                                    <i data-lucide="file-check"></i> Functional Specs
+                                </button>
+                            </div>
+                        </div>
+
+                        <div id="harness-charter-panel" class="harness-panel active">
+                            <section class="sdd-workspace card harness-charter-card">
+                                <div class="sdd-workspace-header">
+                                    <div class="sdd-active-spec-info">
+                                        <h4>Termo de Abertura do Projeto</h4>
+                                        <span class="badge">project-charter.md</span>
+                                    </div>
+                                    <button class="btn btn-primary btn-sm" id="btn-sdd-save-charter"><i data-lucide="save"></i> Salvar TAP</button>
+                                </div>
+                                <div class="sdd-workspace-body">
+                                    <div class="sdd-stage-grid harness-charter-grid">
+                                        <section class="sdd-stage-main">
+                                            <div class="sdd-stage-title">
+                                                <div>
+                                                    <span>Project Charter / TAP</span>
+                                                    <h5>Documento de abertura e alinhamento do projeto</h5>
+                                                </div>
+                                            </div>
+                                            <textarea id="sdd-charter-editor" class="sdd-doc-editor text-input" placeholder="# Termo de Abertura do Projeto..."></textarea>
+                                        </section>
+                                        <aside class="sdd-stage-aside">
+                                            <h5><i data-lucide="sparkles"></i> Assistente IA</h5>
+                                            <p>Gere o TAP com contexto executivo, escopo, riscos e critérios de sucesso. Depois disso, crie as specs funcionais a partir dele.</p>
+                                            <input type="text" id="sdd-charter-title" class="text-input" placeholder="Nome do projeto">
+                                            <textarea id="sdd-charter-prompt" class="text-input" placeholder="Descreva o produto, objetivo, público, restrições, riscos e resultado esperado..."></textarea>
+                                            <button class="btn btn-primary" id="btn-sdd-generate-charter-ia"><i data-lucide="wand-2"></i> Gerar TAP com IA</button>
+                                        </aside>
+                                    </div>
+                                </div>
+                            </section>
+                        </div>
+
+                        <div id="harness-specs-panel" class="harness-panel">
+                            <div class="sdd-layout">
                         <!-- Painel Esquerdo: Lista de Especificações -->
                         <section class="sdd-sidebar card">
                             <div class="sdd-sidebar-header">
@@ -1077,6 +1126,8 @@ Se o arquivo existir, leia e siga rigorosamente todas as diretrizes, fases de an
                                 </div>
                             </div>
                         </section>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -1450,6 +1501,34 @@ Se o arquivo existir, leia e siga rigorosamente todas as diretrizes, fases de an
 
     <div class="gitide-toast-viewport" id="gitide-toast-viewport" aria-live="polite" aria-atomic="true"></div>
 
+    <!-- MODAL: NEW REQUIREMENT -->
+    <div class="modal-backdrop" id="modal-sdd-new-requirement">
+        <div class="modal-card" style="max-width: 520px;">
+            <div class="modal-header">
+                <h3>Novo Requisito</h3>
+                <button class="btn-icon sdd-requirement-close"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body" style="padding: 20px; display: flex; flex-direction: column; gap: 14px;">
+                <div class="form-group">
+                    <label for="sdd-new-requirement-id">ID Único</label>
+                    <input type="text" id="sdd-new-requirement-id" class="text-input" readonly>
+                </div>
+                <div class="form-group">
+                    <label for="sdd-new-requirement-title">Título / Resumo</label>
+                    <input type="text" id="sdd-new-requirement-title" class="text-input" placeholder="Ex: Exportação do extrato financeiro em PDF">
+                </div>
+                <div class="form-group">
+                    <label for="sdd-new-requirement-author">Autor / Responsável</label>
+                    <input type="text" id="sdd-new-requirement-author" class="text-input" placeholder="Ex: Augusto / Squad Produto">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary sdd-requirement-close">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="btn-sdd-create-requirement"><i data-lucide="plus"></i> Criar Requisito</button>
+            </div>
+        </div>
+    </div>
+
     <!-- MODAL: MERGE BRANCH -->
     <div class="modal-backdrop" id="modal-merge">
         <div class="modal-card" style="max-width: 450px;">
@@ -1656,7 +1735,7 @@ Se o arquivo existir, leia e siga rigorosamente todas as diretrizes, fases de an
     </div>
 
     <!-- Custom JavaScript -->
-    <script src="/static/app.js?v=25"></script>
+    <script src="/static/app.js?v=26"></script>
     <script src="/static/theme-toggle.js?v=1"></script>
 </body>
 </html>
