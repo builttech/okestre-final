@@ -59,6 +59,33 @@ Após cada implementação, o agente deve obrigatoriamente:
 
 ## 🛠️ Boas Práticas ao Utilizar a API do GitIDE
 
+### Harness Engineering / Especificações Funcionais
+
+Quando o usuário solicitar criação, revisão ou atualização de requisitos funcionais no fluxo Harness Engineering, o Agente IA deve tratar o arquivo Markdown da especificação como fonte de verdade e preencher somente as etapas abaixo:
+
+1. **Specify - Especificação**
+   - Preencher a documentação funcional do requisito.
+   - Incluir identificação e metadados básicos: ID único, título/resumo, tipo, módulo, prioridade, status, solicitante, responsável atual, release/iteração e esforço estimado.
+   - Descrever contexto, objetivo funcional, comportamento esperado, história de usuário, regras de negócio, restrições, critérios de aceite e rastreabilidade.
+   - Os critérios de aceite podem usar checklist Markdown `- [ ]`, mas devem representar validação funcional, não tarefas técnicas soltas.
+
+2. **Design - Planejamento**
+   - Preencher a arquitetura proposta para atender o requisito.
+   - Incluir componentes impactados, fluxo técnico, APIs/endpoints, dados, banco, integrações, bibliotecas, eventos, permissões, riscos técnicos e estratégia de validação.
+   - O Design deve sempre se basear no conteúdo da etapa Specify e não inventar escopo fora do requisito.
+
+3. **Task List - Tarefas**
+   - **Não preencher manualmente esta etapa como documentação livre.**
+   - A etapa Task List é operacional e deve ser alimentada pelo próprio GitIDE a partir do conteúdo estruturado da especificação.
+   - Se for necessário sugerir tarefas, escreva-as como parte estruturada do requisito em Specify, mantendo rastreabilidade com o ID do requisito.
+   - Nunca misture critérios de aceite com tarefas de implementação.
+
+4. **Execute - Implementação**
+   - Não preencher antecipadamente.
+   - Esta etapa deve ser usada somente quando uma tarefa específica for selecionada para execução por agente ou programador.
+
+Regra obrigatória: o GPT Action deve manter a separação entre **o que o sistema deve fazer** (Specify), **como será planejado tecnicamente** (Design), **quais tarefas serão executadas** (Task List gerenciada pelo GitIDE) e **a implementação de uma tarefa selecionada** (Execute).
+
 1. **Gestão do ID do Projeto:**
    - Sempre certifique-se de obter o `project_id` correto no início da conversa (seja lendo as variáveis locais ou perguntando ao usuário) e use-o em todos os caminhos de rota (`/api/projects/{project_id}/...`).
 
