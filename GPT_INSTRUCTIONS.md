@@ -25,7 +25,7 @@ graph TD
     A["1. Reconhecimento e Análise"] --> B{"REQ informado?"}
     B -->|"Sim"| C["Ler e atualizar REQ existente"]
     B -->|"Não"| D["Criar novo REQ"]
-    C --> E["Preencher Specify, Design e Task List"]
+    C --> E["Preencher Specify, Design, DRI e Task List"]
     D --> E
     E --> F{"Usuário validou o REQ?"}
     F -->|"Não, ajustar"| C
@@ -43,7 +43,7 @@ graph TD
 ### 1. Reconhecimento e Análise do Contexto
 Antes de propor ou fazer qualquer alteração, o agente deve:
 - **Verificar o REQ de referência:** Identificar se a solicitação do usuário informa um requisito existente (`REQ-xxxx`). Se informar, ler primeiro a especificação correspondente antes de planejar qualquer implementação.
-- **Criar REQ quando não existir:** Se a solicitação não informar um `REQ-xxxx`, o primeiro passo obrigatório é criar e documentar um novo requisito funcional com base na solicitação, preenchendo `Specify - Especificação`, `Design - Planejamento` e a seção `Task List - Tarefas`.
+- **Criar REQ quando não existir:** Se a solicitação não informar um `REQ-xxxx`, o primeiro passo obrigatório é criar e documentar um novo requisito funcional com base na solicitação, preenchendo `Specify - Especificação`, `Design - Planejamento`, `DRI - Documento de Requisito de Interface` quando houver interface, e a seção `Task List - Tarefas`.
 - **Atualizar REQ existente antes de implementar:** Se a solicitação for uma nova funcionalidade, ajuste ou extensão de um requisito já existente, atualizar o REQ com a nova solicitação antes de qualquer alteração de código.
 - **Aguardar validação do REQ:** Após criar ou atualizar o REQ e registrar a task, o agente deve parar e aguardar o usuário validar o requisito. Se o usuário pedir ajustes, o agente deve atualizar o REQ e repetir este ciclo de validação.
 - **Executar somente task escolhida:** A implementação só pode começar quando o usuário informar explicitamente qual task da seção `Task List - Tarefas` deve ser executada. O agente deve executar somente a task escolhida.
@@ -80,6 +80,41 @@ Após cada implementação, o agente deve obrigatoriamente:
 ---
 
 ## 🛠️ Boas Práticas ao Utilizar a API do GitIDE
+
+### Harness Engineering / Especificações Funcionais
+
+Quando o usuário solicitar criação, revisão ou atualização de requisitos funcionais no fluxo Harness Engineering, o Agente IA deve tratar o arquivo Markdown da especificação como fonte de verdade e preencher as etapas nesta ordem:
+
+1. **Specify - Especificação**
+   - Preencher a documentação funcional do requisito.
+   - Incluir identificação e metadados básicos: ID único, título/resumo, tipo, módulo, prioridade, status, solicitante, responsável atual, release/iteração e esforço estimado.
+   - Descrever contexto, objetivo funcional, comportamento esperado, história de usuário, regras de negócio, restrições, critérios de aceite e rastreabilidade.
+   - Os critérios de aceite podem usar checklist Markdown `- [ ]`, mas devem representar validação funcional, não tarefas técnicas soltas.
+
+2. **Design - Planejamento**
+   - Preencher a arquitetura proposta para atender o requisito.
+   - Incluir componentes impactados, fluxo técnico, APIs/endpoints, dados, banco, integrações, bibliotecas, eventos, permissões, riscos técnicos e estratégia de validação.
+   - O Design deve sempre se basear no conteúdo da etapa Specify e não inventar escopo fora do requisito.
+
+3. **DRI - Documento de Requisito de Interface**
+   - Preencher quando o requisito envolver tela, página, modal, drawer, formulário, grid, dashboard, detalhe ou qualquer outra interface de usuário.
+   - O DRI deve ser escrito no próprio arquivo Markdown da Spec, na seção `## 3. DRI - Documento de Requisito de Interface`.
+   - Usar o template RI oficial: identificação da interface, objetivo, contexto de uso, arquitetura da informação, mapa de componentes, regras de exibição, estados, fluxo de interação, mapeamento de dados, hierarquia visual, microcopy, responsividade, acessibilidade, critérios de aceite da interface, lacunas, fora do escopo e evoluções futuras.
+   - O DRI deve sempre se basear no Specify e no Design.
+   - Não colocar tarefas técnicas dentro do DRI.
+
+4. **Task List - Tarefas**
+   - As tarefas devem ser documentadas no próprio arquivo Markdown da Spec, na seção `## 4. Task List - Tarefas`.
+   - A etapa visual Task List do GitIDE apenas lê e exibe os checklists existentes nessa seção.
+   - Sempre que uma solicitação gerar trabalho técnico, adicionar uma task rastreável nessa seção usando o ID do requisito, por exemplo: `- [ ] TASK-REQ-3087-001: Implementar comportamento principal.`
+   - Não colocar tarefas técnicas dentro de Critérios de Aceite, Rastreabilidade, Design ou DRI.
+   - Nunca misturar critérios de aceite com tarefas de implementação.
+
+5. **Execute - Implementação**
+   - Não preencher antecipadamente.
+   - Esta etapa deve ser usada somente quando uma tarefa específica for selecionada para execução por agente ou programador.
+
+Regra obrigatória: o GPT Action deve manter a separação entre **o que o sistema deve fazer** (Specify), **como será planejado tecnicamente** (Design), **como a interface deve se comportar** (DRI), **quais tarefas serão executadas** (Task List gerenciada pelo GitIDE) e **a implementação de uma tarefa selecionada** (Execute).
 
 1. **Gestão do ID do Projeto:**
    - Sempre certifique-se de obter o `project_id` correto no início da conversa (seja lendo as variáveis locais ou perguntando ao usuário) e use-o em todos os caminhos de rota (`/api/projects/{project_id}/...`).
