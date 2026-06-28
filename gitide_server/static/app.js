@@ -7214,7 +7214,7 @@ Como um [tipo de usuário], eu quero [ação/funcionalidade], para que [valor/be
 
 **Links Descendentes (Filhos):**
 
-- As tarefas técnicas ficam exclusivamente na seção **## 3. Task List - Tarefas**.
+- Ver seção **## 3. Task List - Tarefas** deste mesmo arquivo.
 
 **Código e Deploy:**
 
@@ -7266,7 +7266,7 @@ Descreva como o sistema vai operar para atender o requisito ${id}.
 
 ## 3. Task List - Tarefas
 
-> Somente os itens desta seção aparecem na etapa Task List da interface.
+> As tarefas abaixo fazem parte da Spec e são exibidas automaticamente na etapa Task List da interface.
 
 - [ ] TASK-${id}-001: Detalhar implementação técnica do requisito ${id}.
 - [ ] TASK-${id}-002: Implementar comportamento principal.

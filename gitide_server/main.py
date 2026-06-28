@@ -2578,7 +2578,7 @@ def generate_sdd_spec(
         "  Defina como o sistema vai operar: arquitetura proposta, dados, banco, bibliotecas, integrações, APIs, eventos e contratos técnicos.\n"
         "  NÃO gere tarefas nesta seção.\n"
         "- ## 3. Task List - Tarefas\n"
-        "  Esta é a ÚNICA seção que alimenta a etapa Task List da interface.\n"
+        "  Esta seção deve ficar dentro do próprio arquivo Markdown da Spec e alimenta a etapa Task List da interface.\n"
         "  Quebre o plano em tarefas pequenas, executáveis, paralelizáveis e testáveis. Cada tarefa DEVE usar '- [ ] TASK-[REQ_ID]-001: ...'.\n"
         "- ## 4. Execute - Implementação\n"
         "  Defina ordem de execução, validações, comandos de teste sugeridos e critérios para considerar a implementação concluída.\n\n"

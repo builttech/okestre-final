@@ -25,6 +25,11 @@ graph TD
 
 ### 1. Reconhecimento e Análise do Contexto
 Antes de propor ou fazer qualquer alteração, o agente deve:
+- **Verificar o REQ de referência:** Identificar se a solicitação do usuário informa um requisito existente (`REQ-xxxx`). Se informar, ler primeiro a especificação correspondente antes de planejar qualquer implementação.
+- **Criar REQ quando não existir:** Se a solicitação não informar um `REQ-xxxx`, o primeiro passo é criar e documentar um novo requisito funcional com base na solicitação, preenchendo `Specify - Especificação` e `Design - Planejamento` antes de propor implementação.
+- **Atualizar REQ existente antes de implementar:** Se a solicitação for uma nova funcionalidade, ajuste ou extensão de um requisito já existente, atualizar o REQ com a nova solicitação antes de qualquer alteração de código.
+- **Adicionar tarefa rastreável:** Quando a solicitação gerar trabalho técnico, adicionar uma task vinculada ao REQ na seção `Task List - Tarefas`, mantendo o padrão de rastreabilidade do requisito.
+- **Executar somente quando solicitado:** Após atualizar ou criar o REQ e registrar a task, o agente deve aguardar solicitação explícita para executar a implementação, salvo quando o usuário já tiver autorizado claramente a execução.
 - **Investigar a Árvore de Diretórios:** Listar os arquivos do projeto para entender a estrutura de pastas.
 - **Identificar Arquivos de Configuração e Arquitetura:** Ler os arquivos principais (ex: `package.json`, `requirements.txt`, `main.py`, `index.html`, etc.) para entender as dependências e o ecossistema.
 - **Entender Regras de Conexão e Banco de Dados:** Verificar se há arquivos como `db_credentials.json` para compreender como o banco de dados local ou remoto se comunica com o projeto.
@@ -75,10 +80,11 @@ Quando o usuário solicitar criação, revisão ou atualização de requisitos f
    - O Design deve sempre se basear no conteúdo da etapa Specify e não inventar escopo fora do requisito.
 
 3. **Task List - Tarefas**
-   - **Não preencher manualmente esta etapa como documentação livre.**
-   - A etapa Task List é operacional e deve ser alimentada pelo próprio GitIDE a partir do conteúdo estruturado da especificação.
-   - Se for necessário sugerir tarefas, escreva-as como parte estruturada do requisito em Specify, mantendo rastreabilidade com o ID do requisito.
-   - Nunca misture critérios de aceite com tarefas de implementação.
+   - As tarefas devem ser documentadas no próprio arquivo Markdown da Spec, na seção `## 3. Task List - Tarefas`.
+   - A etapa visual Task List do GitIDE apenas lê e exibe os checklists existentes nessa seção.
+   - Sempre que uma solicitação gerar trabalho técnico, adicionar uma task rastreável nessa seção usando o ID do requisito, por exemplo: `- [ ] TASK-REQ-3087-001: Implementar comportamento principal.`
+   - Não colocar tarefas técnicas dentro de Critérios de Aceite, Rastreabilidade ou Design.
+   - Nunca misturar critérios de aceite com tarefas de implementação.
 
 4. **Execute - Implementação**
    - Não preencher antecipadamente.
