@@ -244,6 +244,7 @@ def get_commit_context(project_path: str) -> dict:
     deleted_files = [item.a_path for item in repo.index.diff(None) if item.change_type == 'D']
 
     name_status = repo.git.diff("--name-status", "HEAD") if repo.head.is_valid() else ""
+    diff_stat = repo.git.diff("--stat", "HEAD") if repo.head.is_valid() else ""
     staged_diff = repo.git.diff("--cached", "--", ".") if repo.head.is_valid() else ""
     unstaged_diff = repo.git.diff("--", ".")
     diff_text = "\n".join(part for part in [staged_diff, unstaged_diff] if part).strip()
@@ -261,6 +262,7 @@ def get_commit_context(project_path: str) -> dict:
         "deleted": deleted_files,
         "untracked": untracked_files,
         "name_status": name_status,
+        "diff_stat": diff_stat,
         "diff": diff_text,
         "has_changes": bool(staged_files or modified_files or deleted_files or untracked_files)
     }

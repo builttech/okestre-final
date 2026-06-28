@@ -1078,14 +1078,24 @@ def git_suggest_commit_message(project: Project = Depends(get_project_or_404),
 
     def fallback_message() -> str:
         files = context.get("staged", []) + context.get("modified", []) + context.get("untracked", [])
-        filenames = " ".join(files).lower()
-        if any(token in filenames for token in ["css", "style", "ui", "html", "component", "modal"]):
-            return "feat: ajustar interface do usuario"
-        if any(token in filenames for token in ["test", "spec"]):
+        filenames = " ".join(files)
+        lowered = filenames.lower()
+        basenames = [os.path.splitext(os.path.basename(file))[0].replace("_", " ").replace("-", " ") for file in files[:3]]
+        subject = " e ".join(name for name in basenames if name).strip()
+
+        if "gpt_instructions" in lowered:
+            return "docs: orientar fluxo de requisitos do GPT Action"
+        if "sdd" in lowered or "spec" in lowered or "harness" in lowered:
+            return "feat: aprimorar fluxo de especificacoes"
+        if any(token in lowered for token in ["commit", "git_bridge", "git bridge"]):
+            return "feat: melhorar sugestao de commit"
+        if any(token in lowered for token in ["css", "style", "ui", "html", "component", "modal"]):
+            return f"feat: ajustar {subject[:40].strip()}" if subject else "feat: ajustar interface"
+        if any(token in lowered for token in ["test", "spec"]):
             return "test: atualizar testes"
-        if any(token in filenames for token in ["fix", "bug"]):
+        if any(token in lowered for token in ["fix", "bug"]):
             return "fix: corrigir comportamento do sistema"
-        return "refactor: atualizar estrutura do projeto"
+        return f"chore: atualizar {subject[:42].strip()}" if subject else "chore: atualizar projeto"
 
     conf = agent.load_agent_config()
     provider = conf.get("provider")
@@ -1103,6 +1113,10 @@ def git_suggest_commit_message(project: Project = Depends(get_project_or_404),
         "- A mensagem deve ter no maximo 72 caracteres.\n"
         "- Use portugues simples, sem ponto final.\n"
         "- Nao inclua markdown, aspas extras, escopo, corpo ou explicacao.\n"
+        "- A descricao DEVE citar a mudanca concreta inferida pelos arquivos/diff.\n"
+        "- Evite frases genericas como 'ajustar interface do usuario', 'atualizar projeto' ou 'melhorar sistema'.\n"
+        "- Se houver mudancas em GPT_INSTRUCTIONS.md, prefira tipo docs.\n"
+        "- Se houver mudancas em endpoints ou JS de commit, mencione commit ou Git.\n"
     )
     user_prompt = (
         "Gere uma unica mensagem de commit para estas alteracoes:\n\n"
@@ -1112,6 +1126,7 @@ def git_suggest_commit_message(project: Project = Depends(get_project_or_404),
         f"Arquivos deletados: {context.get('deleted')}\n"
         f"Arquivos novos: {context.get('untracked')}\n"
         f"Name status:\n{context.get('name_status')}\n\n"
+        f"Diff stat:\n{context.get('diff_stat')}\n\n"
         f"Diff resumido:\n{context.get('diff')}"
     )
 
