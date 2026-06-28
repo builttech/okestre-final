@@ -6884,6 +6884,7 @@ function sddResetWorkspaceEmpty() {
     const fullEditor = document.getElementById('sdd-spec-editor-textarea');
     const specifyEditor = document.getElementById('sdd-specify-editor');
     const designEditor = document.getElementById('sdd-design-editor');
+    const driEditor = document.getElementById('sdd-dri-editor');
     const executeEditor = document.getElementById('sdd-execute-instructions');
     const resultPanel = document.getElementById('sdd-test-result-panel');
 
@@ -6897,6 +6898,7 @@ function sddResetWorkspaceEmpty() {
     if (fullEditor) fullEditor.value = '';
     if (specifyEditor) specifyEditor.value = '';
     if (designEditor) designEditor.value = '';
+    if (driEditor) driEditor.value = '';
     if (executeEditor) executeEditor.value = '';
     if (resultPanel) resultPanel.style.display = 'none';
 
@@ -6970,11 +6972,14 @@ function sddReplaceSection(content, sectionNames, fallbackHeading, sectionConten
 function sddPopulateStageEditors(content) {
     const specify = sddExtractSection(content, ['Specify', 'Especificação', 'Requisitos']) || content;
     const design = sddExtractSection(content, ['Design', 'Planejamento', 'Arquitetura']);
+    const dri = sddExtractSection(content, ['DRI', 'Documento de Requisito de Interface']);
     const specifyEditor = document.getElementById('sdd-specify-editor');
     const designEditor = document.getElementById('sdd-design-editor');
+    const driEditor = document.getElementById('sdd-dri-editor');
     const fullEditor = document.getElementById('sdd-spec-editor-textarea');
     if (specifyEditor) specifyEditor.value = specify;
     if (designEditor) designEditor.value = design || '## 2. Design - Planejamento\n\n### Arquitetura proposta\n\n### Dados, bibliotecas e integrações\n\n### Contratos técnicos\n';
+    if (driEditor) driEditor.value = dri || sddBuildDriTemplate('REQ-XXXX', 'Nome da Interface');
     if (fullEditor) fullEditor.value = content;
     const empty = document.getElementById('sdd-empty-workspace');
     const previewTab = document.getElementById('sdd-tab-preview');
@@ -7022,9 +7027,11 @@ function sddUpdateFlowStrip(tabId = 'sdd-tab-preview') {
         ? 'sdd-tab-checklist'
         : tabId === 'sdd-tab-tests'
             ? 'sdd-tab-tests'
-            : tabId === 'sdd-tab-edit'
-                ? 'sdd-tab-edit'
-                : 'sdd-tab-preview';
+            : tabId === 'sdd-tab-dri'
+                ? 'sdd-tab-dri'
+                : tabId === 'sdd-tab-edit'
+                    ? 'sdd-tab-edit'
+                    : 'sdd-tab-preview';
 
     document.querySelectorAll('.sdd-flow-step').forEach(step => {
         step.classList.toggle('active', step.dataset.sddFlowTab === activeFlowTab);
@@ -7054,7 +7061,7 @@ function sddRenderCriteria(criteria) {
         container.innerHTML = `
             <div style="text-align:center;padding:40px;color:var(--text-muted);">
                 <i data-lucide="clipboard-list" style="width:40px;height:40px;margin-bottom:12px;opacity:0.4;"></i>
-                <p>Nenhum critério de aceitação encontrado nesta especificação.<br>Adicione itens <code>- [ ] Critério</code> no arquivo.</p>
+                <p>Nenhuma tarefa encontrada nesta especificação.<br>Adicione itens <code>- [ ] TASK-REQ-0000-001: ...</code> na seção Task List.</p>
             </div>`;
         if (window.lucide) lucide.createIcons();
         progressText.textContent = '0/0 concluídos';
@@ -7095,7 +7102,8 @@ function sddPopulateExecuteInstructions(taskText) {
     if (!textarea) return;
     const specify = sddExtractSection(sddState.activeContent, ['Specify', 'Especificação', 'Requisitos']);
     const design = sddExtractSection(sddState.activeContent, ['Design', 'Planejamento', 'Arquitetura']);
-    textarea.value = `# Execute\n\n## Tarefa selecionada\n${taskText || 'Nenhuma tarefa selecionada.'}\n\n## Instruções para IA/agente\nExecute estritamente esta tarefa contra a especificação e o design abaixo. Não implemente escopo fora da task selecionada. Ao terminar, indique arquivos alterados e testes executados.\n\n## Specify de referência\n${specify || 'Specify não encontrado.'}\n\n## Design de referência\n${design || 'Design não encontrado.'}\n`;
+    const dri = sddExtractSection(sddState.activeContent, ['DRI', 'Documento de Requisito de Interface', 'Requisito de Interface']);
+    textarea.value = `# Execute\n\n## Tarefa selecionada\n${taskText || 'Nenhuma tarefa selecionada.'}\n\n## Instruções para IA/agente\nExecute estritamente esta tarefa contra a especificação, o design e o DRI abaixo. Não implemente escopo fora da task selecionada. Ao terminar, indique arquivos alterados e testes executados.\n\n## Specify de referência\n${specify || 'Specify não encontrado.'}\n\n## Design de referência\n${design || 'Design não encontrado.'}\n\n## DRI de referência\n${dri || 'DRI não encontrado ou não aplicável.'}\n`;
 }
 
 async function sddToggleCriteria(lineNo, checked) {
@@ -7180,6 +7188,7 @@ async function sddSaveStage(stage) {
 
     const specifyEditor = document.getElementById('sdd-specify-editor');
     const designEditor = document.getElementById('sdd-design-editor');
+    const driEditor = document.getElementById('sdd-dri-editor');
     let content = sddState.activeContent || `# ${sddExtractTitle(specifyEditor?.value || '') || 'Nova Feature'}\n`;
 
     if (stage === 'specify') {
@@ -7200,12 +7209,21 @@ async function sddSaveStage(stage) {
         );
     }
 
+    if (stage === 'dri') {
+        content = sddReplaceSection(
+            content,
+            ['DRI', 'Documento de Requisito de Interface', 'Requisito de Interface'],
+            '## 3. DRI - Documento de Requisito de Interface',
+            driEditor?.value || ''
+        );
+    }
+
     document.getElementById('sdd-spec-editor-textarea').value = content;
     if (filenameInput) filenameInput.value = filename;
     await sddSaveSpec();
     sddState.activeContent = content;
     sddPopulateStageEditors(content);
-    sddSwitchTab(stage === 'design' ? 'sdd-tab-edit' : 'sdd-tab-preview');
+    sddSwitchTab(stage === 'dri' ? 'sdd-tab-dri' : stage === 'design' ? 'sdd-tab-edit' : 'sdd-tab-preview');
 }
 
 // --- Delete Spec ---
@@ -7295,6 +7313,173 @@ function sddBuildUniqueRequirementFilename(id, title) {
     return filename;
 }
 
+function sddBuildDriTemplate(id, interfaceName) {
+    const isPlaceholder = !id || id === 'REQ-XXXX';
+    const riCode = isPlaceholder ? 'RI-XX' : `RI-${id.replace(/^REQ-?/i, '')}`;
+    const relatedRf = isPlaceholder ? '[Ex.: RF-01 - Gestão de Perfil Profissional]' : id;
+    return `## 3. DRI - Documento de Requisito de Interface
+
+### ${riCode} - ${interfaceName}
+
+### 1. Identificação da Interface
+
+| Campo | Valor |
+| --- | --- |
+| Código | ${riCode} |
+| Nome da interface | ${interfaceName} |
+| Módulo | [Ex.: Profissionais / Conta] |
+| RF relacionado | ${relatedRf} |
+| SubRFs relacionados | [Ex.: SubRF-01.01, SubRF-01.02] |
+| Tipo de interface | Página \\| Modal \\| Drawer \\| Formulário \\| Grid \\| Dashboard \\| Detalhe |
+| Perfil de usuário | [Ex.: Profissional, Admin, Gestor, Cliente] |
+| Dispositivo prioritário | Desktop \\| Mobile \\| Responsivo |
+| Objetivo da tela | [Descrever em uma frase o resultado operacional esperado] |
+
+### 2. Objetivo da Interface
+
+Descreva o propósito da tela, quais dados ou decisões ela sustenta, qual resultado operacional deve produzir e como se conecta ao requisito ${id}.
+
+### 3. Contexto de Uso
+
+| Campo | Valor |
+| --- | --- |
+| Quem usa | [Perfil principal de usuário] |
+| Quando usa | [Momento do fluxo ou rotina operacional] |
+| Por que usa | [Motivação e necessidade do usuário] |
+| Gatilho de acesso | [Menu, onboarding, notificação, link, workflow, ação anterior] |
+| Resultado esperado | [Estado desejado após uso da interface] |
+
+### 4. Arquitetura da Informação
+
+| Ordem | Seção | Objetivo | Tipo de componente |
+| --- | --- | --- | --- |
+| 1 | [Nome da seção] | [Objetivo funcional da seção] | [Header, formulário, lista, tabela, card, painel] |
+| 2 | [Nome da seção] | [Objetivo funcional da seção] | [Tipo de componente] |
+| 3 | [Nome da seção] | [Objetivo funcional da seção] | [Tipo de componente] |
+
+### 5. Mapa de Componentes
+
+| Componente | Tipo | Obrigatório | Editável | Comportamento esperado |
+| --- | --- | --- | --- | --- |
+| [Nome do campo/ação] | [Input, select, badge, button] | Sim/Não | Sim/Não | [Validação, máscara, permissão, estado ou regra de interação] |
+| [Nome do campo/ação] | [Tipo] | Sim/Não | Sim/Não | [Comportamento] |
+| [Nome do campo/ação] | [Tipo] | Sim/Não | Sim/Não | [Comportamento] |
+
+### 6. Regras de Exibição
+
+| Código | Regra | Comportamento |
+| --- | --- | --- |
+| RI-RG-01 | [Nome da regra visual ou condicional] | [Comportamento esperado na interface] |
+| RI-RG-02 | [Nome da regra] | [Comportamento esperado] |
+| RI-RG-03 | [Nome da regra] | [Comportamento esperado] |
+
+### 7. Estados da Interface
+
+| Estado | Descrição | Comportamento visual |
+| --- | --- | --- |
+| Loading | Dados sendo carregados. | Skeleton, spinner ou placeholder consistente. |
+| Empty | Não há dados ou configuração iniciada. | Mensagem orientativa e CTA pertinente. |
+| View | Dados exibidos para leitura. | Campos organizados e ações secundárias discretas. |
+| Edit | Usuário editando informações. | Campos habilitados e botões de ação visíveis. |
+| Saving | Salvamento em andamento. | Ação principal desabilitada com feedback. |
+| Success | Operação concluída. | Toast ou mensagem de confirmação. |
+| Error | Falha ao carregar, validar ou salvar. | Mensagem clara e ação de nova tentativa. |
+| Read-only | Usuário sem permissão de edição. | Campos bloqueados e aviso de restrição. |
+
+### 8. Fluxo de Interação
+
+| Ação do usuário | Resposta da interface | Resultado esperado |
+| --- | --- | --- |
+| Acessar interface | Sistema carrega dados e estados | Tela exibe informações atuais |
+| Clicar em editar | Campos autorizados são habilitados | Usuário pode alterar dados |
+| Preencher campo obrigatório | Sistema valida preenchimento | Dados ficam aptos para salvamento |
+| Clicar em salvar | Sistema valida e envia dados | Informação é atualizada |
+| Campo inválido | Erro contextual é exibido | Usuário entende o ajuste necessário |
+| Cancelar | Alterações são descartadas | Dados anteriores são mantidos |
+
+### 9. Mapeamento de Dados
+
+| Campo na tela | Nome técnico | Origem | Editável | Obrigatório |
+| --- | --- | --- | --- | --- |
+| [Campo] | [snake_case] | [Collection, API, sistema, usuário] | Sim/Não | Sim/Não |
+| [Campo] | [snake_case] | [Origem] | Sim/Não | Sim/Não |
+| [Campo] | [snake_case] | [Origem] | Sim/Não | Sim/Não |
+
+### 10. Hierarquia Visual
+
+**Prioridade Alta**
+
+- [Informações críticas, status, ação principal, alertas e pendências.]
+
+**Prioridade Média**
+
+- [Dados de apoio, seções recorrentes, filtros, grupos secundários.]
+
+**Prioridade Baixa**
+
+- [Informações auxiliares, histórico, textos explicativos e suporte.]
+
+### 11. Microcopy da Interface
+
+| Elemento | Texto sugerido | Observação |
+| --- | --- | --- |
+| Título da tela | [Texto objetivo e operacional] | [Evitar promessa genérica] |
+| Descrição curta | [Explicar a finalidade da tela] | [Uma ou duas frases no máximo] |
+| CTA principal | [Salvar alterações / Enviar para análise] | [Verbo de ação claro] |
+| Erro de validação | [Informe o ajuste necessário] | [Mensagem contextual] |
+| Toast de sucesso | [Alterações salvas com sucesso] | [Confirmação curta] |
+
+### 12. Responsividade
+
+| Dispositivo | Comportamento esperado |
+| --- | --- |
+| Desktop | [Layout, colunas, largura, painéis laterais, tabela ou formulário completo] |
+| Tablet | [Reorganização de colunas, navegação e ações] |
+| Mobile | [Ordem das seções, ações fixas, campos em uma coluna, estados críticos] |
+
+### 13. Acessibilidade
+
+| Item | Critério |
+| --- | --- |
+| Labels | [Todos os campos possuem label persistente e claro] |
+| Contraste | [Cores atendem leitura confortável e função semântica] |
+| Navegação por teclado | [Foco visível e ordem lógica] |
+| Mensagens de erro | [Erro próximo ao campo e linguagem acionável] |
+| Leitores de tela | [Nomes acessíveis, estados e regiões relevantes] |
+
+### 14. Critérios de Aceite da Interface
+
+| Código | Critério |
+| --- | --- |
+| CA-RI-01 | A interface deve exibir os dados necessários ao usuário autenticado conforme permissão. |
+| CA-RI-02 | A interface deve permitir edição apenas dos campos autorizados. |
+| CA-RI-03 | Campos obrigatórios devem exibir validação quando não preenchidos. |
+| CA-RI-04 | A ação principal deve responder aos estados de alteração, validação e salvamento. |
+| CA-RI-05 | Após sucesso, a interface deve confirmar a operação ao usuário. |
+| CA-RI-06 | Em caso de erro, a interface deve informar a falha e permitir nova tentativa. |
+| CA-RI-07 | A interface deve exibir status, pendências ou bloqueios relevantes. |
+| CA-RI-08 | A interface deve ser responsiva para **desktop**, **tablet** e **mobile** quando aplicável. |
+
+### 15. Lacunas e Premissas
+
+| Item | Tipo | Descrição |
+| --- | --- | --- |
+| 1 | Lacuna | [Informação ausente que impede decisão completa] |
+| 2 | Premissa | [Suposição usada para avançar o RI] |
+| 3 | Risco | [Risco de regra, dado, permissão ou experiência] |
+
+### 16. Fora do Escopo
+
+- [Item, comportamento, regra ou integração que não faz parte deste RI.]
+- [Item fora do escopo.]
+
+### 17. Possíveis Evoluções Futuras
+
+- [Melhoria futura, automação, componente avançado ou integração adicional.]
+- [Evolução futura.]
+`;
+}
+
 function sddBuildRequirementTemplate({ id, title, owner }) {
     const attribution = owner || 'Autor: \nResponsável atual: ';
     return `# ${id} - ${title}
@@ -7380,7 +7565,9 @@ Descreva como o sistema vai operar para atender o requisito ${id}.
 
 - APIs, eventos, serviços ou componentes afetados.
 
-## 3. Task List - Tarefas
+${sddBuildDriTemplate('REQ-XXXX', 'Nome da Interface')}
+
+## 4. Task List - Tarefas
 
 > As tarefas abaixo fazem parte da Spec e são exibidas automaticamente na etapa Task List da interface.
 
@@ -7389,7 +7576,7 @@ Descreva como o sistema vai operar para atender o requisito ${id}.
 - [ ] TASK-${id}-003: Criar ou atualizar testes automatizados.
 - [ ] TASK-${id}-004: Revisar rastreabilidade, documentação e critérios de pronto.
 
-## 4. Execute - Implementação
+## 5. Execute - Implementação
 
 Selecione uma tarefa na aba Task List para montar as instruções de execução.
 `;
@@ -7581,6 +7768,9 @@ function setupSddEventListeners() {
     const btnSaveDesign = document.getElementById('btn-sdd-save-design');
     if (btnSaveDesign) btnSaveDesign.addEventListener('click', () => sddSaveStage('design'));
 
+    const btnSaveDri = document.getElementById('btn-sdd-save-dri');
+    if (btnSaveDri) btnSaveDri.addEventListener('click', () => sddSaveStage('dri'));
+
     // Delete spec
     const btnDelete = document.getElementById('btn-sdd-delete');
     if (btnDelete) btnDelete.addEventListener('click', sddDeleteSpec);
@@ -7598,6 +7788,17 @@ function setupSddEventListeners() {
         const specify = sddExtractSection(sddState.activeContent, ['Specify', 'Especificação', 'Requisitos']) || document.getElementById('sdd-specify-editor')?.value || '';
         if (prompt) {
             prompt.value = `Com base no Specify abaixo, gere somente a seção "## 2. Design - Planejamento" com arquitetura proposta, dados, integrações, bibliotecas e contratos técnicos. Não gere tarefas.\n\n${specify}`;
+            prompt.focus();
+        }
+    });
+
+    const btnDriAi = document.getElementById('btn-sdd-dri-ai');
+    if (btnDriAi) btnDriAi.addEventListener('click', () => {
+        const prompt = document.getElementById('sdd-dri-ai-prompt');
+        const specify = sddExtractSection(sddState.activeContent, ['Specify', 'Especificação', 'Requisitos']) || document.getElementById('sdd-specify-editor')?.value || '';
+        const design = sddExtractSection(sddState.activeContent, ['Design', 'Planejamento', 'Arquitetura']) || document.getElementById('sdd-design-editor')?.value || '';
+        if (prompt) {
+            prompt.value = `Com base no Specify e no Design abaixo, gere somente a seção "## 3. DRI - Documento de Requisito de Interface" usando o template RI oficial. Inclua identificação da interface, objetivo, contexto de uso, arquitetura da informação, mapa de componentes, regras de exibição, estados, fluxo de interação, mapeamento de dados, hierarquia visual, microcopy, responsividade, acessibilidade, critérios de aceite da interface, lacunas, fora do escopo e evoluções futuras. Não gere tarefas.\n\n## Specify\n${specify}\n\n## Design\n${design}`;
             prompt.focus();
         }
     });

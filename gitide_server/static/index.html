@@ -1008,8 +1008,9 @@ Se o arquivo existir, leia e siga rigorosamente todas as diretrizes, fases de an
                                 <div class="sdd-workspace-nav" id="sdd-workspace-nav-tabs" style="display: none;">
                                     <button class="sdd-nav-btn active" data-sdd-tab="sdd-tab-preview"><span>1</span> Specify</button>
                                     <button class="sdd-nav-btn" data-sdd-tab="sdd-tab-edit"><span>2</span> Design</button>
-                                    <button class="sdd-nav-btn" data-sdd-tab="sdd-tab-checklist"><span>3</span> Task List</button>
-                                    <button class="sdd-nav-btn" data-sdd-tab="sdd-tab-tests"><span>4</span> Execute</button>
+                                    <button class="sdd-nav-btn" data-sdd-tab="sdd-tab-dri"><span>3</span> DRI</button>
+                                    <button class="sdd-nav-btn" data-sdd-tab="sdd-tab-checklist"><span>4</span> Task List</button>
+                                    <button class="sdd-nav-btn" data-sdd-tab="sdd-tab-tests"><span>5</span> Execute</button>
                                 </div>
                             </div>
 
@@ -1040,7 +1041,7 @@ Se o arquivo existir, leia e siga rigorosamente todas as diretrizes, fases de an
                                         <div class="sdd-empty-workspace" id="sdd-empty-workspace">
                                             <i data-lucide="sparkles" style="width: 48px; height: 48px; color: var(--color-primary); opacity: 0.6; margin-bottom: 12px;"></i>
                                             <h3>Fluxo Spec-Driven Development</h3>
-                                            <p>Crie ou selecione uma feature para conduzir Specify, Design, Tasks e Execute no mesmo artefato Markdown.</p>
+                                            <p>Crie ou selecione uma feature para conduzir Specify, Design, DRI, Task List e Execute no mesmo artefato Markdown.</p>
                                             <button class="btn btn-primary" id="btn-switch-to-ia-generator"><i data-lucide="plus-circle"></i> Criar Fluxo com IA</button>
                                         </div>
                                     </div>
@@ -1068,12 +1069,34 @@ Se o arquivo existir, leia e siga rigorosamente todas as diretrizes, fases de an
                                     </div>
                                 </div>
 
+                                <!-- STEP 3: DRI -->
+                                <div id="sdd-tab-dri" class="sdd-tab-content">
+                                    <div class="sdd-stage-grid">
+                                        <section class="sdd-stage-main">
+                                            <div class="sdd-stage-title">
+                                                <div>
+                                                    <span>DRI - Documento de Requisito de Interface</span>
+                                                    <h5>Interface, componentes, estados e interação</h5>
+                                                </div>
+                                                <button class="btn btn-primary btn-sm" id="btn-sdd-save-dri"><i data-lucide="save"></i> Salvar</button>
+                                            </div>
+                                            <textarea id="sdd-dri-editor" class="sdd-doc-editor text-input" placeholder="## 3. DRI - Documento de Requisito de Interface..."></textarea>
+                                        </section>
+                                        <aside class="sdd-stage-aside">
+                                            <h5><i data-lucide="sparkles"></i> Assistente IA</h5>
+                                            <p>A IA deve ler Specify e Design para detalhar interface, componentes, estados, microcopy, responsividade, acessibilidade e critérios de aceite da interface.</p>
+                                            <textarea id="sdd-dri-ai-prompt" class="text-input" placeholder="Ex: gere o DRI para a tela principal deste requisito..."></textarea>
+                                            <button class="btn btn-primary" id="btn-sdd-dri-ai"><i data-lucide="wand-2"></i> Preparar Prompt de DRI</button>
+                                        </aside>
+                                    </div>
+                                </div>
+
                                 <input type="hidden" id="sdd-edit-filename">
                                 <textarea id="sdd-spec-editor-textarea" style="display:none;"></textarea>
                                 <button id="btn-sdd-save" style="display:none;" type="button"></button>
                                 <button id="btn-sdd-delete" style="display:none;" type="button"></button>
 
-                                <!-- STEP 3: TASK LIST -->
+                                <!-- STEP 4: TASK LIST -->
                                 <div id="sdd-tab-checklist" class="sdd-tab-content">
                                     <div class="sdd-checklist-wrapper" style="display: flex; flex-direction: column; height: 100%; gap: 16px;">
                                         <div class="sdd-checklist-header">
@@ -1092,7 +1115,7 @@ Se o arquivo existir, leia e siga rigorosamente todas as diretrizes, fases de an
                                     </div>
                                 </div>
 
-                                <!-- STEP 4: EXECUTE -->
+                                <!-- STEP 5: EXECUTE -->
                                 <div id="sdd-tab-tests" class="sdd-tab-content">
                                     <div class="sdd-execute-grid">
                                         <section class="sdd-stage-main">
@@ -1771,7 +1794,7 @@ Se o arquivo existir, leia e siga rigorosamente todas as diretrizes, fases de an
     </div>
 
     <!-- Custom JavaScript -->
-    <script src="/static/app.js?v=31"></script>
+    <script src="/static/app.js?v=32"></script>
     <script src="/static/theme-toggle.js?v=1"></script>
 </body>
 </html>
