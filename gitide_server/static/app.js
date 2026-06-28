@@ -6469,7 +6469,8 @@ const sddState = {
     specs: [],
     executeTask: null,
     charterLoaded: false,
-    charterProjectId: null
+    charterProjectId: null,
+    isDraft: false
 };
 
 function sddSetButtonLoading(button, loading, loadingText, defaultHtml) {
@@ -6661,6 +6662,9 @@ async function sddLoadSpecs() {
 function sddRenderSpecList(specs) {
     const list = document.getElementById('sdd-specs-list');
     if (!specs || specs.length === 0) {
+        if (!sddState.isDraft) {
+            sddResetWorkspaceEmpty();
+        }
         list.innerHTML = `
             <div class="specs-empty-state">
                 <i data-lucide="file-question"></i>
@@ -6686,6 +6690,7 @@ function sddRenderSpecList(specs) {
 async function sddSelectSpec(filename) {
     if (!state.activeProjectId) return;
     sddState.activeFilename = filename;
+    sddState.isDraft = false;
 
     // Update sidebar highlight
     document.querySelectorAll('.spec-item').forEach(el => {
@@ -6749,6 +6754,38 @@ function sddSetActiveSpecHeader({ title, filename, content }) {
         filenameEl.textContent = metaParts.join(' · ');
         filenameEl.style.display = metaParts.length ? 'inline' : 'none';
     }
+}
+
+function sddResetWorkspaceEmpty() {
+    sddState.activeFilename = null;
+    sddState.activeContent = '';
+    sddState.executeTask = null;
+
+    const nav = document.getElementById('sdd-workspace-nav-tabs');
+    const title = document.getElementById('sdd-active-spec-title');
+    const filename = document.getElementById('sdd-active-spec-filename');
+    const editFilename = document.getElementById('sdd-edit-filename');
+    const fullEditor = document.getElementById('sdd-spec-editor-textarea');
+    const specifyEditor = document.getElementById('sdd-specify-editor');
+    const designEditor = document.getElementById('sdd-design-editor');
+    const executeEditor = document.getElementById('sdd-execute-instructions');
+    const resultPanel = document.getElementById('sdd-test-result-panel');
+
+    if (nav) nav.style.display = 'none';
+    if (title) title.textContent = 'Nenhuma Especificação Selecionada';
+    if (filename) {
+        filename.textContent = '';
+        filename.style.display = 'none';
+    }
+    if (editFilename) editFilename.value = '';
+    if (fullEditor) fullEditor.value = '';
+    if (specifyEditor) specifyEditor.value = '';
+    if (designEditor) designEditor.value = '';
+    if (executeEditor) executeEditor.value = '';
+    if (resultPanel) resultPanel.style.display = 'none';
+
+    sddSwitchTab('sdd-tab-preview');
+    sddPopulateStageEditors('');
 }
 
 function sddExtractSection(content, sectionNames) {
@@ -6993,6 +7030,7 @@ async function sddSaveSpec() {
         if (data.status === 'success') {
             sddState.activeFilename = filename;
             sddState.activeContent = content;
+            sddState.isDraft = false;
             sddPopulatePreview(content);
             sddSetActiveSpecHeader({ filename, content });
             await sddLoadSpecs();
@@ -7071,6 +7109,7 @@ async function sddDeleteSpec() {
         if (data.status === 'success') {
             sddState.activeFilename = null;
             sddState.activeContent = '';
+            sddState.isDraft = false;
             // Reset workspace
             document.getElementById('sdd-workspace-nav-tabs').style.display = 'none';
             document.getElementById('sdd-active-spec-title').textContent = 'Nenhuma Especificação Selecionada';
@@ -7238,6 +7277,7 @@ function sddCreateRequirementFromModal() {
     }
 
     sddState.activeFilename = null;
+    sddState.isDraft = true;
     document.getElementById('sdd-workspace-nav-tabs').style.display = 'flex';
     const filename = `${id.toLowerCase()}_${sddSlugify(title)}.md`;
     sddSetActiveSpecHeader({ title: `${id} - ${title}`, filename });
@@ -7281,6 +7321,7 @@ async function sddGenerateSpecIA() {
         if (data.filename && generatedContent !== undefined) {
             sddState.activeFilename = data.filename;
             sddState.activeContent = generatedContent;
+            sddState.isDraft = false;
             sddSetActiveSpecHeader({ title: data.title, filename: data.filename, content: generatedContent });
             document.getElementById('sdd-workspace-nav-tabs').style.display = 'flex';
             sddPopulatePreview(generatedContent);
