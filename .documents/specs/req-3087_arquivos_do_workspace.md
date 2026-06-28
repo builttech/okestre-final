@@ -451,6 +451,7 @@ A lista abaixo representa a decomposição operacional rastreável do requisito 
 - [ ] TASK-REQ-3087-020: Atualizar rastreabilidade com commits, pull requests, validações e observações de entrega após execução das tarefas.
 - [x] TASK-REQ-3087-021: Implementar criação de novo arquivo pelo painel Arquivos do Workspace, usando endpoint seguro de escrita, validação de caminho relativo, feedback visual, recarregamento da árvore e abertura automática do arquivo criado.
 - [x] TASK-REQ-3087-022: Ajustar o botão de criação de arquivo no painel Arquivos do Workspace para exibir somente o ícone, mantendo acessibilidade por `title` e `aria-label`, sem alterar o comportamento de criação de arquivo.
+- [x] TASK-REQ-3087-023: Substituir o ícone do botão de criação de arquivo por um ícone Lucide compatível com o padrão visual do GitIDE, mantendo botão somente ícone e acessibilidade por `title` e `aria-label`.
 
 As tarefas acima não substituem os critérios de aceite da etapa **Specify**. Cada item deve ser tratado como unidade de execução técnica, com plano próprio, aprovação explícita e verificação antes de ser marcado como concluído.
 
@@ -527,7 +528,7 @@ A interface também deve apoiar o agente IA supervisionado, garantindo que qualq
 | Componente | Tipo | Obrigatório | Editável | Comportamento esperado |
 | --- | --- | --- | --- | --- |
 | Título “Explorador de Arquivos” | Texto/Header | Sim | Não | Identifica o painel de navegação do workspace. |
-| Botão “Novo arquivo” | Botão somente ícone | Sim | Não | Abre o modal de criação de arquivo exibindo apenas o ícone visual. Deve manter `title` e `aria-label` para acessibilidade. |
+| Botão “Novo arquivo” | Botão somente ícone | Sim | Não | Abre o modal de criação de arquivo exibindo apenas o ícone Lucide `file-plus-2`, no mesmo padrão linear dos botões de ação do GitIDE. Deve manter `title` e `aria-label` para acessibilidade. |
 | Botão “Recarregar” | Botão/ícone | Sim | Não | Recarrega a árvore/lista de arquivos do projeto ativo. |
 | Lista de arquivos | Lista/árvore | Sim | Não | Exibe caminhos permitidos retornados pelo backend. Arquivo selecionado deve ter destaque visual. |
 | Nome do arquivo ativo | Texto/label | Sim | Não | Exibe o arquivo aberto ou mensagem orientativa quando nenhum arquivo estiver selecionado. |
@@ -641,7 +642,7 @@ A interface também deve apoiar o agente IA supervisionado, garantindo que qualq
 | --- | --- | --- |
 | Título do painel | Explorador de Arquivos | Deve ser direto e operacional. |
 | Estado inicial do editor | Selecione um arquivo para visualizar | Orienta o usuário antes da primeira seleção. |
-| CTA de criação | Ícone de novo arquivo | Deve ser exibido somente como ícone no cabeçalho do explorador, mantendo `title` e `aria-label` com o texto “Adicionar novo arquivo”. |
+| CTA de criação | Ícone Lucide `file-plus-2` | Deve ser exibido somente como ícone linear compatível com o padrão visual do GitIDE no cabeçalho do explorador, mantendo `title` e `aria-label` com o texto “Adicionar novo arquivo”. |
 | Título do modal | Criar novo arquivo | Explica a ação principal. |
 | Label de caminho | Caminho relativo do arquivo | Reforça que caminhos absolutos não devem ser usados. |
 | Placeholder de caminho | ex: docs/novo-arquivo.md | Demonstra padrão esperado. |

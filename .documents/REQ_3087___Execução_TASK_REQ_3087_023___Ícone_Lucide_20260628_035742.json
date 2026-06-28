@@ -1,0 +1,30 @@
+{
+    "title": "REQ-3087 — Execução TASK-REQ-3087-023 — Ícone Lucide",
+    "sections": [
+        {
+            "heading": "Resumo da Execução",
+            "text": "A TASK-REQ-3087-023 foi executada para substituir o ícone do botão de criação de arquivo por um ícone Lucide compatível com o padrão visual do GitIDE.",
+            "type": "paragraph"
+        },
+        {
+            "heading": "Alteração aplicada",
+            "text": "O botão de criação de arquivo no painel Arquivos do Workspace passou a usar o ícone Lucide file-plus-2 e a classe visual btn-icon, mantendo exibição somente por ícone e preservando title e aria-label com o texto “Adicionar novo arquivo”.",
+            "type": "paragraph"
+        },
+        {
+            "heading": "Arquivos modificados",
+            "text": "gitide_server/static/index.html\n.documents/specs/req-3087_arquivos_do_workspace.md",
+            "type": "bullet"
+        },
+        {
+            "heading": "DRI atualizado",
+            "text": "O DRI RI-REQ-3087-001 foi atualizado para registrar explicitamente o uso do ícone Lucide file-plus-2 no botão Novo arquivo e para manter o requisito de acessibilidade por title e aria-label.",
+            "type": "paragraph"
+        },
+        {
+            "heading": "Resultado esperado",
+            "text": "O botão Novo arquivo deve ficar visualmente alinhado ao padrão de ícones lineares do GitIDE, sem alterar o comportamento de abrir o modal de criação de arquivo.",
+            "type": "highlight"
+        }
+    ]
+}
