@@ -8,6 +8,13 @@ Este documento é de leitura obrigatória para o Agente IA (GPT Action) antes de
 > [!IMPORTANT]
 > **NÃO escreva código e NÃO execute comandos de modificação antes de concluir a fase de análise.**
 > O Agente IA deve SEMPRE seguir o ciclo **Percepção -> Planejamento -> Aprovação -> Execução -> Verificação**. Qualquer tentativa de pular etapas ou fazer edições massivas sem plano prévio viola este protocolo e pode corromper a aplicação.
+>
+> **REGRA BLOQUEANTE DE REQUISITO (NÃO PODE SER IGNORADA):**
+> Antes de qualquer execução técnica, o GPT Action deve primeiro **criar ou atualizar o REQ correspondente** no Harness Engineering.
+> Depois disso, deve aguardar o usuário validar o requisito.
+> Se o usuário disser que o REQ está correto, ele informará explicitamente qual task da seção `Task List - Tarefas` deve ser executada.
+> Se o REQ não estiver correto, o GPT Action deve ajudar a ajustar o requisito e repetir o ciclo de validação.
+> O GPT Action **não pode implementar código, rodar comandos de modificação, criar arquivos técnicos ou executar tasks** antes dessa validação do REQ e da escolha explícita da task pelo usuário.
 
 ---
 
@@ -15,21 +22,31 @@ Este documento é de leitura obrigatória para o Agente IA (GPT Action) antes de
 
 ```mermaid
 graph TD
-    A[1. Reconhecimento e Análise] --> B[2. Plano de Implementação]
-    B --> C[3. Alinhamento / Aprovação]
-    C --> D[4. Execução Cirúrgica Passo a Passo]
-    D --> E[5. Verificação e Testes]
-    E -->|Falhou| D
-    E -->|Sucesso| F[Conclusão]
+    A["1. Reconhecimento e Análise"] --> B{"REQ informado?"}
+    B -->|"Sim"| C["Ler e atualizar REQ existente"]
+    B -->|"Não"| D["Criar novo REQ"]
+    C --> E["Preencher Specify, Design e Task List"]
+    D --> E
+    E --> F{"Usuário validou o REQ?"}
+    F -->|"Não, ajustar"| C
+    F -->|"Sim"| G{"Usuário informou a task?"}
+    G -->|"Não"| H["Aguardar escolha da task"]
+    H --> G
+    G -->|"Sim"| I["2. Plano de Implementação da task escolhida"]
+    I --> J["3. Alinhamento / Aprovação"]
+    J --> K["4. Execução Cirúrgica da task"]
+    K --> L["5. Verificação e Testes"]
+    L -->|"Falhou"| K
+    L -->|"Sucesso"| M["Conclusão"]
 ```
 
 ### 1. Reconhecimento e Análise do Contexto
 Antes de propor ou fazer qualquer alteração, o agente deve:
 - **Verificar o REQ de referência:** Identificar se a solicitação do usuário informa um requisito existente (`REQ-xxxx`). Se informar, ler primeiro a especificação correspondente antes de planejar qualquer implementação.
-- **Criar REQ quando não existir:** Se a solicitação não informar um `REQ-xxxx`, o primeiro passo é criar e documentar um novo requisito funcional com base na solicitação, preenchendo `Specify - Especificação` e `Design - Planejamento` antes de propor implementação.
+- **Criar REQ quando não existir:** Se a solicitação não informar um `REQ-xxxx`, o primeiro passo obrigatório é criar e documentar um novo requisito funcional com base na solicitação, preenchendo `Specify - Especificação`, `Design - Planejamento` e a seção `Task List - Tarefas`.
 - **Atualizar REQ existente antes de implementar:** Se a solicitação for uma nova funcionalidade, ajuste ou extensão de um requisito já existente, atualizar o REQ com a nova solicitação antes de qualquer alteração de código.
-- **Adicionar tarefa rastreável:** Quando a solicitação gerar trabalho técnico, adicionar uma task vinculada ao REQ na seção `Task List - Tarefas`, mantendo o padrão de rastreabilidade do requisito.
-- **Executar somente quando solicitado:** Após atualizar ou criar o REQ e registrar a task, o agente deve aguardar solicitação explícita para executar a implementação, salvo quando o usuário já tiver autorizado claramente a execução.
+- **Aguardar validação do REQ:** Após criar ou atualizar o REQ e registrar a task, o agente deve parar e aguardar o usuário validar o requisito. Se o usuário pedir ajustes, o agente deve atualizar o REQ e repetir este ciclo de validação.
+- **Executar somente task escolhida:** A implementação só pode começar quando o usuário informar explicitamente qual task da seção `Task List - Tarefas` deve ser executada. O agente deve executar somente a task escolhida.
 - **Investigar a Árvore de Diretórios:** Listar os arquivos do projeto para entender a estrutura de pastas.
 - **Identificar Arquivos de Configuração e Arquitetura:** Ler os arquivos principais (ex: `package.json`, `requirements.txt`, `main.py`, `index.html`, etc.) para entender as dependências e o ecossistema.
 - **Entender Regras de Conexão e Banco de Dados:** Verificar se há arquivos como `db_credentials.json` para compreender como o banco de dados local ou remoto se comunica com o projeto.
@@ -63,34 +80,6 @@ Após cada implementação, o agente deve obrigatoriamente:
 ---
 
 ## 🛠️ Boas Práticas ao Utilizar a API do GitIDE
-
-### Harness Engineering / Especificações Funcionais
-
-Quando o usuário solicitar criação, revisão ou atualização de requisitos funcionais no fluxo Harness Engineering, o Agente IA deve tratar o arquivo Markdown da especificação como fonte de verdade e preencher somente as etapas abaixo:
-
-1. **Specify - Especificação**
-   - Preencher a documentação funcional do requisito.
-   - Incluir identificação e metadados básicos: ID único, título/resumo, tipo, módulo, prioridade, status, solicitante, responsável atual, release/iteração e esforço estimado.
-   - Descrever contexto, objetivo funcional, comportamento esperado, história de usuário, regras de negócio, restrições, critérios de aceite e rastreabilidade.
-   - Os critérios de aceite podem usar checklist Markdown `- [ ]`, mas devem representar validação funcional, não tarefas técnicas soltas.
-
-2. **Design - Planejamento**
-   - Preencher a arquitetura proposta para atender o requisito.
-   - Incluir componentes impactados, fluxo técnico, APIs/endpoints, dados, banco, integrações, bibliotecas, eventos, permissões, riscos técnicos e estratégia de validação.
-   - O Design deve sempre se basear no conteúdo da etapa Specify e não inventar escopo fora do requisito.
-
-3. **Task List - Tarefas**
-   - As tarefas devem ser documentadas no próprio arquivo Markdown da Spec, na seção `## 3. Task List - Tarefas`.
-   - A etapa visual Task List do GitIDE apenas lê e exibe os checklists existentes nessa seção.
-   - Sempre que uma solicitação gerar trabalho técnico, adicionar uma task rastreável nessa seção usando o ID do requisito, por exemplo: `- [ ] TASK-REQ-3087-001: Implementar comportamento principal.`
-   - Não colocar tarefas técnicas dentro de Critérios de Aceite, Rastreabilidade ou Design.
-   - Nunca misturar critérios de aceite com tarefas de implementação.
-
-4. **Execute - Implementação**
-   - Não preencher antecipadamente.
-   - Esta etapa deve ser usada somente quando uma tarefa específica for selecionada para execução por agente ou programador.
-
-Regra obrigatória: o GPT Action deve manter a separação entre **o que o sistema deve fazer** (Specify), **como será planejado tecnicamente** (Design), **quais tarefas serão executadas** (Task List gerenciada pelo GitIDE) e **a implementação de uma tarefa selecionada** (Execute).
 
 1. **Gestão do ID do Projeto:**
    - Sempre certifique-se de obter o `project_id` correto no início da conversa (seja lendo as variáveis locais ou perguntando ao usuário) e use-o em todos os caminhos de rota (`/api/projects/{project_id}/...`).
