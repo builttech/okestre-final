@@ -6972,7 +6972,7 @@ function sddReplaceSection(content, sectionNames, fallbackHeading, sectionConten
 function sddPopulateStageEditors(content) {
     const specify = sddExtractSection(content, ['Specify', 'Especificação', 'Requisitos']) || content;
     const design = sddExtractSection(content, ['Design', 'Planejamento', 'Arquitetura']);
-    const dri = sddExtractSection(content, ['DRI', 'Documento de Requisito de Interface', 'Requisito de Interface', 'Interface']);
+    const dri = sddExtractSection(content, ['DRI', 'Documento de Requisito de Interface']);
     const specifyEditor = document.getElementById('sdd-specify-editor');
     const designEditor = document.getElementById('sdd-design-editor');
     const driEditor = document.getElementById('sdd-dri-editor');
@@ -7314,7 +7314,9 @@ function sddBuildUniqueRequirementFilename(id, title) {
 }
 
 function sddBuildDriTemplate(id, interfaceName) {
-    const riCode = `RI-${id.replace(/^REQ-?/i, '')}`;
+    const isPlaceholder = !id || id === 'REQ-XXXX';
+    const riCode = isPlaceholder ? 'RI-XX' : `RI-${id.replace(/^REQ-?/i, '')}`;
+    const relatedRf = isPlaceholder ? '[Ex.: RF-01 - Gestão de Perfil Profissional]' : id;
     return `## 3. DRI - Documento de Requisito de Interface
 
 ### ${riCode} - ${interfaceName}
@@ -7326,7 +7328,7 @@ function sddBuildDriTemplate(id, interfaceName) {
 | Código | ${riCode} |
 | Nome da interface | ${interfaceName} |
 | Módulo | [Ex.: Profissionais / Conta] |
-| RF relacionado | ${id} |
+| RF relacionado | ${relatedRf} |
 | SubRFs relacionados | [Ex.: SubRF-01.01, SubRF-01.02] |
 | Tipo de interface | Página \\| Modal \\| Drawer \\| Formulário \\| Grid \\| Dashboard \\| Detalhe |
 | Perfil de usuário | [Ex.: Profissional, Admin, Gestor, Cliente] |
@@ -7563,7 +7565,7 @@ Descreva como o sistema vai operar para atender o requisito ${id}.
 
 - APIs, eventos, serviços ou componentes afetados.
 
-${sddBuildDriTemplate(id, title)}
+${sddBuildDriTemplate('REQ-XXXX', 'Nome da Interface')}
 
 ## 4. Task List - Tarefas
 
