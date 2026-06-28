@@ -2573,12 +2573,13 @@ def generate_sdd_spec(
         "  Inclua documentação de negócio, regras de negócio e múltiplos requisitos quando necessário.\n"
         "  Cada requisito DEVE possuir um código único e estável no formato REQ-001, REQ-002, etc.\n"
         "  Inclua objetivo, comportamento esperado, escopo, restrições arquiteturais e critérios de aceitação.\n"
-        "  Os critérios de aceitação DEVEM usar caixas de seleção Markdown '- [ ]'.\n"
+        "  Critérios de aceitação podem usar caixas de seleção Markdown '- [ ]', mas NÃO são tarefas técnicas.\n"
         "- ## 2. Design - Planejamento\n"
         "  Defina como o sistema vai operar: arquitetura proposta, dados, banco, bibliotecas, integrações, APIs, eventos e contratos técnicos.\n"
         "  NÃO gere tarefas nesta seção.\n"
-        "- ## 3. Tasks - Tarefas\n"
-        "  Quebre o plano em tarefas pequenas, executáveis, paralelizáveis e testáveis. Cada tarefa DEVE usar '- [ ]'.\n"
+        "- ## 3. Task List - Tarefas\n"
+        "  Esta é a ÚNICA seção que alimenta a etapa Task List da interface.\n"
+        "  Quebre o plano em tarefas pequenas, executáveis, paralelizáveis e testáveis. Cada tarefa DEVE usar '- [ ] TASK-[REQ_ID]-001: ...'.\n"
         "- ## 4. Execute - Implementação\n"
         "  Defina ordem de execução, validações, comandos de teste sugeridos e critérios para considerar a implementação concluída.\n\n"
         "Retorne estritamente um objeto JSON. Não adicione tags de bloco ```json ou outro texto fora do JSON."
@@ -2629,7 +2630,7 @@ def generate_sdd_spec(
 
 @app.get("/api/projects/{project_id}/sdd/specs/{filename}/criteria", tags=["Spec-Driven Development"])
 def get_sdd_spec_criteria(filename: str, project: Project = Depends(get_project_or_404)):
-    """Extrai todos os critérios de aceitação de uma especificação Markdown."""
+    """Extrai somente tarefas da seção Task List de uma especificação Markdown."""
     if ".." in filename or "/" in filename or "\\" in filename:
         raise HTTPException(status_code=400, detail="Nome de arquivo inválido.")
         
@@ -2642,7 +2643,25 @@ def get_sdd_spec_criteria(filename: str, project: Project = Depends(get_project_
         with open(spec_path, "r", encoding="utf-8") as f:
             lines = f.readlines()
             
+        task_section_start = None
+        task_section_end = len(lines)
         for i, line in enumerate(lines):
+            normalized = re.sub(r"^#+\s*\d*\.?\s*", "", line.strip()).lower()
+            if "task list" in normalized or "tasks" in normalized or "tarefas" in normalized:
+                task_section_start = i
+                heading_level = len(re.match(r"^(#+)", line.strip()).group(1)) if re.match(r"^(#+)", line.strip()) else 2
+                for j in range(i + 1, len(lines)):
+                    heading = re.match(r"^(#+)\s+", lines[j].strip())
+                    if heading and len(heading.group(1)) <= heading_level:
+                        task_section_end = j
+                        break
+                break
+
+        if task_section_start is None:
+            return {"filename": filename, "criteria": []}
+
+        for i in range(task_section_start + 1, task_section_end):
+            line = lines[i]
             line_stripped = line.strip()
             # Procura por "- [ ]" ou "- [x]" ou "- [X]"
             match = re.match(r"^\-\s*\[([ xX])\]\s*(.*)", line_stripped)

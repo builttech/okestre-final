@@ -7214,7 +7214,7 @@ Como um [tipo de usuário], eu quero [ação/funcionalidade], para que [valor/be
 
 **Links Descendentes (Filhos):**
 
-- Tasks técnicas:
+- As tarefas técnicas ficam exclusivamente na seção **## 3. Task List - Tarefas**.
 
 **Código e Deploy:**
 
@@ -7266,9 +7266,12 @@ Descreva como o sistema vai operar para atender o requisito ${id}.
 
 ## 3. Task List - Tarefas
 
-- [ ] TASK-001: Detalhar implementação técnica do requisito ${id}.
-- [ ] TASK-002: Implementar comportamento principal.
-- [ ] TASK-003: Criar ou atualizar testes automatizados.
+> Somente os itens desta seção aparecem na etapa Task List da interface.
+
+- [ ] TASK-${id}-001: Detalhar implementação técnica do requisito ${id}.
+- [ ] TASK-${id}-002: Implementar comportamento principal.
+- [ ] TASK-${id}-003: Criar ou atualizar testes automatizados.
+- [ ] TASK-${id}-004: Revisar rastreabilidade, documentação e critérios de pronto.
 
 ## 4. Execute - Implementação
 
