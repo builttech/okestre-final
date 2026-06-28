@@ -7024,9 +7024,13 @@ async function sddSaveSpec() {
         const res = await fetch(`/api/projects/${state.activeProjectId}/sdd/specs`, {
             method: 'POST',
             headers: { ...getHeaders(), 'Content-Type': 'application/json' },
-            body: JSON.stringify({ filename, content })
+            body: JSON.stringify({ filename, content, overwrite: !sddState.isDraft })
         });
         const data = await res.json();
+        if (res.status === 409) {
+            gitideNotify({ title: 'Arquivo já existe', message: 'Crie o requisito com outro título ou gere um novo ID.', variant: 'warning' });
+            return;
+        }
         if (data.status === 'success') {
             sddState.activeFilename = filename;
             sddState.activeContent = content;
@@ -7148,14 +7152,31 @@ function sddSlugify(value) {
 }
 
 function sddGenerateRequirementId() {
-    const usedNumbers = (sddState.specs || [])
-        .map(spec => `${spec.filename || ''} ${spec.title || ''}`.match(/\bREQ[-_ ]?(\d{3,6})\b/i))
+    const sources = [
+        ...(sddState.specs || []).map(spec => `${spec.filename || ''} ${spec.title || ''}`),
+        sddState.activeFilename || '',
+        sddState.activeContent || ''
+    ];
+    const usedNumbers = sources
+        .map(source => String(source || '').match(/\bREQ[-_ ]?(\d{3,6})\b/i))
         .filter(Boolean)
         .map(match => Number(match[1]))
         .filter(Number.isFinite);
 
-    const next = usedNumbers.length ? Math.max(...usedNumbers) + 1 : Math.floor(1000 + Math.random() * 9000);
+    const next = usedNumbers.length ? Math.max(...usedNumbers) + 1 : 1001;
     return `REQ-${String(next).padStart(4, '0')}`;
+}
+
+function sddBuildUniqueRequirementFilename(id, title) {
+    const base = `${id.toLowerCase()}_${sddSlugify(title)}`;
+    const existing = new Set((sddState.specs || []).map(spec => (spec.filename || '').toLowerCase()));
+    let filename = `${base}.md`;
+    let suffix = 2;
+    while (existing.has(filename.toLowerCase())) {
+        filename = `${base}_${suffix}.md`;
+        suffix += 1;
+    }
+    return filename;
 }
 
 function sddBuildRequirementTemplate({ id, title, owner }) {
@@ -7255,7 +7276,15 @@ Selecione uma tarefa na aba Task List para montar as instruções de execução.
 `;
 }
 
-function sddOpenNewRequirementModal() {
+async function sddOpenNewRequirementModal() {
+    if (state.activeProjectId) {
+        try {
+            const res = await fetch(`/api/projects/${state.activeProjectId}/sdd/specs`, { headers: getHeaders() });
+            if (res.ok) sddState.specs = await res.json();
+        } catch (e) {
+            console.warn('Não foi possível atualizar a lista antes de criar requisito:', e);
+        }
+    }
     const idInput = document.getElementById('sdd-new-requirement-id');
     const titleInput = document.getElementById('sdd-new-requirement-title');
     const authorInput = document.getElementById('sdd-new-requirement-author');
@@ -7279,7 +7308,7 @@ function sddCreateRequirementFromModal() {
     sddState.activeFilename = null;
     sddState.isDraft = true;
     document.getElementById('sdd-workspace-nav-tabs').style.display = 'flex';
-    const filename = `${id.toLowerCase()}_${sddSlugify(title)}.md`;
+    const filename = sddBuildUniqueRequirementFilename(id, title);
     sddSetActiveSpecHeader({ title: `${id} - ${title}`, filename });
     document.getElementById('sdd-edit-filename').value = filename;
     const template = sddBuildRequirementTemplate({ id, title, owner });

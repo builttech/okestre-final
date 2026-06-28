@@ -219,6 +219,7 @@ class CreateDirectoryRequest(BaseModel):
 class SddSpecSaveRequest(BaseModel):
     filename: str = Field(..., description="Nome do arquivo da especificação (ex: auth.md)")
     content: str = Field(..., description="Conteúdo em Markdown da especificação")
+    overwrite: bool = Field(True, description="Permite sobrescrever arquivo existente")
 
 class SddSpecGenerateRequest(BaseModel):
     prompt: str = Field(..., description="Prompt descrevendo a feature a ser especificada")
@@ -2492,6 +2493,8 @@ def save_sdd_spec(
     specs_dir = os.path.join(project.path, ".documents", "specs")
     os.makedirs(specs_dir, exist_ok=True)
     spec_path = os.path.join(specs_dir, filename)
+    if os.path.exists(spec_path) and not req.overwrite:
+        raise HTTPException(status_code=409, detail="Já existe uma especificação com este arquivo.")
     
     try:
         with open(spec_path, "w", encoding="utf-8") as f:
