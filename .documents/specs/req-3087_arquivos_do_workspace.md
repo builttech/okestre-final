@@ -449,7 +449,8 @@ A lista abaixo representa a decomposição operacional rastreável do requisito 
 - [ ] TASK-REQ-3087-018: Criar ou atualizar testes automatizados para listagem, leitura, escrita, patch e bloqueios de segurança.
 - [ ] TASK-REQ-3087-019: Executar validações técnicas aprovadas e registrar evidências de resultado.
 - [ ] TASK-REQ-3087-020: Atualizar rastreabilidade com commits, pull requests, validações e observações de entrega após execução das tarefas.
-- [ ] TASK-REQ-3087-021: Implementar criação de novo arquivo pelo painel Arquivos do Workspace, usando endpoint seguro de escrita, validação de caminho relativo, feedback visual, recarregamento da árvore e abertura automática do arquivo criado.
+- [x] TASK-REQ-3087-021: Implementar criação de novo arquivo pelo painel Arquivos do Workspace, usando endpoint seguro de escrita, validação de caminho relativo, feedback visual, recarregamento da árvore e abertura automática do arquivo criado.
+- [ ] TASK-REQ-3087-022: Ajustar o botão de criação de arquivo no painel Arquivos do Workspace para exibir somente o ícone, mantendo acessibilidade por `title` e `aria-label`, sem alterar o comportamento de criação de arquivo.
 
 As tarefas acima não substituem os critérios de aceite da etapa **Specify**. Cada item deve ser tratado como unidade de execução técnica, com plano próprio, aprovação explícita e verificação antes de ser marcado como concluído.
 
@@ -464,3 +465,275 @@ Ela deve ser usada somente quando uma tarefa específica do REQ-3087 for selecio
 **Percepção → Planejamento → Aprovação → Execução → Verificação**
 
 A execução deve ser mínima, rastreável, aprovada pelo usuário e validada por testes, build, leitura do arquivo alterado, status Git ou outro mecanismo aplicável.
+
+## 5. DRI — Documento de Requisito de Interface
+
+### RI-REQ-3087-001 — Arquivos do Workspace
+
+### 1. Identificação da Interface
+
+| Campo | Valor |
+| --- | --- |
+| Código | RI-REQ-3087-001 |
+| Nome da interface | Arquivos do Workspace |
+| Módulo | Workspace / Explorador de Arquivos / Editor |
+| RF relacionado | REQ-3087 — Arquivos do Workspace |
+| SubRFs relacionados | RF-3087-001 Listagem de arquivos; RF-3087-002 Abertura de arquivo; RF-3087-003 Edição de arquivo; RF-3087-004 Criação de arquivo; RF-3087-005 Atualização da árvore; RF-3087-006 Integração com agente IA |
+| Tipo de interface | Página com painel dividido, árvore/lista, editor textual e modal de criação |
+| Perfil de usuário | Desenvolvedor, operador técnico, usuário GitIDE e agente IA supervisionado |
+| Dispositivo prioritário | Desktop responsivo |
+| Objetivo da tela | Permitir navegar, abrir, editar e criar arquivos do projeto ativo com segurança, feedback visual e rastreabilidade. |
+
+---
+
+### 2. Objetivo da Interface
+
+A interface **Arquivos do Workspace** deve permitir que o usuário compreenda a estrutura do projeto ativo, selecione arquivos permitidos, visualize conteúdo textual, realize edições controladas, salve alterações e crie novos arquivos em caminhos relativos válidos.
+
+Ela se conecta diretamente ao **REQ-3087** porque materializa, na experiência do usuário, os contratos funcionais de listagem, leitura, escrita, criação, atualização da árvore, proteção contra caminhos inválidos e integração com rastreabilidade do GitIDE.
+
+A interface também deve apoiar o agente IA supervisionado, garantindo que qualquer leitura ou escrita de arquivo ocorra por endpoints autorizados e que alterações sejam precedidas de plano, aprovação e verificação.
+
+---
+
+### 3. Contexto de Uso
+
+| Campo | Valor |
+| --- | --- |
+| Quem usa | Usuário técnico do GitIDE, desenvolvedor, operador do workspace e agente IA supervisionado. |
+| Quando usa | Durante análise de código, leitura de documentação, criação de arquivos, edição de arquivos textuais, validação de alterações ou revisão de estrutura do projeto. |
+| Por que usa | Para manipular arquivos do projeto ativo sem sair do GitIDE, mantendo segurança, rastreabilidade e contexto do workspace. |
+| Gatilho de acesso | Clique na opção lateral **Arquivos do Workspace** após selecionar um projeto ativo. |
+| Resultado esperado | Arquivos permitidos são exibidos, arquivos textuais podem ser abertos/editados, novos arquivos podem ser criados e a árvore permanece atualizada. |
+
+---
+
+### 4. Arquitetura da Informação
+
+| Ordem | Seção | Objetivo | Tipo de componente |
+| --- | --- | --- | --- |
+| 1 | Cabeçalho do explorador | Identificar a área de arquivos e expor ações rápidas como criar arquivo e recarregar árvore. | Header com título e botões de ação |
+| 2 | Árvore/lista de arquivos | Exibir arquivos permitidos do projeto ativo, ignorando diretórios bloqueados. | Painel lateral / lista hierárquica |
+| 3 | Cabeçalho do editor | Mostrar o arquivo ativo e disponibilizar a ação de salvar quando aplicável. | Header de editor com ação principal |
+| 4 | Metadados do arquivo | Exibir tamanho e data de modificação quando disponíveis. | Barra informativa |
+| 5 | Editor textual | Exibir e permitir edição de conteúdo textual suportado. | Textarea/editor com gutter |
+| 6 | Histórico de snapshots | Mostrar versões locais disponíveis para rollback quando existirem. | Drawer / timeline |
+| 7 | Modal de criação de arquivo | Capturar caminho relativo e conteúdo inicial opcional para criar novo arquivo. | Modal com formulário |
+
+---
+
+### 5. Mapa de Componentes
+
+| Componente | Tipo | Obrigatório | Editável | Comportamento esperado |
+| --- | --- | --- | --- | --- |
+| Título “Explorador de Arquivos” | Texto/Header | Sim | Não | Identifica o painel de navegação do workspace. |
+| Botão “Novo arquivo” | Botão/ícone | Sim | Não | Abre o modal de criação de arquivo. Deve manter `title` e `aria-label` para acessibilidade. |
+| Botão “Recarregar” | Botão/ícone | Sim | Não | Recarrega a árvore/lista de arquivos do projeto ativo. |
+| Lista de arquivos | Lista/árvore | Sim | Não | Exibe caminhos permitidos retornados pelo backend. Arquivo selecionado deve ter destaque visual. |
+| Nome do arquivo ativo | Texto/label | Sim | Não | Exibe o arquivo aberto ou mensagem orientativa quando nenhum arquivo estiver selecionado. |
+| Botão “Salvar” | Botão | Sim | Não | Permanece desabilitado sem arquivo editável ou sem contexto válido; salva via endpoint `/files/write`. |
+| Metadados do arquivo | Barra informativa | Não | Não | Exibe tamanho e última modificação quando disponíveis. |
+| Gutter de linhas | Indicador visual | Não | Não | Exibe numeração sincronizada com o editor. |
+| Editor textual | Campo textual | Sim | Sim | Exibe conteúdo de arquivos textuais e permite edição quando habilitado. |
+| Drawer de snapshots | Timeline | Não | Não | Exibe snapshots locais quando houver histórico do arquivo. |
+| Campo “Caminho relativo do arquivo” | Input | Sim | Sim | Obrigatório no modal de criação; deve rejeitar caminhos absolutos, `..`, barra inicial e segmentos vazios. |
+| Campo “Conteúdo inicial” | Textarea | Não | Sim | Permite informar conteúdo textual inicial do novo arquivo. |
+| Botão “Criar arquivo” | Botão | Sim | Não | Valida caminho, impede sobrescrita pela ação de criação, chama `/files/write`, recarrega árvore e abre o arquivo criado. |
+| Botão “Cancelar” | Botão | Sim | Não | Fecha o modal sem criar arquivo. |
+
+---
+
+### 6. Regras de Exibição
+
+| Código | Regra | Comportamento |
+| --- | --- | --- |
+| RI-RG-3087-001 | Projeto obrigatório | Sem projeto ativo, a área de arquivos não deve permitir operações de leitura, escrita ou criação. |
+| RI-RG-3087-002 | Estado inicial do editor | Quando nenhum arquivo estiver aberto, exibir mensagem orientativa e manter o editor desabilitado. |
+| RI-RG-3087-003 | Arquivo selecionado | O item selecionado na lista deve ter destaque visual consistente com o tema do GitIDE. |
+| RI-RG-3087-004 | Salvamento disponível | O botão **Salvar** deve estar disponível somente quando houver arquivo aberto/editável. |
+| RI-RG-3087-005 | Diretórios ignorados | Diretórios bloqueados ou pesados não devem aparecer na árvore principal. |
+| RI-RG-3087-006 | Arquivo não suportado | Arquivos binários ou não textuais devem exibir mensagem clara e não abrir no editor textual. |
+| RI-RG-3087-007 | Criação segura | O modal de criação deve orientar o usuário a usar caminho relativo e impedir sobrescrita por essa ação. |
+| RI-RG-3087-008 | Feedback obrigatório | Toda ação de carregar, salvar, criar ou falhar deve apresentar feedback por estado visual, mensagem ou toast. |
+| RI-RG-3087-009 | Acessibilidade de ícones | Ações exibidas somente por ícone devem manter nome acessível por `title`, `aria-label` ou equivalente. |
+
+---
+
+### 7. Estados da Interface
+
+| Estado | Descrição | Comportamento visual |
+| --- | --- | --- |
+| Sem projeto | Nenhum projeto ativo foi selecionado. | Exibir estado global de nenhum projeto selecionado e bloquear ações do workspace. |
+| Loading | Lista de arquivos ou conteúdo em carregamento. | Exibir spinner ou indicador de carregamento no painel correspondente. |
+| Empty | Projeto sem arquivos exibíveis ou listagem vazia. | Exibir mensagem orientativa no explorador. |
+| View | Arquivo textual carregado para leitura. | Conteúdo exibido no editor com cabeçalho e metadados. |
+| Edit | Usuário alterando conteúdo textual. | Editor habilitado, gutter sincronizado e ação de salvar disponível quando aplicável. |
+| Saving | Salvamento em andamento. | Botão de salvar desabilitado temporariamente e feedback de processamento. |
+| Creating | Novo arquivo sendo criado pelo modal. | Botão de criação desabilitado com indicador de carregamento. |
+| Success | Operação concluída. | Toast, mensagem curta ou mudança de estado confirmando criação/salvamento. |
+| Error | Falha ao listar, abrir, criar ou salvar. | Mensagem clara sem expor credenciais, com possibilidade de correção ou nova tentativa. |
+| Read-only | Arquivo não editável ou operação não permitida. | Editor bloqueado e mensagem informando a restrição. |
+
+---
+
+### 8. Fluxo de Interação
+
+| Ação do usuário | Resposta da interface | Resultado esperado |
+| --- | --- | --- |
+| Acessar Arquivos do Workspace | Sistema carrega arquivos do projeto ativo. | Lista/árvore apresenta arquivos permitidos. |
+| Clicar em Recarregar | Interface solicita nova listagem ao backend. | Árvore reflete o estado atual do workspace. |
+| Selecionar arquivo textual | Sistema lê conteúdo pelo endpoint de leitura. | Editor exibe conteúdo e metadados. |
+| Editar arquivo aberto | Editor captura alteração do usuário. | Conteúdo fica apto para salvamento. |
+| Clicar em Salvar | Sistema envia conteúdo ao endpoint de escrita. | Arquivo é salvo, snapshot/rastreabilidade é criada quando disponível e status visual é atualizado. |
+| Clicar em Novo arquivo | Modal de criação é exibido. | Usuário pode informar caminho e conteúdo inicial. |
+| Informar caminho válido e criar | Sistema valida existência e chama `/files/write`. | Arquivo é criado, árvore recarregada e arquivo aberto no editor. |
+| Informar caminho inválido | Interface exibe erro contextual. | Nenhum arquivo é criado. |
+| Tentar criar arquivo existente | Interface alerta sobre sobrescrita bloqueada. | Usuário precisa escolher outro caminho. |
+| Cancelar criação | Modal fecha sem enviar dados. | Nenhum arquivo é alterado. |
+
+---
+
+### 9. Mapeamento de Dados
+
+| Campo na tela | Nome técnico | Origem | Editável | Obrigatório |
+| --- | --- | --- | --- | --- |
+| Projeto ativo | `state.activeProjectId` | Seleção de projeto no GitIDE | Não | Sim |
+| Lista de arquivos | `files[].path` | `GET /api/projects/{project_id}/files` | Não | Sim |
+| Tamanho do arquivo | `files[].size` | Endpoint de listagem / metadados do arquivo | Não | Não |
+| Última modificação | `files[].last_modified` | Endpoint de listagem / metadados do arquivo | Não | Não |
+| Arquivo ativo | `state.activeFilepath` | Seleção do usuário na lista | Não | Não |
+| Conteúdo do arquivo | `content` | `GET /files/read` e textarea do editor | Sim | Não |
+| Caminho do novo arquivo | `filepath` | Campo do modal | Sim | Sim |
+| Conteúdo inicial | `content` | Campo do modal | Sim | Não |
+| Snapshot | `snapshot_id` | `POST /files/write` / backend GitIDE | Não | Não |
+| Status Git | `modified`, `untracked`, `deleted`, `staged` | Endpoint de status Git quando disponível | Não | Não |
+
+---
+
+### 10. Hierarquia Visual
+
+**Prioridade Alta**
+
+- Estado do projeto ativo.
+- Lista/árvore de arquivos permitidos.
+- Arquivo selecionado e conteúdo do editor.
+- Ações principais: novo arquivo, recarregar e salvar.
+- Mensagens de erro, validação e sucesso.
+
+**Prioridade Média**
+
+- Metadados do arquivo.
+- Histórico de snapshots.
+- Ajuda textual do modal de criação.
+- Estados de carregamento e confirmação.
+
+**Prioridade Baixa**
+
+- Detalhes auxiliares de tamanho/data quando indisponíveis.
+- Textos de orientação de uso.
+- Evoluções futuras como filtros, busca ou agrupamentos.
+
+---
+
+### 11. Microcopy da Interface
+
+| Elemento | Texto sugerido | Observação |
+| --- | --- | --- |
+| Título do painel | Explorador de Arquivos | Deve ser direto e operacional. |
+| Estado inicial do editor | Selecione um arquivo para visualizar | Orienta o usuário antes da primeira seleção. |
+| CTA de criação | Novo arquivo | Pode ser exibido como texto ou somente ícone, mantendo tooltip/acessibilidade. |
+| Título do modal | Criar novo arquivo | Explica a ação principal. |
+| Label de caminho | Caminho relativo do arquivo | Reforça que caminhos absolutos não devem ser usados. |
+| Placeholder de caminho | ex: docs/novo-arquivo.md | Demonstra padrão esperado. |
+| Label de conteúdo inicial | Conteúdo inicial | Campo opcional para iniciar o arquivo. |
+| Ajuda do modal | Use caminhos relativos ao projeto. | Deve orientar sem excesso de texto. |
+| Aviso de segurança | O GitIDE bloqueia caminhos inválidos e não sobrescreve arquivos existentes por esta ação. | Deixa claro o comportamento de proteção. |
+| Erro de caminho vazio | Informe o caminho relativo do arquivo. | Mensagem acionável. |
+| Erro de caminho inválido | Use caminho relativo, sem barra inicial. | Mensagem contextual. |
+| Erro de arquivo existente | Escolha outro caminho para evitar sobrescrita. | Evita perda acidental. |
+| Toast de sucesso | Arquivo criado | Confirma criação e pode exibir o caminho. |
+| Toast de erro | Erro ao criar arquivo | Deve vir acompanhado da causa resumida. |
+
+---
+
+### 12. Responsividade
+
+| Dispositivo | Comportamento esperado |
+| --- | --- |
+| Desktop | Layout prioritário em duas colunas: explorador à esquerda e editor à direita; modal centralizado; ações no cabeçalho do explorador. |
+| Tablet | Painéis podem reduzir largura, preservar árvore e editor com scroll independente; modal mantém formulário em coluna única. |
+| Mobile | Quando suportado, priorizar navegação em coluna única, com explorador e editor empilhados; ações principais devem permanecer acessíveis e não depender apenas de hover. |
+
+---
+
+### 13. Acessibilidade
+
+| Item | Critério |
+| --- | --- |
+| Labels | Campos do modal devem possuir labels persistentes e claros. |
+| Contraste | Cores devem manter leitura confortável no tema dark/glassmorphic. |
+| Navegação por teclado | Modal deve permitir foco no campo de caminho e acionamento por Enter/Ctrl+Enter quando aplicável. |
+| Botões por ícone | Botões sem texto visível devem possuir `title`, `aria-label` ou nome acessível equivalente. |
+| Mensagens de erro | Erros devem ser compreensíveis, acionáveis e não expor caminhos sensíveis além do necessário. |
+| Leitores de tela | Ações de criar, salvar, recarregar e fechar modal devem ter nomes claros. |
+| Foco | Ao abrir o modal, o foco deve ir para o campo de caminho relativo. |
+
+---
+
+### 14. Critérios de Aceite da Interface
+
+| Código | Critério |
+| --- | --- |
+| CA-RI-3087-001 | A interface deve listar arquivos permitidos do projeto ativo ao abrir a aba Arquivos do Workspace. |
+| CA-RI-3087-002 | O usuário deve conseguir recarregar a lista de arquivos manualmente. |
+| CA-RI-3087-003 | Ao selecionar arquivo textual válido, o conteúdo deve aparecer no editor. |
+| CA-RI-3087-004 | O editor deve exibir estado orientativo quando nenhum arquivo estiver selecionado. |
+| CA-RI-3087-005 | O usuário deve conseguir salvar alterações em arquivo textual pelo endpoint seguro de escrita. |
+| CA-RI-3087-006 | A interface deve exibir feedback de sucesso ou erro após salvar. |
+| CA-RI-3087-007 | O usuário deve conseguir abrir o modal de criação de arquivo pela ação Novo arquivo. |
+| CA-RI-3087-008 | O modal deve exigir caminho relativo válido para criar arquivo. |
+| CA-RI-3087-009 | A criação deve bloquear caminho absoluto, `..`, barra inicial e segmentos vazios. |
+| CA-RI-3087-010 | A criação deve impedir sobrescrita de arquivo já existente por essa ação. |
+| CA-RI-3087-011 | Após criar arquivo, a árvore deve ser recarregada e o arquivo criado deve abrir automaticamente no editor. |
+| CA-RI-3087-012 | Botões exibidos somente como ícone devem manter nome acessível por `title`, `aria-label` ou equivalente. |
+| CA-RI-3087-013 | Mensagens de erro não devem expor tokens, senhas, chaves de API ou URLs autenticadas. |
+| CA-RI-3087-014 | A interface deve preservar o padrão visual dark, premium e glassmorphic do GitIDE. |
+
+---
+
+### 15. Lacunas e Premissas
+
+| Item | Tipo | Descrição |
+| --- | --- | --- |
+| 1 | Premissa | O backend `/files/write` cria arquivos textuais em caminhos válidos e gera snapshot/rastreabilidade quando suportado. |
+| 2 | Premissa | A interface opera prioritariamente em desktop, com responsividade progressiva para telas menores. |
+| 3 | Lacuna | Limites formais de tamanho máximo para abertura e edição textual ainda precisam ser definidos. |
+| 4 | Lacuna | Política final para exibição/edição de arquivos sensíveis como `.env` ainda precisa ser definida. |
+| 5 | Risco | Se validações de caminho divergirem entre frontend e backend, pode haver falha de experiência ou bloqueio tardio. |
+| 6 | Risco | Projetos muito grandes podem exigir busca, filtro ou carregamento incremental para manter performance. |
+
+---
+
+### 16. Fora do Escopo
+
+- Criar, mover, renomear ou excluir diretórios pelo painel de Arquivos do Workspace.
+- Sobrescrever arquivo existente pela ação de criação de novo arquivo.
+- Editar arquivos binários no editor textual.
+- Acessar arquivos fora da raiz do projeto ativo.
+- Manipular arquivos via terminal em fluxos conduzidos por agente IA.
+- Resolver conflitos Git automaticamente dentro do editor de arquivos.
+- Sincronizar arquivos em tempo real com armazenamento externo.
+
+---
+
+### 17. Possíveis Evoluções Futuras
+
+- Busca textual dentro do workspace.
+- Filtro por extensão, tipo de arquivo ou status Git.
+- Criação de pastas diretamente pela interface do workspace.
+- Renomear, mover e excluir arquivos com confirmação e snapshots.
+- Indicadores visuais por status Git diretamente na árvore.
+- Preview específico para Markdown, imagens e JSON.
+- Editor com destaque de sintaxe.
+- Proteção especial para arquivos sensíveis como `.env`.
+- Carregamento incremental para projetos grandes.

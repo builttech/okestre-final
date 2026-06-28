@@ -1,0 +1,65 @@
+{
+    "title": "REQ-3087 — DRI — Arquivos do Workspace",
+    "sections": [
+        {
+            "heading": "Identificação da Interface",
+            "text": "[[\"Campo\",\"Valor\"],[\"Código\",\"RI-REQ-3087-001\"],[\"Nome da interface\",\"Arquivos do Workspace\"],[\"Módulo\",\"Workspace / Explorador de Arquivos / Editor\"],[\"RF relacionado\",\"REQ-3087 — Arquivos do Workspace\"],[\"Tipo de interface\",\"Página com painel dividido, árvore/lista, editor textual e modal de criação\"],[\"Perfil de usuário\",\"Desenvolvedor, operador técnico, usuário GitIDE e agente IA supervisionado\"],[\"Dispositivo prioritário\",\"Desktop responsivo\"],[\"Objetivo da tela\",\"Permitir navegar, abrir, editar e criar arquivos do projeto ativo com segurança, feedback visual e rastreabilidade.\"]]",
+            "type": "table"
+        },
+        {
+            "heading": "Objetivo da Interface",
+            "text": "A interface Arquivos do Workspace permite compreender a estrutura do projeto ativo, selecionar arquivos permitidos, visualizar conteúdo textual, realizar edições controladas, salvar alterações e criar novos arquivos em caminhos relativos válidos. Ela materializa os contratos funcionais do REQ-3087: listagem, leitura, escrita, criação, atualização da árvore, proteção contra caminhos inválidos e rastreabilidade.",
+            "type": "paragraph"
+        },
+        {
+            "heading": "Contexto de Uso",
+            "text": "Quem usa: usuário técnico do GitIDE, desenvolvedor, operador do workspace e agente IA supervisionado.\nQuando usa: durante análise de código, leitura de documentação, criação de arquivos, edição de arquivos textuais, validação de alterações ou revisão de estrutura do projeto.\nGatilho de acesso: clique na opção lateral Arquivos do Workspace após selecionar um projeto ativo.\nResultado esperado: arquivos permitidos são exibidos, arquivos textuais podem ser abertos/editados, novos arquivos podem ser criados e a árvore permanece atualizada.",
+            "type": "bullet"
+        },
+        {
+            "heading": "Arquitetura da Informação",
+            "text": "[[\"Ordem\",\"Seção\",\"Objetivo\",\"Tipo\"],[\"1\",\"Cabeçalho do explorador\",\"Identificar a área de arquivos e expor ações rápidas\",\"Header com botões\"],[\"2\",\"Árvore/lista de arquivos\",\"Exibir arquivos permitidos do projeto ativo\",\"Painel lateral\"],[\"3\",\"Cabeçalho do editor\",\"Mostrar arquivo ativo e ação de salvar\",\"Header de editor\"],[\"4\",\"Metadados do arquivo\",\"Exibir tamanho e data quando disponíveis\",\"Barra informativa\"],[\"5\",\"Editor textual\",\"Exibir e permitir edição de conteúdo textual\",\"Textarea/editor\"],[\"6\",\"Histórico de snapshots\",\"Mostrar versões locais disponíveis\",\"Drawer/timeline\"],[\"7\",\"Modal de criação\",\"Capturar caminho relativo e conteúdo inicial\",\"Modal com formulário\"]]",
+            "type": "table"
+        },
+        {
+            "heading": "Mapa de Componentes",
+            "text": "A interface contempla: título do explorador, botão Novo arquivo, botão Recarregar, lista de arquivos, nome do arquivo ativo, botão Salvar, metadados, gutter de linhas, editor textual, drawer de snapshots, campo de caminho relativo, campo de conteúdo inicial, botão Criar arquivo e botão Cancelar. Cada componente deve respeitar validações, estados visuais, acessibilidade e segurança do REQ-3087.",
+            "type": "paragraph"
+        },
+        {
+            "heading": "Regras de Exibição",
+            "text": "Projeto ativo é obrigatório para operações de arquivo.\nO editor inicia com mensagem orientativa quando nenhum arquivo está aberto.\nArquivos selecionados devem ter destaque visual.\nDiretórios ignorados não devem aparecer na árvore.\nArquivos não suportados devem exibir mensagem clara.\nO modal de criação deve orientar o usuário a usar caminho relativo.\nToda ação de carregar, salvar, criar ou falhar deve ter feedback.\nBotões exibidos somente por ícone devem manter nome acessível por title, aria-label ou equivalente.",
+            "type": "bullet"
+        },
+        {
+            "heading": "Estados da Interface",
+            "text": "Sem projeto: bloqueia ações do workspace.\nLoading: exibe spinner ou indicador de carregamento.\nEmpty: exibe mensagem orientativa.\nView: arquivo textual carregado para leitura.\nEdit: editor habilitado para alteração.\nSaving: ação principal temporariamente desabilitada.\nCreating: criação de novo arquivo em andamento.\nSuccess: confirmação por toast ou mensagem curta.\nError: mensagem clara sem expor credenciais.\nRead-only: editor bloqueado e restrição informada.",
+            "type": "bullet"
+        },
+        {
+            "heading": "Fluxo de Interação",
+            "text": "O usuário acessa Arquivos do Workspace, a árvore é carregada, seleciona um arquivo textual, o editor exibe conteúdo e metadados, o usuário edita e salva pelo endpoint seguro. Para criação, o usuário abre o modal Novo arquivo, informa caminho relativo e conteúdo inicial opcional, a interface valida o caminho, impede sobrescrita, chama /files/write, recarrega a árvore e abre o arquivo criado no editor.",
+            "type": "paragraph"
+        },
+        {
+            "heading": "Critérios de Aceite da Interface",
+            "text": "A interface deve listar arquivos permitidos do projeto ativo.\nO usuário deve conseguir recarregar a lista manualmente.\nAo selecionar arquivo textual válido, o conteúdo deve aparecer no editor.\nO usuário deve conseguir salvar alterações por endpoint seguro.\nA interface deve exibir feedback de sucesso ou erro.\nO modal deve exigir caminho relativo válido.\nA criação deve bloquear caminho absoluto, .., barra inicial e segmentos vazios.\nA criação deve impedir sobrescrita de arquivo existente.\nApós criar arquivo, a árvore deve recarregar e o arquivo deve abrir automaticamente.\nBotões somente por ícone devem manter nome acessível.\nMensagens de erro não devem expor credenciais.\nA interface deve preservar o padrão visual dark, premium e glassmorphic.",
+            "type": "bullet"
+        },
+        {
+            "heading": "Lacunas, Premissas e Riscos",
+            "text": "Premissa: o backend /files/write cria arquivos textuais em caminhos válidos e gera snapshot/rastreabilidade quando suportado.\nPremissa: a interface opera prioritariamente em desktop.\nLacuna: limites formais de tamanho máximo para abertura e edição textual ainda precisam ser definidos.\nLacuna: política final para arquivos sensíveis como .env ainda precisa ser definida.\nRisco: divergência entre validações de frontend e backend pode causar bloqueio tardio.\nRisco: projetos grandes podem exigir busca, filtros ou carregamento incremental.",
+            "type": "bullet"
+        },
+        {
+            "heading": "Fora do Escopo",
+            "text": "Criar, mover, renomear ou excluir diretórios pelo painel de Arquivos do Workspace.\nSobrescrever arquivo existente pela ação de criação de novo arquivo.\nEditar arquivos binários no editor textual.\nAcessar arquivos fora da raiz do projeto ativo.\nManipular arquivos via terminal em fluxos conduzidos por agente IA.\nResolver conflitos Git automaticamente dentro do editor de arquivos.\nSincronizar arquivos em tempo real com armazenamento externo.",
+            "type": "bullet"
+        },
+        {
+            "heading": "Possíveis Evoluções Futuras",
+            "text": "Busca textual dentro do workspace.\nFiltro por extensão, tipo de arquivo ou status Git.\nCriação de pastas diretamente pela interface.\nRenomear, mover e excluir arquivos com confirmação e snapshots.\nIndicadores visuais por status Git na árvore.\nPreview específico para Markdown, imagens e JSON.\nEditor com destaque de sintaxe.\nProteção especial para arquivos sensíveis.\nCarregamento incremental para projetos grandes.",
+            "type": "bullet"
+        }
+    ]
+}
