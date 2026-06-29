@@ -113,6 +113,18 @@ body {
     width: 270px;
     padding: 10px 8px;
     background: rgba(12,12,13,0.9);
+    transition: width .18s ease, padding .18s ease;
+}
+
+.sidebar-collapse-header {
+    display: flex;
+    justify-content: flex-end;
+    padding: 0 2px 8px;
+}
+
+.sidebar-collapse-toggle {
+    width: 32px;
+    height: 32px;
 }
 
 .content-area {
@@ -5689,5 +5701,46 @@ input[type="checkbox"]:focus-visible{
 @keyframes gitideToastOut {
     from { opacity: 1; transform: translateY(0); }
     to { opacity: 0; transform: translateY(8px); }
+}
+
+/* Collapsible app sidebar */
+.app-container.sidebar-collapsed .sidebar {
+    width: 68px !important;
+    min-width: 68px !important;
+    max-width: 68px !important;
+    padding: 10px 8px !important;
+    align-items: center;
+}
+
+.app-container.sidebar-collapsed .sidebar-collapse-header {
+    justify-content: center;
+    width: 100%;
+}
+
+.app-container.sidebar-collapsed .sidebar::before,
+.app-container.sidebar-collapsed .sidebar-section,
+.app-container.sidebar-collapsed .sidebar-footer,
+.app-container.sidebar-collapsed .nav-label {
+    display: none !important;
+}
+
+.app-container.sidebar-collapsed .sidebar-nav {
+    width: 100%;
+    align-items: center;
+    padding: 4px;
+}
+
+.app-container.sidebar-collapsed .nav-item {
+    width: 42px;
+    height: 42px;
+    padding: 0 !important;
+    justify-content: center;
+    gap: 0;
+}
+
+.app-container.sidebar-collapsed .nav-item i,
+.app-container.sidebar-collapsed .nav-item svg {
+    margin: 0;
+    flex-shrink: 0;
 }
 

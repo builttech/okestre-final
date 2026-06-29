@@ -17,7 +17,7 @@
     <link rel="stylesheet" href="/static/workspace-switcher-refactor.css?v=2">
     <link rel="stylesheet" href="/static/workspace-native-fallback.css?v=1">
     <link rel="stylesheet" href="/static/settings-tabs.css?v=1">
-    <link rel="stylesheet" href="/static/rebrand.css?v=18">
+    <link rel="stylesheet" href="/static/rebrand.css?v=19">
     <script src="/static/lucide-bootstrap.js"></script>
     <script defer src="/static/ui/workspace-switcher.js?v=2"></script>
     <script defer src="/static/settings-tabs.js?v=3"></script>
@@ -52,6 +52,11 @@
         <div class="main-layout">
             <!-- SIDEBAR -->
             <aside class="sidebar">
+                <div class="sidebar-collapse-header">
+                    <button class="btn-icon sidebar-collapse-toggle" id="btn-sidebar-collapse" title="Colapsar sidebar" aria-label="Colapsar sidebar" aria-expanded="true">
+                        <i data-lucide="panel-left-close"></i>
+                    </button>
+                </div>
                 <!-- Project Section -->
                 <div class="sidebar-section">
                     <div class="section-header">
@@ -71,35 +76,35 @@
 
                 <!-- Navigation Tabs -->
                 <nav class="sidebar-nav">
-                    <button class="nav-item active" data-tab="tab-files">
-                        <i data-lucide="files"></i> Arquivos do Workspace
+                    <button class="nav-item active" data-tab="tab-files" title="Arquivos do Workspace">
+                        <i data-lucide="files"></i> <span class="nav-label">Arquivos do Workspace</span>
                     </button>
-                    <button class="nav-item" data-tab="tab-terminal">
-                        <i data-lucide="terminal"></i> Terminal Console
+                    <button class="nav-item" data-tab="tab-terminal" title="Terminal Console">
+                        <i data-lucide="terminal"></i> <span class="nav-label">Terminal Console</span>
                     </button>
-                    <button class="nav-item" data-tab="tab-database">
-                        <i data-lucide="database"></i> Banco de Dados (SQL)
+                    <button class="nav-item" data-tab="tab-database" title="Banco de Dados (SQL)">
+                        <i data-lucide="database"></i> <span class="nav-label">Banco de Dados (SQL)</span>
                     </button>
-                    <button class="nav-item" data-tab="tab-git">
-                        <i data-lucide="git-branch"></i> Controle de Versão (Git)
+                    <button class="nav-item" data-tab="tab-git" title="Controle de Versão (Git)">
+                        <i data-lucide="git-branch"></i> <span class="nav-label">Controle de Versão (Git)</span>
                     </button>
-                    <button class="nav-item" data-tab="tab-logs">
-                        <i data-lucide="history"></i> Histórico & Rollbacks
+                    <button class="nav-item" data-tab="tab-logs" title="Histórico & Rollbacks">
+                        <i data-lucide="history"></i> <span class="nav-label">Histórico & Rollbacks</span>
                     </button>
-                    <button class="nav-item" data-tab="tab-tokens">
-                        <i data-lucide="palette"></i> Design System (Tokens)
+                    <button class="nav-item" data-tab="tab-tokens" title="Design System (Tokens)">
+                        <i data-lucide="palette"></i> <span class="nav-label">Design System (Tokens)</span>
                     </button>
-                    <button class="nav-item" data-tab="tab-agent">
-                        <i data-lucide="bot"></i> Agente IA Nativo
+                    <button class="nav-item" data-tab="tab-agent" title="Agente IA Nativo">
+                        <i data-lucide="bot"></i> <span class="nav-label">Agente IA Nativo</span>
                     </button>
-                    <button class="nav-item" data-tab="tab-documents">
-                        <i data-lucide="file-text"></i> Documentos (Word)
+                    <button class="nav-item" data-tab="tab-documents" title="Documentos (Word)">
+                        <i data-lucide="file-text"></i> <span class="nav-label">Documentos (Word)</span>
                     </button>
-                    <button class="nav-item" data-tab="tab-sdd">
-                        <i data-lucide="file-check"></i> Harness Engineering
+                    <button class="nav-item" data-tab="tab-sdd" title="Harness Engineering">
+                        <i data-lucide="file-check"></i> <span class="nav-label">Harness Engineering</span>
                     </button>
-                    <button class="nav-item" data-tab="tab-ops-infra">
-                        <i data-lucide="server-cog"></i> Ops Infra
+                    <button class="nav-item" data-tab="tab-ops-infra" title="Ops Infra">
+                        <i data-lucide="server-cog"></i> <span class="nav-label">Ops Infra</span>
                     </button>
                 </nav>
 
@@ -1832,7 +1837,7 @@ Se o arquivo existir, leia e siga rigorosamente todas as diretrizes, fases de an
     </div>
 
     <!-- Custom JavaScript -->
-    <script src="/static/app.js?v=40"></script>
+    <script src="/static/app.js?v=41"></script>
     <script src="/static/theme-toggle.js?v=1"></script>
 </body>
 </html>

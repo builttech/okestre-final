@@ -59,6 +59,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function initApp() {
     try {
+        applySidebarCollapsedState(localStorage.getItem('gitide_sidebar_collapsed') === 'true');
+
         // 1. Busca chave de API e info do servidor
         const infoRes = await fetch('/api/info');
         const infoData = await infoRes.json();
@@ -102,6 +104,27 @@ async function initApp() {
         console.error('Erro na inicialização:', err);
         alert('Erro ao conectar com o backend do GitIDE. Certifique-se de que o servidor FastAPI está rodando.');
     }
+}
+
+function applySidebarCollapsedState(collapsed) {
+    const app = document.querySelector('.app-container');
+    const btn = document.getElementById('btn-sidebar-collapse');
+    if (!app) return;
+    app.classList.toggle('sidebar-collapsed', collapsed);
+    if (btn) {
+        btn.setAttribute('aria-expanded', String(!collapsed));
+        btn.setAttribute('aria-label', collapsed ? 'Expandir sidebar' : 'Colapsar sidebar');
+        btn.title = collapsed ? 'Expandir sidebar' : 'Colapsar sidebar';
+        btn.innerHTML = collapsed ? '<i data-lucide="panel-left-open"></i>' : '<i data-lucide="panel-left-close"></i>';
+        if (window.lucide) lucide.createIcons();
+    }
+}
+
+function toggleSidebarCollapsed() {
+    const app = document.querySelector('.app-container');
+    const collapsed = !app?.classList.contains('sidebar-collapsed');
+    localStorage.setItem('gitide_sidebar_collapsed', String(collapsed));
+    applySidebarCollapsedState(collapsed);
 }
 
 // Cabeçalhos para requisições autenticadas
@@ -3296,6 +3319,8 @@ async function opsInfraRunCommand(action) {
 function setupEventListeners() {
     // SDD Module
     setupSddEventListeners();
+
+    document.getElementById('btn-sidebar-collapse')?.addEventListener('click', toggleSidebarCollapsed);
 
     // 1. Selector de Projeto
     document.getElementById('project-selector').addEventListener('change', (e) => {
