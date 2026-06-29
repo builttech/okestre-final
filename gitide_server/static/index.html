@@ -17,7 +17,7 @@
     <link rel="stylesheet" href="/static/workspace-switcher-refactor.css?v=2">
     <link rel="stylesheet" href="/static/workspace-native-fallback.css?v=1">
     <link rel="stylesheet" href="/static/settings-tabs.css?v=1">
-    <link rel="stylesheet" href="/static/rebrand.css?v=17">
+    <link rel="stylesheet" href="/static/rebrand.css?v=18">
     <script src="/static/lucide-bootstrap.js"></script>
     <script defer src="/static/ui/workspace-switcher.js?v=2"></script>
     <script defer src="/static/settings-tabs.js?v=3"></script>
@@ -1026,6 +1026,8 @@ Se o arquivo existir, leia e siga rigorosamente todas as diretrizes, fases de an
                                                 </div>
                                                 <div class="sdd-stage-actions">
                                                     <button class="btn btn-secondary btn-sm sdd-danger-action" id="btn-sdd-delete-specify" title="Excluir requisito"><i data-lucide="trash-2"></i></button>
+                                                    <button class="btn btn-secondary btn-sm sdd-layout-action" data-sdd-aside-toggle title="Recolher assistente IA"><i data-lucide="panel-right-close"></i></button>
+                                                    <button class="btn btn-secondary btn-sm sdd-layout-action" data-sdd-focus-toggle title="Modo foco"><i data-lucide="maximize-2"></i></button>
                                                     <button class="btn btn-primary btn-sm" id="btn-sdd-save-specify"><i data-lucide="save"></i> Salvar</button>
                                                 </div>
                                             </div>
@@ -1056,7 +1058,11 @@ Se o arquivo existir, leia e siga rigorosamente todas as diretrizes, fases de an
                                                     <span>Design - Planejamento</span>
                                                     <h5>Documento vivo em .documents/design/design.md</h5>
                                                 </div>
-                                                <button class="btn btn-primary btn-sm" id="btn-sdd-save-design"><i data-lucide="save"></i> Salvar</button>
+                                                <div class="sdd-stage-actions">
+                                                    <button class="btn btn-secondary btn-sm sdd-layout-action" data-sdd-aside-toggle title="Recolher assistente IA"><i data-lucide="panel-right-close"></i></button>
+                                                    <button class="btn btn-secondary btn-sm sdd-layout-action" data-sdd-focus-toggle title="Modo foco"><i data-lucide="maximize-2"></i></button>
+                                                    <button class="btn btn-primary btn-sm" id="btn-sdd-save-design"><i data-lucide="save"></i> Salvar</button>
+                                                </div>
                                             </div>
                                             <textarea id="sdd-design-editor" class="sdd-doc-editor text-input" placeholder="## Arquitetura proposta..."></textarea>
                                         </section>
@@ -1078,7 +1084,11 @@ Se o arquivo existir, leia e siga rigorosamente todas as diretrizes, fases de an
                                                     <span>DRI - Documento de Requisito de Interface</span>
                                                     <h5>Documento vivo em .documents/dri/dri.md</h5>
                                                 </div>
-                                                <button class="btn btn-primary btn-sm" id="btn-sdd-save-dri"><i data-lucide="save"></i> Salvar</button>
+                                                <div class="sdd-stage-actions">
+                                                    <button class="btn btn-secondary btn-sm sdd-layout-action" data-sdd-aside-toggle title="Recolher assistente IA"><i data-lucide="panel-right-close"></i></button>
+                                                    <button class="btn btn-secondary btn-sm sdd-layout-action" data-sdd-focus-toggle title="Modo foco"><i data-lucide="maximize-2"></i></button>
+                                                    <button class="btn btn-primary btn-sm" id="btn-sdd-save-dri"><i data-lucide="save"></i> Salvar</button>
+                                                </div>
                                             </div>
                                             <textarea id="sdd-dri-editor" class="sdd-doc-editor text-input" placeholder="## 3. DRI - Documento de Requisito de Interface..."></textarea>
                                         </section>
@@ -1822,7 +1832,7 @@ Se o arquivo existir, leia e siga rigorosamente todas as diretrizes, fases de an
     </div>
 
     <!-- Custom JavaScript -->
-    <script src="/static/app.js?v=39"></script>
+    <script src="/static/app.js?v=40"></script>
     <script src="/static/theme-toggle.js?v=1"></script>
 </body>
 </html>

@@ -7203,6 +7203,46 @@ function sddSwitchTab(tabId) {
     }
 }
 
+function sddGetStageGridFromButton(button) {
+    return button?.closest('.sdd-stage-grid, .sdd-execute-grid');
+}
+
+function sddRefreshStageLayoutButtons(grid) {
+    if (!grid) return;
+    const asideHidden = grid.classList.contains('is-aside-collapsed') || grid.classList.contains('is-focus-mode');
+    const focusMode = grid.classList.contains('is-focus-mode');
+    const asideBtn = grid.querySelector('[data-sdd-aside-toggle]');
+    const focusBtn = grid.querySelector('[data-sdd-focus-toggle]');
+
+    if (asideBtn) {
+        asideBtn.title = asideHidden ? 'Abrir assistente IA' : 'Recolher assistente IA';
+        asideBtn.innerHTML = asideHidden ? '<i data-lucide="panel-right-open"></i>' : '<i data-lucide="panel-right-close"></i>';
+    }
+    if (focusBtn) {
+        focusBtn.title = focusMode ? 'Sair do modo foco' : 'Modo foco';
+        focusBtn.innerHTML = focusMode ? '<i data-lucide="minimize-2"></i>' : '<i data-lucide="maximize-2"></i>';
+    }
+    if (window.lucide) lucide.createIcons();
+}
+
+function sddToggleStageAside(button) {
+    const grid = sddGetStageGridFromButton(button);
+    if (!grid) return;
+    grid.classList.remove('is-focus-mode');
+    grid.classList.toggle('is-aside-collapsed');
+    sddRefreshStageLayoutButtons(grid);
+}
+
+function sddToggleStageFocus(button) {
+    const grid = sddGetStageGridFromButton(button);
+    if (!grid) return;
+    grid.classList.toggle('is-focus-mode');
+    if (grid.classList.contains('is-focus-mode')) {
+        grid.classList.remove('is-aside-collapsed');
+    }
+    sddRefreshStageLayoutButtons(grid);
+}
+
 function sddUpdateFlowStrip(tabId = 'sdd-tab-preview') {
     const strip = document.getElementById('sdd-flow-strip');
     if (!strip) return;
@@ -7949,6 +7989,14 @@ function setupSddEventListeners() {
     // Workspace sub-tabs
     document.querySelectorAll('.sdd-nav-btn').forEach(btn => {
         btn.addEventListener('click', () => sddSwitchTab(btn.dataset.sddTab));
+    });
+
+    document.querySelectorAll('[data-sdd-aside-toggle]').forEach(btn => {
+        btn.addEventListener('click', () => sddToggleStageAside(btn));
+    });
+
+    document.querySelectorAll('[data-sdd-focus-toggle]').forEach(btn => {
+        btn.addEventListener('click', () => sddToggleStageFocus(btn));
     });
 
     // Save spec

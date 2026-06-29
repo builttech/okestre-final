@@ -4849,10 +4849,24 @@ input[type="checkbox"]:focus-visible{
 .sdd-stage-grid,
 .sdd-execute-grid {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 320px;
+    grid-template-columns: minmax(680px, 1fr) minmax(280px, 320px);
     gap: 18px;
     height: 100%;
     min-height: 0;
+}
+
+.sdd-stage-grid.is-aside-collapsed,
+.sdd-execute-grid.is-aside-collapsed,
+.sdd-stage-grid.is-focus-mode,
+.sdd-execute-grid.is-focus-mode {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+.sdd-stage-grid.is-aside-collapsed .sdd-stage-aside,
+.sdd-execute-grid.is-aside-collapsed .sdd-stage-aside,
+.sdd-stage-grid.is-focus-mode .sdd-stage-aside,
+.sdd-execute-grid.is-focus-mode .sdd-stage-aside {
+    display: none;
 }
 
 #sdd-tab-preview:not(.has-content) .sdd-stage-main,
@@ -4926,6 +4940,19 @@ input[type="checkbox"]:focus-visible{
     gap: 8px;
 }
 
+.sdd-layout-action {
+    width: 34px;
+    min-width: 34px;
+    height: 34px;
+    padding: 0 !important;
+    justify-content: center;
+}
+
+.sdd-layout-action i {
+    width: 15px;
+    height: 15px;
+}
+
 .sdd-danger-action {
     width: 36px;
     min-width: 36px;
@@ -4958,8 +4985,11 @@ input[type="checkbox"]:focus-visible{
     background: rgba(0,0,0,0.16) !important;
     font-family: var(--font-mono);
     font-size: 13px;
-    line-height: 1.55;
-    padding: 16px !important;
+    line-height: 1.68;
+    padding: 20px !important;
+    white-space: pre;
+    overflow: auto;
+    tab-size: 2;
 }
 
 .sdd-task-status {
@@ -4970,6 +5000,17 @@ input[type="checkbox"]:focus-visible{
     height: 34px;
     font-size: 12px;
     padding: 0 10px;
+}
+
+@media (max-width: 1280px) {
+    .sdd-stage-grid,
+    .sdd-execute-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .sdd-stage-aside {
+        min-height: 220px;
+    }
 }
 
 .sdd-flow-strip {
