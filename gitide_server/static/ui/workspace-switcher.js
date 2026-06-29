@@ -64,8 +64,6 @@
         <i data-lucide="chevron-down" class="workspace-switcher-chevron" aria-hidden="true"></i>
       </button>
       <div class="workspace-switcher-menu workspace-account-popover" role="menu">
-        <div class="workspace-account-email" id="workspace-account-email">GitIDE Workspace</div>
-
         <div class="workspace-account-mode-row" aria-label="Preferências rápidas">
           <button class="workspace-account-mode-btn is-active" type="button" title="Modo desktop"><i data-lucide="monitor"></i></button>
           <button class="workspace-account-mode-btn" type="button" title="Tema claro"><i data-lucide="sun"></i></button>
@@ -171,7 +169,7 @@
       orgTitle.textContent = text;
       avatar.textContent = initials(text);
       root.querySelector('.workspace-account-org-row .workspace-switcher-avatar').textContent = initials(text);
-      emailLabel.textContent = getTokenPreview() || 'GitIDE Workspace';
+      if (emailLabel) emailLabel.textContent = getTokenPreview() || 'GitIDE Workspace';
     }
 
     function runCopyAction() {
