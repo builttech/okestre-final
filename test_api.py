@@ -124,6 +124,18 @@ class TestGitIDEVCS(unittest.TestCase):
         self.assertIsNotNone(last_snap)
         self.assertEqual(last_snap.content, content)
 
+    def test_directory_delete(self):
+        folder = "temp_folder"
+        nested = os.path.join(self.test_dir, folder, "nested.txt")
+        os.makedirs(os.path.dirname(nested), exist_ok=True)
+        with open(nested, "w", encoding="utf-8") as f:
+            f.write("remover pasta")
+
+        res = vcs.delete_project_file(self.db, self.project, folder)
+        self.assertEqual(res["status"], "success")
+        self.assertEqual(res["action"], "deleted_directory")
+        self.assertFalse(os.path.exists(os.path.join(self.test_dir, folder)))
+
     def test_rollback(self):
         filename = "main.py"
         vcs.write_project_file(self.db, self.project, filename, "versao 1")  # Snapshot 1

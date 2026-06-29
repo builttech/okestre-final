@@ -36,6 +36,12 @@ const state = {
     opsEnvVariables: []
 };
 
+const workspaceDeleteState = {
+    filepath: '',
+    name: '',
+    type: 'file'
+};
+
 // --- CUSTOM SELECT COMPONENT ---
 
 // --- INICIALIZAÇÃO ---
@@ -298,6 +304,7 @@ function buildFileTree(files) {
                     current.children[part] = {
                         name: part,
                         type: 'folder',
+                        path: parts.slice(0, index + 1).join('/'),
                         children: {}
                     };
                 }
@@ -328,15 +335,29 @@ function renderTree(node, container, depth = 0) {
             const folderHeader = document.createElement('div');
             folderHeader.className = 'file-node folder-node';
             folderHeader.style.paddingLeft = `${depth * 12 + 10}px`;
-            folderHeader.innerHTML = `<i class="fa-solid fa-folder-open" style="color: var(--color-warning); margin-right: 6px;"></i> <span>${item.name}</span>`;
+            folderHeader.setAttribute('data-filepath', item.path);
+            folderHeader.setAttribute('data-type', 'folder');
+            folderHeader.innerHTML = `
+                <div class="file-node-main">
+                    <i class="fa-solid fa-folder-open" style="color: var(--color-warning); margin-right: 6px;"></i>
+                    <span>${escapeHtml(item.name)}</span>
+                </div>
+                <button class="workspace-tree-delete" title="Excluir pasta" aria-label="Excluir pasta ${escapeHtml(item.name)}">
+                    <i class="fa-solid fa-trash-can"></i>
+                </button>`;
             
             const folderChildrenContainer = document.createElement('div');
             folderChildrenContainer.className = 'folder-children active';
             
+            folderHeader.querySelector('.workspace-tree-delete')?.addEventListener('click', (e) => {
+                e.stopPropagation();
+                openWorkspaceDeleteModal(item.path, item.name, 'folder');
+            });
+
             folderHeader.addEventListener('click', (e) => {
                 e.stopPropagation();
                 folderChildrenContainer.classList.toggle('active');
-                const icon = folderHeader.querySelector('i');
+                const icon = folderHeader.querySelector('.file-node-main i');
                 if (folderChildrenContainer.classList.contains('active')) {
                     icon.className = 'fa-solid fa-folder-open';
                 } else {
@@ -367,8 +388,20 @@ function renderTree(node, container, depth = 0) {
                 iconClass = 'fa-regular fa-file-image';
             }
             
-            fileEl.innerHTML = `<i class="${iconClass}"></i> <span>${item.name}</span>`;
+            fileEl.innerHTML = `
+                <div class="file-node-main">
+                    <i class="${iconClass}"></i>
+                    <span>${escapeHtml(item.name)}</span>
+                </div>
+                <button class="workspace-tree-delete" title="Excluir arquivo" aria-label="Excluir arquivo ${escapeHtml(item.name)}">
+                    <i class="fa-solid fa-trash-can"></i>
+                </button>`;
             fileEl.setAttribute('data-filepath', item.path);
+            fileEl.setAttribute('data-type', 'file');
+            fileEl.querySelector('.workspace-tree-delete')?.addEventListener('click', (e) => {
+                e.stopPropagation();
+                openWorkspaceDeleteModal(item.path, item.name, 'file');
+            });
             fileEl.addEventListener('click', (e) => {
                 e.stopPropagation();
                 openFile(item.path, item.size, item.last_modified);
@@ -378,6 +411,94 @@ function renderTree(node, container, depth = 0) {
             container.appendChild(itemEl);
         }
     });
+}
+
+function openWorkspaceDeleteModal(filepath, name, type = 'file') {
+    if (!state.activeProjectId) {
+        gitideNotify({ title: 'Projeto obrigatório', message: 'Selecione um projeto antes de excluir itens.', variant: 'warning' });
+        return;
+    }
+
+    const modal = document.getElementById('modal-workspace-delete');
+    const nameEl = document.getElementById('workspace-delete-name');
+    const pathEl = document.getElementById('workspace-delete-path');
+    const kindEl = document.getElementById('workspace-delete-kind');
+    const input = document.getElementById('workspace-delete-confirm-input');
+    const btn = document.getElementById('btn-workspace-confirm-delete');
+    if (!modal || !nameEl || !pathEl || !kindEl || !input || !btn) return;
+
+    workspaceDeleteState.filepath = filepath;
+    workspaceDeleteState.name = name;
+    workspaceDeleteState.type = type;
+    nameEl.textContent = name;
+    pathEl.textContent = filepath;
+    kindEl.textContent = type === 'folder' ? 'Pasta' : 'Arquivo';
+    input.value = '';
+    btn.disabled = true;
+    modal.classList.add('active');
+    setTimeout(() => input.focus(), 40);
+}
+
+function closeWorkspaceDeleteModal() {
+    const modal = document.getElementById('modal-workspace-delete');
+    if (modal) modal.classList.remove('active');
+}
+
+function updateWorkspaceDeleteConfirmState() {
+    const input = document.getElementById('workspace-delete-confirm-input');
+    const btn = document.getElementById('btn-workspace-confirm-delete');
+    if (!input || !btn) return;
+    btn.disabled = input.value !== workspaceDeleteState.name;
+}
+
+async function deleteWorkspaceItemFromModal() {
+    if (!state.activeProjectId || !workspaceDeleteState.filepath) return;
+    const btn = document.getElementById('btn-workspace-confirm-delete');
+    const input = document.getElementById('workspace-delete-confirm-input');
+    if (!btn || !input || input.value !== workspaceDeleteState.name) return;
+
+    const originalHtml = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i>';
+
+    try {
+        const res = await fetch(`/api/projects/${state.activeProjectId}/files/delete?filepath=${encodeURIComponent(workspaceDeleteState.filepath)}`, {
+            method: 'DELETE',
+            headers: getHeaders()
+        });
+        const data = await res.json();
+        if (!res.ok || data.status !== 'success') {
+            throw new Error(data.detail || 'Não foi possível excluir o item.');
+        }
+
+        const deletedPath = workspaceDeleteState.filepath;
+        const deletedType = workspaceDeleteState.type;
+        closeWorkspaceDeleteModal();
+        gitideNotify({
+            title: deletedType === 'folder' ? 'Pasta excluída' : 'Arquivo excluído',
+            message: deletedPath,
+            variant: 'success'
+        });
+
+        if (state.activeFilepath === deletedPath || state.activeFilepath?.startsWith(`${deletedPath}/`)) {
+            state.activeFilepath = null;
+            document.getElementById('active-file-name').innerHTML = '<i class="fa-solid fa-code"></i> Selecione um arquivo para visualizar';
+            const textarea = document.getElementById('file-editor-textarea');
+            textarea.value = '';
+            textarea.disabled = true;
+            document.getElementById('btn-save-file').disabled = true;
+            document.getElementById('editor-meta').style.display = 'none';
+            document.getElementById('file-snapshots-drawer').style.display = 'none';
+            updateLineNumbers();
+        }
+
+        await loadFiles();
+    } catch (err) {
+        gitideNotify({ title: 'Erro ao excluir', message: err.message, variant: 'danger' });
+    } finally {
+        btn.innerHTML = originalHtml;
+        updateWorkspaceDeleteConfirmState();
+    }
 }
 
 async function loadFiles() {
@@ -3326,6 +3447,17 @@ function setupEventListeners() {
     document.getElementById('btn-workspace-create-file')?.addEventListener('click', createWorkspaceFileFromModal);
     document.querySelectorAll('.workspace-new-file-close').forEach(btn => {
         btn.addEventListener('click', closeWorkspaceNewFileModal);
+    });
+    document.getElementById('btn-workspace-confirm-delete')?.addEventListener('click', deleteWorkspaceItemFromModal);
+    document.getElementById('workspace-delete-confirm-input')?.addEventListener('input', updateWorkspaceDeleteConfirmState);
+    document.getElementById('workspace-delete-confirm-input')?.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' && !document.getElementById('btn-workspace-confirm-delete')?.disabled) {
+            event.preventDefault();
+            deleteWorkspaceItemFromModal();
+        }
+    });
+    document.querySelectorAll('.workspace-delete-close').forEach(btn => {
+        btn.addEventListener('click', closeWorkspaceDeleteModal);
     });
     document.getElementById('workspace-new-file-path')?.addEventListener('keydown', (event) => {
         if (event.key === 'Enter') {

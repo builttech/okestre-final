@@ -1,6 +1,7 @@
 import os
 import hashlib
 import fnmatch
+import shutil
 from datetime import datetime
 from sqlalchemy.orm import Session
 from gitide_server.database import Project, FileSnapshot, ActivityLog
@@ -192,15 +193,24 @@ def write_project_file(db: Session, project: Project, filepath: str, content: st
 
 def delete_project_file(db: Session, project: Project, filepath: str, activity_log_id: int = None) -> dict:
     """
-    Exclui um arquivo do projeto após salvar um snapshot final do seu conteúdo
-    para permitir que seja restaurado posteriormente.
+    Exclui um arquivo ou diretório do projeto. Para arquivos, salva um snapshot
+    final do conteúdo para permitir restauração posterior.
     """
     if is_ignored(project.path, filepath):
         raise ValueError(f"Acesso ao arquivo bloqueado pelo .gitideignore: {filepath}")
     full_path = get_safe_path(project.path, filepath)
         
     if not os.path.exists(full_path):
-        raise FileNotFoundError(f"Arquivo não encontrado para exclusão: {filepath}")
+        raise FileNotFoundError(f"Arquivo ou pasta não encontrado para exclusão: {filepath}")
+
+    rel_path = filepath.replace('\\', '/').rstrip('/')
+
+    if os.path.isdir(full_path):
+        if os.path.abspath(full_path) == os.path.abspath(project.path):
+            raise ValueError("Não é permitido excluir a raiz do workspace.")
+        shutil.rmtree(full_path)
+        db.commit()
+        return {"status": "success", "action": "deleted_directory", "filepath": rel_path}
         
     # Salva o snapshot final antes de deletar
     content = ""
@@ -224,7 +234,7 @@ def delete_project_file(db: Session, project: Project, filepath: str, activity_l
     os.remove(full_path)
     db.commit()
     
-    return {"status": "success", "action": "deleted", "snapshot_id": snapshot.id}
+    return {"status": "success", "action": "deleted", "filepath": rel_path, "snapshot_id": snapshot.id}
 
 def rollback_project_file(db: Session, project: Project, snapshot_id: int) -> dict:
     """

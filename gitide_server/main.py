@@ -566,14 +566,14 @@ def delete_file(filepath: str = Query(..., description="Caminho relativo do arqu
                 db: Session = Depends(get_db),
                 _ = Depends(get_api_key)):
     """
-    Exclui um arquivo do computador e cria um snapshot de backup.
+    Exclui um arquivo ou pasta do workspace. Arquivos recebem snapshot de backup antes da exclusão.
     Requer autenticação Bearer Token para chamadas externas.
     """
     try:
         log = ActivityLog(
             project_id=project.id,
             action_type="FILE_DELETE",
-            details=f"Exclusão do arquivo: {filepath}"
+            details=f"Exclusão de arquivo/pasta: {filepath}"
         )
         db.add(log)
         db.commit()
@@ -582,7 +582,7 @@ def delete_file(filepath: str = Query(..., description="Caminho relativo do arqu
         result = vcs.delete_project_file(db, project, filepath, activity_log_id=log.id)
         return result
     except FileNotFoundError:
-        raise HTTPException(status_code=404, detail="Arquivo não encontrado.")
+        raise HTTPException(status_code=404, detail="Arquivo ou pasta não encontrado.")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
