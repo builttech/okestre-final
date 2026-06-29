@@ -5763,6 +5763,9 @@ input[type="checkbox"]:focus-visible{
 
 .topbar-workspace-section {
     width: clamp(190px, 18vw, 248px);
+    height: 100%;
+    display: flex;
+    align-items: center;
     padding: 0 14px 0 0 !important;
     margin: 0 10px 0 0 !important;
     border: 0 !important;
@@ -5777,14 +5780,17 @@ input[type="checkbox"]:focus-visible{
 
 .topbar-workspace-section .project-selector-wrapper {
     display: block !important;
+    width: 100%;
     margin: 0 !important;
 }
 
 .topbar-workspace-section .workspace-switcher-trigger {
+    height: 34px !important;
     min-height: 34px;
+    display: grid !important;
     grid-template-columns: 24px minmax(0, 1fr) 14px;
     gap: 8px;
-    padding: 5px 8px;
+    padding: 5px 8px !important;
     border-radius: 999px;
     box-shadow: none;
 }
@@ -5842,6 +5848,7 @@ input[type="checkbox"]:focus-visible{
 
     .topbar-workspace-section .workspace-switcher-trigger {
         width: 36px;
+        height: 36px !important;
         min-height: 36px;
         grid-template-columns: 1fr;
         justify-items: center;
