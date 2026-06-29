@@ -5171,7 +5171,7 @@ input[type="checkbox"]:focus-visible{
     min-height: 20px;
     margin: 0;
     border: 1px solid rgba(255,255,255,0.22);
-    border-radius: 6px;
+    border-radius: 50%;
     background: rgba(255,255,255,0.035);
     display: inline-grid;
     place-items: center;
@@ -5180,13 +5180,17 @@ input[type="checkbox"]:focus-visible{
     transition: background .15s ease, border-color .15s ease, box-shadow .15s ease;
 }
 
+.sdd-task-checkbox::before {
+    content: none;
+}
+
 .sdd-task-checkbox::after {
     content: '';
-    width: 5px;
-    height: 9px;
-    border: solid #06130f;
-    border-width: 0 2px 2px 0;
-    transform: rotate(45deg) scale(0);
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #06130f;
+    transform: scale(0);
     transform-origin: center;
     transition: transform .12s ease;
 }
@@ -5198,7 +5202,7 @@ input[type="checkbox"]:focus-visible{
 }
 
 .sdd-task-checkbox:checked::after {
-    transform: rotate(45deg) scale(1);
+    transform: scale(1);
 }
 
 .sdd-task-checkbox:focus-visible {
