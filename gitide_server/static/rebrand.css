@@ -5153,13 +5153,57 @@ input[type="checkbox"]:focus-visible{
 
 .sdd-criteria-row {
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     gap: 12px;
     padding: 12px 14px;
     border-radius: 12px;
     background: rgba(255,255,255,0.01);
     border: 1px solid var(--flat-border-soft);
     transition: all 0.15s ease;
+}
+
+.sdd-task-checkbox {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 20px;
+    height: 20px;
+    min-width: 20px;
+    min-height: 20px;
+    margin: 0;
+    border: 1px solid rgba(255,255,255,0.22);
+    border-radius: 6px;
+    background: rgba(255,255,255,0.035);
+    display: inline-grid;
+    place-items: center;
+    cursor: pointer;
+    flex: 0 0 20px;
+    transition: background .15s ease, border-color .15s ease, box-shadow .15s ease;
+}
+
+.sdd-task-checkbox::after {
+    content: '';
+    width: 5px;
+    height: 9px;
+    border: solid #06130f;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg) scale(0);
+    transform-origin: center;
+    transition: transform .12s ease;
+}
+
+.sdd-task-checkbox:checked {
+    background: #34d399;
+    border-color: #34d399;
+    box-shadow: 0 0 0 3px rgba(52,211,153,0.12);
+}
+
+.sdd-task-checkbox:checked::after {
+    transform: rotate(45deg) scale(1);
+}
+
+.sdd-task-checkbox:focus-visible {
+    outline: 2px solid rgba(52,211,153,0.45);
+    outline-offset: 2px;
 }
 
 .sdd-criteria-row:hover {
