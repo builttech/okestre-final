@@ -5761,15 +5761,33 @@ input[type="checkbox"]:focus-visible{
     display: none !important;
 }
 
+.topbar .status-item {
+    order: 1;
+    width: 30px;
+    min-width: 30px;
+    height: 30px;
+    min-height: 30px;
+    justify-content: center;
+    padding: 0 !important;
+}
+
+.topbar .status-item .status-label {
+    display: none;
+}
+
+.topbar .api-key-badge {
+    display: none !important;
+}
+
 .topbar-workspace-section {
+    order: 2;
     width: clamp(148px, 13vw, 184px);
     height: 100%;
     display: flex;
     align-items: center;
-    padding: 0 14px 0 0 !important;
-    margin: 0 10px 0 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
     border: 0 !important;
-    border-right: 1px solid var(--frame-border, rgba(255, 255, 255, 0.10)) !important;
     border-radius: 0 !important;
     background: transparent !important;
 }
