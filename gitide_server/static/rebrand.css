@@ -5162,52 +5162,52 @@ input[type="checkbox"]:focus-visible{
     transition: all 0.15s ease;
 }
 
-.sdd-task-checkbox {
-    appearance: none;
-    -webkit-appearance: none;
-    width: 20px;
-    height: 20px;
-    min-width: 20px;
-    min-height: 20px;
-    margin: 0;
+.sdd-task-toggle {
+    width: 22px;
+    height: 22px;
+    min-width: 22px;
     border: 1px solid rgba(255,255,255,0.22);
     border-radius: 50%;
-    background: rgba(255,255,255,0.035);
-    display: inline-grid;
-    place-items: center;
+    background: rgba(255,255,255,0.025);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    margin: 0;
     cursor: pointer;
-    flex: 0 0 20px;
-    transition: background .15s ease, border-color .15s ease, box-shadow .15s ease;
+    flex: 0 0 22px;
+    transition: background .15s ease, border-color .15s ease, box-shadow .15s ease, transform .15s ease;
 }
 
-.sdd-task-checkbox::before {
-    content: none;
+.sdd-task-toggle:hover {
+    border-color: rgba(52,211,153,0.5);
+    background: rgba(52,211,153,0.08);
 }
 
-.sdd-task-checkbox::after {
-    content: '';
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-    background: #06130f;
-    transform: scale(0);
-    transform-origin: center;
-    transition: transform .12s ease;
+.sdd-task-toggle:focus-visible {
+    outline: 2px solid rgba(52,211,153,0.45);
+    outline-offset: 3px;
 }
 
-.sdd-task-checkbox:checked {
+.sdd-task-toggle.is-checked {
     background: #34d399;
     border-color: #34d399;
-    box-shadow: 0 0 0 3px rgba(52,211,153,0.12);
+    box-shadow: 0 0 0 4px rgba(52,211,153,0.12);
 }
 
-.sdd-task-checkbox:checked::after {
+.sdd-task-toggle-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: transparent;
+    display: block;
+    transform: scale(0);
+    transition: transform .14s ease, background .14s ease;
+}
+
+.sdd-task-toggle.is-checked .sdd-task-toggle-dot {
+    background: #05130e;
     transform: scale(1);
-}
-
-.sdd-task-checkbox:focus-visible {
-    outline: 2px solid rgba(52,211,153,0.45);
-    outline-offset: 2px;
 }
 
 .sdd-criteria-row:hover {

@@ -7274,8 +7274,14 @@ function sddRenderCriteria(criteria) {
 
     container.innerHTML = criteria.map(c => `
         <div class="sdd-criteria-row ${c.checked ? 'checked' : ''}" data-line="${c.line_no}">
-            <input type="checkbox" class="sdd-task-checkbox" ${c.checked ? 'checked' : ''} 
-                   onchange="sddToggleCriteria(${c.line_no}, this.checked)">
+            <button type="button"
+                    class="sdd-task-toggle ${c.checked ? 'is-checked' : ''}"
+                    role="checkbox"
+                    aria-checked="${c.checked ? 'true' : 'false'}"
+                    aria-label="${c.checked ? 'Marcar tarefa como pendente' : 'Marcar tarefa como concluída'}"
+                    onclick="sddToggleCriteria(${c.line_no}, ${c.checked ? 'false' : 'true'})">
+                <span class="sdd-task-toggle-dot"></span>
+            </button>
             <span class="sdd-criteria-text">${escapeHtml(c.text)}</span>
             <select class="sdd-task-status select-input" onchange="sddSetTaskStatus(${c.line_no}, this.value)">
                 <option value="todo">todo</option>
