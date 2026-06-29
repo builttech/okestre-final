@@ -6582,6 +6582,13 @@ async function rejectCommand(commandId) {
 const sddState = {
     activeFilename: null,
     activeContent: '',
+    activeStorageType: null,
+    activeFilepath: null,
+    projectDocuments: {
+        design: '',
+        dri: '',
+        task: ''
+    },
     specs: [],
     executeTask: null,
     charterLoaded: false,
@@ -6775,6 +6782,21 @@ async function sddLoadSpecs() {
     }
 }
 
+async function sddLoadProjectDocuments() {
+    if (!state.activeProjectId) return;
+    const kinds = ['design', 'dri', 'task'];
+    await Promise.all(kinds.map(async (kind) => {
+        try {
+            const res = await fetch(`/api/projects/${state.activeProjectId}/sdd/project-documents/${kind}`, { headers: getHeaders() });
+            const data = await res.json();
+            sddState.projectDocuments[kind] = data.content || '';
+        } catch (e) {
+            console.warn(`Erro ao carregar documento Harness ${kind}:`, e);
+            sddState.projectDocuments[kind] = '';
+        }
+    }));
+}
+
 function sddRenderSpecList(specs) {
     const list = document.getElementById('sdd-specs-list');
     if (!specs || specs.length === 0) {
@@ -6789,16 +6811,19 @@ function sddRenderSpecList(specs) {
         if (window.lucide) lucide.createIcons();
         return;
     }
-    list.innerHTML = specs.map(spec => `
+    list.innerHTML = specs.map(spec => {
+        const storageLabel = spec.storage_type === 'project_spec_file' ? '.documents/spec' : 'legado';
+        return `
         <div class="spec-item ${sddState.activeFilename === spec.filename ? 'active' : ''}" 
              data-filename="${spec.filename}" 
              onclick="sddSelectSpec('${spec.filename}')">
             <i data-lucide="file-text" style="width:15px;height:15px;flex-shrink:0;"></i>
             <div style="flex:1;min-width:0;">
                 <div class="spec-item-title" title="${spec.title}">${spec.title}</div>
-                <div class="spec-item-meta">${spec.filename} &middot; ${new Date(spec.modified_at).toLocaleDateString('pt-BR')}</div>
+                <div class="spec-item-meta">${storageLabel} &middot; ${spec.filename} &middot; ${new Date(spec.modified_at).toLocaleDateString('pt-BR')}</div>
             </div>
-        </div>`).join('');
+        </div>`;
+    }).join('');
     if (window.lucide) lucide.createIcons();
 }
 
@@ -6808,37 +6833,37 @@ async function sddSelectSpec(filename) {
     sddState.activeFilename = filename;
     sddState.isDraft = false;
 
-    // Update sidebar highlight
     document.querySelectorAll('.spec-item').forEach(el => {
         el.classList.toggle('active', el.dataset.filename === filename);
     });
 
-    // Show workspace nav
     document.getElementById('sdd-workspace-nav-tabs').style.display = 'flex';
     sddSetActiveSpecHeader({ filename });
 
-    // Load content
     try {
-        const res = await fetch(`/api/projects/${state.activeProjectId}/sdd/specs/${encodeURIComponent(filename)}`, { headers: getHeaders() });
-        const data = await res.json();
+        const [specRes] = await Promise.all([
+            fetch(`/api/projects/${state.activeProjectId}/sdd/specs/${encodeURIComponent(filename)}`, { headers: getHeaders() }),
+            sddLoadProjectDocuments()
+        ]);
+        const data = await specRes.json();
         sddState.activeContent = data.content || '';
+        sddState.activeStorageType = data.storage_type || 'legacy_markdown';
+        sddState.activeFilepath = data.filepath || '';
         sddSetActiveSpecHeader({ filename, content: sddState.activeContent });
 
-        // Populate tabs
         sddPopulatePreview(sddState.activeContent);
         document.getElementById('sdd-spec-editor-textarea').value = sddState.activeContent;
         document.getElementById('sdd-edit-filename').value = filename;
 
-        // Switch to preview
         sddSwitchTab('sdd-tab-preview');
 
-        // Load criteria if checklist tab is being shown
         const checklistTab = document.getElementById('sdd-tab-checklist');
         if (checklistTab && checklistTab.classList.contains('active')) {
             await sddLoadCriteria();
         }
     } catch (e) {
         console.error('Erro ao carregar spec:', e);
+        gitideNotify({ title: 'Erro ao carregar REQ', message: e.message, variant: 'danger' });
     }
 }
 
@@ -6875,6 +6900,9 @@ function sddSetActiveSpecHeader({ title, filename, content }) {
 function sddResetWorkspaceEmpty() {
     sddState.activeFilename = null;
     sddState.activeContent = '';
+    sddState.activeStorageType = null;
+    sddState.activeFilepath = null;
+    sddState.projectDocuments = { design: '', dri: '', task: '' };
     sddState.executeTask = null;
 
     const nav = document.getElementById('sdd-workspace-nav-tabs');
@@ -6970,16 +6998,23 @@ function sddReplaceSection(content, sectionNames, fallbackHeading, sectionConten
 }
 
 function sddPopulateStageEditors(content) {
-    const specify = sddExtractSection(content, ['Specify', 'Especificação', 'Requisitos']) || content;
-    const design = sddExtractSection(content, ['Design', 'Planejamento', 'Arquitetura']);
-    const dri = sddExtractSection(content, ['DRI', 'Documento de Requisito de Interface']);
+    const isProjectSpec = sddState.activeStorageType === 'project_spec_file' || sddState.isDraft;
+    const specify = isProjectSpec
+        ? content
+        : (sddExtractSection(content, ['Specify', 'Especificação', 'Requisitos']) || content);
+    const design = isProjectSpec
+        ? sddState.projectDocuments.design
+        : sddExtractSection(content, ['Design', 'Planejamento', 'Arquitetura']);
+    const dri = isProjectSpec
+        ? sddState.projectDocuments.dri
+        : sddExtractSection(content, ['DRI', 'Documento de Requisito de Interface']);
     const specifyEditor = document.getElementById('sdd-specify-editor');
     const designEditor = document.getElementById('sdd-design-editor');
     const driEditor = document.getElementById('sdd-dri-editor');
     const fullEditor = document.getElementById('sdd-spec-editor-textarea');
     if (specifyEditor) specifyEditor.value = specify;
-    if (designEditor) designEditor.value = design || '## 2. Design - Planejamento\n\n### Arquitetura proposta\n\n### Dados, bibliotecas e integrações\n\n### Contratos técnicos\n';
-    if (driEditor) driEditor.value = dri || sddBuildDriTemplate('REQ-XXXX', 'Nome da Interface');
+    if (designEditor) designEditor.value = design || '# Design — Planejamento Técnico do Projeto\n\n## 1. Arquitetura Proposta\n\n## 2. Fluxos Técnicos\n\n## 3. Estratégia de Validação\n';
+    if (driEditor) driEditor.value = dri || '# DRI — Documento de Requisito de Interface do Projeto\n\n## 1. Interfaces Mapeadas\n\n## 2. Regras de Interface\n\n## 3. Critérios de Aceite da Interface\n\n- [ ] \n';
     if (fullEditor) fullEditor.value = content;
     const empty = document.getElementById('sdd-empty-workspace');
     const previewTab = document.getElementById('sdd-tab-preview');
@@ -7019,8 +7054,9 @@ function sddUpdateFlowStrip(tabId = 'sdd-tab-preview') {
 
     const breadcrumb = document.getElementById('sdd-flow-breadcrumb');
     if (breadcrumb) {
-        const filename = sddState.activeFilename || document.getElementById('sdd-edit-filename')?.value || 'nova-spec.md';
-        breadcrumb.textContent = `.documents > specs > ${filename} > fluxo SDD`;
+        const filename = sddState.activeFilename || document.getElementById('sdd-edit-filename')?.value || 'novo-req.md';
+        const basePath = sddState.activeStorageType === 'legacy_markdown' ? '.documents > specs' : '.documents > spec';
+        breadcrumb.textContent = `${basePath} > ${filename} > Harness Engineering`;
     }
 
     const activeFlowTab = tabId === 'sdd-tab-checklist'
@@ -7061,7 +7097,7 @@ function sddRenderCriteria(criteria) {
         container.innerHTML = `
             <div style="text-align:center;padding:40px;color:var(--text-muted);">
                 <i data-lucide="clipboard-list" style="width:40px;height:40px;margin-bottom:12px;opacity:0.4;"></i>
-                <p>Nenhuma tarefa encontrada nesta especificação.<br>Adicione itens <code>- [ ] TASK-REQ-0000-001: ...</code> na seção Task List.</p>
+                <p>Nenhuma tarefa encontrada.<br>Adicione itens <code>- [ ] TASK-REQ-0000-001: ...</code> em <code>.documents/task/task.md</code>.</p>
             </div>`;
         if (window.lucide) lucide.createIcons();
         progressText.textContent = '0/0 concluídos';
@@ -7100,10 +7136,18 @@ function sddSetTaskStatus(lineNo, value) {
 function sddPopulateExecuteInstructions(taskText) {
     const textarea = document.getElementById('sdd-execute-instructions');
     if (!textarea) return;
-    const specify = sddExtractSection(sddState.activeContent, ['Specify', 'Especificação', 'Requisitos']);
-    const design = sddExtractSection(sddState.activeContent, ['Design', 'Planejamento', 'Arquitetura']);
-    const dri = sddExtractSection(sddState.activeContent, ['DRI', 'Documento de Requisito de Interface', 'Requisito de Interface']);
-    textarea.value = `# Execute\n\n## Tarefa selecionada\n${taskText || 'Nenhuma tarefa selecionada.'}\n\n## Instruções para IA/agente\nExecute estritamente esta tarefa contra a especificação, o design e o DRI abaixo. Não implemente escopo fora da task selecionada. Ao terminar, indique arquivos alterados e testes executados.\n\n## Specify de referência\n${specify || 'Specify não encontrado.'}\n\n## Design de referência\n${design || 'Design não encontrado.'}\n\n## DRI de referência\n${dri || 'DRI não encontrado ou não aplicável.'}\n`;
+    const isProjectSpec = sddState.activeStorageType === 'project_spec_file' || sddState.isDraft;
+    const specify = isProjectSpec
+        ? sddState.activeContent
+        : sddExtractSection(sddState.activeContent, ['Specify', 'Especificação', 'Requisitos']);
+    const design = isProjectSpec
+        ? sddState.projectDocuments.design
+        : sddExtractSection(sddState.activeContent, ['Design', 'Planejamento', 'Arquitetura']);
+    const dri = isProjectSpec
+        ? sddState.projectDocuments.dri
+        : sddExtractSection(sddState.activeContent, ['DRI', 'Documento de Requisito de Interface', 'Requisito de Interface']);
+    const taskDocument = sddState.projectDocuments.task || '';
+    textarea.value = `# Execute\n\n## Tarefa selecionada\n${taskText || 'Nenhuma tarefa selecionada.'}\n\n## Instruções para IA/agente\nExecute estritamente esta tarefa contra o REQ selecionado, os documentos vivos do projeto e a Task List abaixo. Não implemente escopo fora da task selecionada. Ao terminar, indique arquivos alterados e testes executados.\n\n## REQ de referência\n${specify || 'REQ não encontrado.'}\n\n## Design vivo de referência\n${design || 'Design não encontrado.'}\n\n## DRI vivo de referência\n${dri || 'DRI não encontrado ou não aplicável.'}\n\n## Task List viva de referência\n${taskDocument || 'Task List não encontrada.'}\n`;
 }
 
 async function sddToggleCriteria(lineNo, checked) {
@@ -7118,14 +7162,9 @@ async function sddToggleCriteria(lineNo, checked) {
             headers: { ...getHeaders(), 'Content-Type': 'application/json' },
             body: JSON.stringify({ criteria: [{ line_no: lineNo, checked }] })
         });
-        // Refresh progress
         await sddLoadCriteria();
-        // Refresh content cache
-        const res = await fetch(`/api/projects/${state.activeProjectId}/sdd/specs/${encodeURIComponent(sddState.activeFilename)}`, { headers: getHeaders() });
-        const data = await res.json();
-        sddState.activeContent = data.content || '';
-        sddPopulatePreview(sddState.activeContent);
-        document.getElementById('sdd-spec-editor-textarea').value = sddState.activeContent;
+        await sddLoadProjectDocuments();
+        sddPopulateStageEditors(sddState.activeContent);
     } catch (e) {
         console.error('Erro ao atualizar critério:', e);
     }
@@ -7158,6 +7197,8 @@ async function sddSaveSpec() {
         if (data.status === 'success') {
             sddState.activeFilename = filename;
             sddState.activeContent = content;
+            sddState.activeStorageType = data.storage_type || 'project_spec_file';
+            sddState.activeFilepath = data.filepath || `.documents/spec/${filename}`;
             sddState.isDraft = false;
             sddPopulatePreview(content);
             sddSetActiveSpecHeader({ filename, content });
@@ -7179,43 +7220,51 @@ async function sddSaveStage(stage) {
     if (!state.activeProjectId) return;
     const filenameInput = document.getElementById('sdd-edit-filename');
     let filename = filenameInput?.value.trim() || sddState.activeFilename;
+    const specifyEditor = document.getElementById('sdd-specify-editor');
+    const designEditor = document.getElementById('sdd-design-editor');
+    const driEditor = document.getElementById('sdd-dri-editor');
+    const isProjectSpec = sddState.activeStorageType === 'project_spec_file' || sddState.isDraft;
+
     if (!filename) {
-        const title = sddExtractTitle(document.getElementById('sdd-specify-editor')?.value || '') || 'nova_spec';
+        const title = sddExtractTitle(specifyEditor?.value || '') || 'nova_spec';
         filename = title.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '') + '.md';
         if (filenameInput) filenameInput.value = filename;
     }
     if (!filename.endsWith('.md')) filename += '.md';
 
-    const specifyEditor = document.getElementById('sdd-specify-editor');
-    const designEditor = document.getElementById('sdd-design-editor');
-    const driEditor = document.getElementById('sdd-dri-editor');
+    if (isProjectSpec && (stage === 'design' || stage === 'dri')) {
+        const content = stage === 'design' ? (designEditor?.value || '') : (driEditor?.value || '');
+        try {
+            const res = await fetch(`/api/projects/${state.activeProjectId}/sdd/project-documents/${stage}`, {
+                method: 'POST',
+                headers: { ...getHeaders(), 'Content-Type': 'application/json' },
+                body: JSON.stringify({ content })
+            });
+            const data = await res.json();
+            if (!res.ok || data.status !== 'success') throw new Error(data.detail || data.message || 'Erro ao salvar documento');
+            sddState.projectDocuments[stage] = content;
+            gitideNotify({ title: 'Documento salvo', message: stage === 'design' ? 'design.md salvo com sucesso.' : 'dri.md salvo com sucesso.', variant: 'success' });
+            sddPopulateStageEditors(sddState.activeContent);
+            sddSwitchTab(stage === 'dri' ? 'sdd-tab-dri' : 'sdd-tab-edit');
+        } catch (e) {
+            gitideNotify({ title: 'Erro ao salvar documento', message: e.message, variant: 'danger' });
+        }
+        return;
+    }
+
     let content = sddState.activeContent || `# ${sddExtractTitle(specifyEditor?.value || '') || 'Nova Feature'}\n`;
-
     if (stage === 'specify') {
-        content = sddReplaceSection(
-            content,
-            ['Specify', 'Especificação', 'Requisitos'],
-            '## 1. Specify - Especificação',
-            specifyEditor?.value || ''
-        );
+        content = isProjectSpec
+            ? (specifyEditor?.value || '')
+            : sddReplaceSection(content, ['Specify', 'Especificação', 'Requisitos'], '## 1. Specify - Especificação', specifyEditor?.value || '');
     }
 
-    if (stage === 'design') {
-        content = sddReplaceSection(
-            content,
-            ['Design', 'Planejamento', 'Arquitetura'],
-            '## 2. Design - Planejamento',
-            designEditor?.value || ''
-        );
+    if (!isProjectSpec && stage === 'design') {
+        content = sddReplaceSection(content, ['Design', 'Planejamento', 'Arquitetura'], '## 2. Design - Planejamento', designEditor?.value || '');
     }
 
-    if (stage === 'dri') {
-        content = sddReplaceSection(
-            content,
-            ['DRI', 'Documento de Requisito de Interface', 'Requisito de Interface'],
-            '## 3. DRI - Documento de Requisito de Interface',
-            driEditor?.value || ''
-        );
+    if (!isProjectSpec && stage === 'dri') {
+        content = sddReplaceSection(content, ['DRI', 'Documento de Requisito de Interface', 'Requisito de Interface'], '## 3. DRI - Documento de Requisito de Interface', driEditor?.value || '');
     }
 
     document.getElementById('sdd-spec-editor-textarea').value = content;
@@ -7511,11 +7560,14 @@ Como um [tipo de usuário], eu quero [ação/funcionalidade], para que [valor/be
 
 **Links Ascendentes (Pais):**
 
-- Épico / Feature / Regra de Negócio:
+- TAP: .documents/project-charter.md
+- Design vivo: .documents/design/design.md
+- DRI vivo: .documents/dri/dri.md
+- Task List viva: .documents/task/task.md
 
 **Links Descendentes (Filhos):**
 
-- Ver seção **## 3. Task List - Tarefas** deste mesmo arquivo.
+- Tarefas relacionadas devem ser registradas em .documents/task/task.md.
 
 **Código e Deploy:**
 
@@ -7547,38 +7599,7 @@ Como um [tipo de usuário], eu quero [ação/funcionalidade], para que [valor/be
 
 **Trilha de Auditoria e Comentários:**
 
-- Criado no GitIDE Harness Engineering.
-
-## 2. Design - Planejamento
-
-### Arquitetura proposta
-
-Descreva como o sistema vai operar para atender o requisito ${id}.
-
-### Dados, bibliotecas e integrações
-
-- Banco de dados:
-- Bibliotecas:
-- Integrações:
-
-### Contratos técnicos
-
-- APIs, eventos, serviços ou componentes afetados.
-
-${sddBuildDriTemplate('REQ-XXXX', 'Nome da Interface')}
-
-## 4. Task List - Tarefas
-
-> As tarefas abaixo fazem parte da Spec e são exibidas automaticamente na etapa Task List da interface.
-
-- [ ] TASK-${id}-001: Detalhar implementação técnica do requisito ${id}.
-- [ ] TASK-${id}-002: Implementar comportamento principal.
-- [ ] TASK-${id}-003: Criar ou atualizar testes automatizados.
-- [ ] TASK-${id}-004: Revisar rastreabilidade, documentação e critérios de pronto.
-
-## 5. Execute - Implementação
-
-Selecione uma tarefa na aba Task List para montar as instruções de execução.
+- Criado no GitIDE Harness Engineering em .documents/spec/${id}.md.
 `;
 }
 
@@ -7601,7 +7622,7 @@ async function sddOpenNewRequirementModal() {
     setTimeout(() => titleInput?.focus(), 40);
 }
 
-function sddCreateRequirementFromModal() {
+async function sddCreateRequirementFromModal() {
     const id = document.getElementById('sdd-new-requirement-id')?.value.trim() || sddGenerateRequirementId();
     const title = document.getElementById('sdd-new-requirement-title')?.value.trim();
     const owner = document.getElementById('sdd-new-requirement-author')?.value.trim();
@@ -7612,7 +7633,10 @@ function sddCreateRequirementFromModal() {
     }
 
     sddState.activeFilename = null;
+    sddState.activeStorageType = 'project_spec_file';
+    sddState.activeFilepath = '';
     sddState.isDraft = true;
+    await sddLoadProjectDocuments();
     document.getElementById('sdd-workspace-nav-tabs').style.display = 'flex';
     const filename = sddBuildUniqueRequirementFilename(id, title);
     sddSetActiveSpecHeader({ title: `${id} - ${title}`, filename });
@@ -7656,7 +7680,10 @@ async function sddGenerateSpecIA() {
         if (data.filename && generatedContent !== undefined) {
             sddState.activeFilename = data.filename;
             sddState.activeContent = generatedContent;
+            sddState.activeStorageType = data.storage_type || 'project_spec_file';
+            sddState.activeFilepath = data.filepath || `.documents/spec/${data.filename}`;
             sddState.isDraft = false;
+            await sddLoadProjectDocuments();
             sddSetActiveSpecHeader({ title: data.title, filename: data.filename, content: generatedContent });
             document.getElementById('sdd-workspace-nav-tabs').style.display = 'flex';
             sddPopulatePreview(generatedContent);

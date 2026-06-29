@@ -2298,6 +2298,105 @@ def _sdd_documents_dir(project: Project) -> str:
 def _sdd_charter_path(project: Project) -> str:
     return os.path.join(_sdd_documents_dir(project), "project-charter.md")
 
+SDD_PROJECT_DOCUMENTS = {
+    "design": {
+        "dir": "design",
+        "filename": "design.md",
+        "title": "Design — Planejamento Técnico do Projeto",
+    },
+    "dri": {
+        "dir": "dri",
+        "filename": "dri.md",
+        "title": "DRI — Documento de Requisito de Interface do Projeto",
+    },
+    "task": {
+        "dir": "task",
+        "filename": "task.md",
+        "title": "Task List — Tarefas do Projeto",
+    },
+}
+
+def _sdd_spec_dir(project: Project, create: bool = False) -> str:
+    spec_dir = os.path.join(_sdd_documents_dir(project), "spec")
+    if create:
+        os.makedirs(spec_dir, exist_ok=True)
+    return spec_dir
+
+def _sdd_project_document_path(project: Project, kind: str, create_dir: bool = False) -> str:
+    config = SDD_PROJECT_DOCUMENTS.get(kind)
+    if not config:
+        raise HTTPException(status_code=400, detail="Documento Harness inválido.")
+    doc_dir = os.path.join(_sdd_documents_dir(project), config["dir"])
+    if create_dir:
+        os.makedirs(doc_dir, exist_ok=True)
+    return os.path.join(doc_dir, config["filename"])
+
+def _default_sdd_project_document(project: Project, kind: str) -> str:
+    config = SDD_PROJECT_DOCUMENTS.get(kind)
+    if not config:
+        raise HTTPException(status_code=400, detail="Documento Harness inválido.")
+    project_name = project.name or "Projeto"
+    if kind == "design":
+        return (
+            f"# {config['title']}\n\n"
+            f"## Projeto\n\n{project_name}\n\n"
+            "## 1. Arquitetura Proposta\n\n"
+            "Descreva as decisões técnicas, componentes impactados, dados, integrações e riscos do projeto.\n\n"
+            "## 2. Fluxos Técnicos\n\n"
+            "- \n\n"
+            "## 3. Estratégia de Validação\n\n"
+            "- \n"
+        )
+    if kind == "dri":
+        return (
+            f"# {config['title']}\n\n"
+            f"## Projeto\n\n{project_name}\n\n"
+            "## 1. Interfaces Mapeadas\n\n"
+            "Documente telas, estados, componentes, microcopy, responsividade e acessibilidade.\n\n"
+            "## 2. Regras de Interface\n\n"
+            "- \n\n"
+            "## 3. Critérios de Aceite da Interface\n\n"
+            "- [ ] \n"
+        )
+    return (
+        f"# {config['title']}\n\n"
+        f"## Projeto\n\n{project_name}\n\n"
+        "## Task List - Tarefas\n\n"
+        "> Use itens rastreáveis no formato `- [ ] TASK-REQ-0000-001: Descrição da tarefa.`\n\n"
+        "- [ ] TASK-REQ-0000-001: Detalhar primeira tarefa do projeto.\n"
+    )
+
+def _sdd_project_structure_status(project: Project) -> dict:
+    spec_dir = _sdd_spec_dir(project)
+    project_documents = {}
+    for kind in SDD_PROJECT_DOCUMENTS:
+        path = _sdd_project_document_path(project, kind)
+        exists = os.path.exists(path)
+        stat = os.stat(path) if exists else None
+        project_documents[kind] = {
+            "path": os.path.relpath(path, project.path).replace("\\", "/"),
+            "exists": exists,
+            "size_bytes": stat.st_size if stat else 0,
+            "modified_at": datetime.fromtimestamp(stat.st_mtime).isoformat() if stat else None,
+        }
+    return {
+        "documents_dir": ".documents",
+        "spec_dir": ".documents/spec",
+        "spec_dir_exists": os.path.exists(spec_dir),
+        "project_documents": project_documents,
+    }
+
+def _sdd_ensure_project_structure(project: Project) -> dict:
+    created = []
+    _sdd_spec_dir(project, create=True)
+    for kind, config in SDD_PROJECT_DOCUMENTS.items():
+        path = _sdd_project_document_path(project, kind, create_dir=True)
+        if not os.path.exists(path):
+            with open(path, "w", encoding="utf-8") as f:
+                f.write(_default_sdd_project_document(project, kind))
+            created.append(os.path.relpath(path, project.path).replace("\\", "/"))
+    return {"created": created, **_sdd_project_structure_status(project)}
+
 def _default_sdd_charter(project: Project) -> str:
     project_name = project.name or "Projeto"
     return (
@@ -2324,6 +2423,84 @@ def _default_sdd_charter(project: Project) -> str:
         "## 8. Próximo Passo\n\n"
         "A partir deste TAP, crie as especificações funcionais em Specify, Design, Tasks e Execute.\n"
     )
+
+@app.get("/api/projects/{project_id}/sdd/structure", tags=["Spec-Driven Development"])
+def get_sdd_structure(project: Project = Depends(get_project_or_404)):
+    """Reconhece a estrutura documental viva do Harness Engineering sem criar arquivos."""
+    return {"status": "success", **_sdd_project_structure_status(project)}
+
+@app.post("/api/projects/{project_id}/sdd/structure", tags=["Spec-Driven Development"])
+def ensure_sdd_structure(
+    project: Project = Depends(get_project_or_404),
+    db: Session = Depends(get_db),
+    _ = Depends(get_api_key)
+):
+    """Cria a estrutura documental viva do Harness Engineering quando ainda não existir."""
+    try:
+        result = _sdd_ensure_project_structure(project)
+        db.add(ActivityLog(
+            project_id=project.id,
+            action_type="SDD_STRUCTURE_ENSURED",
+            details=f"Estrutura Harness verificada/criada. Arquivos criados: {', '.join(result.get('created', [])) or 'nenhum'}"
+        ))
+        db.commit()
+        return {"status": "success", **result}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao preparar estrutura Harness: {str(e)}")
+
+@app.get("/api/projects/{project_id}/sdd/project-documents/{kind}", tags=["Spec-Driven Development"])
+def get_sdd_project_document(kind: str, project: Project = Depends(get_project_or_404)):
+    """Retorna um documento vivo do Harness Engineering: design, dri ou task."""
+    path = _sdd_project_document_path(project, kind)
+    if not os.path.exists(path):
+        return {
+            "status": "empty",
+            "kind": kind,
+            "filepath": os.path.relpath(path, project.path).replace("\\", "/"),
+            "content": _default_sdd_project_document(project, kind)
+        }
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            content = f.read()
+        return {
+            "status": "success",
+            "kind": kind,
+            "filepath": os.path.relpath(path, project.path).replace("\\", "/"),
+            "content": content
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao ler documento Harness: {str(e)}")
+
+@app.post("/api/projects/{project_id}/sdd/project-documents/{kind}", tags=["Spec-Driven Development"])
+def save_sdd_project_document(
+    kind: str,
+    req: SddCharterSaveRequest,
+    project: Project = Depends(get_project_or_404),
+    db: Session = Depends(get_db),
+    _ = Depends(get_api_key)
+):
+    """Salva um documento vivo do Harness Engineering: design, dri ou task."""
+    path = _sdd_project_document_path(project, kind, create_dir=True)
+    try:
+        with open(path, "w", encoding="utf-8") as f:
+            f.write(req.content)
+        rel_path = os.path.relpath(path, project.path).replace("\\", "/")
+        db.add(ActivityLog(
+            project_id=project.id,
+            action_type="SDD_PROJECT_DOCUMENT_SAVED",
+            details=f"Documento Harness salvo: {rel_path}"
+        ))
+        db.commit()
+        return {
+            "status": "success",
+            "kind": kind,
+            "filepath": rel_path,
+            "message": "Documento Harness salvo com sucesso."
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao salvar documento Harness: {str(e)}")
 
 @app.get("/api/projects/{project_id}/sdd/charter", tags=["Spec-Driven Development"])
 def get_sdd_charter(project: Project = Depends(get_project_or_404)):
@@ -2440,37 +2617,44 @@ def generate_sdd_charter(
 
 @app.get("/api/projects/{project_id}/sdd/specs", tags=["Spec-Driven Development"])
 def list_sdd_specs(project: Project = Depends(get_project_or_404)):
-    """Lista todas as especificações (.md) no diretório .documents/specs do projeto."""
-    specs_dir = os.path.join(project.path, ".documents", "specs")
-    if not os.path.exists(specs_dir):
-        return []
-    
+    """Lista REQs de .documents/spec e specs legadas de .documents/specs."""
+    documents_dir = os.path.join(project.path, ".documents")
+    spec_dir = os.path.join(documents_dir, "spec")
+    legacy_specs_dir = os.path.join(documents_dir, "specs")
+
+    def extract_markdown_title(filepath: str, fallback: str) -> str:
+        try:
+            with open(filepath, "r", encoding="utf-8") as f:
+                for line in f:
+                    line_stripped = line.strip()
+                    if line_stripped.startswith("# "):
+                        return line_stripped.lstrip("# ").strip()
+        except Exception:
+            pass
+        return fallback
+
+    def append_markdown_specs(directory: str, storage_type: str, filepath_prefix: str):
+        if not os.path.exists(directory):
+            return
+        for entry in os.scandir(directory):
+            if not entry.is_file() or not entry.name.endswith(".md"):
+                continue
+            stat = entry.stat()
+            title = extract_markdown_title(entry.path, entry.name)
+            specs.append({
+                "id": os.path.splitext(entry.name)[0],
+                "filename": entry.name,
+                "title": title,
+                "size_bytes": stat.st_size,
+                "modified_at": datetime.fromtimestamp(stat.st_mtime).isoformat(),
+                "storage_type": storage_type,
+                "filepath": f"{filepath_prefix}/{entry.name}"
+            })
+
     specs = []
     try:
-        for entry in os.scandir(specs_dir):
-            if entry.is_file() and entry.name.endswith(".md"):
-                stat = entry.stat()
-                title = entry.name
-                
-                # Tenta extrair o primeiro header # do arquivo
-                try:
-                    with open(entry.path, "r", encoding="utf-8") as f:
-                        for line in f:
-                            line_stripped = line.strip()
-                            if line_stripped.startswith("# "):
-                                title = line_stripped.lstrip("# ").strip()
-                                break
-                except Exception:
-                    pass
-                
-                specs.append({
-                    "filename": entry.name,
-                    "title": title,
-                    "size_bytes": stat.st_size,
-                    "modified_at": datetime.fromtimestamp(stat.st_mtime).isoformat()
-                })
-        
-        # Ordena pelos mais recentes
+        append_markdown_specs(spec_dir, "project_spec_file", ".documents/spec")
+        append_markdown_specs(legacy_specs_dir, "legacy_markdown", ".documents/specs")
         specs.sort(key=lambda x: x["modified_at"], reverse=True)
         return specs
     except Exception as e:
@@ -2478,18 +2662,32 @@ def list_sdd_specs(project: Project = Depends(get_project_or_404)):
 
 @app.get("/api/projects/{project_id}/sdd/specs/{filename}", tags=["Spec-Driven Development"])
 def get_sdd_spec(filename: str, project: Project = Depends(get_project_or_404)):
-    """Retorna o conteúdo de uma especificação específica."""
-    if ".." in filename or "/" in filename or "\\" in filename:
+    """Retorna o conteúdo de um REQ em .documents/spec ou de uma spec legada."""
+    filename = os.path.basename(filename.strip())
+    if not filename or ".." in filename or "/" in filename or "\\" in filename or not filename.endswith(".md"):
         raise HTTPException(status_code=400, detail="Nome de arquivo inválido.")
-        
-    spec_path = os.path.join(project.path, ".documents", "specs", filename)
-    if not os.path.exists(spec_path):
+
+    spec_path = os.path.join(_sdd_spec_dir(project), filename)
+    legacy_spec_path = os.path.join(project.path, ".documents", "specs", filename)
+    storage_type = "project_spec_file"
+    target_path = spec_path
+
+    if not os.path.exists(target_path):
+        target_path = legacy_spec_path
+        storage_type = "legacy_markdown"
+
+    if not os.path.exists(target_path):
         raise HTTPException(status_code=404, detail="Especificação não encontrada.")
-        
+
     try:
-        with open(spec_path, "r", encoding="utf-8") as f:
+        with open(target_path, "r", encoding="utf-8") as f:
             content = f.read()
-        return {"filename": filename, "content": content}
+        return {
+            "filename": filename,
+            "content": content,
+            "storage_type": storage_type,
+            "filepath": os.path.relpath(target_path, project.path).replace("\\", "/")
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro ao ler especificação: {str(e)}")
 
@@ -2500,33 +2698,46 @@ def save_sdd_spec(
     db: Session = Depends(get_db),
     _ = Depends(get_api_key)
 ):
-    """Cria ou atualiza uma especificação manualmente."""
-    filename = req.filename
-    if ".." in filename or "/" in filename or "\\" in filename or not filename.endswith(".md"):
+    """Cria ou atualiza um REQ em .documents/spec, preservando edição legada quando aplicável."""
+    filename = os.path.basename(req.filename.strip())
+    if not filename or ".." in filename or "/" in filename or "\\" in filename or not filename.endswith(".md"):
         raise HTTPException(status_code=400, detail="Nome de arquivo inválido. Deve terminar com .md")
-        
-    specs_dir = os.path.join(project.path, ".documents", "specs")
-    os.makedirs(specs_dir, exist_ok=True)
-    spec_path = os.path.join(specs_dir, filename)
-    if os.path.exists(spec_path) and not req.overwrite:
+
+    spec_dir = _sdd_spec_dir(project, create=True)
+    legacy_specs_dir = os.path.join(_sdd_documents_dir(project), "specs")
+    spec_path = os.path.join(spec_dir, filename)
+    legacy_spec_path = os.path.join(legacy_specs_dir, filename)
+
+    should_update_legacy = os.path.exists(legacy_spec_path) and not os.path.exists(spec_path) and req.overwrite
+    target_path = legacy_spec_path if should_update_legacy else spec_path
+    storage_type = "legacy_markdown" if should_update_legacy else "project_spec_file"
+
+    if os.path.exists(target_path) and not req.overwrite:
         raise HTTPException(status_code=409, detail="Já existe uma especificação com este arquivo.")
-    
+
     try:
-        with open(spec_path, "w", encoding="utf-8") as f:
+        os.makedirs(os.path.dirname(target_path), exist_ok=True)
+        with open(target_path, "w", encoding="utf-8") as f:
             f.write(req.content)
-            
-        # Log da ação no banco de dados
+
+        rel_path = os.path.relpath(target_path, project.path).replace("\\", "/")
         log = ActivityLog(
             project_id=project.id,
             action_type="SPEC_SAVED",
-            details=f"Especificação salva: {filename}"
+            details=f"REQ salvo: {rel_path}"
         )
         db.add(log)
         db.commit()
-        
-        return {"status": "success", "message": "Especificação salva com sucesso."}
+
+        return {
+            "status": "success",
+            "message": "REQ salvo com sucesso.",
+            "filename": filename,
+            "filepath": rel_path,
+            "storage_type": storage_type
+        }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erro ao salvar especificação: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erro ao salvar REQ: {str(e)}")
 
 @app.delete("/api/projects/{project_id}/sdd/specs/{filename}", tags=["Spec-Driven Development"])
 def delete_sdd_spec(
@@ -2539,18 +2750,20 @@ def delete_sdd_spec(
     if ".." in filename or "/" in filename or "\\" in filename:
         raise HTTPException(status_code=400, detail="Nome de arquivo inválido.")
         
-    spec_path = os.path.join(project.path, ".documents", "specs", filename)
-    if not os.path.exists(spec_path):
+    filename = os.path.basename(filename.strip())
+    spec_path = os.path.join(_sdd_spec_dir(project), filename)
+    legacy_spec_path = os.path.join(project.path, ".documents", "specs", filename)
+    target_path = spec_path if os.path.exists(spec_path) else legacy_spec_path
+    if not os.path.exists(target_path):
         raise HTTPException(status_code=404, detail="Especificação não encontrada.")
         
     try:
-        os.remove(spec_path)
-        
-        # Log da ação no banco de dados
+        os.remove(target_path)
+        rel_path = os.path.relpath(target_path, project.path).replace("\\", "/")
         log = ActivityLog(
             project_id=project.id,
             action_type="SPEC_DELETED",
-            details=f"Especificação deletada: {filename}"
+            details=f"REQ deletado: {rel_path}"
         )
         db.add(log)
         db.commit()
@@ -2582,25 +2795,13 @@ def generate_sdd_spec(
         "1. \"title\": O título da funcionalidade.\n"
         "2. \"filename\": Sugestão de nome de arquivo amigável terminando em .md (ex: user_auth.md, shopping_cart.md).\n"
         "3. \"markdown\": A especificação técnica completa em Markdown.\n\n"
-        "A especificação técnica em Markdown DEVE seguir este fluxo SDD, com estes títulos exatos:\n"
-        "- # [Título da Funcionalidade]\n"
+        "A especificação técnica em Markdown DEVE representar somente o Specify do REQ, com estes títulos:\n"
+        "- # REQ-[ID] — [Título da Funcionalidade]\n"
         "- ## 1. Specify - Especificação\n"
-        "  Inclua documentação de negócio, regras de negócio e múltiplos requisitos quando necessário.\n"
-        "  Cada requisito DEVE possuir um código único e estável no formato REQ-001, REQ-002, etc.\n"
-        "  Inclua objetivo, comportamento esperado, escopo, restrições arquiteturais e critérios de aceitação.\n"
-        "  Critérios de aceitação podem usar caixas de seleção Markdown '- [ ]', mas NÃO são tarefas técnicas.\n"
-        "- ## 2. Design - Planejamento\n"
-        "  Defina como o sistema vai operar: arquitetura proposta, dados, banco, bibliotecas, integrações, APIs, eventos e contratos técnicos.\n"
-        "  NÃO gere tarefas nesta seção.\n"
-        "- ## 3. DRI - Documento de Requisito de Interface\n"
-        "  Defina o requisito de interface usando o template RI oficial. Preserve as seções numeradas 1 a 17 e use tabelas Markdown para Identificação da Interface, Contexto de Uso, Arquitetura da Informação, Mapa de Componentes, Regras de Exibição, Estados, Fluxo de Interação, Mapeamento de Dados, Microcopy, Responsividade, Acessibilidade, Critérios de Aceite da Interface e Lacunas/Premissas.\n"
-        "  As seções 14. Critérios de Aceite da Interface, 15. Lacunas e Premissas, 16. Fora do Escopo e 17. Possíveis Evoluções Futuras são obrigatórias.\n"
-        "  NÃO gere tarefas nesta seção.\n"
-        "- ## 4. Task List - Tarefas\n"
-        "  Esta seção deve ficar dentro do próprio arquivo Markdown da Spec e alimenta a etapa Task List da interface.\n"
-        "  Quebre o plano em tarefas pequenas, executáveis, paralelizáveis e testáveis. Cada tarefa DEVE usar '- [ ] TASK-[REQ_ID]-001: ...'.\n"
-        "- ## 5. Execute - Implementação\n"
-        "  Defina ordem de execução, validações, comandos de teste sugeridos e critérios para considerar a implementação concluída.\n\n"
+        "  Inclua identificação, metadados, contexto, objetivo, comportamento esperado, histórias de usuário, regras de negócio, escopo, restrições, critérios de aceite e rastreabilidade.\n"
+        "  Critérios de aceite podem usar caixas de seleção Markdown '- [ ]', mas NÃO são tarefas técnicas.\n"
+        "  NÃO inclua Design, DRI, Task List ou Execute neste arquivo, pois eles são documentos vivos separados do projeto.\n"
+        "  Quando houver tarefas sugeridas, cite apenas que devem ser registradas em .documents/task/task.md, sem criar a lista técnica neste REQ.\n\n"
         "Retorne estritamente um objeto JSON. Não adicione tags de bloco ```json ou outro texto fora do JSON."
     )
     
@@ -2622,18 +2823,17 @@ def generate_sdd_spec(
         
         markdown_content = parsed.get("markdown", "")
         
-        specs_dir = os.path.join(project.path, ".documents", "specs")
-        os.makedirs(specs_dir, exist_ok=True)
+        specs_dir = _sdd_spec_dir(project, create=True)
         spec_path = os.path.join(specs_dir, filename)
         
         with open(spec_path, "w", encoding="utf-8") as f:
             f.write(markdown_content)
             
-        # Log da ação
+        rel_path = os.path.relpath(spec_path, project.path).replace("\\", "/")
         log = ActivityLog(
             project_id=project.id,
             action_type="SPEC_GENERATED",
-            details=f"Especificação gerada por IA: {filename}"
+            details=f"REQ gerado por IA: {rel_path}"
         )
         db.add(log)
         db.commit()
@@ -2642,6 +2842,8 @@ def generate_sdd_spec(
             "status": "success",
             "title": title,
             "filename": filename,
+            "filepath": rel_path,
+            "storage_type": "project_spec_file",
             "markdown": markdown_content
         }
     except Exception as e:
@@ -2649,53 +2851,66 @@ def generate_sdd_spec(
 
 @app.get("/api/projects/{project_id}/sdd/specs/{filename}/criteria", tags=["Spec-Driven Development"])
 def get_sdd_spec_criteria(filename: str, project: Project = Depends(get_project_or_404)):
-    """Extrai somente tarefas da seção Task List de uma especificação Markdown."""
-    if ".." in filename or "/" in filename or "\\" in filename:
+    """Extrai tarefas do task.md vivo do projeto, com fallback para specs legadas."""
+    filename = os.path.basename(filename.strip())
+    if not filename or ".." in filename or "/" in filename or "\\" in filename:
         raise HTTPException(status_code=400, detail="Nome de arquivo inválido.")
-        
-    spec_path = os.path.join(project.path, ".documents", "specs", filename)
-    if not os.path.exists(spec_path):
-        raise HTTPException(status_code=404, detail="Especificação não encontrada.")
-        
+
+    task_path = _sdd_project_document_path(project, "task")
+    legacy_spec_path = os.path.join(project.path, ".documents", "specs", filename)
+    target_path = task_path if os.path.exists(task_path) else legacy_spec_path
+    source_type = "project_task_document" if target_path == task_path else "legacy_markdown"
+
+    if not os.path.exists(target_path):
+        return {
+            "filename": filename,
+            "source_type": "project_task_document",
+            "filepath": os.path.relpath(task_path, project.path).replace("\\", "/"),
+            "criteria": []
+        }
+
     criteria = []
     try:
-        with open(spec_path, "r", encoding="utf-8") as f:
+        with open(target_path, "r", encoding="utf-8") as f:
             lines = f.readlines()
-            
-        task_section_start = None
+
+        task_section_start = 0 if source_type == "project_task_document" else None
         task_section_end = len(lines)
-        for i, line in enumerate(lines):
-            normalized = re.sub(r"^#+\s*\d*\.?\s*", "", line.strip()).lower()
-            if "task list" in normalized or "tasks" in normalized or "tarefas" in normalized:
-                task_section_start = i
-                heading_level = len(re.match(r"^(#+)", line.strip()).group(1)) if re.match(r"^(#+)", line.strip()) else 2
-                for j in range(i + 1, len(lines)):
-                    heading = re.match(r"^(#+)\s+", lines[j].strip())
-                    if heading and len(heading.group(1)) <= heading_level:
-                        task_section_end = j
-                        break
-                break
+        if source_type == "legacy_markdown":
+            for i, line in enumerate(lines):
+                normalized = re.sub(r"^#+\s*\d*\.?\s*", "", line.strip()).lower()
+                if "task list" in normalized or "tasks" in normalized or "tarefas" in normalized:
+                    task_section_start = i
+                    heading_level = len(re.match(r"^(#+)", line.strip()).group(1)) if re.match(r"^(#+)", line.strip()) else 2
+                    for j in range(i + 1, len(lines)):
+                        heading = re.match(r"^(#+)\s+", lines[j].strip())
+                        if heading and len(heading.group(1)) <= heading_level:
+                            task_section_end = j
+                            break
+                    break
 
         if task_section_start is None:
-            return {"filename": filename, "criteria": []}
+            return {"filename": filename, "source_type": source_type, "criteria": []}
 
-        for i in range(task_section_start + 1, task_section_end):
-            line = lines[i]
-            line_stripped = line.strip()
-            # Procura por "- [ ]" ou "- [x]" ou "- [X]"
+        start_line = task_section_start + (1 if source_type == "legacy_markdown" else 0)
+        for i in range(start_line, task_section_end):
+            line_stripped = lines[i].strip()
             match = re.match(r"^\-\s*\[([ xX])\]\s*(.*)", line_stripped)
             if match:
-                checked = match.group(1).lower() == "x"
-                text = match.group(2).strip()
                 criteria.append({
                     "id": i,
-                    "line_no": i + 1,  # 1-indexed para facilitar leitura
-                    "text": text,
-                    "checked": checked
+                    "line_no": i + 1,
+                    "text": match.group(2).strip(),
+                    "checked": match.group(1).lower() == "x"
                 })
-        return {"filename": filename, "criteria": criteria}
+        return {
+            "filename": filename,
+            "source_type": source_type,
+            "filepath": os.path.relpath(target_path, project.path).replace("\\", "/"),
+            "criteria": criteria
+        }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erro ao extrair critérios de aceitação: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erro ao extrair tarefas: {str(e)}")
 
 @app.post("/api/projects/{project_id}/sdd/specs/{filename}/criteria", tags=["Spec-Driven Development"])
 def update_sdd_spec_criteria(
@@ -2705,39 +2920,53 @@ def update_sdd_spec_criteria(
     db: Session = Depends(get_db),
     _ = Depends(get_api_key)
 ):
-    """Atualiza o estado (checked/unchecked) de critérios de aceitação específicos no arquivo Markdown."""
-    if ".." in filename or "/" in filename or "\\" in filename:
+    """Atualiza checkboxes no task.md vivo do projeto, com fallback para specs legadas."""
+    filename = os.path.basename(filename.strip())
+    if not filename or ".." in filename or "/" in filename or "\\" in filename:
         raise HTTPException(status_code=400, detail="Nome de arquivo inválido.")
-        
-    spec_path = os.path.join(project.path, ".documents", "specs", filename)
-    if not os.path.exists(spec_path):
-        raise HTTPException(status_code=404, detail="Especificação não encontrada.")
-        
+
+    task_path = _sdd_project_document_path(project, "task")
+    legacy_spec_path = os.path.join(project.path, ".documents", "specs", filename)
+    target_path = task_path if os.path.exists(task_path) else legacy_spec_path
+    source_type = "project_task_document" if target_path == task_path else "legacy_markdown"
+
+    if not os.path.exists(target_path):
+        raise HTTPException(status_code=404, detail="Documento de tarefas não encontrado.")
+
     try:
-        with open(spec_path, "r", encoding="utf-8") as f:
+        with open(target_path, "r", encoding="utf-8") as f:
             lines = f.readlines()
-            
-        # Cria um mapeamento de line_no -> checked
+
         updates = {item.line_no: item.checked for item in req.criteria}
-        
         for line_no, checked in updates.items():
-            idx = line_no - 1  # 0-indexed para a lista de linhas
+            idx = line_no - 1
             if 0 <= idx < len(lines):
-                line = lines[idx]
-                # Preserva a indentação e substitui o checkbox
-                indent_match = re.match(r"^(\s*)\-\s*\[[ xX]\](.*)", line)
+                indent_match = re.match(r"^(\s*)\-\s*\[[ xX]\](.*)", lines[idx])
                 if indent_match:
                     indent = indent_match.group(1)
                     rest = indent_match.group(2)
                     box = "[x]" if checked else "[ ]"
                     lines[idx] = f"{indent}- {box}{rest}\n"
-                    
-        with open(spec_path, "w", encoding="utf-8") as f:
+
+        with open(target_path, "w", encoding="utf-8") as f:
             f.writelines(lines)
-            
-        return {"status": "success", "message": "Critérios de aceitação atualizados no disco com sucesso."}
+
+        rel_path = os.path.relpath(target_path, project.path).replace("\\", "/")
+        db.add(ActivityLog(
+            project_id=project.id,
+            action_type="SDD_TASK_CRITERIA_UPDATED",
+            details=f"Checkboxes atualizados em {rel_path}"
+        ))
+        db.commit()
+
+        return {
+            "status": "success",
+            "message": "Tarefas atualizadas com sucesso.",
+            "source_type": source_type,
+            "filepath": rel_path
+        }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erro ao atualizar critérios de aceitação: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erro ao atualizar tarefas: {str(e)}")
 
 @app.post("/api/projects/{project_id}/sdd/generate-tests", tags=["Spec-Driven Development"])
 def generate_sdd_tests(
@@ -2750,7 +2979,11 @@ def generate_sdd_tests(
     if ".." in req.filename or "/" in req.filename or "\\" in req.filename:
         raise HTTPException(status_code=400, detail="Nome de especificação inválido.")
         
-    spec_path = os.path.join(project.path, ".documents", "specs", req.filename)
+    filename = os.path.basename(req.filename.strip())
+    spec_path = os.path.join(_sdd_spec_dir(project), filename)
+    legacy_spec_path = os.path.join(project.path, ".documents", "specs", filename)
+    if not os.path.exists(spec_path):
+        spec_path = legacy_spec_path
     if not os.path.exists(spec_path):
         raise HTTPException(status_code=404, detail="Especificação não encontrada.")
         

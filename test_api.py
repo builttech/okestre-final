@@ -334,6 +334,67 @@ class TestGitIDEAPI(unittest.TestCase):
         self.db.refresh(pending)
         self.assertEqual(pending.status, "executed")
 
+    def test_sdd_project_living_documents_structure(self):
+        response = self.client.post("/api/projects/1/sdd/structure")
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["status"], "success")
+        self.assertTrue(data["spec_dir_exists"])
+        self.assertTrue(os.path.isdir(os.path.join(self.test_dir, ".documents", "spec")))
+        self.assertTrue(os.path.exists(os.path.join(self.test_dir, ".documents", "design", "design.md")))
+        self.assertTrue(os.path.exists(os.path.join(self.test_dir, ".documents", "dri", "dri.md")))
+        self.assertTrue(os.path.exists(os.path.join(self.test_dir, ".documents", "task", "task.md")))
+
+        design_payload = {"content": "# Design Vivo\n\n## Decisões\n\n- Usar documentos vivos.\n"}
+        save_response = self.client.post("/api/projects/1/sdd/project-documents/design", json=design_payload)
+        self.assertEqual(save_response.status_code, 200)
+        self.assertEqual(save_response.json()["status"], "success")
+
+        get_response = self.client.get("/api/projects/1/sdd/project-documents/design")
+        self.assertEqual(get_response.status_code, 200)
+        self.assertIn("Design Vivo", get_response.json()["content"])
+
+    def test_sdd_project_spec_file_and_task_criteria(self):
+        spec_payload = {
+            "filename": "REQ-9999.md",
+            "content": "# REQ-9999 — Teste Harness\n\n## 1. Specify - Especificação\n\nConteúdo do REQ.\n",
+            "overwrite": False
+        }
+        save_response = self.client.post("/api/projects/1/sdd/specs", json=spec_payload)
+        self.assertEqual(save_response.status_code, 200)
+        save_data = save_response.json()
+        self.assertEqual(save_data["storage_type"], "project_spec_file")
+        self.assertEqual(save_data["filepath"], ".documents/spec/REQ-9999.md")
+        self.assertTrue(os.path.exists(os.path.join(self.test_dir, ".documents", "spec", "REQ-9999.md")))
+
+        list_response = self.client.get("/api/projects/1/sdd/specs")
+        self.assertEqual(list_response.status_code, 200)
+        listed = list_response.json()
+        self.assertTrue(any(item["filename"] == "REQ-9999.md" and item["storage_type"] == "project_spec_file" for item in listed))
+
+        get_response = self.client.get("/api/projects/1/sdd/specs/REQ-9999.md")
+        self.assertEqual(get_response.status_code, 200)
+        self.assertEqual(get_response.json()["storage_type"], "project_spec_file")
+        self.assertIn("Teste Harness", get_response.json()["content"])
+
+        task_payload = {"content": "# Task List — Tarefas do Projeto\n\n- [ ] TASK-REQ-9999-001: Validar task viva.\n"}
+        task_response = self.client.post("/api/projects/1/sdd/project-documents/task", json=task_payload)
+        self.assertEqual(task_response.status_code, 200)
+
+        criteria_response = self.client.get("/api/projects/1/sdd/specs/REQ-9999.md/criteria")
+        self.assertEqual(criteria_response.status_code, 200)
+        criteria = criteria_response.json()["criteria"]
+        self.assertEqual(len(criteria), 1)
+        self.assertFalse(criteria[0]["checked"])
+
+        update_payload = {"criteria": [{"line_no": criteria[0]["line_no"], "checked": True}]}
+        update_response = self.client.post("/api/projects/1/sdd/specs/REQ-9999.md/criteria", json=update_payload)
+        self.assertEqual(update_response.status_code, 200)
+        self.assertEqual(update_response.json()["source_type"], "project_task_document")
+
+        with open(os.path.join(self.test_dir, ".documents", "task", "task.md"), "r", encoding="utf-8") as f:
+            self.assertIn("- [x] TASK-REQ-9999-001", f.read())
+
     def test_database_grid_crud(self):
         # 1. Cria um banco de dados SQLite de teste dentro da pasta do projeto
         db_file_rel = "app_data.db"

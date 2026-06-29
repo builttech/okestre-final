@@ -1022,7 +1022,7 @@ Se o arquivo existir, leia e siga rigorosamente todas as diretrizes, fases de an
                                             <div class="sdd-stage-title">
                                                 <div>
                                                     <span>Specify - Especificação</span>
-                                                    <h5>Documentação de negócio e requisitos</h5>
+                                                    <h5>REQ individual em .documents/spec</h5>
                                                 </div>
                                                 <div class="sdd-stage-actions">
                                                     <button class="btn btn-secondary btn-sm sdd-danger-action" id="btn-sdd-delete-specify" title="Excluir requisito"><i data-lucide="trash-2"></i></button>
@@ -1041,7 +1041,7 @@ Se o arquivo existir, leia e siga rigorosamente todas as diretrizes, fases de an
                                         <div class="sdd-empty-workspace" id="sdd-empty-workspace">
                                             <i data-lucide="sparkles" style="width: 48px; height: 48px; color: var(--color-primary); opacity: 0.6; margin-bottom: 12px;"></i>
                                             <h3>Fluxo Spec-Driven Development</h3>
-                                            <p>Crie ou selecione uma feature para conduzir Specify, Design, DRI, Task List e Execute no mesmo artefato Markdown.</p>
+                                            <p>Crie ou selecione um REQ para editar o Specify. Design, DRI e Task List são documentos vivos do projeto.</p>
                                             <button class="btn btn-primary" id="btn-switch-to-ia-generator"><i data-lucide="plus-circle"></i> Criar Fluxo com IA</button>
                                         </div>
                                     </div>
@@ -1054,7 +1054,7 @@ Se o arquivo existir, leia e siga rigorosamente todas as diretrizes, fases de an
                                             <div class="sdd-stage-title">
                                                 <div>
                                                     <span>Design - Planejamento</span>
-                                                    <h5>Arquitetura proposta</h5>
+                                                    <h5>Documento vivo em .documents/design/design.md</h5>
                                                 </div>
                                                 <button class="btn btn-primary btn-sm" id="btn-sdd-save-design"><i data-lucide="save"></i> Salvar</button>
                                             </div>
@@ -1062,7 +1062,7 @@ Se o arquivo existir, leia e siga rigorosamente todas as diretrizes, fases de an
                                         </section>
                                         <aside class="sdd-stage-aside">
                                             <h5><i data-lucide="sparkles"></i> Assistente IA</h5>
-                                            <p>A IA deve ler sempre o Specify/requisito e propor arquitetura, componentes, dados, integrações e contratos técnicos.</p>
+                                            <p>A IA deve usar os REQs de Specify como referência e atualizar o documento vivo de design do projeto.</p>
                                             <textarea id="sdd-design-ai-prompt" class="text-input" placeholder="Ex: proponha a arquitetura para os requisitos REQ-001 a REQ-004..."></textarea>
                                             <button class="btn btn-primary" id="btn-sdd-design-ai"><i data-lucide="wand-2"></i> Preparar Prompt de Design</button>
                                         </aside>
@@ -1076,7 +1076,7 @@ Se o arquivo existir, leia e siga rigorosamente todas as diretrizes, fases de an
                                             <div class="sdd-stage-title">
                                                 <div>
                                                     <span>DRI - Documento de Requisito de Interface</span>
-                                                    <h5>Interface, componentes, estados e interação</h5>
+                                                    <h5>Documento vivo em .documents/dri/dri.md</h5>
                                                 </div>
                                                 <button class="btn btn-primary btn-sm" id="btn-sdd-save-dri"><i data-lucide="save"></i> Salvar</button>
                                             </div>
@@ -1084,7 +1084,7 @@ Se o arquivo existir, leia e siga rigorosamente todas as diretrizes, fases de an
                                         </section>
                                         <aside class="sdd-stage-aside">
                                             <h5><i data-lucide="sparkles"></i> Assistente IA</h5>
-                                            <p>A IA deve ler Specify e Design para detalhar interface, componentes, estados, microcopy, responsividade, acessibilidade e critérios de aceite da interface.</p>
+                                            <p>A IA deve ler os REQs e o Design vivo para atualizar interface, componentes, estados, microcopy, responsividade e acessibilidade no DRI do projeto.</p>
                                             <textarea id="sdd-dri-ai-prompt" class="text-input" placeholder="Ex: gere o DRI para a tela principal deste requisito..."></textarea>
                                             <button class="btn btn-primary" id="btn-sdd-dri-ai"><i data-lucide="wand-2"></i> Preparar Prompt de DRI</button>
                                         </aside>
@@ -1102,7 +1102,7 @@ Se o arquivo existir, leia e siga rigorosamente todas as diretrizes, fases de an
                                         <div class="sdd-checklist-header">
                                             <div style="display: flex; flex-direction: column;">
                                                 <h5>Task List - Tarefas</h5>
-                                                <p style="font-size: 12px; color: var(--text-muted); margin: 0;">Quebre o plano em tarefas pequenas. Use o seletor para mandar uma task para Execute.</p>
+                                                <p style="font-size: 12px; color: var(--text-muted); margin: 0;">As tarefas do projeto ficam em .documents/task/task.md. Use o seletor para mandar uma task para Execute.</p>
                                             </div>
                                             <div class="sdd-checklist-progress">
                                                 <span id="sdd-checklist-progress-text">0/0 concluídos</span>
