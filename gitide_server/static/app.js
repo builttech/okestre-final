@@ -7730,7 +7730,7 @@ async function sddGenerateSpecIA() {
         alert('Erro na geração por IA: ' + e.message);
     } finally {
         btn.disabled = false;
-        btn.innerHTML = '<i data-lucide="sparkles"></i> Gerar Fluxo SDD via IA';
+        btn.innerHTML = '<i data-lucide="sparkles"></i> Gerar Specify com IA';
         if (window.lucide) lucide.createIcons();
     }
 }

@@ -2322,6 +2322,28 @@ def _sdd_spec_dir(project: Project, create: bool = False) -> str:
         os.makedirs(spec_dir, exist_ok=True)
     return spec_dir
 
+def _sdd_strip_forbidden_req_sections(markdown: str) -> str:
+    """Mantem o arquivo do REQ restrito ao Specify."""
+    lines = (markdown or "").splitlines()
+    kept = []
+    skip = False
+    forbidden = ("design", "planejamento", "dri", "documento de requisito de interface", "task", "tasks", "tarefas", "execute", "implementação", "implementacao")
+
+    for line in lines:
+        heading = re.match(r"^(#{2,6})\s*(?:\d+\.?\s*)?(.+)$", line.strip())
+        if heading:
+            normalized = heading.group(2).strip().lower()
+            if any(term in normalized for term in forbidden):
+                skip = True
+                continue
+            if skip and heading.group(1) == "##":
+                skip = False
+        if not skip:
+            kept.append(line)
+
+    cleaned = "\n".join(kept).strip()
+    return cleaned + "\n" if cleaned else ""
+
 def _sdd_project_document_path(project: Project, kind: str, create_dir: bool = False) -> str:
     config = SDD_PROJECT_DOCUMENTS.get(kind)
     if not config:
@@ -2789,19 +2811,30 @@ def generate_sdd_spec(
         raise HTTPException(status_code=400, detail="Chave de API da LLM não configurada no Agente IA.")
         
     system_prompt = (
-        "Você é um Engenheiro de Software Sênior especialista em Spec-Driven Development (SDD).\n"
-        "Sua tarefa é gerar uma especificação técnica detalhada em formato Markdown com base no prompt do usuário.\n"
+        "Você é um Product Engineer especialista em Harness Engineering.\n"
+        "Sua tarefa é gerar SOMENTE o documento Specify de um REQ funcional individual.\n"
         "Você DEVE retornar a resposta formatada estritamente como um objeto JSON estruturado contendo:\n"
         "1. \"title\": O título da funcionalidade.\n"
-        "2. \"filename\": Sugestão de nome de arquivo amigável terminando em .md (ex: user_auth.md, shopping_cart.md).\n"
-        "3. \"markdown\": A especificação técnica completa em Markdown.\n\n"
-        "A especificação técnica em Markdown DEVE representar somente o Specify do REQ, com estes títulos:\n"
-        "- # REQ-[ID] — [Título da Funcionalidade]\n"
+        "2. \"filename\": nome seguro em snake_case terminando em .md.\n"
+        "3. \"markdown\": o arquivo Markdown do REQ.\n\n"
+        "REGRA INQUEBRÁVEL: o Markdown deve conter APENAS Specify. É proibido gerar qualquer seção Design, Planejamento, DRI, Task List, Tasks, Tarefas, Execute ou Implementação.\n"
+        "Design fica em .documents/design/design.md. DRI fica em .documents/dri/dri.md. Tasks ficam exclusivamente em .documents/task/task.md.\n\n"
+        "Use obrigatoriamente esta estrutura, sem adicionar outras seções de etapa:\n"
+        "- # [Título da Funcionalidade]\n"
         "- ## 1. Specify - Especificação\n"
-        "  Inclua identificação, metadados, contexto, objetivo, comportamento esperado, histórias de usuário, regras de negócio, escopo, restrições, critérios de aceite e rastreabilidade.\n"
-        "  Critérios de aceite podem usar caixas de seleção Markdown '- [ ]', mas NÃO são tarefas técnicas.\n"
-        "  NÃO inclua Design, DRI, Task List ou Execute neste arquivo, pois eles são documentos vivos separados do projeto.\n"
-        "  Quando houver tarefas sugeridas, cite apenas que devem ser registradas em .documents/task/task.md, sem criar a lista técnica neste REQ.\n\n"
+        "- ### 1.1 Identificação e Metadados Básicos\n"
+        "- ### 1.2 Contexto\n"
+        "- ### 1.3 Objetivo Funcional\n"
+        "- ### 1.4 Descrição do Requisito\n"
+        "- ### 1.5 História de Usuário\n"
+        "- ### 1.6 Escopo Funcional\n"
+        "- ### 1.7 Regras de Negócio\n"
+        "- ### 1.8 Fluxos Funcionais\n"
+        "- ### 1.9 Critérios de Aceite\n"
+        "- ### 1.10 Rastreabilidade Funcional\n\n"
+        "Em Critérios de Aceite, use checklist Markdown '- [ ]'. Esses itens são critérios funcionais, NÃO tarefas técnicas.\n"
+        "Em Rastreabilidade, informe que tarefas técnicas devem ser registradas separadamente em .documents/task/task.md, sem listar tarefas neste REQ.\n"
+        "Não use termos genéricos como 'atualizar schema' ou 'usar biblioteca de popup' sem evidência no prompt; mantenha o requisito funcional e verificável.\n\n"
         "Retorne estritamente um objeto JSON. Não adicione tags de bloco ```json ou outro texto fora do JSON."
     )
     
@@ -2821,7 +2854,9 @@ def generate_sdd_spec(
         # Limpa o filename contra caminhos maliciosos
         filename = os.path.basename(filename)
         
-        markdown_content = parsed.get("markdown", "")
+        markdown_content = _sdd_strip_forbidden_req_sections(parsed.get("markdown", ""))
+        if not markdown_content:
+            raise HTTPException(status_code=500, detail="A IA não retornou um Specify válido para o REQ.")
         
         specs_dir = _sdd_spec_dir(project, create=True)
         spec_path = os.path.join(specs_dir, filename)
