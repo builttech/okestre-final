@@ -10,11 +10,16 @@ Este documento é de leitura obrigatória para o Agente IA (GPT Action) antes de
 > O Agente IA deve SEMPRE seguir o ciclo **Percepção -> Planejamento -> Aprovação -> Execução -> Verificação**. Qualquer tentativa de pular etapas ou fazer edições massivas sem plano prévio viola este protocolo e pode corromper a aplicação.
 >
 > **REGRA BLOQUEANTE DE REQUISITO (NÃO PODE SER IGNORADA):**
-> Antes de qualquer execução técnica, o GPT Action deve primeiro **criar ou atualizar o REQ correspondente** no Harness Engineering.
-> Depois disso, deve aguardar o usuário validar o requisito.
-> Se o usuário disser que o REQ está correto, ele informará explicitamente qual task da seção `Task List - Tarefas` deve ser executada.
-> Se o REQ não estiver correto, o GPT Action deve ajudar a ajustar o requisito e repetir o ciclo de validação.
-> O GPT Action **não pode implementar código, rodar comandos de modificação, criar arquivos técnicos ou executar tasks** antes dessa validação do REQ e da escolha explícita da task pelo usuário.
+> Antes de qualquer execução técnica, o GPT Action deve seguir obrigatoriamente o fluxo Harness:
+> 1. **Ler, criar, atualizar ou revisar o REQ** em `.documents/spec/*.md`.
+> 2. **Aguardar validação do usuário sobre o REQ.**
+> 3. Se aprovado, **criar ou revisar o DRI** em `.documents/dri/dri.md`.
+> 4. **Aguardar validação do usuário sobre o DRI.**
+> 5. Se aprovado, **criar ou revisar a Task List** em `.documents/task/task.md`.
+> 6. **Aguardar validação do usuário sobre a Task List.**
+> 7. Se aprovado, **executar as tasks em ordem**, uma por vez, e marcar o checkbox final de cada tarefa concluída em `task.md`.
+> Se qualquer etapa não estiver correta, o GPT Action deve ajustar a etapa correspondente e repetir o ciclo de validação.
+> O GPT Action **não pode implementar código, rodar comandos de modificação, criar arquivos técnicos fora do fluxo ou executar tasks** antes da validação do REQ, validação do DRI e validação da Task List.
 
 ---
 
@@ -23,30 +28,37 @@ Este documento é de leitura obrigatória para o Agente IA (GPT Action) antes de
 ```mermaid
 graph TD
     A["1. Reconhecimento e Análise"] --> B{"REQ informado?"}
-    B -->|"Sim"| C["Ler e atualizar REQ existente"]
+    B -->|"Sim"| C["Ler, revisar ou atualizar REQ existente"]
     B -->|"Não"| D["Criar novo REQ"]
-    C --> E["Preencher Specify, Design, DRI e Task List"]
+    C --> E{"Usuário validou o REQ?"}
     D --> E
-    E --> F{"Usuário validou o REQ?"}
-    F -->|"Não, ajustar"| C
-    F -->|"Sim"| G{"Usuário informou a task?"}
-    G -->|"Não"| H["Aguardar escolha da task"]
-    H --> G
-    G -->|"Sim"| I["2. Plano de Implementação da task escolhida"]
-    I --> J["3. Alinhamento / Aprovação"]
-    J --> K["4. Execução Cirúrgica da task"]
-    K --> L["5. Verificação e Testes"]
-    L -->|"Falhou"| K
-    L -->|"Sucesso"| M["Conclusão"]
+    E -->|"Não, ajustar REQ"| C
+    E -->|"Sim"| F["Criar ou revisar DRI em .documents/dri/dri.md"]
+    F --> G{"Usuário validou o DRI?"}
+    G -->|"Não, ajustar DRI"| F
+    G -->|"Sim"| H["Criar ou revisar Task List em .documents/task/task.md"]
+    H --> I{"Usuário validou a Task List?"}
+    I -->|"Não, ajustar tasks"| H
+    I -->|"Sim"| J["Executar tasks em ordem"]
+    J --> K["Plano da task atual"]
+    K --> L["Execução cirúrgica da task atual"]
+    L --> M["Verificação e testes"]
+    M -->|"Falhou"| L
+    M -->|"Sucesso"| N["Marcar checkbox da task em task.md"]
+    N --> O{"Há próxima task?"}
+    O -->|"Sim"| J
+    O -->|"Não"| P["Conclusão"]
 ```
 
 ### 1. Reconhecimento e Análise do Contexto
 Antes de propor ou fazer qualquer alteração, o agente deve:
 - **Verificar o REQ de referência:** Identificar se a solicitação do usuário informa um requisito existente (`REQ-xxxx`). Se informar, ler primeiro a especificação correspondente antes de planejar qualquer implementação.
-- **Criar REQ quando não existir:** Se a solicitação não informar um `REQ-xxxx`, o primeiro passo obrigatório é criar e documentar um novo requisito funcional com base na solicitação, preenchendo `Specify - Especificação`, `Design - Planejamento`, `DRI - Documento de Requisito de Interface` quando houver interface, e a seção `Task List - Tarefas`.
+- **Criar REQ quando não existir:** Se a solicitação não informar um `REQ-xxxx`, o primeiro passo obrigatório é criar e documentar um novo requisito funcional em `.documents/spec/*.md`, preenchendo somente `Specify - Especificação`.
 - **Atualizar REQ existente antes de implementar:** Se a solicitação for uma nova funcionalidade, ajuste ou extensão de um requisito já existente, atualizar o REQ com a nova solicitação antes de qualquer alteração de código.
-- **Aguardar validação do REQ:** Após criar ou atualizar o REQ e registrar a task, o agente deve parar e aguardar o usuário validar o requisito. Se o usuário pedir ajustes, o agente deve atualizar o REQ e repetir este ciclo de validação.
-- **Executar somente task escolhida:** A implementação só pode começar quando o usuário informar explicitamente qual task da seção `Task List - Tarefas` deve ser executada. O agente deve executar somente a task escolhida.
+- **Aguardar validação do REQ:** Após ler, criar, atualizar ou revisar o REQ, o agente deve parar e aguardar o usuário validar o requisito. Se o usuário pedir ajustes, o agente deve atualizar o REQ e repetir este ciclo.
+- **Atualizar DRI após REQ aprovado:** Somente depois do REQ aprovado, criar ou revisar o DRI em `.documents/dri/dri.md` e aguardar validação do usuário.
+- **Atualizar Task List após DRI aprovado:** Somente depois do DRI aprovado, criar ou revisar `.documents/task/task.md` e aguardar validação do usuário.
+- **Executar tasks somente após Task List aprovada:** A implementação só pode começar depois da validação da Task List. O agente deve executar as tasks em ordem, uma por vez, e marcar o checkbox final em `task.md` apenas após concluir e validar a task.
 - **Investigar a Árvore de Diretórios:** Listar os arquivos do projeto para entender a estrutura de pastas.
 - **Identificar Arquivos de Configuração e Arquitetura:** Ler os arquivos principais (ex: `package.json`, `requirements.txt`, `main.py`, `index.html`, etc.) para entender as dependências e o ecossistema.
 - **Entender Regras de Conexão e Banco de Dados:** Verificar se há arquivos como `db_credentials.json` para compreender como o banco de dados local ou remoto se comunica com o projeto.
@@ -83,40 +95,55 @@ Após cada implementação, o agente deve obrigatoriamente:
 
 ### Harness Engineering / Especificações Funcionais
 
-Quando o usuário solicitar criação, revisão ou atualização de requisitos funcionais no fluxo Harness Engineering, o Agente IA deve tratar o arquivo Markdown da especificação como fonte de verdade e preencher as etapas nesta ordem:
+Quando o usuário solicitar criação, revisão ou atualização de requisitos funcionais no fluxo Harness Engineering, o Agente IA deve tratar os documentos Markdown abaixo como fontes de verdade separadas:
+
+- **Specify / REQs individuais:** `.documents/spec/*.md`
+- **Design vivo do projeto:** `.documents/design/design.md`
+- **DRI vivo do projeto:** `.documents/dri/dri.md`
+- **Task List viva do projeto:** `.documents/task/task.md`
+
+O agente deve manter cada responsabilidade no arquivo correto:
 
 1. **Specify - Especificação**
-   - Preencher a documentação funcional do requisito.
+   - Preencher ou atualizar somente a documentação funcional do requisito individual em `.documents/spec/<REQ>.md`.
    - Incluir identificação e metadados básicos: ID único, título/resumo, tipo, módulo, prioridade, status, solicitante, responsável atual, release/iteração e esforço estimado.
    - Descrever contexto, objetivo funcional, comportamento esperado, história de usuário, regras de negócio, restrições, critérios de aceite e rastreabilidade.
    - Os critérios de aceite podem usar checklist Markdown `- [ ]`, mas devem representar validação funcional, não tarefas técnicas soltas.
+   - **Não incluir** Design, DRI, Task List ou Execute dentro do arquivo do REQ.
 
 2. **Design - Planejamento**
-   - Preencher a arquitetura proposta para atender o requisito.
+   - Preencher ou atualizar `.documents/design/design.md`.
+   - O Design é um documento vivo único do projeto, podendo referenciar um ou mais REQs.
    - Incluir componentes impactados, fluxo técnico, APIs/endpoints, dados, banco, integrações, bibliotecas, eventos, permissões, riscos técnicos e estratégia de validação.
-   - O Design deve sempre se basear no conteúdo da etapa Specify e não inventar escopo fora do requisito.
+   - O Design deve sempre se basear no conteúdo do Specify/REQ validado e não inventar escopo fora do requisito.
+   - Quando o usuário solicitar explicitamente o fluxo com DRI direto após o REQ, o Design pode permanecer como documento vivo de apoio e ser atualizado quando necessário, sem bloquear o gate obrigatório REQ -> DRI -> Task List -> Execute.
 
 3. **DRI - Documento de Requisito de Interface**
    - Preencher quando o requisito envolver tela, página, modal, drawer, formulário, grid, dashboard, detalhe ou qualquer outra interface de usuário.
-   - O DRI deve ser escrito no próprio arquivo Markdown da Spec, na seção `## 3. DRI - Documento de Requisito de Interface`.
+   - Preencher ou atualizar `.documents/dri/dri.md`.
+   - O DRI é um documento vivo único do projeto, podendo conter interfaces relacionadas a um ou mais REQs.
    - Usar o template RI oficial com seções numeradas 1 a 17.
    - Preservar tabelas Markdown para Identificação da Interface, Contexto de Uso, Arquitetura da Informação, Mapa de Componentes, Regras de Exibição, Estados, Fluxo de Interação, Mapeamento de Dados, Microcopy, Responsividade, Acessibilidade, Critérios de Aceite da Interface e Lacunas/Premissas.
    - As seções `14. Critérios de Aceite da Interface`, `15. Lacunas e Premissas`, `16. Fora do Escopo` e `17. Possíveis Evoluções Futuras` são obrigatórias e não devem ser omitidas.
-   - O DRI deve sempre se basear no Specify e no Design.
+   - O DRI deve sempre se basear no Specify/REQ validado e no Design vivo.
    - Não colocar tarefas técnicas dentro do DRI.
+   - O GPT Action deve aguardar validação explícita do usuário após criar ou revisar o DRI antes de criar ou revisar a Task List.
 
 4. **Task List - Tarefas**
-   - As tarefas devem ser documentadas no próprio arquivo Markdown da Spec, na seção `## 4. Task List - Tarefas`.
-   - A etapa visual Task List do GitIDE apenas lê e exibe os checklists existentes nessa seção.
-   - Sempre que uma solicitação gerar trabalho técnico, adicionar uma task rastreável nessa seção usando o ID do requisito, por exemplo: `- [ ] TASK-REQ-3087-001: Implementar comportamento principal.`
+   - Preencher ou atualizar exclusivamente `.documents/task/task.md`.
+   - A etapa visual Task List do GitIDE lê somente `.documents/task/task.md`.
+   - Sempre que uma solicitação gerar trabalho técnico, adicionar uma task rastreável nesse arquivo usando o formato obrigatório: `- [ ] TASK-REQ-3087-001: - Título curto`.
    - Não colocar tarefas técnicas dentro de Critérios de Aceite, Rastreabilidade, Design ou DRI.
    - Nunca misturar critérios de aceite com tarefas de implementação.
+   - O GPT Action deve aguardar validação explícita do usuário após criar ou revisar a Task List antes de iniciar execução.
+   - Após executar e validar uma tarefa, o GPT Action deve marcar o checkbox correspondente em `task.md` como concluído (`- [x]`).
 
 5. **Execute - Implementação**
    - Não preencher antecipadamente.
-   - Esta etapa deve ser usada somente quando uma tarefa específica for selecionada para execução por agente ou programador.
+   - Esta etapa deve ser usada somente após REQ, DRI e Task List terem sido validados pelo usuário.
+   - O GPT Action deve executar as tarefas em ordem, uma por vez, com plano curto da task atual, execução cirúrgica, verificação/testes e atualização do checkbox final em `task.md`.
 
-Regra obrigatória: o GPT Action deve manter a separação entre **o que o sistema deve fazer** (Specify), **como será planejado tecnicamente** (Design), **como a interface deve se comportar** (DRI), **quais tarefas serão executadas** (Task List gerenciada pelo GitIDE) e **a implementação de uma tarefa selecionada** (Execute).
+Regra obrigatória: o GPT Action deve manter a separação entre **o que o sistema deve fazer** (Specify em `.documents/spec/*.md`), **como será planejado tecnicamente** (Design em `.documents/design/design.md`), **como a interface deve se comportar** (DRI em `.documents/dri/dri.md`), **quais tarefas serão executadas** (Task List em `.documents/task/task.md`) e **a implementação de uma tarefa selecionada** (Execute).
 
 1. **Gestão do ID do Projeto:**
    - Sempre certifique-se de obter o `project_id` correto no início da conversa (seja lendo as variáveis locais ou perguntando ao usuário) e use-o em todos os caminhos de rota (`/api/projects/{project_id}/...`).
