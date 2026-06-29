@@ -266,7 +266,7 @@ function switchTab(tabId) {
             startPendingCommandsPolling();
         } else if (tabId === 'tab-sdd') {
             sddLoadCharter();
-            sddLoadSpecs();
+            sddLoadSpecs(true);
         } else if (tabId === 'tab-ops-infra') {
             opsInfraDetect();
             opsInfraLoadEnv();
@@ -6605,6 +6605,25 @@ function sddSetButtonLoading(button, loading, loadingText, defaultHtml) {
     if (window.lucide) lucide.createIcons();
 }
 
+async function sddEnsureProjectStructure() {
+    if (!state.activeProjectId) return null;
+    try {
+        const res = await fetch(`/api/projects/${state.activeProjectId}/sdd/structure`, {
+            method: 'POST',
+            headers: getHeaders()
+        });
+        const data = await res.json();
+        if (!res.ok || data.status === 'error') {
+            throw new Error(data.detail || data.message || 'Erro ao preparar estrutura Harness');
+        }
+        return data;
+    } catch (e) {
+        console.warn('Não foi possível preparar a estrutura Harness:', e);
+        gitideNotify({ title: 'Harness Engineering', message: e.message, variant: 'warning' });
+        return null;
+    }
+}
+
 function sddSwitchHarnessPanel(panelId) {
     document.querySelectorAll('.harness-panel').forEach(panel => {
         panel.classList.toggle('active', panel.id === panelId);
@@ -6616,7 +6635,7 @@ function sddSwitchHarnessPanel(panelId) {
     if (panelId === 'harness-charter-panel') {
         sddLoadCharter();
     } else if (panelId === 'harness-specs-panel') {
-        sddLoadSpecs();
+        sddLoadSpecs(true);
     }
 }
 
@@ -6768,11 +6787,14 @@ function sddRenderMarkdown(md) {
 }
 
 // --- Load & Render Spec List ---
-async function sddLoadSpecs() {
+async function sddLoadSpecs(ensureStructure = false) {
     if (!state.activeProjectId) return;
     const list = document.getElementById('sdd-specs-list');
     list.innerHTML = '<div class="specs-empty-state" style="padding:20px;text-align:center;"><span style="color:var(--text-muted)">Carregando...</span></div>';
     try {
+        if (ensureStructure) {
+            await sddEnsureProjectStructure();
+        }
         const res = await fetch(`/api/projects/${state.activeProjectId}/sdd/specs`, { headers: getHeaders() });
         const specs = await res.json();
         sddState.specs = specs;
@@ -6820,7 +6842,7 @@ function sddRenderSpecList(specs) {
             <i data-lucide="file-text" style="width:15px;height:15px;flex-shrink:0;"></i>
             <div style="flex:1;min-width:0;">
                 <div class="spec-item-title" title="${spec.title}">${spec.title}</div>
-                <div class="spec-item-meta">${storageLabel} &middot; ${spec.filename} &middot; ${new Date(spec.modified_at).toLocaleDateString('pt-BR')}</div>
+                <div class="spec-item-meta">${storageLabel} &middot; ${spec.filepath || spec.filename} &middot; ${new Date(spec.modified_at).toLocaleDateString('pt-BR')}</div>
             </div>
         </div>`;
     }).join('');
@@ -6846,6 +6868,7 @@ async function sddSelectSpec(filename) {
             sddLoadProjectDocuments()
         ]);
         const data = await specRes.json();
+        if (!specRes.ok) throw new Error(data.detail || 'Erro ao carregar REQ');
         sddState.activeContent = data.content || '';
         sddState.activeStorageType = data.storage_type || 'legacy_markdown';
         sddState.activeFilepath = data.filepath || '';
@@ -7055,7 +7078,9 @@ function sddUpdateFlowStrip(tabId = 'sdd-tab-preview') {
     const breadcrumb = document.getElementById('sdd-flow-breadcrumb');
     if (breadcrumb) {
         const filename = sddState.activeFilename || document.getElementById('sdd-edit-filename')?.value || 'novo-req.md';
-        const basePath = sddState.activeStorageType === 'legacy_markdown' ? '.documents > specs' : '.documents > spec';
+        const basePath = sddState.activeFilepath
+            ? sddState.activeFilepath.split('/').slice(0, -1).join(' > ')
+            : (sddState.activeStorageType === 'legacy_markdown' ? '.documents > specs' : '.documents > spec');
         breadcrumb.textContent = `${basePath} > ${filename} > Harness Engineering`;
     }
 
@@ -7202,7 +7227,7 @@ async function sddSaveSpec() {
             sddState.isDraft = false;
             sddPopulatePreview(content);
             sddSetActiveSpecHeader({ filename, content });
-            await sddLoadSpecs();
+            await sddLoadSpecs(true);
             sddSwitchTab('sdd-tab-preview');
         } else {
             alert('Erro ao salvar: ' + (data.detail || 'Erro desconhecido'));
@@ -7313,7 +7338,7 @@ async function sddDeleteSpec() {
             // Re-bind wizard button
             const wb = document.getElementById('btn-switch-to-ia-generator');
             if (wb) wb.addEventListener('click', () => sddSwitchTab('sdd-tab-ia-wizard'));
-            await sddLoadSpecs();
+            await sddLoadSpecs(true);
             gitideNotify({ title: 'Requisito excluído', message: 'A especificação foi removida do projeto.', variant: 'success' });
         } else {
             gitideNotify({ title: 'Erro ao excluir', message: data.detail || 'Erro desconhecido', variant: 'danger' });
@@ -7693,7 +7718,7 @@ async function sddGenerateSpecIA() {
             // Clear wizard inputs
             document.getElementById('sdd-wizard-title').value = '';
             document.getElementById('sdd-wizard-prompt').value = '';
-            await sddLoadSpecs();
+            await sddLoadSpecs(true);
         } else {
             alert('Erro ao gerar especificação: ' + (data.detail || JSON.stringify(data)));
         }
