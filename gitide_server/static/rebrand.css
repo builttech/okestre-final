@@ -5804,13 +5804,12 @@ input[type="checkbox"]:focus-visible{
 .topbar-workspace-section .workspace-switcher-title,
 .topbar-workspace-section .workspace-switcher-copy strong {
     font-size: 12px;
-    line-height: 1.1;
+    line-height: 1;
 }
 
 .topbar-workspace-section .workspace-switcher-subtitle,
 .topbar-workspace-section .workspace-switcher-copy span {
-    font-size: 10px;
-    line-height: 1.1;
+    display: none;
 }
 
 .topbar-workspace-section .workspace-switcher-chevron {
