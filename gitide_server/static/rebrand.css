@@ -5762,7 +5762,7 @@ input[type="checkbox"]:focus-visible{
 }
 
 .topbar-workspace-section {
-    width: clamp(190px, 18vw, 248px);
+    width: clamp(148px, 13vw, 184px);
     height: 100%;
     display: flex;
     align-items: center;
