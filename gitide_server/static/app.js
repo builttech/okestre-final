@@ -6589,6 +6589,7 @@ const sddState = {
         dri: '',
         task: ''
     },
+    taskFilepath: '.documents/task/task.md',
     specs: [],
     executeTask: null,
     charterLoaded: false,
@@ -6926,6 +6927,7 @@ function sddResetWorkspaceEmpty() {
     sddState.activeStorageType = null;
     sddState.activeFilepath = null;
     sddState.projectDocuments = { design: '', dri: '', task: '' };
+    sddState.taskFilepath = '.documents/task/task.md';
     sddState.executeTask = null;
 
     const nav = document.getElementById('sdd-workspace-nav-tabs');
@@ -7103,13 +7105,15 @@ function sddUpdateFlowStrip(tabId = 'sdd-tab-preview') {
 async function sddLoadCriteria() {
     if (!state.activeProjectId || !sddState.activeFilename) return;
     const container = document.getElementById('sdd-criteria-checklist-container');
-    container.innerHTML = '<p style="color:var(--text-muted);padding:16px;">Carregando critérios...</p>';
+    container.innerHTML = '<p style="color:var(--text-muted);padding:16px;">Carregando tarefas de .documents/task/task.md...</p>';
     try {
         const res = await fetch(`/api/projects/${state.activeProjectId}/sdd/specs/${encodeURIComponent(sddState.activeFilename)}/criteria`, { headers: getHeaders() });
         const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || 'Erro ao carregar tarefas');
+        sddState.taskFilepath = data.filepath || '.documents/task/task.md';
         sddRenderCriteria(data.criteria || []);
     } catch (e) {
-        container.innerHTML = '<p style="color:#ef4444;padding:16px;">Erro ao carregar critérios.</p>';
+        container.innerHTML = `<p style="color:#ef4444;padding:16px;">Erro ao carregar tarefas de <code>.documents/task/task.md</code>.</p>`;
     }
 }
 
@@ -7122,7 +7126,7 @@ function sddRenderCriteria(criteria) {
         container.innerHTML = `
             <div style="text-align:center;padding:40px;color:var(--text-muted);">
                 <i data-lucide="clipboard-list" style="width:40px;height:40px;margin-bottom:12px;opacity:0.4;"></i>
-                <p>Nenhuma tarefa encontrada.<br>Adicione itens <code>- [ ] TASK-REQ-0000-001: ...</code> em <code>.documents/task/task.md</code>.</p>
+                <p>Nenhuma tarefa encontrada em <code>${escapeHtml(sddState.taskFilepath || '.documents/task/task.md')}</code>.<br>Use o formato <code>- [ ] TASK-REQ-0000-001: - Título curto</code>.</p>
             </div>`;
         if (window.lucide) lucide.createIcons();
         progressText.textContent = '0/0 concluídos';
@@ -7141,7 +7145,7 @@ function sddRenderCriteria(criteria) {
             <input type="checkbox" ${c.checked ? 'checked' : ''} 
                    onchange="sddToggleCriteria(${c.line_no}, this.checked)" 
                    style="width:16px;height:16px;cursor:pointer;accent-color:var(--color-primary);flex-shrink:0;">
-            <span class="sdd-criteria-text">${c.text}</span>
+            <span class="sdd-criteria-text">${escapeHtml(c.text)}</span>
             <select class="sdd-task-status select-input" onchange="sddSetTaskStatus(${c.line_no}, this.value)">
                 <option value="todo">todo</option>
                 <option value="execute">executar</option>

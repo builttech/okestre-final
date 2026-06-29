@@ -2362,8 +2362,8 @@ def _default_sdd_project_document(project: Project, kind: str) -> str:
         f"# {config['title']}\n\n"
         f"## Projeto\n\n{project_name}\n\n"
         "## Task List - Tarefas\n\n"
-        "> Use itens rastreáveis no formato `- [ ] TASK-REQ-0000-001: Descrição da tarefa.`\n\n"
-        "- [ ] TASK-REQ-0000-001: Detalhar primeira tarefa do projeto.\n"
+        "> Use itens rastreáveis no formato `- [ ] TASK-REQ-0000-001: - Título curto da tarefa.`\n\n"
+        "- [ ] TASK-REQ-0000-001: - Detalhar primeira tarefa do projeto.\n"
     )
 
 def _sdd_project_structure_status(project: Project) -> dict:
@@ -2851,17 +2851,15 @@ def generate_sdd_spec(
 
 @app.get("/api/projects/{project_id}/sdd/specs/{filename}/criteria", tags=["Spec-Driven Development"])
 def get_sdd_spec_criteria(filename: str, project: Project = Depends(get_project_or_404)):
-    """Extrai tarefas do task.md vivo do projeto, com fallback para specs legadas."""
+    """Extrai tarefas exclusivamente do task.md vivo do projeto."""
     filename = os.path.basename(filename.strip())
     if not filename or ".." in filename or "/" in filename or "\\" in filename:
         raise HTTPException(status_code=400, detail="Nome de arquivo inválido.")
 
     task_path = _sdd_project_document_path(project, "task")
-    legacy_spec_path = os.path.join(project.path, ".documents", "specs", filename)
-    target_path = task_path if os.path.exists(task_path) else legacy_spec_path
-    source_type = "project_task_document" if target_path == task_path else "legacy_markdown"
+    source_type = "project_task_document"
 
-    if not os.path.exists(target_path):
+    if not os.path.exists(task_path):
         return {
             "filename": filename,
             "source_type": "project_task_document",
@@ -2871,42 +2869,31 @@ def get_sdd_spec_criteria(filename: str, project: Project = Depends(get_project_
 
     criteria = []
     try:
-        with open(target_path, "r", encoding="utf-8") as f:
+        with open(task_path, "r", encoding="utf-8") as f:
             lines = f.readlines()
 
-        task_section_start = 0 if source_type == "project_task_document" else None
-        task_section_end = len(lines)
-        if source_type == "legacy_markdown":
-            for i, line in enumerate(lines):
-                normalized = re.sub(r"^#+\s*\d*\.?\s*", "", line.strip()).lower()
-                if "task list" in normalized or "tasks" in normalized or "tarefas" in normalized:
-                    task_section_start = i
-                    heading_level = len(re.match(r"^(#+)", line.strip()).group(1)) if re.match(r"^(#+)", line.strip()) else 2
-                    for j in range(i + 1, len(lines)):
-                        heading = re.match(r"^(#+)\s+", lines[j].strip())
-                        if heading and len(heading.group(1)) <= heading_level:
-                            task_section_end = j
-                            break
-                    break
-
-        if task_section_start is None:
-            return {"filename": filename, "source_type": source_type, "criteria": []}
-
-        start_line = task_section_start + (1 if source_type == "legacy_markdown" else 0)
-        for i in range(start_line, task_section_end):
+        for i in range(0, len(lines)):
             line_stripped = lines[i].strip()
-            match = re.match(r"^\-\s*\[([ xX])\]\s*(.*)", line_stripped)
-            if match:
+            checkbox_match = re.match(r"^\-\s*\[([ xX])\]\s*(.*)", line_stripped)
+            if checkbox_match:
+                raw_text = checkbox_match.group(2).strip()
+                task_match = re.match(r"^(TASK-REQ-\d{2,6}-\d{3})\s*:\s*-?\s*(.+)$", raw_text, flags=re.IGNORECASE)
+                if not task_match:
+                    continue
+                task_code = task_match.group(1).upper()
+                task_title = task_match.group(2).strip()
                 criteria.append({
                     "id": i,
                     "line_no": i + 1,
-                    "text": match.group(2).strip(),
-                    "checked": match.group(1).lower() == "x"
+                    "code": task_code,
+                    "title": task_title,
+                    "text": f"{task_code}: - {task_title}",
+                    "checked": checkbox_match.group(1).lower() == "x"
                 })
         return {
             "filename": filename,
             "source_type": source_type,
-            "filepath": os.path.relpath(target_path, project.path).replace("\\", "/"),
+            "filepath": os.path.relpath(task_path, project.path).replace("\\", "/"),
             "criteria": criteria
         }
     except Exception as e:
@@ -2920,21 +2907,19 @@ def update_sdd_spec_criteria(
     db: Session = Depends(get_db),
     _ = Depends(get_api_key)
 ):
-    """Atualiza checkboxes no task.md vivo do projeto, com fallback para specs legadas."""
+    """Atualiza checkboxes exclusivamente no task.md vivo do projeto."""
     filename = os.path.basename(filename.strip())
     if not filename or ".." in filename or "/" in filename or "\\" in filename:
         raise HTTPException(status_code=400, detail="Nome de arquivo inválido.")
 
     task_path = _sdd_project_document_path(project, "task")
-    legacy_spec_path = os.path.join(project.path, ".documents", "specs", filename)
-    target_path = task_path if os.path.exists(task_path) else legacy_spec_path
-    source_type = "project_task_document" if target_path == task_path else "legacy_markdown"
+    source_type = "project_task_document"
 
-    if not os.path.exists(target_path):
+    if not os.path.exists(task_path):
         raise HTTPException(status_code=404, detail="Documento de tarefas não encontrado.")
 
     try:
-        with open(target_path, "r", encoding="utf-8") as f:
+        with open(task_path, "r", encoding="utf-8") as f:
             lines = f.readlines()
 
         updates = {item.line_no: item.checked for item in req.criteria}
@@ -2948,10 +2933,10 @@ def update_sdd_spec_criteria(
                     box = "[x]" if checked else "[ ]"
                     lines[idx] = f"{indent}- {box}{rest}\n"
 
-        with open(target_path, "w", encoding="utf-8") as f:
+        with open(task_path, "w", encoding="utf-8") as f:
             f.writelines(lines)
 
-        rel_path = os.path.relpath(target_path, project.path).replace("\\", "/")
+        rel_path = os.path.relpath(task_path, project.path).replace("\\", "/")
         db.add(ActivityLog(
             project_id=project.id,
             action_type="SDD_TASK_CRITERIA_UPDATED",

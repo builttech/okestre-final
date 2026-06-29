@@ -93,7 +93,7 @@ Na etapa **DRI**, a interface deve carregar e salvar o documento único `.docume
 Na etapa **Task List**, a interface deve carregar e salvar o documento único `.documents/task/task.md`. As tarefas devem continuar usando checklists Markdown rastreáveis, por exemplo:
 
 ```text
-- [x] TASK-REQ-3089-001: Implementar estrutura documental do Harness Engineering.
+- [ ] TASK-REQ-3089-001: Implementar estrutura documental do Harness Engineering.
 ```
 
 A etapa **Execute** deve ser preenchida somente quando uma task específica for selecionada. O conteúdo de Execute deve usar como referência o REQ selecionado em `.documents/spec/`, o documento vivo de Design, o documento vivo de DRI e a task escolhida em `.documents/task/task.md`.
