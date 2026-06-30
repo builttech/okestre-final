@@ -2346,6 +2346,11 @@ SDD_PROJECT_DOCUMENTS = {
         "filename": "task.md",
         "title": "Task List — Tarefas do Projeto",
     },
+    "task_details": {
+        "dir": "task",
+        "filename": "task.details.md",
+        "title": "Task Details — Plano Detalhado da Task Atual",
+    },
 }
 
 def _sdd_spec_dir(project: Project, create: bool = False) -> str:
@@ -2412,12 +2417,29 @@ def _default_sdd_project_document(project: Project, kind: str) -> str:
             "## 3. Critérios de Aceite da Interface\n\n"
             "- [ ] \n"
         )
+    if kind == "task":
+        return (
+            f"# {config['title']}\n\n"
+            f"## Projeto\n\n{project_name}\n\n"
+            "## Task List - Tarefas\n\n"
+            "> Use itens rastreáveis no formato `- [ ] TASK-REQ-0000-001: - Título curto da tarefa.`\n"
+            "> Não coloque plano detalhado aqui. Use `.documents/task/task.details.md` para o plano da task atual.\n\n"
+            "- [ ] TASK-REQ-0000-001: - Detalhar primeira tarefa do projeto.\n"
+        )
     return (
         f"# {config['title']}\n\n"
         f"## Projeto\n\n{project_name}\n\n"
-        "## Task List - Tarefas\n\n"
-        "> Use itens rastreáveis no formato `- [ ] TASK-REQ-0000-001: - Título curto da tarefa.`\n\n"
-        "- [ ] TASK-REQ-0000-001: - Detalhar primeira tarefa do projeto.\n"
+        "## Plano — TASK-REQ-0000-001\n\n"
+        "**Tarefa:** Título curto da task.\n\n"
+        "### Objetivo\n\n"
+        "Descreva o objetivo técnico da task atual.\n\n"
+        "### Arquivo afetado\n\n"
+        "`[MODIFICAR] caminho/do/arquivo.ext`\n\n"
+        "### Fora desta task\n\n"
+        "- Não implementar escopo fora da task selecionada.\n\n"
+        "### Validação prevista\n\n"
+        "- Validar por leitura, teste ou comando aplicável.\n\n"
+        "Para autorizar, responda: **\"Aprovado executar TASK-REQ-0000-001\"**.\n"
     )
 
 def _sdd_project_structure_status(project: Project) -> dict:
@@ -2850,7 +2872,7 @@ def generate_sdd_spec(
         "2. \"filename\": nome seguro em snake_case terminando em .md.\n"
         "3. \"markdown\": o arquivo Markdown do REQ.\n\n"
         "REGRA INQUEBRÁVEL: o Markdown deve conter APENAS Specify. É proibido gerar qualquer seção Design, Planejamento, DRI, Task List, Tasks, Tarefas, Execute ou Implementação.\n"
-        "Design fica em .documents/design/design.md. DRI fica em .documents/dri/dri.md. Tasks ficam exclusivamente em .documents/task/task.md.\n\n"
+        "Design fica em .documents/design/design.md. DRI fica em .documents/dri/dri.md. Tasks ficam exclusivamente em .documents/task/task.md. O plano detalhado da task atual fica exclusivamente em .documents/task/task.details.md.\n\n"
         "Use obrigatoriamente esta estrutura, sem adicionar outras seções de etapa:\n"
         "- # [Título da Funcionalidade]\n"
         "- ## 1. Specify - Especificação\n"

@@ -7840,10 +7840,12 @@ Como um [tipo de usuário], eu quero [ação/funcionalidade], para que [valor/be
 - Design vivo: .documents/design/design.md
 - DRI vivo: .documents/dri/dri.md
 - Task List viva: .documents/task/task.md
+- Task Details vivo: .documents/task/task.details.md
 
 **Links Descendentes (Filhos):**
 
 - Tarefas relacionadas devem ser registradas em .documents/task/task.md.
+- O plano detalhado da task atual deve ser registrado em .documents/task/task.details.md.
 
 **Código e Deploy:**
 

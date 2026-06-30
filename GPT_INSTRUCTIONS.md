@@ -17,9 +17,11 @@ Este documento é de leitura obrigatória para o Agente IA (GPT Action) antes de
 > 4. **Aguardar validação do usuário sobre o DRI.**
 > 5. Se aprovado, **criar ou revisar a Task List** em `.documents/task/task.md`.
 > 6. **Aguardar validação do usuário sobre a Task List.**
-> 7. Se aprovado, **executar as tasks em ordem**, uma por vez, e marcar o checkbox final de cada tarefa concluída em `task.md`.
+> 7. Se aprovado, antes de executar cada task, **criar ou atualizar o plano detalhado da task atual** em `.documents/task/task.details.md`.
+> 8. **Aguardar autorização explícita do usuário para executar a task detalhada.**
+> 9. Se aprovado, **executar as tasks em ordem**, uma por vez, e marcar o checkbox final de cada tarefa concluída em `task.md`.
 > Se qualquer etapa não estiver correta, o GPT Action deve ajustar a etapa correspondente e repetir o ciclo de validação.
-> O GPT Action **não pode implementar código, rodar comandos de modificação, criar arquivos técnicos fora do fluxo ou executar tasks** antes da validação do REQ, validação do DRI e validação da Task List.
+> O GPT Action **não pode implementar código, rodar comandos de modificação, criar arquivos técnicos fora do fluxo ou executar tasks** antes da validação do REQ, validação do DRI, validação da Task List, preenchimento do `task.details.md` e autorização explícita da task detalhada.
 
 ---
 
@@ -39,15 +41,17 @@ graph TD
     G -->|"Sim"| H["Criar ou revisar Task List em .documents/task/task.md"]
     H --> I{"Usuário validou a Task List?"}
     I -->|"Não, ajustar tasks"| H
-    I -->|"Sim"| J["Executar tasks em ordem"]
-    J --> K["Plano da task atual"]
-    K --> L["Execução cirúrgica da task atual"]
-    L --> M["Verificação e testes"]
-    M -->|"Falhou"| L
-    M -->|"Sucesso"| N["Marcar checkbox da task em task.md"]
-    N --> O{"Há próxima task?"}
-    O -->|"Sim"| J
-    O -->|"Não"| P["Conclusão"]
+    I -->|"Sim"| J["Selecionar próxima task"]
+    J --> K["Criar ou atualizar .documents/task/task.details.md"]
+    K --> L{"Usuário autorizou executar a task detalhada?"}
+    L -->|"Não, ajustar plano"| K
+    L -->|"Sim"| M["Execução cirúrgica da task atual"]
+    M --> N["Verificação e testes"]
+    N -->|"Falhou"| M
+    N -->|"Sucesso"| O["Marcar checkbox da task em task.md"]
+    O --> P{"Há próxima task?"}
+    P -->|"Sim"| J
+    P -->|"Não"| Q["Conclusão"]
 ```
 
 ### 1. Reconhecimento e Análise do Contexto
@@ -58,7 +62,8 @@ Antes de propor ou fazer qualquer alteração, o agente deve:
 - **Aguardar validação do REQ:** Após ler, criar, atualizar ou revisar o REQ, o agente deve parar e aguardar o usuário validar o requisito. Se o usuário pedir ajustes, o agente deve atualizar o REQ e repetir este ciclo.
 - **Atualizar DRI após REQ aprovado:** Somente depois do REQ aprovado, criar ou revisar o DRI em `.documents/dri/dri.md` e aguardar validação do usuário.
 - **Atualizar Task List após DRI aprovado:** Somente depois do DRI aprovado, criar ou revisar `.documents/task/task.md` e aguardar validação do usuário.
-- **Executar tasks somente após Task List aprovada:** A implementação só pode começar depois da validação da Task List. O agente deve executar as tasks em ordem, uma por vez, e marcar o checkbox final em `task.md` apenas após concluir e validar a task.
+- **Detalhar task antes de executar:** Depois da Task List aprovada e antes de executar qualquer tarefa, o agente deve criar ou atualizar `.documents/task/task.details.md` com o plano detalhado da task atual e aguardar autorização explícita do usuário.
+- **Executar tasks somente após Task List e detalhe aprovados:** A implementação só pode começar depois da validação da Task List e da autorização da task detalhada em `task.details.md`. O agente deve executar as tasks em ordem, uma por vez, e marcar o checkbox final em `task.md` apenas após concluir e validar a task.
 - **Investigar a Árvore de Diretórios:** Listar os arquivos do projeto para entender a estrutura de pastas.
 - **Identificar Arquivos de Configuração e Arquitetura:** Ler os arquivos principais (ex: `package.json`, `requirements.txt`, `main.py`, `index.html`, etc.) para entender as dependências e o ecossistema.
 - **Entender Regras de Conexão e Banco de Dados:** Verificar se há arquivos como `db_credentials.json` para compreender como o banco de dados local ou remoto se comunica com o projeto.
@@ -101,6 +106,7 @@ Quando o usuário solicitar criação, revisão ou atualização de requisitos f
 - **Design vivo do projeto:** `.documents/design/design.md`
 - **DRI vivo do projeto:** `.documents/dri/dri.md`
 - **Task List viva do projeto:** `.documents/task/task.md`
+- **Detalhamento vivo da task atual:** `.documents/task/task.details.md`
 
 O agente deve manter cada responsabilidade no arquivo correto:
 
@@ -133,6 +139,7 @@ O agente deve manter cada responsabilidade no arquivo correto:
    - Preencher ou atualizar exclusivamente `.documents/task/task.md`.
    - A etapa visual Task List do GitIDE lê somente `.documents/task/task.md`.
    - Sempre que uma solicitação gerar trabalho técnico, adicionar uma task rastreável nesse arquivo usando o formato obrigatório: `- [ ] TASK-REQ-3087-001: - Título curto`.
+   - O arquivo `task.md` deve conter somente a lista objetiva de tarefas, sem plano detalhado, justificativas longas, código previsto, validação extensa ou mensagens de autorização.
    - Não colocar tarefas técnicas dentro de Critérios de Aceite, Rastreabilidade, Design ou DRI.
    - Nunca misturar critérios de aceite com tarefas de implementação.
    - O GPT Action deve aguardar validação explícita do usuário após criar ou revisar a Task List antes de iniciar execução.
@@ -141,9 +148,23 @@ O agente deve manter cada responsabilidade no arquivo correto:
 5. **Execute - Implementação**
    - Não preencher antecipadamente.
    - Esta etapa deve ser usada somente após REQ, DRI e Task List terem sido validados pelo usuário.
-   - O GPT Action deve executar as tarefas em ordem, uma por vez, com plano curto da task atual, execução cirúrgica, verificação/testes e atualização do checkbox final em `task.md`.
+   - Antes de executar a task atual, o GPT Action deve preencher ou atualizar `.documents/task/task.details.md` com o plano detalhado da task selecionada.
+   - O plano detalhado da task não deve ficar somente no chat. O chat pode resumir a ação, mas o conteúdo completo deve estar em `task.details.md`.
+   - O GPT Action deve aguardar autorização explícita do usuário após atualizar `task.details.md`, usando a frase de autorização: `Aprovado executar TASK-REQ-0000-000`.
+   - O GPT Action deve executar as tarefas em ordem, uma por vez, com execução cirúrgica, verificação/testes e atualização do checkbox final em `task.md`.
 
-Regra obrigatória: o GPT Action deve manter a separação entre **o que o sistema deve fazer** (Specify em `.documents/spec/*.md`), **como será planejado tecnicamente** (Design em `.documents/design/design.md`), **como a interface deve se comportar** (DRI em `.documents/dri/dri.md`), **quais tarefas serão executadas** (Task List em `.documents/task/task.md`) e **a implementação de uma tarefa selecionada** (Execute).
+6. **Task Details - Plano detalhado da task atual**
+   - Preencher ou atualizar exclusivamente `.documents/task/task.details.md`.
+   - Este é um arquivo vivo único, sobrescrito/atualizado para a task atual ou acrescido com a nova seção da task quando o histórico for útil.
+   - Usar obrigatoriamente o título no formato: `## Plano — TASK-REQ-3089-003`.
+   - Usar obrigatoriamente a linha: `**Tarefa:** Título da task.`
+   - Incluir, quando aplicável: `Objetivo`, `Arquivo afetado`, `Formato previsto da chamada`, `Fallback previsto`, `Fora desta task` e `Validação prevista`.
+   - Listar arquivos afetados com marcação clara: `[NOVO]`, `[MODIFICAR]` ou `[DELETAR]`.
+   - Delimitar explicitamente o que está fora da task para impedir escopo acidental.
+   - Encerrar o plano com a frase: `Para autorizar, responda: **"Aprovado executar TASK-REQ-0000-000"**.`
+   - Nunca marcar a task como concluída em `task.md` enquanto o plano em `task.details.md` não tiver sido autorizado, executado e validado.
+
+Regra obrigatória: o GPT Action deve manter a separação entre **o que o sistema deve fazer** (Specify em `.documents/spec/*.md`), **como será planejado tecnicamente** (Design em `.documents/design/design.md`), **como a interface deve se comportar** (DRI em `.documents/dri/dri.md`), **quais tarefas serão executadas** (Task List em `.documents/task/task.md`), **como a task atual será executada** (Task Details em `.documents/task/task.details.md`) e **a implementação de uma tarefa selecionada** (Execute).
 
 1. **Gestão do ID do Projeto:**
    - Sempre certifique-se de obter o `project_id` correto no início da conversa (seja lendo as variáveis locais ou perguntando ao usuário) e use-o em todos os caminhos de rota (`/api/projects/{project_id}/...`).
