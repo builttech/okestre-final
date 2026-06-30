@@ -6,6 +6,8 @@ import secrets
 import subprocess
 import sqlite3
 import string
+import tempfile
+import zipfile
 from typing import Optional
 from datetime import datetime
 
@@ -15,6 +17,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
+from starlette.background import BackgroundTask
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
@@ -428,6 +431,35 @@ def list_files(project: Project = Depends(get_project_or_404)):
     try:
         files = vcs.list_project_files(project.path)
         return {"status": "success", "files": files}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/projects/{project_id}/files/export.zip", tags=["Arquivos"])
+def export_project_zip(project: Project = Depends(get_project_or_404)):
+    """Exporta os arquivos navegáveis do projeto ativo em um arquivo .zip."""
+    try:
+        files = vcs.list_project_files(project.path)
+        safe_project_name = re.sub(r"[^a-zA-Z0-9._-]+", "-", project.name or "workspace").strip("-") or "workspace"
+        timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+        zip_filename = f"{safe_project_name}-{timestamp}.zip"
+        temp_file = tempfile.NamedTemporaryFile(prefix="gitide-export-", suffix=".zip", delete=False)
+        temp_file.close()
+
+        with zipfile.ZipFile(temp_file.name, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+            for item in files:
+                rel_path = item.get("path")
+                if not rel_path:
+                    continue
+                full_path = vcs.get_safe_path(project.path, rel_path)
+                if os.path.isfile(full_path):
+                    archive.write(full_path, arcname=rel_path)
+
+        return FileResponse(
+            temp_file.name,
+            media_type="application/zip",
+            filename=zip_filename,
+            background=BackgroundTask(lambda path: os.path.exists(path) and os.remove(path), temp_file.name)
+        )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

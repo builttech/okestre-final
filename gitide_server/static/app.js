@@ -548,6 +548,50 @@ async function loadFiles() {
     }
 }
 
+async function exportWorkspaceZip() {
+    if (!state.activeProjectId) {
+        gitideNotify({ title: 'Projeto obrigatório', message: 'Selecione um projeto antes de exportar.', variant: 'warning' });
+        return;
+    }
+
+    const btn = document.getElementById('btn-export-workspace-zip');
+    const originalHtml = btn?.innerHTML;
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i>';
+    }
+
+    try {
+        const res = await fetch(`/api/projects/${state.activeProjectId}/files/export.zip`);
+        if (!res.ok) {
+            const data = await res.json().catch(() => ({}));
+            throw new Error(data.detail || 'Não foi possível exportar o projeto.');
+        }
+
+        const blob = await res.blob();
+        const disposition = res.headers.get('content-disposition') || '';
+        const filenameMatch = disposition.match(/filename="?([^"]+)"?/i);
+        const filename = filenameMatch?.[1] || 'workspace.zip';
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+        gitideNotify({ title: 'Exportação iniciada', message: filename, variant: 'success' });
+    } catch (err) {
+        gitideNotify({ title: 'Erro ao exportar projeto', message: err.message, variant: 'danger' });
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = originalHtml;
+            if (window.lucide) lucide.createIcons();
+        }
+    }
+}
+
 async function openFile(filepath, size, mtime) {
     state.activeFilepath = filepath;
     
@@ -3469,6 +3513,7 @@ function setupEventListeners() {
     document.getElementById('btn-refresh-files').addEventListener('click', loadFiles);
     document.getElementById('btn-save-file').addEventListener('click', saveFile);
     document.getElementById('btn-new-workspace-file')?.addEventListener('click', openWorkspaceNewFileModal);
+    document.getElementById('btn-export-workspace-zip')?.addEventListener('click', exportWorkspaceZip);
     document.getElementById('btn-workspace-create-file')?.addEventListener('click', createWorkspaceFileFromModal);
     document.querySelectorAll('.workspace-new-file-close').forEach(btn => {
         btn.addEventListener('click', closeWorkspaceNewFileModal);
