@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>GitIDE QA</title>
+  <link rel="stylesheet" href="sidepanel.css">
+</head>
+<body>
+  <main>
+    <header>
+      <span>GitIDE</span>
+      <h1>QA Annotator</h1>
+      <p>Selecione elementos, registre evidências e envie tudo para a página QA do GitIDE.</p>
+    </header>
+
+    <section class="panel">
+      <div class="panel-title">Conexão</div>
+      <label>API Base</label>
+      <input id="apiBase" type="text" placeholder="http://127.0.0.1:8000">
+      <label>Project ID</label>
+      <input id="projectId" type="number" placeholder="1">
+      <label>Token</label>
+      <input id="token" type="password" placeholder="Bearer token do GitIDE">
+      <button id="saveConfig" type="button">Salvar configuração</button>
+    </section>
+
+    <section class="panel">
+      <div class="panel-title">Nova anotação</div>
+      <div class="row">
+        <label for="severity">Severidade</label>
+        <select id="severity">
+          <option value="medium">Média</option>
+          <option value="low">Baixa</option>
+          <option value="high">Alta</option>
+          <option value="critical">Crítica</option>
+        </select>
+      </div>
+      <label>Título</label>
+      <input id="title" type="text" placeholder="Ex: botão salvar não responde">
+      <label>Descrição</label>
+      <textarea id="description" placeholder="Descreva o problema, expectativa e evidência..."></textarea>
+      <label>Elemento</label>
+      <div class="selector-row">
+        <input id="selector" type="text" placeholder="Selecione um elemento" readonly>
+        <button id="pickElement" type="button" title="Selecionar elemento">Alvo</button>
+      </div>
+      <label class="checkline">
+        <input id="includeScreenshot" type="checkbox" checked>
+        incluir screenshot da aba
+      </label>
+      <button id="sendAnnotation" type="button" class="primary">Enviar anotação</button>
+    </section>
+
+    <p id="status"></p>
+  </main>
+  <script src="sidepanel.js"></script>
+</body>
+</html>

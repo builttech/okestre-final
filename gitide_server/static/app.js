@@ -33,7 +33,11 @@ const state = {
     gitConflictBlocks: [],
 
     // Ops Infra
-    opsEnvVariables: []
+    opsEnvVariables: [],
+
+    // QA
+    qaAnnotations: [],
+    qaView: 'list'
 };
 
 const workspaceDeleteState = {
@@ -104,6 +108,15 @@ async function initApp() {
         console.error('Erro na inicialização:', err);
         alert('Erro ao conectar com o backend do GitIDE. Certifique-se de que o servidor FastAPI está rodando.');
     }
+}
+
+async function logoutGitIde() {
+    try {
+        await fetch('/api/auth/logout', { method: 'POST', headers: getHeaders() });
+    } catch (_err) {
+        // Redireciona mesmo se o backend já tiver invalidado a sessão.
+    }
+    window.location.href = '/login';
 }
 
 function applySidebarCollapsedState(collapsed) {
@@ -283,6 +296,8 @@ function switchTab(tabId) {
             loadAllSnapshots();
         } else if (tabId === 'tab-tokens') {
             loadDesignTokens();
+        } else if (tabId === 'tab-qa') {
+            loadQaAnnotations();
         } else if (tabId === 'tab-agent') {
             loadAgentConfig();
         } else if (tabId === 'tab-database') {
@@ -2973,6 +2988,311 @@ function gitideNotify({ title = 'GitIDE', message = '', variant = 'info', durati
     if (duration) setTimeout(remove, duration);
 }
 
+async function loadQaAnnotations() {
+    if (!state.activeProjectId) return;
+    const list = document.getElementById('qa-annotations-list');
+    const filter = document.getElementById('qa-status-filter')?.value || '';
+    if (list) {
+        list.innerHTML = '<div class="qa-empty-state"><i data-lucide="loader-circle"></i><h5>Carregando anotações...</h5></div>';
+        if (window.lucide) lucide.createIcons();
+    }
+    try {
+        const query = filter ? `?status=${encodeURIComponent(filter)}` : '';
+        const res = await fetch(`/api/projects/${state.activeProjectId}/qa/annotations${query}`, { headers: getHeaders() });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || 'Erro ao carregar anotações QA');
+        state.qaAnnotations = data.annotations || [];
+        renderQaAnnotations();
+        updateQaExtensionInfo();
+    } catch (err) {
+        if (list) {
+            list.innerHTML = `<div class="qa-empty-state"><i data-lucide="circle-alert"></i><h5>Erro ao carregar QA</h5><p>${escapeHtml(String(err.message || err))}</p></div>`;
+            if (window.lucide) lucide.createIcons();
+        }
+    }
+}
+
+function updateQaExtensionInfo() {
+    const apiBase = `${window.location.protocol}//${window.location.host}`;
+    const apiEl = document.getElementById('qa-extension-api-base');
+    const projectEl = document.getElementById('qa-extension-project-id');
+    const tokenEl = document.getElementById('qa-extension-token');
+    if (apiEl) apiEl.textContent = apiBase;
+    if (projectEl) projectEl.textContent = state.activeProjectId || '-';
+    if (tokenEl) tokenEl.textContent = state.apiKey ? `${state.apiKey.slice(0, 8)}...` : '-';
+}
+
+function renderQaAnnotations() {
+    const list = document.getElementById('qa-annotations-list');
+    const board = document.getElementById('qa-kanban-board');
+    if (!list || !board) return;
+    const items = state.qaAnnotations || [];
+    const counts = { open: 0, reviewing: 0, resolved: 0 };
+    items.forEach(item => {
+        if (counts[item.status] !== undefined) counts[item.status] += 1;
+    });
+    const openEl = document.getElementById('qa-count-open');
+    const reviewingEl = document.getElementById('qa-count-reviewing');
+    const resolvedEl = document.getElementById('qa-count-resolved');
+    if (openEl) openEl.textContent = counts.open;
+    if (reviewingEl) reviewingEl.textContent = counts.reviewing;
+    if (resolvedEl) resolvedEl.textContent = counts.resolved;
+    const kanbanOpen = document.getElementById('qa-kanban-count-open');
+    const kanbanReviewing = document.getElementById('qa-kanban-count-reviewing');
+    const kanbanResolved = document.getElementById('qa-kanban-count-resolved');
+    if (kanbanOpen) kanbanOpen.textContent = counts.open;
+    if (kanbanReviewing) kanbanReviewing.textContent = counts.reviewing;
+    if (kanbanResolved) kanbanResolved.textContent = counts.resolved;
+
+    list.style.display = state.qaView === 'kanban' ? 'none' : 'flex';
+    board.style.display = state.qaView === 'kanban' ? 'grid' : 'none';
+
+    if (!items.length) {
+        list.innerHTML = `
+            <div class="qa-empty-state">
+                <i data-lucide="message-square-warning"></i>
+                <h5>Nenhuma anotação QA recebida</h5>
+                <p>Instale a extensão, selecione um elemento na aplicação e envie a anotação para este projeto.</p>
+            </div>
+        `;
+        board.querySelectorAll('.qa-kanban-items').forEach(column => {
+            column.innerHTML = '<div class="qa-kanban-empty">Sem anotações</div>';
+        });
+        if (window.lucide) lucide.createIcons();
+        return;
+    }
+
+    list.innerHTML = items.map(item => {
+        const id = String(item.id || '');
+        const idSafe = escapeHtml(id);
+        return `
+            <article class="qa-card" data-qa-id="${idSafe}" role="button" tabindex="0">
+                <div class="qa-card-main">
+                    ${qaAnnotationCardContent(item)}
+                </div>
+                ${item.screenshot ? `<img class="qa-card-shot" src="${item.screenshot}" alt="Captura da anotação ${idSafe}">` : ''}
+                <div class="qa-card-actions">
+                    <button class="btn-icon qa-detail-button" data-qa-open="${idSafe}" type="button" title="Ver detalhes"><i data-lucide="panel-right-open"></i></button>
+                    <button class="btn-icon qa-delete-button" data-qa-delete="${idSafe}" type="button" title="Deletar anotação"><i data-lucide="trash-2"></i></button>
+                    <select class="select-input qa-status-select" data-qa-status="${idSafe}">
+                        <option value="open" ${item.status === 'open' ? 'selected' : ''}>Aberta</option>
+                        <option value="reviewing" ${item.status === 'reviewing' ? 'selected' : ''}>Em revisão</option>
+                        <option value="resolved" ${item.status === 'resolved' ? 'selected' : ''}>Resolvida</option>
+                    </select>
+                </div>
+            </article>
+        `;
+    }).join('');
+
+    renderQaKanban(items);
+    bindQaAnnotationActions();
+    if (window.lucide) lucide.createIcons();
+}
+
+function qaAnnotationCardContent(item) {
+    const id = escapeHtml(String(item.id || ''));
+    const created = item.created_at ? new Date(item.created_at).toLocaleString('pt-BR') : '-';
+    const severity = escapeHtml(String(item.severity || 'medium'));
+    const status = escapeHtml(String(item.status || 'open'));
+    return `
+        <div class="qa-card-topline">
+            <span class="qa-id">${id}</span>
+            <span class="qa-pill qa-severity-${severity}">${severity}</span>
+            <span class="qa-pill qa-status-${status}">${qaStatusLabel(item.status)}</span>
+        </div>
+        <h5>${escapeHtml(String(item.title || 'Anotação QA'))}</h5>
+        <p>${escapeHtml(String(item.description || 'Sem descrição.'))}</p>
+        <div class="qa-card-meta">
+            <span><i data-lucide="link"></i>${escapeHtml(String(item.url || '-'))}</span>
+            <span><i data-lucide="mouse-pointer-click"></i>${escapeHtml(String(item.selector || 'sem seletor'))}</span>
+            <span><i data-lucide="clock"></i>${created}</span>
+        </div>
+    `;
+}
+
+function renderQaKanban(items) {
+    ['open', 'reviewing', 'resolved'].forEach(status => {
+        const column = document.getElementById(`qa-kanban-${status}`);
+        if (!column) return;
+        const columnItems = items.filter(item => item.status === status);
+        column.innerHTML = columnItems.length
+            ? columnItems.map(item => {
+                const id = escapeHtml(String(item.id || ''));
+                return `
+                    <article class="qa-kanban-card" data-qa-id="${id}" role="button" tabindex="0">
+                        ${qaAnnotationCardContent(item)}
+                        <div class="qa-kanban-actions">
+                            <button class="btn-icon qa-detail-button" data-qa-open="${id}" type="button" title="Ver detalhes"><i data-lucide="panel-right-open"></i></button>
+                            <button class="btn-icon qa-delete-button" data-qa-delete="${id}" type="button" title="Deletar anotação"><i data-lucide="trash-2"></i></button>
+                        </div>
+                    </article>
+                `;
+            }).join('')
+            : '<div class="qa-kanban-empty">Sem anotações</div>';
+    });
+}
+
+function bindQaAnnotationActions() {
+    document.querySelectorAll('.qa-status-select').forEach(select => {
+        select.addEventListener('click', event => event.stopPropagation());
+        select.addEventListener('change', () => updateQaAnnotationStatus(select.dataset.qaStatus, select.value));
+    });
+    document.querySelectorAll('[data-qa-open]').forEach(btn => {
+        btn.addEventListener('click', event => {
+            event.stopPropagation();
+            openQaAnnotationDrawer(btn.dataset.qaOpen);
+        });
+    });
+    document.querySelectorAll('[data-qa-delete]').forEach(btn => {
+        btn.addEventListener('click', event => {
+            event.stopPropagation();
+            deleteQaAnnotation(btn.dataset.qaDelete);
+        });
+    });
+    document.querySelectorAll('.qa-card, .qa-kanban-card').forEach(card => {
+        card.addEventListener('click', () => openQaAnnotationDrawer(card.dataset.qaId));
+        card.addEventListener('keydown', event => {
+            if (event.key === 'Enter') openQaAnnotationDrawer(card.dataset.qaId);
+        });
+    });
+}
+
+function qaStatusLabel(status) {
+    return {
+        open: 'Aberta',
+        reviewing: 'Em revisão',
+        resolved: 'Resolvida'
+    }[status] || 'Aberta';
+}
+
+async function updateQaAnnotationStatus(annotationId, statusValue) {
+    if (!state.activeProjectId || !annotationId) return;
+    try {
+        const res = await fetch(`/api/projects/${state.activeProjectId}/qa/annotations/${encodeURIComponent(annotationId)}`, {
+            method: 'PATCH',
+            headers: getHeaders(),
+            body: JSON.stringify({ status: statusValue })
+        });
+        const data = await res.json();
+        if (!res.ok || data.status !== 'success') throw new Error(data.detail || 'Erro ao atualizar anotação');
+        const index = state.qaAnnotations.findIndex(item => item.id === annotationId);
+        if (index >= 0) state.qaAnnotations[index] = data.annotation;
+        renderQaAnnotations();
+        gitideNotify({ title: 'QA atualizado', message: `${annotationId} agora está ${qaStatusLabel(statusValue).toLowerCase()}.`, variant: 'success' });
+    } catch (err) {
+        gitideNotify({ title: 'Erro no QA', message: err.message, variant: 'danger' });
+        loadQaAnnotations();
+    }
+}
+
+function openQaAnnotationDrawer(annotationId) {
+    const item = (state.qaAnnotations || []).find(annotation => annotation.id === annotationId);
+    if (!item) return;
+    const drawer = document.getElementById('qa-detail-drawer');
+    const backdrop = document.getElementById('qa-drawer-backdrop');
+    const body = document.getElementById('qa-detail-body');
+    const title = document.getElementById('qa-detail-title');
+    const id = document.getElementById('qa-detail-id');
+    if (!drawer || !body) return;
+    if (title) title.textContent = item.title || 'Detalhe da anotação';
+    if (id) id.textContent = item.id || 'QA';
+    const created = item.created_at ? new Date(item.created_at).toLocaleString('pt-BR') : '-';
+    const updated = item.updated_at ? new Date(item.updated_at).toLocaleString('pt-BR') : '-';
+    const metadata = item.metadata || {};
+    const viewport = item.viewport || {};
+    body.innerHTML = `
+        ${item.screenshot ? `<img class="qa-detail-shot" src="${item.screenshot}" alt="Print da anotação ${escapeHtml(item.id || '')}">` : '<div class="qa-detail-no-shot">Sem print anexado</div>'}
+        <div class="qa-detail-section">
+            <h5>Resumo</h5>
+            <p>${escapeHtml(String(item.description || 'Sem descrição.'))}</p>
+            <div class="qa-detail-pills">
+                <span class="qa-pill qa-severity-${escapeHtml(item.severity || 'medium')}">${escapeHtml(item.severity || 'medium')}</span>
+                <span class="qa-pill qa-status-${escapeHtml(item.status || 'open')}">${qaStatusLabel(item.status)}</span>
+            </div>
+        </div>
+        <div class="qa-detail-section">
+            <h5>Contexto</h5>
+            <dl class="qa-detail-list">
+                <dt>URL</dt><dd>${escapeHtml(String(item.url || '-'))}</dd>
+                <dt>Seletor</dt><dd>${escapeHtml(String(item.selector || '-'))}</dd>
+                <dt>Viewport</dt><dd>${escapeHtml(`${viewport.width || '-'} x ${viewport.height || '-'}`)}</dd>
+                <dt>Criado</dt><dd>${created}</dd>
+                <dt>Atualizado</dt><dd>${updated}</dd>
+                <dt>Tab</dt><dd>${escapeHtml(String(metadata.tabTitle || '-'))}</dd>
+                <dt>Texto selecionado</dt><dd>${escapeHtml(String(metadata.selectedText || '-'))}</dd>
+            </dl>
+        </div>
+        <div class="qa-detail-section">
+            <h5>Navegador</h5>
+            <code>${escapeHtml(String(item.browser || '-'))}</code>
+        </div>
+    `;
+    drawer.classList.add('is-open');
+    backdrop?.classList.add('is-open');
+    drawer.setAttribute('aria-hidden', 'false');
+    if (window.lucide) lucide.createIcons();
+}
+
+function closeQaAnnotationDrawer() {
+    const drawer = document.getElementById('qa-detail-drawer');
+    const backdrop = document.getElementById('qa-drawer-backdrop');
+    drawer?.classList.remove('is-open');
+    backdrop?.classList.remove('is-open');
+    drawer?.setAttribute('aria-hidden', 'true');
+}
+
+async function deleteQaAnnotation(annotationId) {
+    if (!state.activeProjectId || !annotationId) return;
+    const confirmed = await gitideConfirm({
+        title: 'Deletar anotação QA',
+        message: `Deseja deletar a anotação <strong>${escapeHtml(annotationId)}</strong>? Esta ação não pode ser desfeita.`,
+        confirmText: 'Deletar',
+        cancelText: 'Cancelar',
+        variant: 'danger',
+        kicker: 'QA'
+    });
+    if (!confirmed) return;
+    try {
+        const res = await fetch(`/api/projects/${state.activeProjectId}/qa/annotations/${encodeURIComponent(annotationId)}`, {
+            method: 'DELETE',
+            headers: getHeaders()
+        });
+        const data = await res.json();
+        if (!res.ok || data.status !== 'success') throw new Error(data.detail || 'Erro ao deletar anotação');
+        state.qaAnnotations = state.qaAnnotations.filter(item => item.id !== annotationId);
+        closeQaAnnotationDrawer();
+        renderQaAnnotations();
+        gitideNotify({ title: 'Anotação deletada', message: annotationId, variant: 'success' });
+    } catch (err) {
+        gitideNotify({ title: 'Erro ao deletar QA', message: err.message, variant: 'danger' });
+    }
+}
+
+function setQaView(view) {
+    state.qaView = view === 'kanban' ? 'kanban' : 'list';
+    document.querySelectorAll('.qa-view-tab').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.qaView === state.qaView);
+    });
+    renderQaAnnotations();
+}
+
+function copyQaExtensionConfig() {
+    if (!state.activeProjectId) {
+        gitideNotify({ title: 'Projeto obrigatório', message: 'Selecione um projeto antes de copiar a configuração.', variant: 'warning' });
+        return;
+    }
+    const configText = JSON.stringify({
+        apiBase: `${window.location.protocol}//${window.location.host}`,
+        projectId: state.activeProjectId,
+        token: state.apiKey
+    }, null, 2);
+    navigator.clipboard.writeText(configText).then(() => {
+        gitideNotify({ title: 'Config copiada', message: 'Cole estes dados nas opções da extensão QA.', variant: 'success' });
+    }).catch(err => {
+        gitideNotify({ title: 'Erro ao copiar', message: err.message, variant: 'danger' });
+    });
+}
+
 function gitideConfirm({ title = 'Confirmar ação', message = '', confirmText = 'Confirmar', cancelText = 'Cancelar', variant = 'info', kicker = 'GitIDE' } = {}) {
     return new Promise((resolve) => {
         const modal = document.getElementById('modal-confirm');
@@ -3365,6 +3685,7 @@ function setupEventListeners() {
     setupSddEventListeners();
 
     document.getElementById('btn-sidebar-collapse')?.addEventListener('click', toggleSidebarCollapsed);
+    document.getElementById('btn-auth-logout')?.addEventListener('click', logoutGitIde);
 
     // 1. Selector de Projeto
     document.getElementById('project-selector').addEventListener('change', (e) => {
@@ -3378,6 +3699,15 @@ function setupEventListeners() {
             switchTab(tabId);
         });
     });
+
+    document.getElementById('btn-qa-refresh')?.addEventListener('click', loadQaAnnotations);
+    document.getElementById('qa-status-filter')?.addEventListener('change', loadQaAnnotations);
+    document.getElementById('btn-qa-copy-extension-config')?.addEventListener('click', copyQaExtensionConfig);
+    document.querySelectorAll('.qa-view-tab').forEach(btn => {
+        btn.addEventListener('click', () => setQaView(btn.dataset.qaView));
+    });
+    document.getElementById('btn-qa-detail-close')?.addEventListener('click', closeQaAnnotationDrawer);
+    document.getElementById('qa-drawer-backdrop')?.addEventListener('click', closeQaAnnotationDrawer);
     
     // 3. Importar App (Tabbed Modal)
     const modal = document.getElementById('modal-project');
@@ -6789,7 +7119,8 @@ const sddState = {
     projectDocuments: {
         design: '',
         dri: '',
-        task: ''
+        task: '',
+        task_details: ''
     },
     taskFilepath: '.documents/task/task.md',
     specs: [],
@@ -7009,7 +7340,7 @@ async function sddLoadSpecs(ensureStructure = false) {
 
 async function sddLoadProjectDocuments() {
     if (!state.activeProjectId) return;
-    const kinds = ['design', 'dri', 'task'];
+    const kinds = ['design', 'dri', 'task', 'task_details'];
     await Promise.all(kinds.map(async (kind) => {
         try {
             const res = await fetch(`/api/projects/${state.activeProjectId}/sdd/project-documents/${kind}`, { headers: getHeaders() });
@@ -7128,7 +7459,7 @@ function sddResetWorkspaceEmpty() {
     sddState.activeContent = '';
     sddState.activeStorageType = null;
     sddState.activeFilepath = null;
-    sddState.projectDocuments = { design: '', dri: '', task: '' };
+    sddState.projectDocuments = { design: '', dri: '', task: '', task_details: '' };
     sddState.taskFilepath = '.documents/task/task.md';
     sddState.executeTask = null;
 
@@ -7316,7 +7647,7 @@ function sddToggleStageFocus(button) {
 function sddUpdateFlowStrip(tabId = 'sdd-tab-preview') {
     const strip = document.getElementById('sdd-flow-strip');
     if (!strip) return;
-    const hasSpecContext = Boolean(sddState.activeFilename) || tabId === 'sdd-tab-edit' || tabId === 'sdd-tab-ia-wizard';
+    const hasSpecContext = Boolean(sddState.activeFilename) || tabId === 'sdd-tab-edit' || tabId === 'sdd-tab-dri' || tabId === 'sdd-tab-ia-wizard';
     strip.style.display = hasSpecContext ? 'flex' : 'none';
 
     const breadcrumb = document.getElementById('sdd-flow-breadcrumb');
@@ -7871,7 +8202,7 @@ Como um [tipo de usuário], eu quero [ação/funcionalidade], para que [valor/be
 
 **Anexos:**
 
-- Protótipos:
+- Mockups:
 - Diagramas:
 - Planilhas:
 

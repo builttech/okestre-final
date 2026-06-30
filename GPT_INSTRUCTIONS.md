@@ -148,14 +148,17 @@ O agente deve manter cada responsabilidade no arquivo correto:
 5. **Execute - Implementação**
    - Não preencher antecipadamente.
    - Esta etapa deve ser usada somente após REQ, DRI e Task List terem sido validados pelo usuário.
-   - Antes de executar a task atual, o GPT Action deve preencher ou atualizar `.documents/task/task.details.md` com o plano detalhado da task selecionada.
+   - Antes de executar a task atual, o GPT Action deve acrescentar ou atualizar a seção da task selecionada em `.documents/task/task.details.md`.
    - O plano detalhado da task não deve ficar somente no chat. O chat pode resumir a ação, mas o conteúdo completo deve estar em `task.details.md`.
    - O GPT Action deve aguardar autorização explícita do usuário após atualizar `task.details.md`, usando a frase de autorização: `Aprovado executar TASK-REQ-0000-000`.
    - O GPT Action deve executar as tarefas em ordem, uma por vez, com execução cirúrgica, verificação/testes e atualização do checkbox final em `task.md`.
 
 6. **Task Details - Plano detalhado da task atual**
    - Preencher ou atualizar exclusivamente `.documents/task/task.details.md`.
-   - Este é um arquivo vivo único, sobrescrito/atualizado para a task atual ou acrescido com a nova seção da task quando o histórico for útil.
+   - Este é um arquivo vivo único e acumulativo. **É proibido sobrescrever o arquivo inteiro apagando detalhes de tasks anteriores.**
+   - Cada task deve ter sua própria seção independente no formato `## Plano — TASK-REQ-3089-003`.
+   - Se a seção da task ainda não existir, anexar a nova seção ao final do arquivo.
+   - Se a seção da task já existir, atualizar somente o conteúdo dessa seção, preservando integralmente as seções das demais tasks.
    - Usar obrigatoriamente o título no formato: `## Plano — TASK-REQ-3089-003`.
    - Usar obrigatoriamente a linha: `**Tarefa:** Título da task.`
    - Incluir, quando aplicável: `Objetivo`, `Arquivo afetado`, `Formato previsto da chamada`, `Fallback previsto`, `Fora desta task` e `Validação prevista`.
@@ -193,5 +196,5 @@ Você é um Agente de Engenharia de Software conectado ao computador local do us
 Antes de realizar qualquer tarefa de leitura, escrita ou execução de comandos, você DEVE verificar se existe o arquivo 'GPT_INSTRUCTIONS.md' na raiz do workspace do projeto atual (ou usar o endpoint correspondente para ler seu conteúdo).
 Leia e siga rigorosamente as diretrizes, fases de análise, regras de geração de documentos e o protocolo de execução contidos no arquivo 'GPT_INSTRUCTIONS.md'.
 Sempre que for solicitado a criar, atualizar ou editar qualquer documentação técnica, manual ou relatório, você DEVE utilizar o endpoint 'POST /api/projects/{project_id}/documents/word' para gerar o arquivo Word (.docx) real no projeto, nunca escrevendo a documentação em texto puro no chat.
-Antes de executar qualquer task, crie ou atualize o plano detalhado em `.documents/task/task.details.md`, aguarde autorização explícita do usuário no formato `Aprovado executar TASK-REQ-0000-000` e só depois modifique código ou rode comandos de alteração.
+Antes de executar qualquer task, crie ou atualize o plano detalhado em `.documents/task/task.details.md`, preservando as seções de tasks anteriores, aguarde autorização explícita do usuário no formato `Aprovado executar TASK-REQ-0000-000` e só depois modifique código ou rode comandos de alteração.
 ```

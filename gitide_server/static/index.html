@@ -17,7 +17,7 @@
     <link rel="stylesheet" href="/static/workspace-switcher-refactor.css?v=2">
     <link rel="stylesheet" href="/static/workspace-native-fallback.css?v=1">
     <link rel="stylesheet" href="/static/settings-tabs.css?v=1">
-    <link rel="stylesheet" href="/static/rebrand.css?v=25">
+    <link rel="stylesheet" href="/static/rebrand.css?v=27">
     <script src="/static/lucide-bootstrap.js"></script>
     <script defer src="/static/ui/workspace-switcher.js?v=3"></script>
     <script defer src="/static/settings-tabs.js?v=4"></script>
@@ -45,6 +45,7 @@
                     <span id="api-token-preview">Carregando Token...</span>
                     <i class="fa-solid fa-copy copy-icon"></i>
                 </div>
+                <button class="btn-icon" id="btn-auth-logout" title="Sair" aria-label="Sair"><i data-lucide="log-out"></i></button>
             </div>
         </header>
 
@@ -93,6 +94,9 @@
                     </button>
                     <button class="nav-item" data-tab="tab-tokens" title="Design System (Tokens)">
                         <i data-lucide="palette"></i> <span class="nav-label">Design System (Tokens)</span>
+                    </button>
+                    <button class="nav-item" data-tab="tab-qa" title="QA">
+                        <i data-lucide="bug"></i> <span class="nav-label">QA</span>
                     </button>
                     <button class="nav-item" data-tab="tab-agent" title="Agente IA Nativo">
                         <i data-lucide="bot"></i> <span class="nav-label">Agente IA Nativo</span>
@@ -711,7 +715,7 @@ cloudflared tunnel --url http://localhost:8000</pre>
                                             <pre id="gpt-custom-instructions-text" style="white-space: pre-wrap; margin: 0; color: var(--text-light); max-height: 150px; overflow-y: auto;">Você é um Agente de Engenharia de Software conectado ao computador local do usuário via GitIDE.
 Antes de realizar qualquer tarefa de leitura, escrita ou execução de comandos, você DEVE verificar se existe o arquivo 'GPT_INSTRUCTIONS.md' na raiz do workspace do projeto atual (usando o endpoint de leitura de arquivos).
 Se o arquivo existir, leia e siga rigorosamente todas as diretrizes, fases de análise e o protocolo de execução contidos nele.
-REGRA INQUEBRÁVEL: antes de executar qualquer task, atualize o plano detalhado em .documents/task/task.details.md, aguarde a autorização explícita do usuário no formato "Aprovado executar TASK-REQ-0000-000" e só depois implemente. O plano detalhado não deve ficar somente no chat.</pre>
+REGRA INQUEBRÁVEL: antes de executar qualquer task, valide REQ, DRI e Task List. Depois atualize o plano detalhado em .documents/task/task.details.md, aguarde a autorização explícita do usuário no formato "Aprovado executar TASK-REQ-0000-000" e só depois implemente. O plano detalhado não deve ficar somente no chat. Nunca sobrescreva task.details.md apagando seções anteriores; anexe nova seção ou atualize somente a seção da task atual.</pre>
                                             <button type="button" class="btn btn-secondary btn-sm" id="btn-copy-gpt-custom-instructions" style="margin-top: 8px; padding: 6px 12px; font-size: 12px;"><i class="fa-solid fa-copy"></i> Copiar Instruções</button>
                                         </div>
                                     </li>
@@ -758,6 +762,100 @@ REGRA INQUEBRÁVEL: antes de executar qualquer task, atualize o plano detalhado 
                             </div>
                         </div>
                     </div>
+                </div>
+
+                <!-- TAB: QA -->
+                <div id="tab-qa" class="tab-pane">
+                    <div class="qa-layout">
+                        <section class="qa-main card">
+                            <div class="qa-header">
+                                <div>
+                                    <span class="qa-kicker">Quality Assurance</span>
+                                    <h4><i data-lucide="bug"></i> Central de Anotações QA</h4>
+                                    <p>Receba evidências, bugs e observações capturadas pela extensão do navegador durante a validação da aplicação.</p>
+                                </div>
+                                <button class="btn btn-secondary btn-sm git-icon-action" id="btn-qa-refresh" type="button" title="Atualizar anotações" aria-label="Atualizar anotações"><i data-lucide="refresh-cw"></i></button>
+                            </div>
+                            <div class="qa-summary">
+                                <div class="qa-summary-item">
+                                    <span>Abertas</span>
+                                    <strong id="qa-count-open">0</strong>
+                                </div>
+                                <div class="qa-summary-item">
+                                    <span>Em revisão</span>
+                                    <strong id="qa-count-reviewing">0</strong>
+                                </div>
+                                <div class="qa-summary-item">
+                                    <span>Resolvidas</span>
+                                    <strong id="qa-count-resolved">0</strong>
+                                </div>
+                            </div>
+                            <div class="qa-toolbar">
+                                <div class="qa-toolbar-left">
+                                    <div class="qa-view-tabs" role="tablist" aria-label="Visualização QA">
+                                        <button type="button" class="qa-view-tab active" data-qa-view="list">Lista</button>
+                                        <button type="button" class="qa-view-tab" data-qa-view="kanban">Kanban</button>
+                                    </div>
+                                    <select id="qa-status-filter" class="select-input">
+                                        <option value="">Todos os status</option>
+                                        <option value="open">Abertas</option>
+                                        <option value="reviewing">Em revisão</option>
+                                        <option value="resolved">Resolvidas</option>
+                                    </select>
+                                </div>
+                                <button class="btn btn-secondary" id="btn-qa-copy-extension-config" type="button"><i data-lucide="copy"></i> Copiar config da extensão</button>
+                            </div>
+                            <div id="qa-annotations-list" class="qa-annotations-list">
+                                <div class="qa-empty-state">
+                                    <i data-lucide="message-square-warning"></i>
+                                    <h5>Nenhuma anotação QA recebida</h5>
+                                    <p>Instale a extensão, selecione um elemento na aplicação e envie a anotação para este projeto.</p>
+                                </div>
+                            </div>
+                            <div id="qa-kanban-board" class="qa-kanban-board" style="display:none;">
+                                <section class="qa-kanban-column" data-qa-kanban-status="open">
+                                    <div class="qa-kanban-title"><span>Abertas</span><strong id="qa-kanban-count-open">0</strong></div>
+                                    <div class="qa-kanban-items" id="qa-kanban-open"></div>
+                                </section>
+                                <section class="qa-kanban-column" data-qa-kanban-status="reviewing">
+                                    <div class="qa-kanban-title"><span>Em revisão</span><strong id="qa-kanban-count-reviewing">0</strong></div>
+                                    <div class="qa-kanban-items" id="qa-kanban-reviewing"></div>
+                                </section>
+                                <section class="qa-kanban-column" data-qa-kanban-status="resolved">
+                                    <div class="qa-kanban-title"><span>Resolvidas</span><strong id="qa-kanban-count-resolved">0</strong></div>
+                                    <div class="qa-kanban-items" id="qa-kanban-resolved"></div>
+                                </section>
+                            </div>
+                        </section>
+                        <aside class="qa-side card">
+                            <h5><i data-lucide="puzzle"></i> Extensão do navegador</h5>
+                            <p>A extensão captura URL, seletor aproximado, viewport, descrição e severidade. As notas são salvas em <code>.documents/qa/annotations.json</code>.</p>
+                            <div class="qa-extension-box">
+                                <label>API Base</label>
+                                <code id="qa-extension-api-base">http://127.0.0.1:8000</code>
+                            </div>
+                            <div class="qa-extension-box">
+                                <label>Project ID</label>
+                                <code id="qa-extension-project-id">-</code>
+                            </div>
+                            <div class="qa-extension-box">
+                                <label>Token</label>
+                                <code id="qa-extension-token">-</code>
+                            </div>
+                            <p class="qa-side-note">Carregue a pasta <code>browser-extension/gitide-qa-annotator</code> como extensão não empacotada no Chrome/Edge.</p>
+                        </aside>
+                    </div>
+                    <div class="qa-drawer-backdrop" id="qa-drawer-backdrop"></div>
+                    <aside class="qa-detail-drawer" id="qa-detail-drawer" aria-hidden="true">
+                        <div class="qa-detail-header">
+                            <div>
+                                <span id="qa-detail-id">QA</span>
+                                <h4 id="qa-detail-title">Detalhe da anotação</h4>
+                            </div>
+                            <button class="btn-icon" id="btn-qa-detail-close" type="button" title="Fechar"><i data-lucide="x"></i></button>
+                        </div>
+                        <div class="qa-detail-body" id="qa-detail-body"></div>
+                    </aside>
                 </div>
 
                 <!-- TAB: AGENT -->
@@ -1839,7 +1937,7 @@ REGRA INQUEBRÁVEL: antes de executar qualquer task, atualize o plano detalhado 
     </div>
 
     <!-- Custom JavaScript -->
-    <script src="/static/app.js?v=43"></script>
+    <script src="/static/app.js?v=47"></script>
     <script src="/static/theme-toggle.js?v=1"></script>
 </body>
 </html>
