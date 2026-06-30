@@ -20,7 +20,7 @@
     <link rel="stylesheet" href="/static/rebrand.css?v=25">
     <script src="/static/lucide-bootstrap.js"></script>
     <script defer src="/static/ui/workspace-switcher.js?v=3"></script>
-    <script defer src="/static/settings-tabs.js?v=3"></script>
+    <script defer src="/static/settings-tabs.js?v=4"></script>
     <script defer src="/static/sidebar-workspace-footer.js?v=2"></script>
     <script defer src="/static/navigation-unlock.js?v=2"></script>
 </head>
@@ -710,7 +710,8 @@ cloudflared tunnel --url http://localhost:8000</pre>
                                         <div class="generated-command-container" style="background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); padding: 12px; border-radius: 8px; font-family: var(--font-mono); font-size: 11.5px; line-height: 1.4; word-break: break-word; position: relative; margin-top: 8px;">
                                             <pre id="gpt-custom-instructions-text" style="white-space: pre-wrap; margin: 0; color: var(--text-light); max-height: 150px; overflow-y: auto;">Você é um Agente de Engenharia de Software conectado ao computador local do usuário via GitIDE.
 Antes de realizar qualquer tarefa de leitura, escrita ou execução de comandos, você DEVE verificar se existe o arquivo 'GPT_INSTRUCTIONS.md' na raiz do workspace do projeto atual (usando o endpoint de leitura de arquivos).
-Se o arquivo existir, leia e siga rigorosamente todas as diretrizes, fases de análise e o protocolo de execução contidos nele. Sempre elabore um plano de implementação detalhado em Markdown e aguarde a aprovação do usuário antes de modificar códigos ou rodar deploys.</pre>
+Se o arquivo existir, leia e siga rigorosamente todas as diretrizes, fases de análise e o protocolo de execução contidos nele.
+REGRA INQUEBRÁVEL: antes de executar qualquer task, atualize o plano detalhado em .documents/task/task.details.md, aguarde a autorização explícita do usuário no formato "Aprovado executar TASK-REQ-0000-000" e só depois implemente. O plano detalhado não deve ficar somente no chat.</pre>
                                             <button type="button" class="btn btn-secondary btn-sm" id="btn-copy-gpt-custom-instructions" style="margin-top: 8px; padding: 6px 12px; font-size: 12px;"><i class="fa-solid fa-copy"></i> Copiar Instruções</button>
                                         </div>
                                     </li>
