@@ -80,7 +80,8 @@ if not SESSION_SECRET:
     SESSION_SECRET = secrets.token_hex(32)
     config["session_secret"] = SESSION_SECRET
     save_config(config)
-ROOT_EMAIL = "contato@builtt.com.br"
+ROOT_EMAIL = os.getenv("GITIDE_ROOT_EMAIL", "contato@builtt.com.br").strip().lower()
+ROOT_PASSWORD_ENV = os.getenv("GITIDE_ROOT_PASSWORD")
 ROOT_CREDENTIALS_PATH = os.path.join(CONFIG_DIR, "root_credentials.txt")
 
 app = FastAPI(
@@ -164,8 +165,15 @@ def ensure_root_user():
     try:
         existing = db.query(User).filter(User.email == ROOT_EMAIL).first()
         if existing:
+            if ROOT_PASSWORD_ENV:
+                existing.password_hash = hash_password(ROOT_PASSWORD_ENV)
+                existing.is_active = True
+                existing.role = "root"
+                existing.updated_at = datetime.utcnow()
+                db.commit()
+                print(f"[GitIDE Auth] Senha do usuário root atualizada via GITIDE_ROOT_PASSWORD: {ROOT_EMAIL}")
             return
-        password = secrets.token_urlsafe(18)
+        password = ROOT_PASSWORD_ENV or secrets.token_urlsafe(18)
         user = User(
             email=ROOT_EMAIL,
             password_hash=hash_password(password),
@@ -179,12 +187,15 @@ def ensure_root_user():
         with open(ROOT_CREDENTIALS_PATH, "w", encoding="utf-8") as f:
             f.write(
                 "GitIDE root user\n"
-                f"URL: http://127.0.0.1:8000/login\n"
+                "URL local: http://127.0.0.1:8000/login\n"
                 f"Usuário: {ROOT_EMAIL}\n"
-                f"Senha: {password}\n"
+                f"Senha: {password if not ROOT_PASSWORD_ENV else '[definida via GITIDE_ROOT_PASSWORD]'}\n"
             )
         print(f"[GitIDE Auth] Usuário root criado: {ROOT_EMAIL}")
-        print(f"[GitIDE Auth] Senha inicial salva em: {ROOT_CREDENTIALS_PATH}")
+        if ROOT_PASSWORD_ENV:
+            print("[GitIDE Auth] Senha inicial definida via GITIDE_ROOT_PASSWORD.")
+        else:
+            print(f"[GitIDE Auth] Senha inicial salva em: {ROOT_CREDENTIALS_PATH}")
     finally:
         db.close()
 
