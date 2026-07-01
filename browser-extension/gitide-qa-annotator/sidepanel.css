@@ -111,6 +111,13 @@ button.primary,
   color: #111827;
 }
 
+button.secondary {
+  width: 100%;
+  margin-top: 8px;
+  background: #17171a;
+  color: #f8fafc;
+}
+
 .row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(120px, 150px);

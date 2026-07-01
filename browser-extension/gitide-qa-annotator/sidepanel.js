@@ -17,6 +17,40 @@ function setStatus(message) {
   fields.status.textContent = message;
 }
 
+function getConnectionConfig() {
+  return {
+    apiBase: fields.apiBase.value.trim().replace(/\/$/, ''),
+    projectId: fields.projectId.value.trim(),
+    token: fields.token.value.trim()
+  };
+}
+
+function validateConnectionConfig(config) {
+  if (!config.apiBase || !config.projectId || !config.token) {
+    setStatus('Configure API Base, Project ID e Token.');
+    return false;
+  }
+  if (!/^https?:\/\//i.test(config.apiBase)) {
+    setStatus('API Base precisa começar com http:// ou https://.');
+    return false;
+  }
+  return true;
+}
+
+async function requestGitIde(config, path, options = {}) {
+  const response = await fetch(`${config.apiBase}${path}`, {
+    mode: 'cors',
+    cache: 'no-store',
+    ...options,
+    headers: {
+      ...(options.headers || {}),
+      'Authorization': `Bearer ${config.token}`
+    }
+  });
+  const data = await response.json().catch(() => ({}));
+  return { response, data };
+}
+
 async function getActiveTab() {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   return tab;
@@ -30,12 +64,31 @@ async function loadConfig() {
 }
 
 async function saveConfig() {
-  await chrome.storage.sync.set({
-    apiBase: fields.apiBase.value.trim().replace(/\/$/, ''),
-    projectId: fields.projectId.value.trim(),
-    token: fields.token.value.trim()
-  });
+  await chrome.storage.sync.set(getConnectionConfig());
   setStatus('Configuração salva.');
+}
+
+async function testConnection() {
+  const config = getConnectionConfig();
+  if (!validateConnectionConfig(config)) return;
+  setStatus('Testando conexão...');
+  try {
+    const { response, data } = await requestGitIde(config, `/api/projects/${config.projectId}/qa/annotations`, {
+      method: 'GET'
+    });
+    if (!response.ok) {
+      setStatus(data.detail || `Conexão respondeu HTTP ${response.status}. Confira token e Project ID.`);
+      return;
+    }
+    setStatus(`Conexão OK. ${data.total ?? 0} anotação(ões) no projeto.`);
+  } catch (err) {
+    setStatus(buildNetworkErrorMessage(err));
+  }
+}
+
+function buildNetworkErrorMessage(err) {
+  const message = err?.message || 'Falha de rede';
+  return `Falha de conexão: ${message}. Se só ocorre nesta máquina, verifique VPN/proxy/firewall, permissão da extensão e se https://ide.builtt.com.br abre neste navegador.`;
 }
 
 async function pickElement() {
@@ -112,14 +165,9 @@ function resizeScreenshot(dataUrl) {
 }
 
 async function sendAnnotation() {
-  const apiBase = fields.apiBase.value.trim().replace(/\/$/, '');
-  const projectId = fields.projectId.value.trim();
-  const token = fields.token.value.trim();
+  const config = getConnectionConfig();
   const title = fields.title.value.trim();
-  if (!apiBase || !projectId || !token) {
-    setStatus('Configure API Base, Project ID e Token.');
-    return;
-  }
+  if (!validateConnectionConfig(config)) return;
   if (!title) {
     setStatus('Informe um título curto.');
     return;
@@ -150,17 +198,13 @@ async function sendAnnotation() {
 
   setStatus('Enviando...');
   try {
-    const response = await fetch(`${apiBase}/api/projects/${projectId}/qa/annotations`, {
+    const { response, data } = await requestGitIde(config, `/api/projects/${config.projectId}/qa/annotations`, {
       method: 'POST',
-      mode: 'cors',
-      cache: 'no-store',
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify(payload)
     });
-    const data = await response.json().catch(() => ({}));
     if (!response.ok || data.status !== 'success') {
       setStatus(data.detail || `Erro ao enviar anotação. HTTP ${response.status}`);
       return;
@@ -171,12 +215,38 @@ async function sendAnnotation() {
     pickedElement = null;
     setStatus(`Enviado: ${data.annotation.id}`);
   } catch (err) {
-    const message = err?.message || 'Falha de rede';
-    setStatus(`Falha ao conectar no GitIDE: ${message}. Verifique API Base, token, HTTPS e recarregue a extensão.`);
+    if (payload.screenshot) {
+      setStatus('Falha no envio com print. Tentando enviar sem screenshot...');
+      try {
+        payload.screenshot = null;
+        const { response, data } = await requestGitIde(config, `/api/projects/${config.projectId}/qa/annotations`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(payload)
+        });
+        if (!response.ok || data.status !== 'success') {
+          setStatus(data.detail || `Erro ao enviar sem screenshot. HTTP ${response.status}`);
+          return;
+        }
+        fields.title.value = '';
+        fields.description.value = '';
+        fields.selector.value = '';
+        pickedElement = null;
+        setStatus(`Enviado sem screenshot: ${data.annotation.id}`);
+        return;
+      } catch (fallbackErr) {
+        setStatus(buildNetworkErrorMessage(fallbackErr));
+        return;
+      }
+    }
+    setStatus(buildNetworkErrorMessage(err));
   }
 }
 
 document.getElementById('saveConfig').addEventListener('click', saveConfig);
+document.getElementById('testConnection').addEventListener('click', testConnection);
 document.getElementById('pickElement').addEventListener('click', pickElement);
 document.getElementById('sendAnnotation').addEventListener('click', sendAnnotation);
 

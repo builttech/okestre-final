@@ -2708,17 +2708,136 @@ def _pdf_safe_text(text: str) -> str:
     normalized = unicodedata.normalize("NFKD", text or "")
     return normalized.encode("ascii", errors="ignore").decode("ascii")
 
+def _qa_screenshot_to_pdf_image(data_url: Optional[str]) -> Optional[dict]:
+    if not data_url or not data_url.startswith("data:image/"):
+        return None
+    header, _, payload = data_url.partition(",")
+    if not payload:
+        return None
+    media_type = header.split(";", 1)[0].lower()
+    if media_type not in {"data:image/jpeg", "data:image/jpg"}:
+        return None
+    try:
+        image_bytes = base64.b64decode(payload, validate=False)
+        width, height = _jpeg_dimensions(image_bytes)
+    except Exception:
+        return None
+    if not width or not height:
+        return None
+    return {
+        "bytes": image_bytes,
+        "width": width,
+        "height": height,
+    }
+
+def _jpeg_dimensions(image_bytes: bytes) -> tuple[int, int]:
+    index = 2
+    length = len(image_bytes)
+    if length < 4 or image_bytes[:2] != b"\xff\xd8":
+        return 0, 0
+    while index < length:
+        if image_bytes[index] != 0xFF:
+            index += 1
+            continue
+        while index < length and image_bytes[index] == 0xFF:
+            index += 1
+        if index >= length:
+            break
+        marker = image_bytes[index]
+        index += 1
+        if marker in {0xD8, 0xD9} or 0xD0 <= marker <= 0xD7:
+            continue
+        if index + 2 > length:
+            break
+        segment_length = int.from_bytes(image_bytes[index:index + 2], "big")
+        if segment_length < 2 or index + segment_length > length:
+            break
+        if marker in {0xC0, 0xC1, 0xC2, 0xC3, 0xC5, 0xC6, 0xC7, 0xC9, 0xCA, 0xCB, 0xCD, 0xCE, 0xCF}:
+            if segment_length >= 7:
+                height = int.from_bytes(image_bytes[index + 3:index + 5], "big")
+                width = int.from_bytes(image_bytes[index + 5:index + 7], "big")
+                return width, height
+            break
+        index += segment_length
+    return 0, 0
+
+def _pdf_stream_object(stream: str) -> bytes:
+    stream_bytes = stream.encode("utf-8")
+    return f"<< /Length {len(stream_bytes)} >>\nstream\n".encode("ascii") + stream_bytes + b"\nendstream"
+
+def _pdf_image_object(image: dict) -> bytes:
+    image_bytes = image["bytes"]
+    dictionary = (
+        f"<< /Type /XObject /Subtype /Image /Width {image['width']} /Height {image['height']} "
+        "/ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode "
+        f"/Length {len(image_bytes)} >>\nstream\n"
+    ).encode("ascii")
+    return dictionary + image_bytes + b"\nendstream"
+
 def _build_qa_pdf(annotations: list, project_name: str) -> bytes:
     rows = _qa_export_rows(annotations)
-    pages = []
-    page_lines = [
+    objects: list[bytes] = [
+        b"<< /Type /Catalog /Pages 2 0 R >>",
+        b"",
+        b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+    ]
+    page_refs = []
+
+    def add_page(lines: list[str], image: Optional[dict] = None):
+        image_name = None
+        image_obj_no = None
+        stream_parts = ["BT", "/F1 10 Tf"]
+        y = 800
+        for line in lines:
+            safe = _pdf_escape_stream(_pdf_safe_text(line[:135]))
+            stream_parts.append(f"1 0 0 1 50 {y} Tm ({safe}) Tj")
+            y -= 16
+        stream_parts.append("ET")
+        if image:
+            image_name = f"Im{len(page_refs) + 1}"
+            image_obj_no = len(objects) + 1
+            objects.append(_pdf_image_object(image))
+            max_width = 495
+            max_height = 430
+            scale = min(max_width / image["width"], max_height / image["height"], 1)
+            display_width = image["width"] * scale
+            display_height = image["height"] * scale
+            image_y = max(56, y - display_height - 16)
+            stream_parts.extend([
+                "q",
+                f"{display_width:.2f} 0 0 {display_height:.2f} 50 {image_y:.2f} cm",
+                f"/{image_name} Do",
+                "Q",
+            ])
+        content_obj_no = len(objects) + 1
+        objects.append(_pdf_stream_object("\n".join(stream_parts)))
+        page_obj_no = len(objects) + 1
+        xobject = f" /XObject << /{image_name} {image_obj_no} 0 R >>" if image_name and image_obj_no else ""
+        page = (
+            f"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] "
+            f"/Resources << /Font << /F1 3 0 R >>{xobject} >> "
+            f"/Contents {content_obj_no} 0 R >>"
+        )
+        objects.append(page.encode("ascii"))
+        page_refs.append(f"{page_obj_no} 0 R")
+
+    add_page([
         f"Relatório QA - {project_name}",
         f"Gerado em {datetime.utcnow().isoformat()}Z",
         f"Total de anotações: {len(rows)}",
         "",
-    ]
-    for row in rows:
-        page_lines.extend([
+        "As evidencias visuais aparecem nas paginas de cada anotacao quando existe print anexado.",
+    ] if rows else [
+        f"Relatório QA - {project_name}",
+        f"Gerado em {datetime.utcnow().isoformat()}Z",
+        "Total de anotações: 0",
+        "",
+        "Nenhuma anotação QA encontrada.",
+    ])
+
+    for item, row in zip(annotations, rows):
+        image = _qa_screenshot_to_pdf_image(item.get("screenshot"))
+        lines = [
             f"{row['ID']} | {row['Status']} | {row['Severidade']}",
             f"Tipo: {row['Tipo']}",
             row["Título"],
@@ -2726,39 +2845,22 @@ def _build_qa_pdf(annotations: list, project_name: str) -> bytes:
             f"Seletor: {row['Seletor']}",
             f"Descrição: {row['Descrição']}",
             "",
-        ])
-    if not rows:
-        page_lines.append("Nenhuma anotação QA encontrada.")
+            "Evidencia visual:" if image else "Evidencia visual: sem print anexado ou formato nao suportado no PDF.",
+        ]
+        add_page(lines, image)
 
-    max_lines = 36
-    for i in range(0, len(page_lines), max_lines):
-        pages.append(page_lines[i:i + max_lines])
-
-    objects = []
-    objects.append("<< /Type /Catalog /Pages 2 0 R >>")
-    page_refs = []
-    for index, lines in enumerate(pages, start=1):
-        page_obj_no = 3 + (index - 1) * 2
-        content_obj_no = page_obj_no + 1
-        page_refs.append(f"{page_obj_no} 0 R")
-        objects.append(f"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 {3 + len(pages) * 2} 0 R >> >> /Contents {content_obj_no} 0 R >>")
-        y = 800
-        stream_parts = ["BT", "/F1 10 Tf"]
-        for line in lines:
-            safe = _pdf_escape_stream(_pdf_safe_text(line[:140]))
-            stream_parts.append(f"1 0 0 1 50 {y} Tm ({safe}) Tj")
-            y -= 16
-        stream_parts.append("ET")
-        stream = "\n".join(stream_parts)
-        objects.append(f"<< /Length {len(stream.encode('utf-8'))} >>\nstream\n{stream}\nendstream")
-    objects.insert(1, f"<< /Type /Pages /Kids [{' '.join(page_refs)}] /Count {len(page_refs)} >>")
-    objects.append("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>")
+    objects[1] = f"<< /Type /Pages /Kids [{' '.join(page_refs)}] /Count {len(page_refs)} >>".encode("ascii")
 
     pdf = bytearray(b"%PDF-1.4\n")
     offsets = [0]
     for number, obj in enumerate(objects, start=1):
         offsets.append(len(pdf))
-        pdf.extend(f"{number} 0 obj\n{obj}\nendobj\n".encode("utf-8"))
+        if isinstance(obj, bytes):
+            pdf.extend(f"{number} 0 obj\n".encode("ascii"))
+            pdf.extend(obj)
+            pdf.extend(b"\nendobj\n")
+        else:
+            pdf.extend(f"{number} 0 obj\n{obj}\nendobj\n".encode("utf-8"))
     xref_offset = len(pdf)
     pdf.extend(f"xref\n0 {len(objects) + 1}\n0000000000 65535 f \n".encode("ascii"))
     for offset in offsets[1:]:
