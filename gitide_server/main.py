@@ -11,6 +11,7 @@ import subprocess
 import sqlite3
 import string
 import tempfile
+import unicodedata
 import zipfile
 from typing import Optional
 from datetime import datetime
@@ -404,6 +405,7 @@ class QaAnnotationInput(BaseModel):
     title: str = Field(..., description="Resumo curto da anotação")
     description: str = Field("", description="Descrição, evidência ou observação do QA")
     url: str = Field("", description="URL onde a anotação foi criada")
+    category: str = Field("functional", description="functional, interface, content, interaction, design, structure ou visual")
     severity: str = Field("medium", description="low, medium, high ou critical")
     status: str = Field("open", description="open, reviewing ou resolved")
     selector: str = Field("", description="Seletor CSS aproximado do elemento anotado")
@@ -2602,6 +2604,17 @@ def _qa_status_label(status_value: str) -> str:
         "resolved": "Resolvida",
     }.get(status_value or "open", "Aberta")
 
+def _qa_category_label(category_value: str) -> str:
+    return {
+        "functional": "Funcionais",
+        "interface": "Interface",
+        "content": "Conteúdo",
+        "interaction": "Interação",
+        "design": "Design",
+        "structure": "Estrutura",
+        "visual": "Visual",
+    }.get(category_value or "functional", "Funcionais")
+
 def _qa_export_rows(annotations: list) -> list:
     rows = []
     for item in annotations:
@@ -2611,6 +2624,7 @@ def _qa_export_rows(annotations: list) -> list:
             "ID": item.get("id", ""),
             "Título": item.get("title", ""),
             "Descrição": item.get("description", ""),
+            "Tipo": _qa_category_label(item.get("category", "")),
             "Severidade": item.get("severity", ""),
             "Status": _qa_status_label(item.get("status", "")),
             "URL": item.get("url", ""),
@@ -2690,6 +2704,10 @@ def _pdf_hex_text(text: str) -> str:
 def _pdf_escape_stream(text: str) -> str:
     return text.replace("\\", "\\\\").replace("(", "\\(").replace(")", "\\)")
 
+def _pdf_safe_text(text: str) -> str:
+    normalized = unicodedata.normalize("NFKD", text or "")
+    return normalized.encode("ascii", errors="ignore").decode("ascii")
+
 def _build_qa_pdf(annotations: list, project_name: str) -> bytes:
     rows = _qa_export_rows(annotations)
     pages = []
@@ -2702,6 +2720,7 @@ def _build_qa_pdf(annotations: list, project_name: str) -> bytes:
     for row in rows:
         page_lines.extend([
             f"{row['ID']} | {row['Status']} | {row['Severidade']}",
+            f"Tipo: {row['Tipo']}",
             row["Título"],
             f"URL: {row['URL']}",
             f"Seletor: {row['Seletor']}",
@@ -2726,7 +2745,7 @@ def _build_qa_pdf(annotations: list, project_name: str) -> bytes:
         y = 800
         stream_parts = ["BT", "/F1 10 Tf"]
         for line in lines:
-            safe = _pdf_escape_stream(line[:140])
+            safe = _pdf_escape_stream(_pdf_safe_text(line[:140]))
             stream_parts.append(f"1 0 0 1 50 {y} Tm ({safe}) Tj")
             y -= 16
         stream_parts.append("ET")
@@ -2786,12 +2805,14 @@ def create_qa_annotation(payload: QaAnnotationInput, project: Project = Depends(
     """Cria uma anotação de QA para o projeto ativo."""
     now = datetime.utcnow().isoformat() + "Z"
     severity = payload.severity if payload.severity in {"low", "medium", "high", "critical"} else "medium"
+    category = payload.category if payload.category in {"functional", "interface", "content", "interaction", "design", "structure", "visual"} else "functional"
     status_value = payload.status if payload.status in {"open", "reviewing", "resolved"} else "open"
     annotation = {
         "id": f"QA-{secrets.token_hex(4).upper()}",
         "title": payload.title.strip()[:160] or "Anotação QA",
         "description": payload.description.strip(),
         "url": payload.url.strip(),
+        "category": category,
         "severity": severity,
         "status": status_value,
         "selector": payload.selector.strip(),

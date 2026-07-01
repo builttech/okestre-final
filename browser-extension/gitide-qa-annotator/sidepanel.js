@@ -2,6 +2,7 @@ const fields = {
   apiBase: document.getElementById('apiBase'),
   projectId: document.getElementById('projectId'),
   token: document.getElementById('token'),
+  category: document.getElementById('category'),
   severity: document.getElementById('severity'),
   title: document.getElementById('title'),
   description: document.getElementById('description'),
@@ -102,6 +103,7 @@ async function sendAnnotation() {
   const payload = {
     title,
     description: fields.description.value.trim(),
+    category: fields.category.value,
     severity: fields.severity.value,
     status: 'open',
     url: tab?.url || '',

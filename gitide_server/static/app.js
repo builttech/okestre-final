@@ -3092,11 +3092,13 @@ function renderQaAnnotations() {
 function qaAnnotationCardContent(item) {
     const id = escapeHtml(String(item.id || ''));
     const created = item.created_at ? new Date(item.created_at).toLocaleString('pt-BR') : '-';
+    const category = escapeHtml(String(item.category || 'functional'));
     const severity = escapeHtml(String(item.severity || 'medium'));
     const status = escapeHtml(String(item.status || 'open'));
     return `
         <div class="qa-card-topline">
             <span class="qa-id">${id}</span>
+            <span class="qa-pill qa-category-${category}">${qaCategoryLabel(item.category)}</span>
             <span class="qa-pill qa-severity-${severity}">${severity}</span>
             <span class="qa-pill qa-status-${status}">${qaStatusLabel(item.status)}</span>
         </div>
@@ -3165,6 +3167,18 @@ function qaStatusLabel(status) {
     }[status] || 'Aberta';
 }
 
+function qaCategoryLabel(category) {
+    return {
+        functional: 'Funcionais',
+        interface: 'Interface',
+        content: 'Conteúdo',
+        interaction: 'Interação',
+        design: 'Design',
+        structure: 'Estrutura',
+        visual: 'Visual'
+    }[category] || 'Funcionais';
+}
+
 async function updateQaAnnotationStatus(annotationId, statusValue) {
     if (!state.activeProjectId || !annotationId) return;
     try {
@@ -3206,6 +3220,7 @@ function openQaAnnotationDrawer(annotationId) {
             <h5>Resumo</h5>
             <p>${escapeHtml(String(item.description || 'Sem descrição.'))}</p>
             <div class="qa-detail-pills">
+                <span class="qa-pill qa-category-${escapeHtml(item.category || 'functional')}">${qaCategoryLabel(item.category)}</span>
                 <span class="qa-pill qa-severity-${escapeHtml(item.severity || 'medium')}">${escapeHtml(item.severity || 'medium')}</span>
                 <span class="qa-pill qa-status-${escapeHtml(item.status || 'open')}">${qaStatusLabel(item.status)}</span>
             </div>

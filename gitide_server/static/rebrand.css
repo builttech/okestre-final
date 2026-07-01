@@ -3995,6 +3995,13 @@ input[type="checkbox"]:focus-visible{
 .qa-severity-medium{color:#facc15;}
 .qa-severity-high{color:#fb923c;}
 .qa-severity-critical{color:#fb7185;}
+.qa-category-functional{color:#a7f3d0;}
+.qa-category-interface{color:#bfdbfe;}
+.qa-category-content{color:#fde68a;}
+.qa-category-interaction{color:#c4b5fd;}
+.qa-category-design{color:#fbcfe8;}
+.qa-category-structure{color:#d1d5db;}
+.qa-category-visual{color:#fca5a5;}
 .qa-status-resolved{color:#34d399;}
 .qa-status-reviewing{color:#93c5fd;}
 .qa-status-open{color:#fb7185;}
