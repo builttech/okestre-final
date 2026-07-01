@@ -4,6 +4,9 @@ db_credentials.json
 *.db
 *.sqlite
 *.sqlite3
+.cache/
+~$*
+outputs/test-min*
 
 # Python env
 __pycache__/

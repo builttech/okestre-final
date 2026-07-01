@@ -139,6 +139,14 @@ button.inline-action {
   font-size: 11px;
 }
 
+button.icon-only {
+  width: 30px;
+  min-width: 30px;
+  padding: 0;
+  font-size: 14px;
+  line-height: 1;
+}
+
 .row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(120px, 150px);

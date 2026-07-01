@@ -47,11 +47,14 @@
           <option value="critical">Crítica</option>
         </select>
       </div>
-      <label>Título</label>
+      <div class="field-header">
+        <label for="title">Título</label>
+        <button id="generateTitle" type="button" class="inline-action icon-only" title="Gerar título curto pela descrição">✦</button>
+      </div>
       <input id="title" type="text" placeholder="Ex: botão salvar não responde">
       <div class="field-header">
         <label for="description">Descrição</label>
-        <button id="polishDescription" type="button" class="inline-action" title="Corrigir gramática e clareza do texto">IA</button>
+        <button id="polishDescription" type="button" class="inline-action" title="Reescrever a descrição com mais clareza">IA</button>
       </div>
       <textarea id="description" placeholder="Descreva o problema, expectativa e evidência..."></textarea>
       <label>Elemento</label>

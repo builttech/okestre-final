@@ -94,12 +94,60 @@ function buildNetworkErrorMessage(err) {
 function polishDescriptionText() {
   const original = fields.description.value.trim();
   if (!original) {
-    setStatus('Escreva uma descrição antes de corrigir com IA.');
+    setStatus('Escreva uma descrição antes de reescrever com IA.');
     return;
   }
   const polished = applyLocalTextPolish(original);
   fields.description.value = polished;
-  setStatus(polished === original ? 'Texto já está adequado.' : 'Descrição revisada.');
+  setStatus(polished === original ? 'Texto já está claro.' : 'Descrição reescrita com mais clareza.');
+}
+
+function generateTitleFromDescription() {
+  const description = fields.description.value.trim();
+  if (!description) {
+    setStatus('Preencha a descrição antes de gerar o título.');
+    return;
+  }
+  const polished = applyLocalTextPolish(description);
+  const title = buildShortTitle(polished);
+  fields.title.value = title;
+  setStatus('Título gerado pela descrição.');
+}
+
+function buildShortTitle(text) {
+  let title = cleanInlineText(text)
+    .replace(/[.!?]+$/g, '')
+    .replace(/^É necessário\s+/i, '')
+    .replace(/^Deve\s+/i, '')
+    .replace(/^O sistema deve\s+/i, '');
+
+  const patterns = [
+    [/^Reposicionar\s+(.+?)\s+acima\s+(.+)$/i, 'Reposicionar $1'],
+    [/^Remover\s+(.+)$/i, 'Remover $1'],
+    [/^Adicionar\s+(.+)$/i, 'Adicionar $1'],
+    [/^Ajustar\s+(.+)$/i, 'Ajustar $1'],
+    [/^Corrigir\s+(.+)$/i, 'Corrigir $1'],
+    [/^Melhorar\s+(.+)$/i, 'Melhorar $1']
+  ];
+
+  for (const [pattern, replacement] of patterns) {
+    if (pattern.test(title)) {
+      title = title.replace(pattern, replacement);
+      break;
+    }
+  }
+
+  title = title
+    .replace(/\s+para\s+.+$/i, '')
+    .replace(/\s+porque\s+.+$/i, '')
+    .replace(/\s+pois\s+.+$/i, '')
+    .replace(/\s*,\s*$/g, '')
+    .trim();
+
+  if (title.length > 72) {
+    title = `${title.slice(0, 69).trim()}...`;
+  }
+  return title.charAt(0).toUpperCase() + title.slice(1);
 }
 
 function applyLocalTextPolish(text) {
@@ -111,15 +159,18 @@ function applyLocalTextPolish(text) {
 
   const replacements = [
     [/\bespaço\b/gi, 'espaço'],
-    [/\bganhar espaço\b/gi, 'ganhar espaço'],
+    [/\bganhar espa[çc]o\b/gi, 'ganhar espaço'],
     [/\bcomprmidas\b/gi, 'comprimidas'],
+    [/\bcomprimirdas\b/gi, 'comprimidas'],
     [/\bcomprimida\b/gi, 'comprimida'],
     [/\bficarem\b/gi, 'ficarem'],
     [/\bopçoes\b/gi, 'opções'],
     [/\bopcoes\b/gi, 'opções'],
+    [/\bopcões\b/gi, 'opções'],
     [/\bnao\b/gi, 'não'],
     [/\bpara nao\b/gi, 'para não'],
-    [/\bdisplay no top\b/gi, 'Display no topo'],
+    [/\bdisplay no top\b/gi, 'display no topo'],
+    [/\btop\b/gi, 'topo'],
     [/\bbtn\b/gi, 'botão'],
     [/\bmarge\b/gi, 'merge'],
     [/\bdeletar\b/gi, 'excluir']
@@ -129,6 +180,8 @@ function applyLocalTextPolish(text) {
     output = output.replace(pattern, value);
   });
 
+  output = rewriteCommonQaIntent(output);
+
   output = output
     .split(/(?<=[.!?])\s+/)
     .map(sentence => sentence.charAt(0).toUpperCase() + sentence.slice(1))
@@ -136,6 +189,44 @@ function applyLocalTextPolish(text) {
 
   if (!/[.!?]$/.test(output)) output += '.';
   return output;
+}
+
+function rewriteCommonQaIntent(text) {
+  const normalized = text.replace(/^["']|["']$/g, '').trim();
+  const movePattern = /^deixar\s+(?:o\s+texto\s+)?["“]?(.+?)["”]?\s+para\s+(?:as\s+)?opções?\s+(.+?)\s+para\s+(.+)$/i;
+  const moveMatch = normalized.match(movePattern);
+  if (moveMatch) {
+    const target = cleanInlineText(moveMatch[1]);
+    const reason = cleanInlineText(moveMatch[3]);
+    return `Reposicionar o texto "${target}" acima das opções para ${reason}`;
+  }
+
+  const removePattern = /^(?:remover|remove|tirar)\s+(.+)$/i;
+  const removeMatch = normalized.match(removePattern);
+  if (removeMatch) {
+    return `Remover ${cleanInlineText(removeMatch[1])}`;
+  }
+
+  const addPattern = /^(?:adicionar|add)\s+(.+)$/i;
+  const addMatch = normalized.match(addPattern);
+  if (addMatch) {
+    return `Adicionar ${cleanInlineText(addMatch[1])}`;
+  }
+
+  const adjustPattern = /^(?:ajustar|corrigir|melhorar)\s+(.+)$/i;
+  const adjustMatch = normalized.match(adjustPattern);
+  if (adjustMatch) {
+    return `Ajustar ${cleanInlineText(adjustMatch[1])}`;
+  }
+
+  return normalized;
+}
+
+function cleanInlineText(text) {
+  return String(text || '')
+    .replace(/^["“]+|["”]+$/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 async function pickElement() {
@@ -294,6 +385,7 @@ async function sendAnnotation() {
 
 document.getElementById('saveConfig').addEventListener('click', saveConfig);
 document.getElementById('testConnection').addEventListener('click', testConnection);
+document.getElementById('generateTitle').addEventListener('click', generateTitleFromDescription);
 document.getElementById('polishDescription').addEventListener('click', polishDescriptionText);
 document.getElementById('pickElement').addEventListener('click', pickElement);
 document.getElementById('sendAnnotation').addEventListener('click', sendAnnotation);
