@@ -1058,14 +1058,14 @@ REGRA INQUEBRÁVEL: antes de executar qualquer task, valide REQ, DRI e Task List
                                     </div>
                                     <div class="documents-title-copy">
                                         <h3>Documentação Word</h3>
-                                        <p>Geração e envio de relatórios técnicos (.docx).</p>
+                                        <p>Exportação executiva dos documentos vivos do Harness Engineering (.docx).</p>
                                     </div>
                                 </div>
                                 <div class="documents-actions">
                                     <button class="btn btn-secondary btn-sm documents-icon-button" id="btn-refresh-documents" title="Recarregar lista" aria-label="Recarregar lista de documentos"><i class="fa-solid fa-rotate"></i></button>
                                     <button class="btn btn-secondary btn-sm" id="btn-upload-document"><i class="fa-solid fa-cloud-arrow-up"></i> Upload</button>
                                     <input type="file" id="input-upload-document" accept=".docx" class="documents-file-input">
-                                    <button class="btn btn-primary btn-sm" id="btn-generate-test-doc"><i class="fa-solid fa-file-circle-plus"></i> Test Doc</button>
+                                    <button class="btn btn-primary btn-sm" id="btn-generate-business-docs"><i class="fa-solid fa-file-export"></i> Gerar/Atualizar Docs</button>
                                 </div>
                             </div>
                             
@@ -1074,12 +1074,12 @@ REGRA INQUEBRÁVEL: antes de executar qualquer task, valide REQ, DRI e Task List
                                 <div class="documents-prompt-copy">
                                     <i class="fa-solid fa-circle-info"></i>
                                     <div>
-                                        <p>Instruções para o Custom GPT</p>
-                                        <span>Copie a instrução e cole no ChatGPT para forçá-lo a criar/editar os arquivos Word no GitIDE em vez de responder em texto corrido.</span>
+                                        <p>Pacote documental para a área de negócio</p>
+                                        <span>Os documentos Word são derivados dos arquivos já criados: TAP, REQs, Design, DRI, Task List e task.details.</span>
                                     </div>
                                 </div>
                                 <button type="button" class="btn btn-secondary btn-sm documents-copy-button" id="btn-copy-doc-prompt-instructions">
-                                    <i class="fa-regular fa-copy"></i> Copiar Prompt
+                                    <i class="fa-regular fa-copy"></i> Copiar Orientação
                                 </button>
                             </div>
 
@@ -1089,7 +1089,7 @@ REGRA INQUEBRÁVEL: antes de executar qualquer task, valide REQ, DRI e Task List
                                     <thead>
                                         <tr>
                                             <th>Nome do Arquivo</th>
-                                            <th>Tamanho</th>
+                                            <th>Status</th>
                                             <th>Ações</th>
                                         </tr>
                                     </thead>

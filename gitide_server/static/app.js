@@ -4467,9 +4467,9 @@ function setupEventListeners() {
         uploadDocBtn.addEventListener('click', () => uploadDocInput.click());
         uploadDocInput.addEventListener('change', handleDocumentUpload);
     }
-    const generateTestDocBtn = document.getElementById('btn-generate-test-doc');
-    if (generateTestDocBtn) {
-        generateTestDocBtn.addEventListener('click', generateTestDocument);
+    const generateBusinessDocsBtn = document.getElementById('btn-generate-business-docs');
+    if (generateBusinessDocsBtn) {
+        generateBusinessDocsBtn.addEventListener('click', () => generateBusinessDocuments('all'));
     }
     const copyDocPromptBtn = document.getElementById('btn-copy-doc-prompt-instructions');
     if (copyDocPromptBtn) {
@@ -6609,31 +6609,47 @@ function buildDocumentTableRow(doc, tbody) {
     const fileIcon = document.createElement('i');
     fileIcon.className = 'fa-regular fa-file-word';
 
-    const filenameText = document.createElement('span');
-    filenameText.textContent = doc.filename;
-    filenameText.title = doc.filename;
+    const textWrap = document.createElement('div');
+    textWrap.className = 'documents-name-text';
 
+    const filenameText = document.createElement('span');
+    filenameText.textContent = doc.title || doc.filename;
+    filenameText.title = doc.filename;
+    const sourceText = document.createElement('small');
+    sourceText.textContent = doc.source || doc.filename;
+    sourceText.title = doc.source || doc.filename;
+
+    textWrap.appendChild(filenameText);
+    textWrap.appendChild(sourceText);
     nameWrap.appendChild(fileIcon);
-    nameWrap.appendChild(filenameText);
+    nameWrap.appendChild(textWrap);
     nameCell.appendChild(nameWrap);
 
     const sizeCell = document.createElement('td');
     sizeCell.className = 'documents-size-cell';
-    sizeCell.textContent = `${(doc.size_bytes / 1024).toFixed(1)} KB`;
+    sizeCell.textContent = doc.exists ? `${(doc.size_bytes / 1024).toFixed(1)} KB` : 'Pendente';
 
     const actionsCell = document.createElement('td');
     actionsCell.className = 'documents-actions-cell';
+
+    const generateBtn = document.createElement('button');
+    generateBtn.className = 'btn btn-sm btn-secondary btn-generate-business-doc documents-row-action';
+    generateBtn.dataset.kind = doc.kind || '';
+    generateBtn.innerHTML = `<i class="fa-solid fa-file-export"></i> ${doc.exists ? 'Atualizar' : 'Gerar'}`;
 
     const downloadBtn = document.createElement('button');
     downloadBtn.className = 'btn btn-sm btn-primary btn-download-doc documents-row-action';
     downloadBtn.dataset.filename = doc.filename;
     downloadBtn.innerHTML = '<i class="fa-solid fa-download"></i> Baixar';
+    downloadBtn.disabled = !doc.exists;
 
     const deleteBtn = document.createElement('button');
     deleteBtn.className = 'btn btn-sm btn-danger btn-delete-doc documents-row-action';
     deleteBtn.dataset.filename = doc.filename;
     deleteBtn.innerHTML = '<i class="fa-solid fa-trash-can"></i> Excluir';
+    deleteBtn.disabled = !doc.exists;
 
+    actionsCell.appendChild(generateBtn);
     actionsCell.appendChild(downloadBtn);
     actionsCell.appendChild(deleteBtn);
 
@@ -6642,6 +6658,7 @@ function buildDocumentTableRow(doc, tbody) {
     tr.appendChild(actionsCell);
 
     const selectRow = () => {
+        if (!doc.exists) return;
         tbody.querySelectorAll('.documents-table-row').forEach(row => row.classList.remove('selected'));
         tr.classList.add('selected');
         state.selectedDocumentFilename = doc.filename;
@@ -6654,6 +6671,11 @@ function buildDocumentTableRow(doc, tbody) {
             e.preventDefault();
             selectRow();
         }
+    });
+
+    generateBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        generateBusinessDocuments(e.currentTarget.dataset.kind);
     });
 
     downloadBtn.addEventListener('click', (e) => {
@@ -6683,7 +6705,7 @@ async function loadDocuments() {
     });
     
     try {
-        const res = await fetch(`/api/projects/${state.activeProjectId}/documents`);
+        const res = await fetch(`/api/projects/${state.activeProjectId}/documents/business`);
         const documents = await res.json();
         
         if (!res.ok) {
@@ -6693,7 +6715,7 @@ async function loadDocuments() {
         if (documents.length === 0) {
             renderDocumentsStateRow(tbody, {
                 icon: 'fa-solid fa-folder-open',
-                message: 'Nenhum documento Word gerado ainda neste projeto.',
+                message: 'Nenhum modelo de documento encontrado para este projeto.',
                 variant: 'empty'
             });
             resetDocumentPreviewState();
@@ -6705,10 +6727,10 @@ async function loadDocuments() {
             tbody.appendChild(buildDocumentTableRow(doc, tbody));
         });
         
-        let docToSelect = documents[0];
+        let docToSelect = documents.find(doc => doc.exists) || null;
         if (state.selectedDocumentFilename) {
             const found = documents.find(d => d.filename === state.selectedDocumentFilename);
-            if (found) docToSelect = found;
+            if (found && found.exists) docToSelect = found;
         }
         
         if (docToSelect) {
@@ -6719,6 +6741,8 @@ async function loadDocuments() {
                 return filename === docToSelect.filename;
             });
             if (selectedRow) selectedRow.classList.add('selected');
+        } else {
+            resetDocumentPreviewState();
         }
         
     } catch (err) {
@@ -6892,17 +6916,22 @@ function copyDocPromptInstructions() {
         return;
     }
     
-    const instructions = `Você é um engenheiro de software e documentador técnico assistindo o usuário no projeto ativo "${state.activeProject.name}" (ID: ${state.activeProjectId}) através do GitIDE.
-Sempre que o usuário solicitar para você criar, editar, revisar ou atualizar qualquer tipo de documentação, especificação técnica, relatório, manual ou roteiro:
-1. Você DEVE usar a ferramenta 'POST /api/projects/${state.activeProjectId}/documents/word' para gerar e salvar o documento real fisicamente como um arquivo Word (.docx).
-2. NUNCA envie o conteúdo completo da documentação diretamente como texto ou markdown no chat do ChatGPT. Em vez disso, utilize o endpoint para persistir o arquivo e depois dê apenas uma breve explicação ao usuário sobre o que foi gerado.
-3. Formate a requisição estruturando o conteúdo em seções ("sections"). Cada seção pode conter os seguintes tipos de formatação (campo "type"):
-   - "paragraph": para texto corrido.
-   - "bullet": para listas de tópicos (separe os itens com quebras de linha '\\n').
-   - "highlight": para caixas de destaque ou observações importantes.
-   - "code": para blocos de código fonte (preservando indentação e quebras de linha).
-   - "table": para tabelas. O campo "text" deve conter uma matriz JSON válida em formato string, por exemplo: '[["Coluna 1", "Coluna 2"], ["Dado A", "Dado B"]]'.
-4. Certifique-se de que o título do documento ("title") seja descritivo e claro.`;
+    const instructions = `Você está apoiando o projeto "${state.activeProject.name}" (ID: ${state.activeProjectId}) no GitIDE.
+Para documentação executiva, NÃO escreva o documento Word diretamente no chat.
+Primeiro mantenha os arquivos vivos do Harness Engineering atualizados:
+- TAP: .documents/project-charter.md
+- Specify: todos os REQs em .documents/spec/*.md
+- Design: .documents/design/design.md
+- DRI: .documents/dri/dri.md
+- Task List: .documents/task/task.md
+- Task Details: .documents/task/task.details.md
+
+Depois, use a aba Documentos (Word) do GitIDE para gerar/atualizar os .docx oficiais:
+- Termo de Abertura do Projeto
+- Specify - Especificação, com cada REQ em uma página
+- Design - Planejamento
+- DRI - Documento de Requisito de Interface
+- Task List - Tarefas + task.details`;
 
     navigator.clipboard.writeText(instructions).then(() => {
         const btn = document.getElementById('btn-copy-doc-prompt-instructions');
@@ -7278,6 +7307,49 @@ function sddSetButtonLoading(button, loading, loadingText, defaultHtml) {
         ? `<i data-lucide="loader-2" style="animation:spin 1s linear infinite;"></i> ${loadingText}`
         : defaultHtml;
     if (window.lucide) lucide.createIcons();
+}
+
+async function generateBusinessDocuments(kind = 'all') {
+    if (!state.activeProjectId) return;
+
+    const selector = kind && kind !== 'all'
+        ? `.btn-generate-business-doc[data-kind="${CSS.escape(kind)}"]`
+        : '#btn-generate-business-docs';
+    const btn = document.querySelector(selector);
+    const originalText = btn?.innerHTML;
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Gerando...';
+    }
+
+    try {
+        const res = await fetch(`/api/projects/${state.activeProjectId}/documents/business/generate`, {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify({ kind: kind || 'all' })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+            throw new Error(data.detail || 'Erro ao gerar documentos Word');
+        }
+        const generated = data.documents || [];
+        if (generated.length) {
+            state.selectedDocumentFilename = generated[0].filename;
+        }
+        gitideNotify({
+            title: 'Documentos Word atualizados',
+            message: generated.length === 1 ? `${generated[0].filename} foi gerado.` : `${generated.length} documentos foram gerados.`,
+            variant: 'success'
+        });
+        await loadDocuments();
+    } catch (err) {
+        gitideNotify({ title: 'Erro ao gerar documentos', message: err.message, variant: 'danger' });
+    } finally {
+        if (btn && originalText) {
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        }
+    }
 }
 
 async function sddEnsureProjectStructure() {

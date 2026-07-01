@@ -340,6 +340,9 @@ class DocumentCreateRequest(BaseModel):
     title: str = Field(..., description="Título principal do documento")
     sections: List[DocumentSection] = Field(..., description="Lista de seções ordenadas do documento")
 
+class BusinessDocumentGenerateRequest(BaseModel):
+    kind: str = Field("all", description="Documento a gerar: charter, specify, design, dri, tasks ou all")
+
 class CreateDirectoryRequest(BaseModel):
     parent_path: str = Field(..., description="Caminho do diretório pai")
     name: str = Field(..., description="Nome da nova pasta a ser criada")
@@ -2026,6 +2029,177 @@ def create_word_document(
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro ao gerar documento Word: {str(e)}")
+
+BUSINESS_DOCUMENTS = {
+    "charter": {
+        "filename": "termo-de-abertura-do-projeto.docx",
+        "title": "Termo de Abertura do Projeto",
+        "source": ".documents/project-charter.md",
+        "description": "Documento executivo de abertura, contexto, escopo, riscos e critérios de sucesso.",
+    },
+    "specify": {
+        "filename": "specify-especificacao.docx",
+        "title": "Specify - Especificação",
+        "source": ".documents/spec/*.md",
+        "description": "Todos os REQs funcionais criados no projeto, com cada REQ iniciado em uma nova página.",
+    },
+    "design": {
+        "filename": "design-planejamento.docx",
+        "title": "Design - Planejamento",
+        "source": ".documents/design/design.md",
+        "description": "Planejamento técnico, arquitetura proposta, dados, integrações e validações.",
+    },
+    "dri": {
+        "filename": "dri-documento-de-requisito-de-interface.docx",
+        "title": "DRI - Documento de Requisito de Interface",
+        "source": ".documents/dri/dri.md",
+        "description": "Documento de interfaces, componentes, estados, microcopy, responsividade e aceite visual.",
+    },
+    "tasks": {
+        "filename": "task-list-tarefas-e-detalhes.docx",
+        "title": "Task List - Tarefas + Task Details",
+        "source": ".documents/task/task.md + .documents/task/task.details.md",
+        "description": "Tarefas do projeto e planos detalhados acumulados para execução e rastreabilidade.",
+    },
+}
+
+def _read_text_if_exists(path: str) -> str:
+    if not os.path.exists(path):
+        return ""
+    with open(path, "r", encoding="utf-8") as f:
+        return f.read()
+
+def _markdown_to_word_sections(markdown: str, fallback_heading: str = "") -> list:
+    sections = []
+    current_heading = fallback_heading
+    buffer = []
+
+    def flush():
+        nonlocal current_heading, buffer
+        text = "\n".join(buffer).strip()
+        if current_heading or text:
+            sections.append({
+                "heading": current_heading,
+                "text": text,
+                "type": "paragraph"
+            })
+        current_heading = ""
+        buffer = []
+
+    for raw_line in (markdown or "").splitlines():
+        line = raw_line.rstrip()
+        heading_match = re.match(r"^#{1,6}\s+(.+)$", line.strip())
+        if heading_match:
+            flush()
+            current_heading = heading_match.group(1).strip()
+            continue
+        buffer.append(line)
+    flush()
+
+    return [sec for sec in sections if sec.get("heading") or sec.get("text")]
+
+def _write_business_doc_preview(project: Project, result: dict, title: str, sections: list):
+    json_filepath = os.path.join(project.path, ".documents", result["filename"].replace(".docx", ".json"))
+    with open(json_filepath, "w", encoding="utf-8") as f:
+        json.dump({"title": title, "sections": sections}, f, indent=4, ensure_ascii=False)
+
+def _business_doc_status(project: Project, kind: str) -> dict:
+    config = BUSINESS_DOCUMENTS[kind]
+    filepath = os.path.join(project.path, ".documents", config["filename"])
+    exists = os.path.exists(filepath)
+    stat = os.stat(filepath) if exists else None
+    return {
+        "kind": kind,
+        "filename": config["filename"],
+        "title": config["title"],
+        "source": config["source"],
+        "description": config["description"],
+        "exists": exists,
+        "size_bytes": stat.st_size if stat else 0,
+        "modified_at": datetime.fromtimestamp(stat.st_mtime).isoformat() if stat else None,
+    }
+
+def _build_business_document_sections(project: Project, kind: str) -> list:
+    docs_dir = _sdd_documents_dir(project)
+    if kind == "charter":
+        content = _read_text_if_exists(_sdd_charter_path(project)) or _default_sdd_charter(project)
+        return _markdown_to_word_sections(content)
+
+    if kind == "specify":
+        spec_dir = _sdd_spec_dir(project)
+        sections = []
+        spec_files = []
+        if os.path.exists(spec_dir):
+            for entry in os.scandir(spec_dir):
+                if entry.is_file() and entry.name.lower().endswith(".md"):
+                    spec_files.append(entry)
+        spec_files.sort(key=lambda item: item.name.lower())
+        if not spec_files:
+            return [{"heading": "Nenhum REQ encontrado", "text": "Crie REQs em .documents/spec para compor este documento.", "type": "highlight"}]
+        for index, entry in enumerate(spec_files):
+            if index > 0:
+                sections.append({"heading": "", "text": "", "type": "page_break"})
+            content = _read_text_if_exists(entry.path)
+            req_sections = _markdown_to_word_sections(content, os.path.splitext(entry.name)[0])
+            sections.extend(req_sections or [{"heading": entry.name, "text": "REQ sem conteúdo.", "type": "paragraph"}])
+        return sections
+
+    if kind == "design":
+        content = _read_text_if_exists(os.path.join(docs_dir, "design", "design.md")) or _default_sdd_project_document(project, "design")
+        return _markdown_to_word_sections(content)
+
+    if kind == "dri":
+        content = _read_text_if_exists(os.path.join(docs_dir, "dri", "dri.md")) or _default_sdd_project_document(project, "dri")
+        return _markdown_to_word_sections(content)
+
+    if kind == "tasks":
+        task_content = _read_text_if_exists(os.path.join(docs_dir, "task", "task.md")) or _default_sdd_project_document(project, "task")
+        details_content = _read_text_if_exists(os.path.join(docs_dir, "task", "task.details.md")) or _default_sdd_project_document(project, "task_details")
+        return (
+            _markdown_to_word_sections(task_content, "Task List - Tarefas")
+            + [{"heading": "", "text": "", "type": "page_break"}]
+            + _markdown_to_word_sections(details_content, "Task Details - Planos Detalhados")
+        )
+
+    raise HTTPException(status_code=400, detail="Documento de negócio inválido.")
+
+def _generate_business_document(project: Project, kind: str) -> dict:
+    if kind not in BUSINESS_DOCUMENTS:
+        raise HTTPException(status_code=400, detail="Documento de negócio inválido.")
+    config = BUSINESS_DOCUMENTS[kind]
+    sections = _build_business_document_sections(project, kind)
+    result = generate_docx(project.path, config["title"], sections, filename=config["filename"])
+    _write_business_doc_preview(project, result, config["title"], sections)
+    return _business_doc_status(project, kind)
+
+@app.get("/api/projects/{project_id}/documents/business", tags=["Documentos"])
+def list_business_documents(project: Project = Depends(get_project_or_404)):
+    """Lista os documentos Word oficiais derivados dos arquivos Harness vivos."""
+    return [_business_doc_status(project, kind) for kind in BUSINESS_DOCUMENTS]
+
+@app.post("/api/projects/{project_id}/documents/business/generate", tags=["Documentos"])
+def generate_business_documents(
+    req: BusinessDocumentGenerateRequest,
+    project: Project = Depends(get_project_or_404),
+    db: Session = Depends(get_db),
+    _ = Depends(get_api_key)
+):
+    """Gera ou atualiza documentos Word oficiais para a área de negócio."""
+    kinds = list(BUSINESS_DOCUMENTS.keys()) if req.kind == "all" else [req.kind]
+    try:
+        generated = [_generate_business_document(project, kind) for kind in kinds]
+        log = ActivityLog(
+            project_id=project.id,
+            action_type="BUSINESS_DOCUMENTS_GENERATED",
+            details=f"Documentos Word de negócio atualizados: {', '.join(item['filename'] for item in generated)}"
+        )
+        db.add(log)
+        db.commit()
+        return {"status": "success", "documents": generated}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao gerar documentos de negócio: {str(e)}")
 
 @app.post("/api/projects/{project_id}/documents/upload", tags=["Documentos"])
 def upload_document(

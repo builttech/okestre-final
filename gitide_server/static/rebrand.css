@@ -4899,7 +4899,7 @@ input[type="checkbox"]:focus-visible{
 
 .documents-table th:nth-child(1){width:auto;}
 .documents-table th:nth-child(2){width:104px;}
-.documents-table th:nth-child(3){width:172px;text-align:right;}
+.documents-table th:nth-child(3){width:250px;text-align:right;}
 
 .documents-table-row{
     cursor:pointer;
@@ -4937,11 +4937,13 @@ input[type="checkbox"]:focus-visible{
 .documents-name-wrap{
     min-width:0;
     gap:9px;
+    align-items:flex-start;
 }
 
 .documents-name-wrap i{
     flex:0 0 auto;
     color:var(--color-primary);
+    margin-top:2px;
 }
 
 .documents-name-wrap span{
@@ -4952,6 +4954,24 @@ input[type="checkbox"]:focus-visible{
     white-space:nowrap;
     font-weight:650;
     letter-spacing:-.018em;
+}
+
+.documents-name-text{
+    min-width:0;
+    display:flex;
+    flex-direction:column;
+}
+
+.documents-name-wrap small{
+    display:block;
+    min-width:0;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+    color:var(--text-muted);
+    font-size:11px;
+    font-weight:500;
+    margin-top:2px;
 }
 
 .documents-size-cell{

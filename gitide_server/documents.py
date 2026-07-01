@@ -39,7 +39,7 @@ def format_run(run, font_name="Calibri", size_pt=11, color=COLOR_TEXT, bold=Fals
     run.bold = bold
     run.italic = italic
 
-def generate_docx(project_path: str, title: str, sections: list) -> dict:
+def generate_docx(project_path: str, title: str, sections: list, filename: str = None) -> dict:
     """
     Gera um arquivo Word (.docx) estruturado e com design premium.
     Retorna um dicionário contendo informações do arquivo criado.
@@ -84,6 +84,10 @@ def generate_docx(project_path: str, title: str, sections: list) -> dict:
         heading_text = sec.get("heading", "").strip()
         body_text = sec.get("text", "").strip()
         sec_type = sec.get("type", "paragraph").strip().lower()
+
+        if sec_type == "page_break":
+            doc.add_page_break()
+            continue
         
         # 1. Adiciona título da seção se houver
         if heading_text:
@@ -234,9 +238,14 @@ def generate_docx(project_path: str, title: str, sections: list) -> dict:
                 
     # --- SALVAMENTO ---
     # Normaliza o título para o nome do arquivo
-    safe_title = "".join([c if c.isalnum() else "_" for c in title]).strip("_")
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    filename = f"{safe_title}_{timestamp}.docx"
+    if filename:
+        filename = os.path.basename(filename)
+        if not filename.lower().endswith(".docx"):
+            filename = f"{filename}.docx"
+    else:
+        safe_title = "".join([c if c.isalnum() else "_" for c in title]).strip("_")
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"{safe_title}_{timestamp}.docx"
     filepath = os.path.join(docs_dir, filename)
     
     doc.save(filepath)
