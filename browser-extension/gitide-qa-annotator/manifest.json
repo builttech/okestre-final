@@ -4,7 +4,12 @@
   "version": "0.1.0",
   "description": "Captura anotações de QA no navegador e envia para a Central QA do GitIDE.",
   "permissions": ["activeTab", "scripting", "storage", "tabs", "sidePanel"],
-  "host_permissions": ["<all_urls>"],
+  "host_permissions": [
+    "http://127.0.0.1/*",
+    "http://localhost/*",
+    "https://ide.builtt.com.br/*",
+    "<all_urls>"
+  ],
   "action": {
     "default_title": "GitIDE QA"
   },

@@ -74,7 +74,8 @@ async function captureScreenshot() {
       }).catch(() => null);
       await new Promise(resolve => setTimeout(resolve, 120));
     }
-    return await chrome.tabs.captureVisibleTab(null, { format: 'png', quality: 80 });
+    const screenshot = await chrome.tabs.captureVisibleTab(null, { format: 'jpeg', quality: 70 });
+    return await resizeScreenshot(screenshot);
   } catch (_err) {
     return null;
   } finally {
@@ -82,6 +83,32 @@ async function captureScreenshot() {
       await chrome.tabs.sendMessage(tab.id, { type: 'GITIDE_QA_CLEAR_EVIDENCE_MARKER' }).catch(() => null);
     }
   }
+}
+
+function resizeScreenshot(dataUrl) {
+  return new Promise(resolve => {
+    if (!dataUrl) {
+      resolve(null);
+      return;
+    }
+    const image = new Image();
+    image.onload = () => {
+      const maxWidth = 1280;
+      const scale = image.width > maxWidth ? maxWidth / image.width : 1;
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.max(1, Math.round(image.width * scale));
+      canvas.height = Math.max(1, Math.round(image.height * scale));
+      const context = canvas.getContext('2d');
+      if (!context) {
+        resolve(dataUrl);
+        return;
+      }
+      context.drawImage(image, 0, 0, canvas.width, canvas.height);
+      resolve(canvas.toDataURL('image/jpeg', 0.72));
+    };
+    image.onerror = () => resolve(dataUrl);
+    image.src = dataUrl;
+  });
 }
 
 async function sendAnnotation() {
@@ -122,25 +149,31 @@ async function sendAnnotation() {
   };
 
   setStatus('Enviando...');
-  const response = await fetch(`${apiBase}/api/projects/${projectId}/qa/annotations`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
-      'X-GitIDE-Source': 'qa-extension'
-    },
-    body: JSON.stringify(payload)
-  });
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok || data.status !== 'success') {
-    setStatus(data.detail || 'Erro ao enviar anotação.');
-    return;
+  try {
+    const response = await fetch(`${apiBase}/api/projects/${projectId}/qa/annotations`, {
+      method: 'POST',
+      mode: 'cors',
+      cache: 'no-store',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(payload)
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || data.status !== 'success') {
+      setStatus(data.detail || `Erro ao enviar anotação. HTTP ${response.status}`);
+      return;
+    }
+    fields.title.value = '';
+    fields.description.value = '';
+    fields.selector.value = '';
+    pickedElement = null;
+    setStatus(`Enviado: ${data.annotation.id}`);
+  } catch (err) {
+    const message = err?.message || 'Falha de rede';
+    setStatus(`Falha ao conectar no GitIDE: ${message}. Verifique API Base, token, HTTPS e recarregue a extensão.`);
   }
-  fields.title.value = '';
-  fields.description.value = '';
-  fields.selector.value = '';
-  pickedElement = null;
-  setStatus(`Enviado: ${data.annotation.id}`);
 }
 
 document.getElementById('saveConfig').addEventListener('click', saveConfig);
