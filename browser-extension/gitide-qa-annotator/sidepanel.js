@@ -64,10 +64,22 @@ async function pickElement() {
 
 async function captureScreenshot() {
   if (!fields.includeScreenshot.checked) return null;
+  const tab = await getActiveTab();
   try {
+    if (tab?.id && pickedElement?.rect) {
+      await chrome.tabs.sendMessage(tab.id, {
+        type: 'GITIDE_QA_SHOW_EVIDENCE_MARKER',
+        rect: pickedElement.rect
+      }).catch(() => null);
+      await new Promise(resolve => setTimeout(resolve, 120));
+    }
     return await chrome.tabs.captureVisibleTab(null, { format: 'png', quality: 80 });
   } catch (_err) {
     return null;
+  } finally {
+    if (tab?.id) {
+      await chrome.tabs.sendMessage(tab.id, { type: 'GITIDE_QA_CLEAR_EVIDENCE_MARKER' }).catch(() => null);
+    }
   }
 }
 

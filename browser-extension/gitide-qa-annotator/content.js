@@ -24,6 +24,37 @@ function gitideQaSelectorFor(element) {
   return parts.join(' > ');
 }
 
+let gitideQaEvidenceMarker = null;
+
+function gitideQaRemoveEvidenceMarker() {
+  if (gitideQaEvidenceMarker) {
+    gitideQaEvidenceMarker.remove();
+    gitideQaEvidenceMarker = null;
+  }
+}
+
+function gitideQaShowEvidenceMarker(rect) {
+  gitideQaRemoveEvidenceMarker();
+  if (!rect || !Number.isFinite(rect.x) || !Number.isFinite(rect.y)) return;
+  const marker = document.createElement('div');
+  marker.setAttribute('data-gitide-qa-evidence', 'true');
+  marker.style.cssText = [
+    'position:fixed',
+    `left:${rect.x}px`,
+    `top:${rect.y}px`,
+    `width:${Math.max(rect.width, 8)}px`,
+    `height:${Math.max(rect.height, 8)}px`,
+    'z-index:2147483647',
+    'pointer-events:none',
+    'border:3px solid #ff4f7b',
+    'background:rgba(255,79,123,0.16)',
+    'border-radius:8px',
+    'box-shadow:0 0 0 9999px rgba(0,0,0,0.10), 0 0 0 6px rgba(255,79,123,0.18)'
+  ].join(';');
+  document.documentElement.appendChild(marker);
+  gitideQaEvidenceMarker = marker;
+}
+
 function gitideQaStartPicker(sendResponse) {
   const previousCursor = document.body.style.cursor;
   let highlighted = null;
@@ -100,7 +131,19 @@ function gitideQaStartPicker(sendResponse) {
 }
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
-  if (message?.type !== 'GITIDE_QA_PICK_ELEMENT') return false;
-  gitideQaStartPicker(sendResponse);
-  return true;
+  if (message?.type === 'GITIDE_QA_PICK_ELEMENT') {
+    gitideQaStartPicker(sendResponse);
+    return true;
+  }
+  if (message?.type === 'GITIDE_QA_SHOW_EVIDENCE_MARKER') {
+    gitideQaShowEvidenceMarker(message.rect);
+    sendResponse({ ok: true });
+    return false;
+  }
+  if (message?.type === 'GITIDE_QA_CLEAR_EVIDENCE_MARKER') {
+    gitideQaRemoveEvidenceMarker();
+    sendResponse({ ok: true });
+    return false;
+  }
+  return false;
 });
