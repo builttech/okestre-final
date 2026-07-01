@@ -98,6 +98,9 @@
                     <button class="nav-item" data-tab="tab-qa" title="QA">
                         <i data-lucide="bug"></i> <span class="nav-label">QA</span>
                     </button>
+                    <button class="nav-item" data-tab="tab-engineering-metrics" title="Engineering Metrics">
+                        <i data-lucide="chart-line"></i> <span class="nav-label">Engineering Metrics</span>
+                    </button>
                     <button class="nav-item" data-tab="tab-agent" title="Agente IA Nativo">
                         <i data-lucide="bot"></i> <span class="nav-label">Agente IA Nativo</span>
                     </button>
@@ -860,6 +863,102 @@ REGRA INQUEBRÁVEL: antes de executar qualquer task, valide REQ, DRI e Task List
                         </div>
                         <div class="qa-detail-body" id="qa-detail-body"></div>
                     </aside>
+                </div>
+
+                <!-- TAB: ENGINEERING METRICS -->
+                <div id="tab-engineering-metrics" class="tab-pane">
+                    <div class="engineering-metrics-layout">
+                        <section class="engineering-metrics-main card">
+                            <div class="engineering-metrics-header">
+                                <div>
+                                    <span class="qa-kicker">Engineering Intelligence</span>
+                                    <h4><i data-lucide="chart-line"></i> Métricas DORA</h4>
+                                    <p>Leitura operacional de velocidade, estabilidade, qualidade e governança com base em Git, deploys, QA e atividades do projeto.</p>
+                                </div>
+                                <div class="engineering-metrics-actions">
+                                    <select id="engineering-metrics-period" class="select-input">
+                                        <option value="7">Últimos 7 dias</option>
+                                        <option value="30" selected>Últimos 30 dias</option>
+                                        <option value="90">Últimos 90 dias</option>
+                                    </select>
+                                    <button class="btn btn-secondary btn-sm git-icon-action" id="btn-engineering-metrics-refresh" type="button" title="Atualizar métricas" aria-label="Atualizar métricas"><i data-lucide="refresh-cw"></i></button>
+                                </div>
+                            </div>
+
+                            <div class="engineering-metrics-scoreboard">
+                                <article class="engineering-score-card primary">
+                                    <span>Classificação DORA</span>
+                                    <strong id="dora-performance-level">-</strong>
+                                    <small id="dora-performance-note">Aguardando dados do projeto.</small>
+                                </article>
+                                <article class="engineering-score-card">
+                                    <span>Success Rate</span>
+                                    <strong id="dora-success-rate">-</strong>
+                                    <small>Tasks concluídas / tasks planejadas</small>
+                                </article>
+                                <article class="engineering-score-card">
+                                    <span>Risco operacional</span>
+                                    <strong id="dora-risk-level">-</strong>
+                                    <small id="dora-risk-note">QA, falhas e incidentes</small>
+                                </article>
+                            </div>
+
+                            <div class="engineering-dora-grid">
+                                <article class="engineering-dora-card">
+                                    <div>
+                                        <span>Deploy Frequency</span>
+                                        <strong id="metric-deploy-frequency">-</strong>
+                                    </div>
+                                    <small id="metric-deploy-frequency-context">Deploys por período</small>
+                                </article>
+                                <article class="engineering-dora-card">
+                                    <div>
+                                        <span>Lead Time</span>
+                                        <strong id="metric-lead-time">-</strong>
+                                    </div>
+                                    <small>Tempo médio entre mudança e deploy</small>
+                                </article>
+                                <article class="engineering-dora-card">
+                                    <div>
+                                        <span>Change Failure Rate</span>
+                                        <strong id="metric-failure-rate">-</strong>
+                                    </div>
+                                    <small>Falhas, rollbacks e QA crítico sobre deploys</small>
+                                </article>
+                                <article class="engineering-dora-card">
+                                    <div>
+                                        <span>Time to Recovery</span>
+                                        <strong id="metric-mttr">-</strong>
+                                    </div>
+                                    <small>Tempo estimado para recuperação</small>
+                                </article>
+                            </div>
+
+                            <div class="engineering-metrics-panels">
+                                <section class="engineering-panel">
+                                    <h5><i data-lucide="activity"></i> Fluxo de entrega</h5>
+                                    <div class="engineering-flow-bars" id="engineering-flow-bars"></div>
+                                </section>
+                                <section class="engineering-panel">
+                                    <h5><i data-lucide="shield-check"></i> Qualidade e governança</h5>
+                                    <div class="engineering-signal-list" id="engineering-signal-list"></div>
+                                </section>
+                            </div>
+                        </section>
+                        <aside class="engineering-metrics-side card">
+                            <h5><i data-lucide="info"></i> Como a métrica é calculada</h5>
+                            <p>Esta primeira leitura usa os sinais já disponíveis no GitIDE: commits, logs de deploy, comandos Ops, anotações QA e tasks em <code>.documents/task/task.md</code>.</p>
+                            <div class="engineering-formula">
+                                <label>Success Rate</label>
+                                <code>tasks concluídas / tasks planejadas</code>
+                            </div>
+                            <div class="engineering-formula">
+                                <label>Failure Rate</label>
+                                <code>falhas operacionais + QA crítico / deploys</code>
+                            </div>
+                            <p class="qa-side-note">Quando o fluxo Harness for usado de ponta a ponta, a leitura passa a representar o ciclo da solicitação até o deploy validado.</p>
+                        </aside>
+                    </div>
                 </div>
 
                 <!-- TAB: AGENT -->
@@ -1945,3 +2044,4 @@ REGRA INQUEBRÁVEL: antes de executar qualquer task, valide REQ, DRI e Task List
     <script src="/static/theme-toggle.js?v=1"></script>
 </body>
 </html>
+

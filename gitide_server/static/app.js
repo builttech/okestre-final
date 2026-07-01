@@ -37,7 +37,10 @@ const state = {
 
     // QA
     qaAnnotations: [],
-    qaView: 'list'
+    qaView: 'list',
+
+    // Engineering Metrics
+    engineeringMetrics: null
 };
 
 const workspaceDeleteState = {
@@ -298,6 +301,8 @@ function switchTab(tabId) {
             loadDesignTokens();
         } else if (tabId === 'tab-qa') {
             loadQaAnnotations();
+        } else if (tabId === 'tab-engineering-metrics') {
+            loadEngineeringMetrics();
         } else if (tabId === 'tab-agent') {
             loadAgentConfig();
         } else if (tabId === 'tab-database') {
@@ -3320,6 +3325,111 @@ function exportQaAnnotations(format) {
     window.open(url, '_blank');
 }
 
+async function loadEngineeringMetrics() {
+    if (!state.activeProjectId) return;
+    const period = document.getElementById('engineering-metrics-period')?.value || '30';
+    renderEngineeringMetricsLoading();
+    try {
+        const res = await fetch(`/api/projects/${state.activeProjectId}/engineering-metrics/dora?days=${encodeURIComponent(period)}`, {
+            headers: getHeaders()
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || 'Erro ao carregar métricas DORA');
+        state.engineeringMetrics = data;
+        renderEngineeringMetrics(data);
+    } catch (err) {
+        renderEngineeringMetricsError(err.message || String(err));
+    }
+}
+
+function setMetricText(id, value) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = value;
+}
+
+function renderEngineeringMetricsLoading() {
+    setMetricText('dora-performance-level', 'Carregando...');
+    setMetricText('dora-performance-note', 'Calculando sinais do projeto.');
+    setMetricText('dora-success-rate', '-');
+    setMetricText('dora-risk-level', '-');
+    setMetricText('dora-risk-note', '-');
+    setMetricText('metric-deploy-frequency', '-');
+    setMetricText('metric-deploy-frequency-context', 'Deploys por período');
+    setMetricText('metric-lead-time', '-');
+    setMetricText('metric-failure-rate', '-');
+    setMetricText('metric-mttr', '-');
+    const bars = document.getElementById('engineering-flow-bars');
+    const signals = document.getElementById('engineering-signal-list');
+    if (bars) bars.innerHTML = '<div class="engineering-empty">Carregando métricas...</div>';
+    if (signals) signals.innerHTML = '<div class="engineering-empty">Carregando sinais...</div>';
+}
+
+function renderEngineeringMetricsError(message) {
+    setMetricText('dora-performance-level', 'Erro');
+    setMetricText('dora-performance-note', message);
+    const bars = document.getElementById('engineering-flow-bars');
+    const signals = document.getElementById('engineering-signal-list');
+    if (bars) bars.innerHTML = `<div class="engineering-empty danger">${escapeHtml(message)}</div>`;
+    if (signals) signals.innerHTML = `<div class="engineering-empty danger">Não foi possível calcular agora.</div>`;
+}
+
+function engineeringMetricPercent(value, max = 100) {
+    if (value === null || value === undefined || Number.isNaN(Number(value))) return 0;
+    return Math.max(4, Math.min(100, (Number(value) / max) * 100));
+}
+
+function renderEngineeringMetrics(data) {
+    const metrics = data.metrics || {};
+    const signals = data.signals || {};
+    const success = metrics.success_rate || {};
+    const deployFrequency = metrics.deploy_frequency || {};
+    setMetricText('dora-performance-level', data.performance_level || '-');
+    setMetricText('dora-performance-note', `Baseado nos últimos ${data.period_days || 30} dias.`);
+    setMetricText('dora-success-rate', success.label || 'Sem dados');
+    setMetricText('dora-risk-level', data.risk_level || '-');
+    setMetricText('dora-risk-note', data.risk_note || '-');
+    setMetricText('metric-deploy-frequency', deployFrequency.label || 'Sem dados');
+    setMetricText('metric-deploy-frequency-context', deployFrequency.context || 'Deploys por período');
+    setMetricText('metric-lead-time', metrics.lead_time?.label || 'Sem dados');
+    setMetricText('metric-failure-rate', metrics.change_failure_rate?.label || 'Sem dados');
+    setMetricText('metric-mttr', metrics.mttr?.label || 'Sem dados');
+
+    const bars = document.getElementById('engineering-flow-bars');
+    if (bars) {
+        const flowItems = [
+            ['Commits', signals.commits || 0, Math.max(signals.commits || 0, 10)],
+            ['Deploys', signals.deploys || 0, Math.max(signals.deploys || 0, 5)],
+            ['Tasks concluídas', signals.tasks_done || 0, Math.max(signals.tasks_total || 0, 1)],
+            ['QA resolvidas', signals.qa_resolved || 0, Math.max((signals.qa_open || 0) + (signals.qa_reviewing || 0) + (signals.qa_resolved || 0), 1)]
+        ];
+        bars.innerHTML = flowItems.map(([label, value, max]) => `
+            <div class="engineering-flow-row">
+                <span>${escapeHtml(label)}</span>
+                <div class="engineering-flow-track"><i style="width:${engineeringMetricPercent(value, max)}%"></i></div>
+                <strong>${value}</strong>
+            </div>
+        `).join('');
+    }
+
+    const signalList = document.getElementById('engineering-signal-list');
+    if (signalList) {
+        const signalItems = [
+            ['Tasks', `${signals.tasks_done || 0}/${signals.tasks_total || 0} concluídas`, success.value === null || success.value === undefined ? 'neutral' : success.value >= 80 ? 'good' : 'warn'],
+            ['QA abertas', `${signals.qa_open || 0} abertas, ${signals.qa_reviewing || 0} em revisão`, (signals.qa_open || 0) === 0 ? 'good' : 'warn'],
+            ['QA crítica', `${signals.critical_open || 0} alta/crítica aberta`, (signals.critical_open || 0) === 0 ? 'good' : 'danger'],
+            ['Falhas operacionais', `${signals.failure_logs || 0} log(s) com falha`, (signals.failure_logs || 0) === 0 ? 'good' : 'danger']
+        ];
+        signalList.innerHTML = signalItems.map(([label, value, variant]) => `
+            <div class="engineering-signal ${variant}">
+                <span>${escapeHtml(label)}</span>
+                <strong>${escapeHtml(value)}</strong>
+            </div>
+        `).join('');
+    }
+
+    if (window.lucide) lucide.createIcons();
+}
+
 function gitideConfirm({ title = 'Confirmar ação', message = '', confirmText = 'Confirmar', cancelText = 'Cancelar', variant = 'info', kicker = 'GitIDE' } = {}) {
     return new Promise((resolve) => {
         const modal = document.getElementById('modal-confirm');
@@ -3732,6 +3842,8 @@ function setupEventListeners() {
     document.getElementById('btn-qa-copy-extension-config')?.addEventListener('click', copyQaExtensionConfig);
     document.getElementById('btn-qa-export-pdf')?.addEventListener('click', () => exportQaAnnotations('pdf'));
     document.getElementById('btn-qa-export-xlsx')?.addEventListener('click', () => exportQaAnnotations('xlsx'));
+    document.getElementById('btn-engineering-metrics-refresh')?.addEventListener('click', loadEngineeringMetrics);
+    document.getElementById('engineering-metrics-period')?.addEventListener('change', loadEngineeringMetrics);
     document.querySelectorAll('.qa-view-tab').forEach(btn => {
         btn.addEventListener('click', () => setQaView(btn.dataset.qaView));
     });

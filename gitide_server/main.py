@@ -14,7 +14,7 @@ import tempfile
 import unicodedata
 import zipfile
 from typing import Optional
-from datetime import datetime
+from datetime import datetime, timedelta
 from xml.sax.saxutils import escape as xml_escape
 
 from fastapi import FastAPI, Request, Depends, HTTPException, Security, status, Query, Response, UploadFile, File
@@ -2659,6 +2659,69 @@ def _qa_filtered_annotations(project: Project, status_filter: Optional[str] = No
     annotations.sort(key=lambda item: item.get("created_at", ""), reverse=True)
     return annotations
 
+def _run_git_metrics_command(project_path: str, args: list[str]) -> str:
+    try:
+        result = subprocess.run(
+            ["git", *args],
+            cwd=project_path,
+            capture_output=True,
+            text=True,
+            timeout=10,
+            encoding="utf-8",
+            errors="replace",
+        )
+        if result.returncode != 0:
+            return ""
+        return result.stdout.strip()
+    except Exception:
+        return ""
+
+def _format_duration_hours(hours: Optional[float]) -> str:
+    if hours is None:
+        return "Sem dados"
+    if hours < 1:
+        return f"{max(1, round(hours * 60))} min"
+    if hours < 24:
+        return f"{hours:.1f} h"
+    return f"{hours / 24:.1f} dias"
+
+def _format_percent(value: Optional[float]) -> str:
+    if value is None:
+        return "Sem dados"
+    return f"{round(value)}%"
+
+def _parse_task_metrics(project_path: str) -> dict:
+    task_path = os.path.join(project_path, ".documents", "task", "task.md")
+    if not os.path.exists(task_path):
+        return {"total": 0, "done": 0, "rate": None}
+    try:
+        with open(task_path, "r", encoding="utf-8", errors="replace") as f:
+            content = f.read()
+    except Exception:
+        return {"total": 0, "done": 0, "rate": None}
+    tasks = re.findall(r"^\s*-\s*\[([ xX])\]\s*TASK-", content, re.MULTILINE)
+    total = len(tasks)
+    done = sum(1 for marker in tasks if marker.lower() == "x")
+    return {"total": total, "done": done, "rate": (done / total * 100) if total else None}
+
+def _classify_dora(deploy_frequency_weekly: float, failure_rate: Optional[float], lead_time_hours: Optional[float], mttr_hours: Optional[float]) -> str:
+    score = 0
+    if deploy_frequency_weekly >= 5:
+        score += 2
+    elif deploy_frequency_weekly >= 1:
+        score += 1
+    if lead_time_hours is not None:
+        score += 2 if lead_time_hours <= 24 else 1 if lead_time_hours <= 168 else 0
+    if failure_rate is not None:
+        score += 2 if failure_rate <= 15 else 1 if failure_rate <= 30 else 0
+    if mttr_hours is not None:
+        score += 2 if mttr_hours <= 24 else 1 if mttr_hours <= 168 else 0
+    if score >= 7:
+        return "Alta performance"
+    if score >= 4:
+        return "Em evolução"
+    return "Base inicial"
+
 def _qa_status_label(status_value: str) -> str:
     return {
         "open": "Aberta",
@@ -3061,6 +3124,118 @@ def delete_qa_annotation(annotation_id: str, project: Project = Depends(get_proj
             os.remove(evidence_path)
     _write_qa_annotations(project, next_annotations)
     return {"status": "success", "deleted_id": annotation_id}
+
+@app.get("/api/projects/{project_id}/engineering-metrics/dora", tags=["Engineering Metrics"])
+def get_engineering_metrics_dora(
+    days: int = Query(30, ge=1, le=365),
+    project: Project = Depends(get_project_or_404),
+    db: Session = Depends(get_db),
+):
+    """Calcula uma leitura inicial de métricas DORA a partir de Git, logs, QA e tasks."""
+    since = datetime.utcnow() - timedelta(days=days)
+    deploy_logs = db.query(ActivityLog).filter(
+        ActivityLog.project_id == project.id,
+        ActivityLog.timestamp >= since,
+        ActivityLog.action_type.in_(["GIT_DEPLOY", "GIT_PUSH", "OPS_INFRA_DOMAIN", "OPS_INFRA_ARTIFACTS"]),
+    ).order_by(ActivityLog.timestamp.asc()).all()
+    operational_logs = db.query(ActivityLog).filter(
+        ActivityLog.project_id == project.id,
+        ActivityLog.timestamp >= since,
+    ).order_by(ActivityLog.timestamp.desc()).limit(200).all()
+
+    git_since = since.strftime("%Y-%m-%d")
+    commit_lines = _run_git_metrics_command(project.path, ["log", f"--since={git_since}", "--pretty=%ct"]).splitlines()
+    commit_timestamps = []
+    for line in commit_lines:
+        try:
+            commit_timestamps.append(datetime.utcfromtimestamp(int(line.strip())))
+        except Exception:
+            continue
+    commit_timestamps.sort()
+
+    lead_time_hours = None
+    lead_samples = []
+    if deploy_logs and commit_timestamps:
+        for deploy in deploy_logs:
+            previous_commits = [ts for ts in commit_timestamps if ts <= deploy.timestamp]
+            if previous_commits:
+                lead_samples.append((deploy.timestamp - previous_commits[-1]).total_seconds() / 3600)
+        if lead_samples:
+            lead_time_hours = sum(lead_samples) / len(lead_samples)
+
+    annotations = _read_qa_annotations(project)
+    period_annotations = [item for item in annotations if str(item.get("created_at", "")) >= since.isoformat()]
+    critical_open = [
+        item for item in period_annotations
+        if item.get("status", "open") != "resolved" and item.get("severity") in {"high", "critical"}
+    ]
+    resolved = [item for item in period_annotations if item.get("status") == "resolved"]
+    open_items = [item for item in period_annotations if item.get("status", "open") == "open"]
+    reviewing_items = [item for item in period_annotations if item.get("status") == "reviewing"]
+
+    failure_markers = ("fail", "erro", "error", "rollback", "abort", "conflito", "conflict", "hotfix", "Exit: 1")
+    failure_logs = [
+        log for log in operational_logs
+        if any(marker.lower() in f"{log.action_type} {log.details or ''}".lower() for marker in failure_markers)
+    ]
+    failures = len(failure_logs) + len(critical_open)
+    deploy_count = len(deploy_logs)
+    failure_rate = (failures / deploy_count * 100) if deploy_count else (100 if failures else None)
+
+    mttr_hours = None
+    recovery_samples = []
+    for item in resolved:
+        created = str(item.get("created_at", "")).replace("Z", "")
+        updated = str(item.get("updated_at", "")).replace("Z", "")
+        try:
+            recovery_samples.append((datetime.fromisoformat(updated) - datetime.fromisoformat(created)).total_seconds() / 3600)
+        except Exception:
+            continue
+    if recovery_samples:
+        mttr_hours = sum(recovery_samples) / len(recovery_samples)
+
+    task_metrics = _parse_task_metrics(project.path)
+    deploy_frequency_weekly = deploy_count / max(days / 7, 1 / 7)
+    performance = _classify_dora(deploy_frequency_weekly, failure_rate, lead_time_hours, mttr_hours)
+    risk_level = "Baixo" if not critical_open and (failure_rate is None or failure_rate <= 15) else "Médio" if len(critical_open) <= 2 else "Alto"
+
+    return {
+        "period_days": days,
+        "performance_level": performance,
+        "risk_level": risk_level,
+        "risk_note": f"{len(critical_open)} QA crítico/alto aberto e {len(failure_logs)} log(s) com falha.",
+        "metrics": {
+            "deploy_frequency": {
+                "value": deploy_frequency_weekly,
+                "label": f"{deploy_frequency_weekly:.1f}/semana",
+                "context": f"{deploy_count} deploy(s) nos últimos {days} dias",
+            },
+            "lead_time": {"value_hours": lead_time_hours, "label": _format_duration_hours(lead_time_hours)},
+            "change_failure_rate": {"value": failure_rate, "label": _format_percent(failure_rate)},
+            "mttr": {"value_hours": mttr_hours, "label": _format_duration_hours(mttr_hours)},
+            "success_rate": {
+                "value": task_metrics["rate"],
+                "label": _format_percent(task_metrics["rate"]),
+                "done": task_metrics["done"],
+                "total": task_metrics["total"],
+            },
+        },
+        "signals": {
+            "commits": len(commit_timestamps),
+            "deploys": deploy_count,
+            "qa_open": len(open_items),
+            "qa_reviewing": len(reviewing_items),
+            "qa_resolved": len(resolved),
+            "critical_open": len(critical_open),
+            "failure_logs": len(failure_logs),
+            "tasks_total": task_metrics["total"],
+            "tasks_done": task_metrics["done"],
+        },
+        "recent_deploys": [
+            {"timestamp": log.timestamp.isoformat() + "Z", "type": log.action_type, "details": log.details or ""}
+            for log in deploy_logs[-8:]
+        ],
+    }
 
 def _sdd_charter_path(project: Project) -> str:
     return os.path.join(_sdd_documents_dir(project), "project-charter.md")
