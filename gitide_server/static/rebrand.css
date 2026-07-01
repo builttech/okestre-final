@@ -3873,6 +3873,14 @@ input[type="checkbox"]:focus-visible{
     min-width:0;
 }
 
+.qa-export-actions{
+    display:flex;
+    align-items:center;
+    justify-content:flex-end;
+    gap:8px;
+    flex-wrap:wrap;
+}
+
 .qa-view-tabs{
     display:inline-flex;
     padding:3px;
@@ -4300,7 +4308,8 @@ input[type="checkbox"]:focus-visible{
     }
 
     .qa-toolbar,
-    .qa-toolbar-left{
+    .qa-toolbar-left,
+    .qa-export-actions{
         align-items:stretch;
         flex-direction:column;
     }

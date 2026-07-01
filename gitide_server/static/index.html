@@ -17,7 +17,7 @@
     <link rel="stylesheet" href="/static/workspace-switcher-refactor.css?v=2">
     <link rel="stylesheet" href="/static/workspace-native-fallback.css?v=1">
     <link rel="stylesheet" href="/static/settings-tabs.css?v=1">
-    <link rel="stylesheet" href="/static/rebrand.css?v=27">
+    <link rel="stylesheet" href="/static/rebrand.css?v=28">
     <script src="/static/lucide-bootstrap.js"></script>
     <script defer src="/static/ui/workspace-switcher.js?v=3"></script>
     <script defer src="/static/settings-tabs.js?v=4"></script>
@@ -803,7 +803,11 @@ REGRA INQUEBRÁVEL: antes de executar qualquer task, valide REQ, DRI e Task List
                                         <option value="resolved">Resolvidas</option>
                                     </select>
                                 </div>
-                                <button class="btn btn-secondary" id="btn-qa-copy-extension-config" type="button"><i data-lucide="copy"></i> Copiar config da extensão</button>
+                                <div class="qa-export-actions">
+                                    <button class="btn btn-secondary" id="btn-qa-export-pdf" type="button"><i data-lucide="file-text"></i> PDF</button>
+                                    <button class="btn btn-secondary" id="btn-qa-export-xlsx" type="button"><i data-lucide="table"></i> XLSX</button>
+                                    <button class="btn btn-secondary" id="btn-qa-copy-extension-config" type="button"><i data-lucide="copy"></i> Copiar config da extensão</button>
+                                </div>
                             </div>
                             <div id="qa-annotations-list" class="qa-annotations-list">
                                 <div class="qa-empty-state">
@@ -1937,7 +1941,7 @@ REGRA INQUEBRÁVEL: antes de executar qualquer task, valide REQ, DRI e Task List
     </div>
 
     <!-- Custom JavaScript -->
-    <script src="/static/app.js?v=47"></script>
+    <script src="/static/app.js?v=48"></script>
     <script src="/static/theme-toggle.js?v=1"></script>
 </body>
 </html>

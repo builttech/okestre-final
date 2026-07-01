@@ -3293,6 +3293,18 @@ function copyQaExtensionConfig() {
     });
 }
 
+function exportQaAnnotations(format) {
+    if (!state.activeProjectId) {
+        gitideNotify({ title: 'Projeto obrigatório', message: 'Selecione um projeto antes de exportar.', variant: 'warning' });
+        return;
+    }
+    const safeFormat = format === 'xlsx' ? 'xlsx' : 'pdf';
+    const filter = document.getElementById('qa-status-filter')?.value || '';
+    const query = filter ? `?status=${encodeURIComponent(filter)}` : '';
+    const url = `/api/projects/${state.activeProjectId}/qa/export.${safeFormat}${query}`;
+    window.open(url, '_blank');
+}
+
 function gitideConfirm({ title = 'Confirmar ação', message = '', confirmText = 'Confirmar', cancelText = 'Cancelar', variant = 'info', kicker = 'GitIDE' } = {}) {
     return new Promise((resolve) => {
         const modal = document.getElementById('modal-confirm');
@@ -3703,6 +3715,8 @@ function setupEventListeners() {
     document.getElementById('btn-qa-refresh')?.addEventListener('click', loadQaAnnotations);
     document.getElementById('qa-status-filter')?.addEventListener('change', loadQaAnnotations);
     document.getElementById('btn-qa-copy-extension-config')?.addEventListener('click', copyQaExtensionConfig);
+    document.getElementById('btn-qa-export-pdf')?.addEventListener('click', () => exportQaAnnotations('pdf'));
+    document.getElementById('btn-qa-export-xlsx')?.addEventListener('click', () => exportQaAnnotations('xlsx'));
     document.querySelectorAll('.qa-view-tab').forEach(btn => {
         btn.addEventListener('click', () => setQaView(btn.dataset.qaView));
     });

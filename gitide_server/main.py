@@ -5,6 +5,7 @@ import json
 import base64
 import hashlib
 import hmac
+import io
 import secrets
 import subprocess
 import sqlite3
@@ -13,6 +14,7 @@ import tempfile
 import zipfile
 from typing import Optional
 from datetime import datetime
+from xml.sax.saxutils import escape as xml_escape
 
 from fastapi import FastAPI, Request, Depends, HTTPException, Security, status, Query, Response, UploadFile, File
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -205,6 +207,8 @@ ensure_root_user()
 async def require_authenticated_session(request: Request, call_next):
     path = request.url.path
     public_paths = {"/login", "/api/auth/login", "/favicon.ico"}
+    if request.method == "OPTIONS":
+        return await call_next(request)
     if path in public_paths:
         return await call_next(request)
     if has_valid_bearer(request) or get_current_user_from_request(request):
@@ -2584,6 +2588,165 @@ def _write_qa_annotations(project: Project, annotations: list):
     with open(path, "w", encoding="utf-8") as f:
         json.dump(annotations, f, ensure_ascii=False, indent=2)
 
+def _qa_filtered_annotations(project: Project, status_filter: Optional[str] = None) -> list:
+    annotations = _read_qa_annotations(project)
+    if status_filter:
+        annotations = [item for item in annotations if item.get("status") == status_filter]
+    annotations.sort(key=lambda item: item.get("created_at", ""), reverse=True)
+    return annotations
+
+def _qa_status_label(status_value: str) -> str:
+    return {
+        "open": "Aberta",
+        "reviewing": "Em revisão",
+        "resolved": "Resolvida",
+    }.get(status_value or "open", "Aberta")
+
+def _qa_export_rows(annotations: list) -> list:
+    rows = []
+    for item in annotations:
+        metadata = item.get("metadata") or {}
+        viewport = item.get("viewport") or {}
+        rows.append({
+            "ID": item.get("id", ""),
+            "Título": item.get("title", ""),
+            "Descrição": item.get("description", ""),
+            "Severidade": item.get("severity", ""),
+            "Status": _qa_status_label(item.get("status", "")),
+            "URL": item.get("url", ""),
+            "Seletor": item.get("selector", ""),
+            "Viewport": f"{viewport.get('width', '')} x {viewport.get('height', '')}",
+            "Aba": metadata.get("tabTitle", ""),
+            "Texto selecionado": metadata.get("selectedText", ""),
+            "Criado em": item.get("created_at", ""),
+            "Atualizado em": item.get("updated_at", ""),
+        })
+    return rows
+
+def _xlsx_col_name(index: int) -> str:
+    name = ""
+    while index:
+        index, rem = divmod(index - 1, 26)
+        name = chr(65 + rem) + name
+    return name
+
+def _xlsx_cell(value) -> str:
+    value = "" if value is None else str(value)
+    return f'<c t="inlineStr"><is><t>{xml_escape(value)}</t></is></c>'
+
+def _build_qa_xlsx(annotations: list) -> bytes:
+    rows = _qa_export_rows(annotations)
+    headers = list(rows[0].keys()) if rows else ["ID", "Título", "Descrição", "Severidade", "Status", "URL", "Seletor", "Viewport", "Aba", "Texto selecionado", "Criado em", "Atualizado em"]
+    sheet_rows = []
+    sheet_rows.append("<row>" + "".join(_xlsx_cell(header) for header in headers) + "</row>")
+    for row in rows:
+        sheet_rows.append("<row>" + "".join(_xlsx_cell(row.get(header, "")) for header in headers) + "</row>")
+    cols = "".join(f'<col min="{i}" max="{i}" width="{min(max(len(header) + 4, 14), 42)}" customWidth="1"/>' for i, header in enumerate(headers, 1))
+    sheet = (
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+        '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" '
+        'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">'
+        f"<cols>{cols}</cols><sheetData>{''.join(sheet_rows)}</sheetData></worksheet>"
+    )
+    workbook = (
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+        '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" '
+        'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">'
+        '<sheets><sheet name="QA Annotations" sheetId="1" r:id="rId1"/></sheets></workbook>'
+    )
+    rels = (
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+        '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+        '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>'
+        '</Relationships>'
+    )
+    workbook_rels = (
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+        '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+        '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>'
+        '</Relationships>'
+    )
+    content_types = (
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+        '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">'
+        '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>'
+        '<Default Extension="xml" ContentType="application/xml"/>'
+        '<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>'
+        '<Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>'
+        '</Types>'
+    )
+    buffer = io.BytesIO()
+    with zipfile.ZipFile(buffer, "w", compression=zipfile.ZIP_DEFLATED) as zf:
+        zf.writestr("[Content_Types].xml", content_types)
+        zf.writestr("_rels/.rels", rels)
+        zf.writestr("xl/workbook.xml", workbook)
+        zf.writestr("xl/_rels/workbook.xml.rels", workbook_rels)
+        zf.writestr("xl/worksheets/sheet1.xml", sheet)
+    return buffer.getvalue()
+
+def _pdf_hex_text(text: str) -> str:
+    return (b"\xfe\xff" + (text or "").encode("utf-16-be", errors="replace")).hex().upper()
+
+def _pdf_escape_stream(text: str) -> str:
+    return text.replace("\\", "\\\\").replace("(", "\\(").replace(")", "\\)")
+
+def _build_qa_pdf(annotations: list, project_name: str) -> bytes:
+    rows = _qa_export_rows(annotations)
+    pages = []
+    page_lines = [
+        f"Relatório QA - {project_name}",
+        f"Gerado em {datetime.utcnow().isoformat()}Z",
+        f"Total de anotações: {len(rows)}",
+        "",
+    ]
+    for row in rows:
+        page_lines.extend([
+            f"{row['ID']} | {row['Status']} | {row['Severidade']}",
+            row["Título"],
+            f"URL: {row['URL']}",
+            f"Seletor: {row['Seletor']}",
+            f"Descrição: {row['Descrição']}",
+            "",
+        ])
+    if not rows:
+        page_lines.append("Nenhuma anotação QA encontrada.")
+
+    max_lines = 36
+    for i in range(0, len(page_lines), max_lines):
+        pages.append(page_lines[i:i + max_lines])
+
+    objects = []
+    objects.append("<< /Type /Catalog /Pages 2 0 R >>")
+    page_refs = []
+    for index, lines in enumerate(pages, start=1):
+        page_obj_no = 3 + (index - 1) * 2
+        content_obj_no = page_obj_no + 1
+        page_refs.append(f"{page_obj_no} 0 R")
+        objects.append(f"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 {3 + len(pages) * 2} 0 R >> >> /Contents {content_obj_no} 0 R >>")
+        y = 800
+        stream_parts = ["BT", "/F1 10 Tf"]
+        for line in lines:
+            safe = _pdf_escape_stream(line[:140])
+            stream_parts.append(f"1 0 0 1 50 {y} Tm ({safe}) Tj")
+            y -= 16
+        stream_parts.append("ET")
+        stream = "\n".join(stream_parts)
+        objects.append(f"<< /Length {len(stream.encode('utf-8'))} >>\nstream\n{stream}\nendstream")
+    objects.insert(1, f"<< /Type /Pages /Kids [{' '.join(page_refs)}] /Count {len(page_refs)} >>")
+    objects.append("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>")
+
+    pdf = bytearray(b"%PDF-1.4\n")
+    offsets = [0]
+    for number, obj in enumerate(objects, start=1):
+        offsets.append(len(pdf))
+        pdf.extend(f"{number} 0 obj\n{obj}\nendobj\n".encode("utf-8"))
+    xref_offset = len(pdf)
+    pdf.extend(f"xref\n0 {len(objects) + 1}\n0000000000 65535 f \n".encode("ascii"))
+    for offset in offsets[1:]:
+        pdf.extend(f"{offset:010d} 00000 n \n".encode("ascii"))
+    pdf.extend(f"trailer\n<< /Size {len(objects) + 1} /Root 1 0 R >>\nstartxref\n{xref_offset}\n%%EOF\n".encode("ascii"))
+    return bytes(pdf)
+
 @app.get("/api/projects/{project_id}/qa/annotations", tags=["QA"])
 def list_qa_annotations(
     status_filter: Optional[str] = Query(None, alias="status"),
@@ -2595,6 +2758,28 @@ def list_qa_annotations(
         annotations = [item for item in annotations if item.get("status") == status_filter]
     annotations.sort(key=lambda item: item.get("created_at", ""), reverse=True)
     return {"annotations": annotations, "total": len(annotations)}
+
+@app.get("/api/projects/{project_id}/qa/export.xlsx", tags=["QA"])
+def export_qa_annotations_xlsx(status_filter: Optional[str] = Query(None, alias="status"), project: Project = Depends(get_project_or_404)):
+    annotations = _qa_filtered_annotations(project, status_filter)
+    content = _build_qa_xlsx(annotations)
+    filename = f"qa-annotations-{datetime.utcnow().strftime('%Y%m%d-%H%M%S')}.xlsx"
+    return Response(
+        content=content,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+    )
+
+@app.get("/api/projects/{project_id}/qa/export.pdf", tags=["QA"])
+def export_qa_annotations_pdf(status_filter: Optional[str] = Query(None, alias="status"), project: Project = Depends(get_project_or_404)):
+    annotations = _qa_filtered_annotations(project, status_filter)
+    content = _build_qa_pdf(annotations, project.name)
+    filename = f"qa-annotations-{datetime.utcnow().strftime('%Y%m%d-%H%M%S')}.pdf"
+    return Response(
+        content=content,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+    )
 
 @app.post("/api/projects/{project_id}/qa/annotations", tags=["QA"])
 def create_qa_annotation(payload: QaAnnotationInput, project: Project = Depends(get_project_or_404)):
