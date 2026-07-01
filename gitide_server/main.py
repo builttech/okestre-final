@@ -2574,6 +2574,65 @@ def _qa_annotations_path(project: Project) -> str:
     os.makedirs(qa_dir, exist_ok=True)
     return os.path.join(qa_dir, "annotations.json")
 
+def _qa_evidence_dir(project: Project) -> str:
+    evidence_dir = os.path.join(project.path, ".documents", "qa", "evidence")
+    os.makedirs(evidence_dir, exist_ok=True)
+    return evidence_dir
+
+def _store_qa_screenshot(project: Project, annotation_id: str, data_url: Optional[str]) -> dict:
+    if not data_url or not data_url.startswith("data:image/"):
+        return {}
+    header, _, payload = data_url.partition(",")
+    if not payload:
+        return {}
+    mime = header.split(";", 1)[0].replace("data:", "").lower()
+    extension = {
+        "image/jpeg": "jpg",
+        "image/jpg": "jpg",
+        "image/png": "png",
+        "image/webp": "webp",
+    }.get(mime)
+    if not extension:
+        return {}
+    try:
+        image_bytes = base64.b64decode(payload, validate=False)
+    except Exception:
+        return {}
+    filename = f"{re.sub(r'[^A-Za-z0-9_-]', '_', annotation_id)}.{extension}"
+    path = os.path.join(_qa_evidence_dir(project), filename)
+    with open(path, "wb") as f:
+        f.write(image_bytes)
+    return {
+        "screenshot": None,
+        "screenshot_file": filename,
+        "screenshot_mime": mime,
+    }
+
+def _externalize_qa_screenshots(project: Project, annotations: list) -> bool:
+    changed = False
+    for item in annotations:
+        screenshot = item.get("screenshot")
+        if isinstance(screenshot, str) and screenshot.startswith("data:image/"):
+            annotation_id = item.get("id") or f"QA-{secrets.token_hex(4).upper()}"
+            item["id"] = annotation_id
+            stored = _store_qa_screenshot(project, annotation_id, screenshot)
+            if stored:
+                item.update(stored)
+                changed = True
+    return changed
+
+def _qa_screenshot_url(project: Project, item: dict) -> str:
+    filename = item.get("screenshot_file")
+    if filename:
+        return f"/api/projects/{project.id}/qa/evidence/{filename}"
+    screenshot = item.get("screenshot")
+    return screenshot if isinstance(screenshot, str) else ""
+
+def _qa_public_annotation(project: Project, item: dict) -> dict:
+    public = dict(item)
+    public["screenshot"] = _qa_screenshot_url(project, item)
+    return public
+
 def _read_qa_annotations(project: Project) -> list:
     path = _qa_annotations_path(project)
     if not os.path.exists(path):
@@ -2581,7 +2640,10 @@ def _read_qa_annotations(project: Project) -> list:
     try:
         with open(path, "r", encoding="utf-8") as f:
             data = json.load(f)
-            return data if isinstance(data, list) else []
+            annotations = data if isinstance(data, list) else []
+            if _externalize_qa_screenshots(project, annotations):
+                _write_qa_annotations(project, annotations)
+            return annotations
     except Exception:
         return []
 
@@ -2730,6 +2792,28 @@ def _qa_screenshot_to_pdf_image(data_url: Optional[str]) -> Optional[dict]:
         "height": height,
     }
 
+def _qa_annotation_pdf_image(project: Project, item: dict) -> Optional[dict]:
+    filename = item.get("screenshot_file")
+    if filename:
+        safe_name = os.path.basename(filename)
+        path = os.path.join(_qa_evidence_dir(project), safe_name)
+        if not os.path.exists(path) or not safe_name.lower().endswith((".jpg", ".jpeg")):
+            return None
+        try:
+            with open(path, "rb") as f:
+                image_bytes = f.read()
+            width, height = _jpeg_dimensions(image_bytes)
+        except Exception:
+            return None
+        if not width or not height:
+            return None
+        return {
+            "bytes": image_bytes,
+            "width": width,
+            "height": height,
+        }
+    return _qa_screenshot_to_pdf_image(item.get("screenshot"))
+
 def _jpeg_dimensions(image_bytes: bytes) -> tuple[int, int]:
     index = 2
     length = len(image_bytes)
@@ -2774,7 +2858,8 @@ def _pdf_image_object(image: dict) -> bytes:
     ).encode("ascii")
     return dictionary + image_bytes + b"\nendstream"
 
-def _build_qa_pdf(annotations: list, project_name: str) -> bytes:
+def _build_qa_pdf(annotations: list, project: Project) -> bytes:
+    project_name = project.name
     rows = _qa_export_rows(annotations)
     objects: list[bytes] = [
         b"<< /Type /Catalog /Pages 2 0 R >>",
@@ -2836,7 +2921,7 @@ def _build_qa_pdf(annotations: list, project_name: str) -> bytes:
     ])
 
     for item, row in zip(annotations, rows):
-        image = _qa_screenshot_to_pdf_image(item.get("screenshot"))
+        image = _qa_annotation_pdf_image(project, item)
         lines = [
             f"{row['ID']} | {row['Status']} | {row['Severidade']}",
             f"Tipo: {row['Tipo']}",
@@ -2878,7 +2963,18 @@ def list_qa_annotations(
     if status_filter:
         annotations = [item for item in annotations if item.get("status") == status_filter]
     annotations.sort(key=lambda item: item.get("created_at", ""), reverse=True)
-    return {"annotations": annotations, "total": len(annotations)}
+    return {"annotations": [_qa_public_annotation(project, item) for item in annotations], "total": len(annotations)}
+
+@app.get("/api/projects/{project_id}/qa/evidence/{filename}", tags=["QA"])
+def get_qa_evidence(filename: str, project: Project = Depends(get_project_or_404)):
+    """Serve a evidência visual de uma anotação QA sem manter base64 no JSON."""
+    safe_name = os.path.basename(filename)
+    if safe_name != filename:
+        raise HTTPException(status_code=400, detail="Nome de evidência inválido.")
+    path = os.path.join(_qa_evidence_dir(project), safe_name)
+    if not os.path.exists(path):
+        raise HTTPException(status_code=404, detail="Evidência QA não encontrada.")
+    return FileResponse(path)
 
 @app.get("/api/projects/{project_id}/qa/export.xlsx", tags=["QA"])
 def export_qa_annotations_xlsx(status_filter: Optional[str] = Query(None, alias="status"), project: Project = Depends(get_project_or_404)):
@@ -2894,7 +2990,7 @@ def export_qa_annotations_xlsx(status_filter: Optional[str] = Query(None, alias=
 @app.get("/api/projects/{project_id}/qa/export.pdf", tags=["QA"])
 def export_qa_annotations_pdf(status_filter: Optional[str] = Query(None, alias="status"), project: Project = Depends(get_project_or_404)):
     annotations = _qa_filtered_annotations(project, status_filter)
-    content = _build_qa_pdf(annotations, project.name)
+    content = _build_qa_pdf(annotations, project)
     filename = f"qa-annotations-{datetime.utcnow().strftime('%Y%m%d-%H%M%S')}.pdf"
     return Response(
         content=content,
@@ -2909,8 +3005,10 @@ def create_qa_annotation(payload: QaAnnotationInput, project: Project = Depends(
     severity = payload.severity if payload.severity in {"low", "medium", "high", "critical"} else "medium"
     category = payload.category if payload.category in {"functional", "interface", "content", "interaction", "design", "structure", "visual"} else "functional"
     status_value = payload.status if payload.status in {"open", "reviewing", "resolved"} else "open"
+    annotation_id = f"QA-{secrets.token_hex(4).upper()}"
+    screenshot_data = _store_qa_screenshot(project, annotation_id, payload.screenshot)
     annotation = {
-        "id": f"QA-{secrets.token_hex(4).upper()}",
+        "id": annotation_id,
         "title": payload.title.strip()[:160] or "Anotação QA",
         "description": payload.description.strip(),
         "url": payload.url.strip(),
@@ -2920,7 +3018,8 @@ def create_qa_annotation(payload: QaAnnotationInput, project: Project = Depends(
         "selector": payload.selector.strip(),
         "viewport": payload.viewport or {},
         "browser": payload.browser.strip(),
-        "screenshot": payload.screenshot,
+        "screenshot": None,
+        **screenshot_data,
         "metadata": payload.metadata or {},
         "created_at": now,
         "updated_at": now,
@@ -2928,7 +3027,7 @@ def create_qa_annotation(payload: QaAnnotationInput, project: Project = Depends(
     annotations = _read_qa_annotations(project)
     annotations.append(annotation)
     _write_qa_annotations(project, annotations)
-    return {"status": "success", "annotation": annotation}
+    return {"status": "success", "annotation": _qa_public_annotation(project, annotation)}
 
 @app.patch("/api/projects/{project_id}/qa/annotations/{annotation_id}", tags=["QA"])
 def update_qa_annotation_status(
@@ -2945,16 +3044,21 @@ def update_qa_annotation_status(
             item["status"] = payload.status
             item["updated_at"] = datetime.utcnow().isoformat() + "Z"
             _write_qa_annotations(project, annotations)
-            return {"status": "success", "annotation": item}
+            return {"status": "success", "annotation": _qa_public_annotation(project, item)}
     raise HTTPException(status_code=404, detail="Anotação QA não encontrada.")
 
 @app.delete("/api/projects/{project_id}/qa/annotations/{annotation_id}", tags=["QA"])
 def delete_qa_annotation(annotation_id: str, project: Project = Depends(get_project_or_404)):
     """Remove uma anotação de QA."""
     annotations = _read_qa_annotations(project)
+    removed = next((item for item in annotations if item.get("id") == annotation_id), None)
     next_annotations = [item for item in annotations if item.get("id") != annotation_id]
     if len(next_annotations) == len(annotations):
         raise HTTPException(status_code=404, detail="Anotação QA não encontrada.")
+    if removed and removed.get("screenshot_file"):
+        evidence_path = os.path.join(_qa_evidence_dir(project), os.path.basename(removed["screenshot_file"]))
+        if os.path.exists(evidence_path):
+            os.remove(evidence_path)
     _write_qa_annotations(project, next_annotations)
     return {"status": "success", "deleted_id": annotation_id}
 

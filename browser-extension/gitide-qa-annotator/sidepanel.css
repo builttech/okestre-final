@@ -69,6 +69,18 @@ label {
   font-weight: 700;
 }
 
+.field-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 11px 0 6px;
+}
+
+.field-header label {
+  margin: 0;
+}
+
 input,
 textarea,
 select {
@@ -116,6 +128,15 @@ button.secondary {
   margin-top: 8px;
   background: #17171a;
   color: #f8fafc;
+}
+
+button.inline-action {
+  min-width: 34px;
+  min-height: 28px;
+  padding: 0 9px;
+  border-radius: 8px;
+  color: #f8fafc;
+  font-size: 11px;
 }
 
 .row {

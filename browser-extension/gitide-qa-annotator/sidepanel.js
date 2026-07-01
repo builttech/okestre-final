@@ -91,6 +91,53 @@ function buildNetworkErrorMessage(err) {
   return `Falha de conexão: ${message}. Se só ocorre nesta máquina, verifique VPN/proxy/firewall, permissão da extensão e se https://ide.builtt.com.br abre neste navegador.`;
 }
 
+function polishDescriptionText() {
+  const original = fields.description.value.trim();
+  if (!original) {
+    setStatus('Escreva uma descrição antes de corrigir com IA.');
+    return;
+  }
+  const polished = applyLocalTextPolish(original);
+  fields.description.value = polished;
+  setStatus(polished === original ? 'Texto já está adequado.' : 'Descrição revisada.');
+}
+
+function applyLocalTextPolish(text) {
+  let output = text
+    .replace(/\s+/g, ' ')
+    .replace(/\s+([,.!?;:])/g, '$1')
+    .replace(/([,.!?;:])([^\s])/g, '$1 $2')
+    .trim();
+
+  const replacements = [
+    [/\bespaço\b/gi, 'espaço'],
+    [/\bganhar espaço\b/gi, 'ganhar espaço'],
+    [/\bcomprmidas\b/gi, 'comprimidas'],
+    [/\bcomprimida\b/gi, 'comprimida'],
+    [/\bficarem\b/gi, 'ficarem'],
+    [/\bopçoes\b/gi, 'opções'],
+    [/\bopcoes\b/gi, 'opções'],
+    [/\bnao\b/gi, 'não'],
+    [/\bpara nao\b/gi, 'para não'],
+    [/\bdisplay no top\b/gi, 'Display no topo'],
+    [/\bbtn\b/gi, 'botão'],
+    [/\bmarge\b/gi, 'merge'],
+    [/\bdeletar\b/gi, 'excluir']
+  ];
+
+  replacements.forEach(([pattern, value]) => {
+    output = output.replace(pattern, value);
+  });
+
+  output = output
+    .split(/(?<=[.!?])\s+/)
+    .map(sentence => sentence.charAt(0).toUpperCase() + sentence.slice(1))
+    .join(' ');
+
+  if (!/[.!?]$/.test(output)) output += '.';
+  return output;
+}
+
 async function pickElement() {
   const tab = await getActiveTab();
   if (!tab?.id) return;
@@ -247,6 +294,7 @@ async function sendAnnotation() {
 
 document.getElementById('saveConfig').addEventListener('click', saveConfig);
 document.getElementById('testConnection').addEventListener('click', testConnection);
+document.getElementById('polishDescription').addEventListener('click', polishDescriptionText);
 document.getElementById('pickElement').addEventListener('click', pickElement);
 document.getElementById('sendAnnotation').addEventListener('click', sendAnnotation);
 
