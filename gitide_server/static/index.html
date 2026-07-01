@@ -12,12 +12,12 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://unpkg.com/lucide@latest"></script>
     <!-- Custom CSS -->
-    <link rel="stylesheet" href="/static/style.css?v=11">
+    <link rel="stylesheet" href="/static/style.css?v=12">
     <link rel="stylesheet" href="/static/lucide-icons.css?v=1">
     <link rel="stylesheet" href="/static/workspace-switcher-refactor.css?v=2">
     <link rel="stylesheet" href="/static/workspace-native-fallback.css?v=1">
     <link rel="stylesheet" href="/static/settings-tabs.css?v=1">
-    <link rel="stylesheet" href="/static/rebrand.css?v=29">
+    <link rel="stylesheet" href="/static/rebrand.css?v=31">
     <script src="/static/lucide-bootstrap.js"></script>
     <script defer src="/static/ui/workspace-switcher.js?v=3"></script>
     <script defer src="/static/settings-tabs.js?v=4"></script>
@@ -2039,8 +2039,20 @@ REGRA INQUEBRÁVEL: antes de executar qualquer task, valide REQ, DRI e Task List
         </div>
     </div>
 
+    <div class="qa-drawer-backdrop" id="sdd-task-detail-backdrop"></div>
+    <aside class="qa-detail-drawer sdd-task-detail-drawer" id="sdd-task-detail-drawer" aria-hidden="true">
+        <div class="qa-detail-header">
+            <div>
+                <span id="sdd-task-detail-id">TASK</span>
+                <h4 id="sdd-task-detail-title">Detalhe da tarefa</h4>
+            </div>
+            <button class="btn-icon" id="btn-sdd-task-detail-close" type="button" title="Fechar"><i data-lucide="x"></i></button>
+        </div>
+        <div class="qa-detail-body sdd-task-detail-body" id="sdd-task-detail-body"></div>
+    </aside>
+
     <!-- Custom JavaScript -->
-    <script src="/static/app.js?v=49"></script>
+    <script src="/static/app.js?v=51"></script>
     <script src="/static/theme-toggle.js?v=1"></script>
 </body>
 </html>

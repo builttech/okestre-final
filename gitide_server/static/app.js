@@ -7937,11 +7937,165 @@ function sddRenderCriteria(criteria) {
                 <span class="sdd-task-toggle-dot"></span>
             </button>
             <span class="sdd-criteria-text">${escapeHtml(c.text)}</span>
+            <button type="button"
+                    class="sdd-task-detail-action"
+                    title="Visualizar detalhe da task"
+                    aria-label="Visualizar detalhe da task"
+                    onclick="sddOpenTaskDetail(${c.line_no})">
+                <i data-lucide="file-text"></i>
+            </button>
             <select class="sdd-task-status select-input" onchange="sddSetTaskStatus(${c.line_no}, this.value)">
                 <option value="todo">todo</option>
                 <option value="execute">executar</option>
             </select>
         </div>`).join('');
+    if (window.lucide) lucide.createIcons();
+}
+
+function sddExtractTaskId(taskText = '') {
+    const match = taskText.match(/\bTASK-REQ-\d{3,6}-\d{3}\b/i);
+    return match ? match[0].toUpperCase() : '';
+}
+
+function sddExtractTaskTitle(taskText = '') {
+    return taskText
+        .replace(/\bTASK-REQ-\d{3,6}-\d{3}\b:?\s*/i, '')
+        .replace(/^\s*-\s*/, '')
+        .trim();
+}
+
+function sddExtractTaskDetailSection(detailsMarkdown = '', taskId = '') {
+    if (!detailsMarkdown || !taskId) return '';
+    const lines = detailsMarkdown.split(/\r?\n/);
+    const startIndex = lines.findIndex(line => line.toUpperCase().includes(taskId.toUpperCase()));
+    if (startIndex < 0) return '';
+
+    const startHeading = lines[startIndex].match(/^(#{1,6})\s+/);
+    const startLevel = startHeading ? startHeading[1].length : 2;
+    let endIndex = lines.length;
+
+    for (let i = startIndex + 1; i < lines.length; i += 1) {
+        const heading = lines[i].match(/^(#{1,6})\s+/);
+        if (heading && heading[1].length <= startLevel) {
+            endIndex = i;
+            break;
+        }
+    }
+
+    return lines.slice(startIndex, endIndex).join('\n').trim();
+}
+
+function sddNormalizeTaskDetailMarkdown(section = '', taskId = '') {
+    const lines = section.split(/\r?\n/);
+    if (lines[0] && lines[0].toUpperCase().includes(taskId.toUpperCase())) {
+        lines.shift();
+    }
+    return lines.join('\n').trim();
+}
+
+async function sddEnsureTaskDetailsLoaded(force = false) {
+    if (!state.activeProjectId) return '';
+    if (!force && sddState.projectDocuments.task_details) {
+        return sddState.projectDocuments.task_details;
+    }
+    const res = await fetch(`/api/projects/${state.activeProjectId}/sdd/project-documents/task_details`, { headers: getHeaders() });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || 'Erro ao carregar task.details.md');
+    sddState.projectDocuments.task_details = data.content || '';
+    return sddState.projectDocuments.task_details;
+}
+
+async function sddOpenTaskDetail(lineNo) {
+    const row = document.querySelector(`.sdd-criteria-row[data-line="${lineNo}"]`);
+    const taskText = row?.querySelector('.sdd-criteria-text')?.textContent?.trim() || '';
+    const taskId = sddExtractTaskId(taskText);
+    const drawer = document.getElementById('sdd-task-detail-drawer');
+    const backdrop = document.getElementById('sdd-task-detail-backdrop');
+    const idEl = document.getElementById('sdd-task-detail-id');
+    const titleEl = document.getElementById('sdd-task-detail-title');
+    const body = document.getElementById('sdd-task-detail-body');
+    if (!drawer || !body) return;
+
+    if (idEl) idEl.textContent = taskId || 'TASK';
+    if (titleEl) titleEl.textContent = taskText || 'Detalhe da tarefa';
+    body.innerHTML = `
+        <div class="sdd-task-detail-loading">
+            <i class="fa-solid fa-circle-notch fa-spin"></i>
+            <span>Carregando detalhe da tarefa...</span>
+        </div>
+    `;
+    drawer.classList.add('is-open');
+    backdrop?.classList.add('is-open');
+    drawer.setAttribute('aria-hidden', 'false');
+
+    try {
+        const details = await sddEnsureTaskDetailsLoaded(true);
+        const section = sddExtractTaskDetailSection(details, taskId);
+        if (!taskId) {
+            body.innerHTML = `
+                <div class="sdd-task-detail-empty">
+                    <i data-lucide="badge-alert"></i>
+                    <h5>ID da task não encontrado</h5>
+                    <p>Use o formato <code>TASK-REQ-0000-001: - Título curto</code> em .documents/task/task.md.</p>
+                </div>
+            `;
+        } else if (!section) {
+            body.innerHTML = `
+                <div class="sdd-task-detail-empty">
+                    <i data-lucide="file-question"></i>
+                    <h5>Detalhe não encontrado em task.details.md</h5>
+                    <p>Peça para o GPT Action criar ou atualizar a seção <code>## Plano — ${escapeHtml(taskId)}</code> em <code>.documents/task/task.details.md</code>.</p>
+                </div>
+                <div class="sdd-task-detail-reference">
+                    <span>Tarefa selecionada</span>
+                    <strong>${escapeHtml(taskText)}</strong>
+                </div>
+            `;
+        } else {
+            body.innerHTML = `
+                <div class="qa-detail-section">
+                    <h5>Resumo</h5>
+                    <p>${escapeHtml(sddExtractTaskTitle(taskText) || taskText || 'Sem título.')}</p>
+                    <div class="qa-detail-pills">
+                        <span class="qa-pill qa-status-open">Task</span>
+                        <span class="qa-pill qa-severity-medium">task.details</span>
+                        <span class="qa-pill qa-category-functional">${escapeHtml(taskId)}</span>
+                    </div>
+                </div>
+                <div class="qa-detail-section">
+                    <h5>Plano detalhado</h5>
+                    <div class="markdown-render sdd-task-detail-markdown">
+                        ${sddRenderMarkdown(sddNormalizeTaskDetailMarkdown(section, taskId))}
+                    </div>
+                </div>
+                <div class="qa-detail-section">
+                    <h5>Origem</h5>
+                    <dl class="qa-detail-list">
+                        <dt>Task List</dt><dd>.documents/task/task.md</dd>
+                        <dt>Detalhe</dt><dd>.documents/task/task.details.md</dd>
+                        <dt>Linha</dt><dd>${lineNo}</dd>
+                    </dl>
+                </div>
+            `;
+        }
+    } catch (err) {
+        body.innerHTML = `
+            <div class="sdd-task-detail-empty is-error">
+                <i data-lucide="triangle-alert"></i>
+                <h5>Erro ao carregar detalhe</h5>
+                <p>${escapeHtml(err.message)}</p>
+            </div>
+        `;
+    }
+    if (window.lucide) lucide.createIcons();
+}
+
+function sddCloseTaskDetail() {
+    const drawer = document.getElementById('sdd-task-detail-drawer');
+    const backdrop = document.getElementById('sdd-task-detail-backdrop');
+    drawer?.classList.remove('is-open');
+    backdrop?.classList.remove('is-open');
+    drawer?.setAttribute('aria-hidden', 'true');
 }
 
 function sddSetTaskStatus(lineNo, value) {
@@ -8579,6 +8733,9 @@ function setupSddEventListeners() {
     // Sidebar: Refresh
     const btnRefresh = document.getElementById('btn-refresh-sdd-specs');
     if (btnRefresh) btnRefresh.addEventListener('click', sddLoadSpecs);
+
+    document.getElementById('btn-sdd-task-detail-close')?.addEventListener('click', sddCloseTaskDetail);
+    document.getElementById('sdd-task-detail-backdrop')?.addEventListener('click', sddCloseTaskDetail);
 
     // Sidebar: New Manual
     const btnNew = document.getElementById('btn-new-sdd-spec-manual');
