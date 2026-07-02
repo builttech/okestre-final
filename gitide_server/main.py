@@ -417,6 +417,11 @@ class QaAnnotationInput(BaseModel):
     screenshot: Optional[str] = Field(None, description="Data URL da captura, quando enviada")
     metadata: dict = Field(default_factory=dict)
 
+class QaTextPolishRequest(BaseModel):
+    mode: str = Field("description", description="description ou title")
+    text: str = Field(..., description="Texto original a ser reescrito")
+    context: Optional[str] = Field("", description="Contexto opcional da anotação")
+
 class QaAnnotationStatusUpdate(BaseModel):
     status: str = Field(..., description="open, reviewing ou resolved")
 
@@ -3234,6 +3239,51 @@ def export_qa_annotations_pdf(status_filter: Optional[str] = Query(None, alias="
         media_type="application/pdf",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'}
     )
+
+@app.post("/api/projects/{project_id}/qa/text/polish", tags=["QA"])
+def polish_qa_text(payload: QaTextPolishRequest, project: Project = Depends(get_project_or_404), _ = Depends(get_api_key)):
+    """Reescreve título ou descrição de uma anotação QA usando a IA configurada no GitIDE."""
+    original = (payload.text or "").strip()
+    if not original:
+        raise HTTPException(status_code=400, detail="Texto obrigatório.")
+
+    config = agent.load_agent_config()
+    provider = config.get("provider")
+    model = config.get("model")
+    api_key = config.get("api_key")
+    if not provider or not model or not api_key:
+        raise HTTPException(status_code=400, detail="IA não configurada no Agente IA.")
+
+    mode = "title" if payload.mode == "title" else "description"
+    system_prompt = (
+        "Voce e um revisor de texto para anotacoes de QA em portugues do Brasil.\n"
+        "Corrija erros de digitacao, gramatica, acentuacao e clareza sem mudar a intencao tecnica.\n"
+        "Nao invente contexto, nao adicione detalhes que nao estejam no texto e nao explique.\n"
+        "Responda exclusivamente em JSON valido.\n"
+        "Formato obrigatorio: {\"text\":\"texto revisado\"}.\n"
+        "Se o modo for title, gere um titulo curto, objetivo, com no maximo 72 caracteres.\n"
+        "Se o modo for description, gere uma frase clara e acionavel, preservando a evidencia.\n"
+        "Exemplo: 'Retirar essas inforções que aparecem na lsita' vira 'Retirar as informações que aparecem na lista.'.\n"
+    )
+    user_prompt = (
+        f"Modo: {mode}\n"
+        f"Projeto: {project.name}\n"
+        f"Contexto: {(payload.context or '').strip()[:500]}\n"
+        f"Texto original:\n{original}"
+    )
+
+    try:
+        raw_resp = agent.call_llm(provider, model, api_key, [{"role": "user", "content": user_prompt}], system_prompt)
+        parsed = agent.extract_json(raw_resp)
+        text = str(parsed.get("text") or "").strip()
+        if not text:
+            raise ValueError("Resposta sem campo text.")
+        if mode == "title":
+            text = text.replace("\n", " ").strip().rstrip(".")
+            text = text[:72].strip()
+        return {"status": "success", "text": text}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao reescrever texto com IA: {str(e)}")
 
 @app.post("/api/projects/{project_id}/qa/annotations", tags=["QA"])
 def create_qa_annotation(payload: QaAnnotationInput, project: Project = Depends(get_project_or_404)):

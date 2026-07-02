@@ -91,27 +91,63 @@ function buildNetworkErrorMessage(err) {
   return `Falha de conexão: ${message}. Se só ocorre nesta máquina, verifique VPN/proxy/firewall, permissão da extensão e se https://ide.builtt.com.br abre neste navegador.`;
 }
 
-function polishDescriptionText() {
+async function polishQaText(mode, text, context = '') {
+  const config = getConnectionConfig();
+  if (!validateConnectionConfig(config)) {
+    return mode === 'title' ? buildShortTitle(applyLocalTextPolish(text)) : applyLocalTextPolish(text);
+  }
+  const { response, data } = await requestGitIde(config, `/api/projects/${config.projectId}/qa/text/polish`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ mode, text, context })
+  });
+  if (!response.ok || data.status !== 'success' || !data.text) {
+    if (response.status === 404) {
+      throw new Error('O servidor GitIDE ainda não tem o endpoint de revisão QA. Faça o deploy/pull da versão atual do backend e recarregue a extensão.');
+    }
+    throw new Error(data.detail || `IA respondeu HTTP ${response.status}`);
+  }
+  return String(data.text).trim();
+}
+
+async function polishDescriptionText() {
   const original = fields.description.value.trim();
   if (!original) {
     setStatus('Escreva uma descrição antes de reescrever com IA.');
     return;
   }
-  const polished = applyLocalTextPolish(original);
-  fields.description.value = polished;
-  setStatus(polished === original ? 'Texto já está claro.' : 'Descrição reescrita com mais clareza.');
+  setStatus('Reescrevendo descrição com IA...');
+  try {
+    const context = fields.title.value.trim();
+    const polished = await polishQaText('description', original, context);
+    fields.description.value = polished;
+    setStatus(polished === original ? 'Texto já está claro.' : 'Descrição reescrita com IA.');
+  } catch (err) {
+    const polished = applyLocalTextPolish(original);
+    fields.description.value = polished;
+    setStatus(`Correção local aplicada. ${err.message}`);
+  }
 }
 
-function generateTitleFromDescription() {
+async function generateTitleFromDescription() {
   const description = fields.description.value.trim();
   if (!description) {
     setStatus('Preencha a descrição antes de gerar o título.');
     return;
   }
-  const polished = applyLocalTextPolish(description);
-  const title = buildShortTitle(polished);
-  fields.title.value = title;
-  setStatus('Título gerado pela descrição.');
+  setStatus('Gerando título com IA...');
+  try {
+    const title = await polishQaText('title', description, fields.selector.value.trim());
+    fields.title.value = title;
+    setStatus('Título gerado com IA.');
+  } catch (err) {
+    const polished = applyLocalTextPolish(description);
+    const title = buildShortTitle(polished);
+    fields.title.value = title;
+    setStatus(`Título local aplicado. ${err.message}`);
+  }
 }
 
 function buildShortTitle(text) {
@@ -163,6 +199,12 @@ function applyLocalTextPolish(text) {
     [/\bcomprmidas\b/gi, 'comprimidas'],
     [/\bcomprimirdas\b/gi, 'comprimidas'],
     [/\bcomprimida\b/gi, 'comprimida'],
+    [/\binforções\b/gi, 'informações'],
+    [/\binforcoes\b/gi, 'informações'],
+    [/\binformacoes\b/gi, 'informações'],
+    [/\blsita\b/gi, 'lista'],
+    [/\blsitas\b/gi, 'listas'],
+    [/\blista\b/gi, 'lista'],
     [/\bficarem\b/gi, 'ficarem'],
     [/\bopçoes\b/gi, 'opções'],
     [/\bopcoes\b/gi, 'opções'],
@@ -173,7 +215,9 @@ function applyLocalTextPolish(text) {
     [/\btop\b/gi, 'topo'],
     [/\bbtn\b/gi, 'botão'],
     [/\bmarge\b/gi, 'merge'],
-    [/\bdeletar\b/gi, 'excluir']
+    [/\bdeletar\b/gi, 'excluir'],
+    [/\bessas informações\b/gi, 'as informações'],
+    [/\besses informações\b/gi, 'as informações']
   ];
 
   replacements.forEach(([pattern, value]) => {
