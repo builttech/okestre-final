@@ -23,6 +23,17 @@ Este documento é de leitura obrigatória para o Agente IA (GPT Action) antes de
 > 10. Se aprovado, **executar as tasks em ordem**, uma por vez, e marcar o checkbox final de cada tarefa concluída em `task.md`.
 > Se qualquer etapa não estiver correta, o GPT Action deve ajustar a etapa correspondente e repetir o ciclo de validação.
 > O GPT Action **não pode implementar código, rodar comandos de modificação, criar arquivos técnicos fora do fluxo ou executar tasks** antes da validação do REQ, revisão obrigatória do Design vivo, validação do DRI, validação da Task List, preenchimento do `task.details.md` e autorização explícita da task detalhada.
+>
+> **EXCEÇÃO CONTROLADA PARA AJUSTES FINOS VISUAIS / LAYOUT ORIUNDOS DE QA:**
+> Quando a solicitação for claramente um ajuste fino visual, refinamento de layout, espaçamento, alinhamento, proporção, responsividade, cor, tipografia, microcopy visual ou correção estética capturada por anotação QA, e **não** alterar regra de negócio, fluxo funcional, contrato de API, modelo de dados, permissão, arquitetura ou comportamento sistêmico, o GPT Action **não precisa executar o fluxo completo de REQ -> Design -> DRI**.
+> Nesse caso, o fluxo mínimo obrigatório é:
+> 1. Ler a anotação QA de referência e entender o problema visual.
+> 2. Criar ou atualizar uma task em `.documents/task/task.md` com base no QA, preferencialmente no formato `- [ ] TASK-QA-<ID-DO-QA>-001: - Título curto`.
+> 3. Criar ou atualizar o plano detalhado em `.documents/task/task.details.md`, preservando as seções anteriores.
+> 4. Executar somente o ajuste fino descrito na task.
+> 5. Verificar visualmente/tecnicamente a alteração quando possível.
+> 6. Marcar a task como concluída em `task.md` apenas após validar o ajuste.
+> Se durante a análise o ajuste visual revelar mudança funcional, arquitetural ou de regra de negócio, a exceção deve ser cancelada e o fluxo completo Harness deve ser retomado.
 
 ---
 
@@ -71,6 +82,7 @@ Antes de propor ou fazer qualquer alteração, o agente deve:
 - **Atualizar Task List após DRI aprovado:** Somente depois do DRI aprovado, criar ou revisar `.documents/task/task.md` e aguardar validação do usuário.
 - **Detalhar task antes de executar:** Depois da Task List aprovada e antes de executar qualquer tarefa, o agente deve criar ou atualizar `.documents/task/task.details.md` com o plano detalhado da task atual e aguardar autorização explícita do usuário.
 - **Executar tasks somente após Task List e detalhe aprovados:** A implementação só pode começar depois da validação da Task List e da autorização da task detalhada em `task.details.md`. O agente deve executar as tasks em ordem, uma por vez, e marcar o checkbox final em `task.md` apenas após concluir e validar a task.
+- **Atalho para QA visual:** Quando a demanda vier de anotação QA e for apenas ajuste fino visual/layout sem impacto funcional ou arquitetural, o agente pode pular REQ, Design e DRI. Ainda assim deve criar task em `.documents/task/task.md`, detalhar em `.documents/task/task.details.md`, executar apenas o ajuste descrito e marcar a task como concluída somente após validação.
 - **Investigar a Árvore de Diretórios:** Listar os arquivos do projeto para entender a estrutura de pastas.
 - **Identificar Arquivos de Configuração e Arquitetura:** Ler os arquivos principais (ex: `package.json`, `requirements.txt`, `main.py`, `index.html`, etc.) para entender as dependências e o ecossistema.
 - **Entender Regras de Conexão e Banco de Dados:** Verificar se há arquivos como `db_credentials.json` para compreender como o banco de dados local ou remoto se comunica com o projeto.
@@ -148,6 +160,7 @@ O agente deve manter cada responsabilidade no arquivo correto:
    - Preencher ou atualizar exclusivamente `.documents/task/task.md`.
    - A etapa visual Task List do GitIDE lê somente `.documents/task/task.md`.
    - Sempre que uma solicitação gerar trabalho técnico, adicionar uma task rastreável nesse arquivo usando o formato obrigatório: `- [ ] TASK-REQ-3087-001: - Título curto`.
+   - Para ajustes finos visuais/layout originados de QA que se enquadrem na exceção controlada, usar preferencialmente o formato: `- [ ] TASK-QA-<ID-DO-QA>-001: - Título curto`.
    - O arquivo `task.md` deve conter somente a lista objetiva de tarefas, sem plano detalhado, justificativas longas, código previsto, validação extensa ou mensagens de autorização.
    - Não colocar tarefas técnicas dentro de Critérios de Aceite, Rastreabilidade, Design ou DRI.
    - Nunca misturar critérios de aceite com tarefas de implementação.
