@@ -13,15 +13,16 @@ Este documento é de leitura obrigatória para o Agente IA (GPT Action) antes de
 > Antes de qualquer execução técnica, o GPT Action deve seguir obrigatoriamente o fluxo Harness:
 > 1. **Ler, criar, atualizar ou revisar o REQ** em `.documents/spec/*.md`.
 > 2. **Aguardar validação do usuário sobre o REQ.**
-> 3. Se aprovado, **criar ou revisar o DRI** em `.documents/dri/dri.md`.
-> 4. **Aguardar validação do usuário sobre o DRI.**
-> 5. Se aprovado, **criar ou revisar a Task List** em `.documents/task/task.md`.
-> 6. **Aguardar validação do usuário sobre a Task List.**
-> 7. Se aprovado, antes de executar cada task, **criar ou atualizar o plano detalhado da task atual** em `.documents/task/task.details.md`.
-> 8. **Aguardar autorização explícita do usuário para executar a task detalhada.**
-> 9. Se aprovado, **executar as tasks em ordem**, uma por vez, e marcar o checkbox final de cada tarefa concluída em `task.md`.
+> 3. Se aprovado, **ler e revisar obrigatoriamente o Design vivo** em `.documents/design/design.md`; se a arquitetura do projeto precisar refletir a nova solicitação, atualizar, adicionar ou revisar o conteúdo. Se não houver necessidade real de mudança, registrar no plano que o Design foi revisado e pular a edição.
+> 4. Se aprovado, **criar ou revisar o DRI** em `.documents/dri/dri.md`.
+> 5. **Aguardar validação do usuário sobre o DRI.**
+> 6. Se aprovado, **criar ou revisar a Task List** em `.documents/task/task.md`.
+> 7. **Aguardar validação do usuário sobre a Task List.**
+> 8. Se aprovado, antes de executar cada task, **criar ou atualizar o plano detalhado da task atual** em `.documents/task/task.details.md`.
+> 9. **Aguardar autorização explícita do usuário para executar a task detalhada.**
+> 10. Se aprovado, **executar as tasks em ordem**, uma por vez, e marcar o checkbox final de cada tarefa concluída em `task.md`.
 > Se qualquer etapa não estiver correta, o GPT Action deve ajustar a etapa correspondente e repetir o ciclo de validação.
-> O GPT Action **não pode implementar código, rodar comandos de modificação, criar arquivos técnicos fora do fluxo ou executar tasks** antes da validação do REQ, validação do DRI, validação da Task List, preenchimento do `task.details.md` e autorização explícita da task detalhada.
+> O GPT Action **não pode implementar código, rodar comandos de modificação, criar arquivos técnicos fora do fluxo ou executar tasks** antes da validação do REQ, revisão obrigatória do Design vivo, validação do DRI, validação da Task List, preenchimento do `task.details.md` e autorização explícita da task detalhada.
 
 ---
 
@@ -35,23 +36,28 @@ graph TD
     C --> E{"Usuário validou o REQ?"}
     D --> E
     E -->|"Não, ajustar REQ"| C
-    E -->|"Sim"| F["Criar ou revisar DRI em .documents/dri/dri.md"]
-    F --> G{"Usuário validou o DRI?"}
-    G -->|"Não, ajustar DRI"| F
-    G -->|"Sim"| H["Criar ou revisar Task List em .documents/task/task.md"]
-    H --> I{"Usuário validou a Task List?"}
-    I -->|"Não, ajustar tasks"| H
-    I -->|"Sim"| J["Selecionar próxima task"]
-    J --> K["Criar ou atualizar .documents/task/task.details.md"]
-    K --> L{"Usuário autorizou executar a task detalhada?"}
-    L -->|"Não, ajustar plano"| K
-    L -->|"Sim"| M["Execução cirúrgica da task atual"]
-    M --> N["Verificação e testes"]
-    N -->|"Falhou"| M
-    N -->|"Sucesso"| O["Marcar checkbox da task em task.md"]
-    O --> P{"Há próxima task?"}
-    P -->|"Sim"| J
-    P -->|"Não"| Q["Conclusão"]
+    E -->|"Sim"| F["Revisar Design vivo em .documents/design/design.md"]
+    F --> G{"Arquitetura precisa atualizar?"}
+    G -->|"Sim"| H["Atualizar design.md"]
+    G -->|"Não"| I["Registrar que Design foi revisado sem edição"]
+    H --> J["Criar ou revisar DRI em .documents/dri/dri.md"]
+    I --> J
+    J --> K{"Usuário validou o DRI?"}
+    K -->|"Não, ajustar DRI"| J
+    K -->|"Sim"| L["Criar ou revisar Task List em .documents/task/task.md"]
+    L --> M{"Usuário validou a Task List?"}
+    M -->|"Não, ajustar tasks"| L
+    M -->|"Sim"| N["Selecionar próxima task"]
+    N --> O["Criar ou atualizar .documents/task/task.details.md"]
+    O --> P{"Usuário autorizou executar a task detalhada?"}
+    P -->|"Não, ajustar plano"| O
+    P -->|"Sim"| Q["Execução cirúrgica da task atual"]
+    Q --> R["Verificação e testes"]
+    R -->|"Falhou"| Q
+    R -->|"Sucesso"| S["Marcar checkbox da task em task.md"]
+    S --> T{"Há próxima task?"}
+    T -->|"Sim"| N
+    T -->|"Não"| U["Conclusão"]
 ```
 
 ### 1. Reconhecimento e Análise do Contexto
@@ -60,6 +66,7 @@ Antes de propor ou fazer qualquer alteração, o agente deve:
 - **Criar REQ quando não existir:** Se a solicitação não informar um `REQ-xxxx`, o primeiro passo obrigatório é criar e documentar um novo requisito funcional em `.documents/spec/*.md`, preenchendo somente `Specify - Especificação`.
 - **Atualizar REQ existente antes de implementar:** Se a solicitação for uma nova funcionalidade, ajuste ou extensão de um requisito já existente, atualizar o REQ com a nova solicitação antes de qualquer alteração de código.
 - **Aguardar validação do REQ:** Após ler, criar, atualizar ou revisar o REQ, o agente deve parar e aguardar o usuário validar o requisito. Se o usuário pedir ajustes, o agente deve atualizar o REQ e repetir este ciclo.
+- **Revisar Design vivo após REQ aprovado:** Depois do REQ aprovado e antes do DRI, o agente deve ler `.documents/design/design.md` e verificar se a arquitetura viva do projeto continua correta. Se a solicitação alterar componentes, fluxos técnicos, APIs, dados, integrações, permissões, riscos ou estratégia de validação, atualizar o Design. Se não houver alteração arquitetural necessária, pular a edição, mas deixar explícito no plano que o Design foi revisado.
 - **Atualizar DRI após REQ aprovado:** Somente depois do REQ aprovado, criar ou revisar o DRI em `.documents/dri/dri.md` e aguardar validação do usuário.
 - **Atualizar Task List após DRI aprovado:** Somente depois do DRI aprovado, criar ou revisar `.documents/task/task.md` e aguardar validação do usuário.
 - **Detalhar task antes de executar:** Depois da Task List aprovada e antes de executar qualquer tarefa, o agente deve criar ou atualizar `.documents/task/task.details.md` com o plano detalhado da task atual e aguardar autorização explícita do usuário.
@@ -118,11 +125,13 @@ O agente deve manter cada responsabilidade no arquivo correto:
    - **Não incluir** Design, DRI, Task List ou Execute dentro do arquivo do REQ.
 
 2. **Design - Planejamento**
-   - Preencher ou atualizar `.documents/design/design.md`.
+   - Ler e revisar obrigatoriamente `.documents/design/design.md` após a validação do REQ e antes da criação/revisão do DRI.
+   - Preencher ou atualizar `.documents/design/design.md` sempre que a solicitação impactar ou revelar mudanças na arquitetura do projeto.
    - O Design é um documento vivo único do projeto, podendo referenciar um ou mais REQs.
    - Incluir componentes impactados, fluxo técnico, APIs/endpoints, dados, banco, integrações, bibliotecas, eventos, permissões, riscos técnicos e estratégia de validação.
    - O Design deve sempre se basear no conteúdo do Specify/REQ validado e não inventar escopo fora do requisito.
-   - Quando o usuário solicitar explicitamente o fluxo com DRI direto após o REQ, o Design pode permanecer como documento vivo de apoio e ser atualizado quando necessário, sem bloquear o gate obrigatório REQ -> DRI -> Task List -> Execute.
+   - O arquivo deve permanecer sempre atualizado e refletir corretamente a arquitetura real do projeto. Se, após revisão, não houver necessidade de mudança, o GPT Action pode pular a edição do arquivo, mas deve registrar no plano que o Design foi revisado e considerado aderente.
+   - Quando o usuário solicitar explicitamente o fluxo com DRI direto após o REQ, o Design continua sendo uma etapa obrigatória de revisão. Ele pode permanecer sem edição somente quando não houver impacto arquitetural real.
 
 3. **DRI - Documento de Requisito de Interface**
    - Preencher quando o requisito envolver tela, página, modal, drawer, formulário, grid, dashboard, detalhe ou qualquer outra interface de usuário.
