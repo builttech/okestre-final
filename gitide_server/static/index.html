@@ -17,7 +17,7 @@
     <link rel="stylesheet" href="/static/workspace-switcher-refactor.css?v=2">
     <link rel="stylesheet" href="/static/workspace-native-fallback.css?v=1">
     <link rel="stylesheet" href="/static/settings-tabs.css?v=1">
-    <link rel="stylesheet" href="/static/rebrand.css?v=31">
+    <link rel="stylesheet" href="/static/rebrand.css?v=35">
     <script src="/static/lucide-bootstrap.js"></script>
     <script defer src="/static/ui/workspace-switcher.js?v=3"></script>
     <script defer src="/static/settings-tabs.js?v=4"></script>
@@ -94,6 +94,9 @@
                     </button>
                     <button class="nav-item" data-tab="tab-tokens" title="Design System (Tokens)">
                         <i data-lucide="palette"></i> <span class="nav-label">Design System (Tokens)</span>
+                    </button>
+                    <button class="nav-item" data-tab="tab-ui-canvas" title="UI Canvas">
+                        <i data-lucide="layout-dashboard"></i> <span class="nav-label">UI Canvas</span>
                     </button>
                     <button class="nav-item" data-tab="tab-qa" title="QA">
                         <i data-lucide="bug"></i> <span class="nav-label">QA</span>
@@ -767,6 +770,97 @@ REGRA INQUEBRÁVEL: antes de executar qualquer task, valide REQ, DRI e Task List
                     </div>
                 </div>
 
+                <!-- TAB: UI CANVAS -->
+                <div id="tab-ui-canvas" class="tab-pane">
+                    <div class="ui-canvas-shell">
+                        <aside class="ui-canvas-panel ui-canvas-files">
+                            <div class="ui-canvas-panel-header">
+                                <div>
+                                    <span>Canvas Livre</span>
+                                    <h4>UI Canvas</h4>
+                                </div>
+                                <button class="btn-icon" id="btn-ui-canvas-refresh" title="Recarregar canvas"><i data-lucide="refresh-cw"></i></button>
+                            </div>
+                            <button class="btn btn-primary btn-sm ui-canvas-new-btn" id="btn-ui-canvas-new"><i data-lucide="plus"></i> Novo Canvas</button>
+                            <div class="ui-canvas-list" id="ui-canvas-file-list">
+                                <div class="ui-canvas-empty">Nenhum canvas encontrado.</div>
+                            </div>
+                            <div class="ui-canvas-layers">
+                                <div class="ui-canvas-section-title">Layers</div>
+                                <div id="ui-canvas-layer-list" class="ui-canvas-layer-list"></div>
+                            </div>
+                        </aside>
+
+                        <section class="ui-canvas-workbench">
+                            <div class="ui-canvas-toolbar">
+                                <div class="ui-canvas-doc-meta">
+                                    <strong id="ui-canvas-title">Sem canvas selecionado</strong>
+                                    <span id="ui-canvas-filepath">.documents/canvas</span>
+                                </div>
+                                <div class="ui-canvas-toolset" role="toolbar" aria-label="Ferramentas do canvas">
+                                    <button class="btn btn-secondary btn-sm ui-canvas-tool active" data-ui-canvas-tool="select" title="Selecionar"><i data-lucide="mouse-pointer-2"></i></button>
+                                    <select id="ui-canvas-frame-preset" class="select-input ui-canvas-preset-select" title="Frames">
+                                        <option value="">Frame livre</option>
+                                        <option value="section">Section</option>
+                                        <option value="iphone17">iPhone 17 - 402x874</option>
+                                        <option value="iphone16">iPhone 16 - 393x852</option>
+                                        <option value="android-compact">Android Compact - 412x917</option>
+                                        <option value="ipad-mini">iPad mini 8.3 - 744x1133</option>
+                                        <option value="ipad-pro">iPad Pro 12.9 - 1024x1366</option>
+                                        <option value="desktop">Desktop - 1440x1024</option>
+                                        <option value="macbook-air">MacBook Air - 1280x832</option>
+                                        <option value="slide-16-9">Slide 16:9 - 1920x1080</option>
+                                    </select>
+                                    <button class="btn btn-secondary btn-sm ui-canvas-tool" data-ui-canvas-tool="frame" title="Criar Frame"><i data-lucide="scan"></i></button>
+                                    <button class="btn btn-secondary btn-sm ui-canvas-tool" data-ui-canvas-tool="rect" title="Retângulo"><i data-lucide="square"></i></button>
+                                    <button class="btn btn-secondary btn-sm ui-canvas-tool" data-ui-canvas-tool="text" title="Texto"><i data-lucide="type"></i></button>
+                                    <button class="btn btn-secondary btn-sm ui-canvas-tool" data-ui-canvas-tool="line" title="Linha"><i data-lucide="minus"></i></button>
+                                    <select id="ui-canvas-element-preset" class="select-input ui-canvas-preset-select" title="Elementos">
+                                        <option value="">Elementos</option>
+                                        <option value="heading">Heading</option>
+                                        <option value="paragraph">Text Basic</option>
+                                        <option value="button">Button</option>
+                                        <option value="input">Input</option>
+                                        <option value="card">Card</option>
+                                        <option value="table">Table</option>
+                                        <option value="list">List</option>
+                                        <option value="divider">Divider</option>
+                                        <option value="icon">Icon</option>
+                                        <option value="image">Image</option>
+                                        <option value="video">Video</option>
+                                        <option value="group">Group</option>
+                                    </select>
+                                </div>
+                                <div class="ui-canvas-actions">
+                                    <button class="btn btn-secondary btn-sm" id="btn-ui-canvas-zoom-out"><i data-lucide="zoom-out"></i></button>
+                                    <span id="ui-canvas-zoom-label">100%</span>
+                                    <button class="btn btn-secondary btn-sm" id="btn-ui-canvas-zoom-in"><i data-lucide="zoom-in"></i></button>
+                                    <button class="btn btn-secondary btn-sm" id="btn-ui-canvas-export-json"><i data-lucide="braces"></i> JSON</button>
+                                    <button class="btn btn-primary btn-sm" id="btn-ui-canvas-save"><i data-lucide="save"></i> Salvar</button>
+                                </div>
+                            </div>
+
+                            <div class="ui-canvas-stage" id="ui-canvas-stage">
+                                <div class="ui-canvas-surface" id="ui-canvas-surface">
+                                    <div class="ui-canvas-viewport" id="ui-canvas-viewport"></div>
+                                </div>
+                            </div>
+                        </section>
+
+                        <aside class="ui-canvas-panel ui-canvas-properties">
+                            <div class="ui-canvas-panel-header">
+                                <div>
+                                    <span>Propriedades</span>
+                                    <h4 id="ui-canvas-selected-label">Nenhum layer</h4>
+                                </div>
+                            </div>
+                            <div class="ui-canvas-property-form" id="ui-canvas-property-form">
+                                <div class="ui-canvas-empty">Selecione um elemento no canvas.</div>
+                            </div>
+                        </aside>
+                    </div>
+                </div>
+
                 <!-- TAB: QA -->
                 <div id="tab-qa" class="tab-pane">
                     <div class="qa-layout">
@@ -805,6 +899,10 @@ REGRA INQUEBRÁVEL: antes de executar qualquer task, valide REQ, DRI e Task List
                                         <option value="reviewing">Em revisão</option>
                                         <option value="resolved">Resolvidas</option>
                                     </select>
+                                    <label class="qa-id-filter">
+                                        <i data-lucide="search"></i>
+                                        <input id="qa-id-filter" class="text-input" type="search" placeholder="Filtrar ID QA">
+                                    </label>
                                 </div>
                                 <div class="qa-export-actions">
                                     <button class="btn btn-secondary" id="btn-qa-export-pdf" type="button"><i data-lucide="file-text"></i> PDF</button>
@@ -2052,7 +2150,7 @@ REGRA INQUEBRÁVEL: antes de executar qualquer task, valide REQ, DRI e Task List
     </aside>
 
     <!-- Custom JavaScript -->
-    <script src="/static/app.js?v=51"></script>
+    <script src="/static/app.js?v=56"></script>
     <script src="/static/theme-toggle.js?v=1"></script>
 </body>
 </html>

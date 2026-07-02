@@ -43,6 +43,38 @@ const state = {
     engineeringMetrics: null
 };
 
+const uiCanvasState = {
+    files: [],
+    filepath: '',
+    doc: null,
+    selectedLayerId: null,
+    tool: 'select',
+    zoom: 1,
+    drag: null,
+    resize: null
+};
+
+const UI_CANVAS_FRAME_PRESETS = {
+    section: { name: 'Section', width: 960, height: 540 },
+    iphone17: { name: 'iPhone 17', width: 402, height: 874 },
+    iphone16: { name: 'iPhone 16', width: 393, height: 852 },
+    'android-compact': { name: 'Android Compact', width: 412, height: 917 },
+    'ipad-mini': { name: 'iPad mini 8.3', width: 744, height: 1133 },
+    'ipad-pro': { name: 'iPad Pro 12.9', width: 1024, height: 1366 },
+    desktop: { name: 'Desktop', width: 1440, height: 1024 },
+    'macbook-air': { name: 'MacBook Air', width: 1280, height: 832 },
+    'slide-16-9': { name: 'Slide 16:9', width: 1920, height: 1080 }
+};
+
+const UI_CANVAS_ICON_OPTIONS = [
+    'sparkles', 'plus', 'x', 'check', 'arrow-right', 'arrow-left', 'chevron-down',
+    'search', 'settings', 'user', 'users', 'home', 'menu', 'bell', 'heart',
+    'star', 'trash-2', 'edit-3', 'copy', 'download', 'upload', 'save',
+    'folder', 'file', 'image', 'video', 'calendar', 'clock', 'mail',
+    'phone', 'link', 'lock', 'unlock', 'shield', 'bug', 'git-branch',
+    'database', 'terminal', 'layout-dashboard', 'panel-right'
+];
+
 const workspaceDeleteState = {
     filepath: '',
     name: '',
@@ -299,6 +331,8 @@ function switchTab(tabId) {
             loadAllSnapshots();
         } else if (tabId === 'tab-tokens') {
             loadDesignTokens();
+        } else if (tabId === 'tab-ui-canvas') {
+            loadUiCanvasFiles();
         } else if (tabId === 'tab-qa') {
             loadQaAnnotations();
         } else if (tabId === 'tab-engineering-metrics') {
@@ -3032,6 +3066,10 @@ function renderQaAnnotations() {
     const board = document.getElementById('qa-kanban-board');
     if (!list || !board) return;
     const items = state.qaAnnotations || [];
+    const idFilter = (document.getElementById('qa-id-filter')?.value || '').trim().toLowerCase();
+    const visibleItems = idFilter
+        ? items.filter(item => String(item.id || '').toLowerCase().includes(idFilter))
+        : items;
     const counts = { open: 0, reviewing: 0, resolved: 0 };
     items.forEach(item => {
         if (counts[item.status] !== undefined) counts[item.status] += 1;
@@ -3067,31 +3105,64 @@ function renderQaAnnotations() {
         return;
     }
 
-    list.innerHTML = items.map(item => {
-        const id = String(item.id || '');
-        const idSafe = escapeHtml(id);
-        return `
-            <article class="qa-card" data-qa-id="${idSafe}" role="button" tabindex="0">
-                <div class="qa-card-main">
-                    ${qaAnnotationCardContent(item)}
-                </div>
-                ${item.screenshot ? `<img class="qa-card-shot" src="${item.screenshot}" alt="Captura da anotação ${idSafe}">` : ''}
-                <div class="qa-card-actions">
-                    <button class="btn-icon qa-detail-button" data-qa-open="${idSafe}" type="button" title="Ver detalhes"><i data-lucide="panel-right-open"></i></button>
-                    <button class="btn-icon qa-delete-button" data-qa-delete="${idSafe}" type="button" title="Deletar anotação"><i data-lucide="trash-2"></i></button>
-                    <select class="select-input qa-status-select" data-qa-status="${idSafe}">
-                        <option value="open" ${item.status === 'open' ? 'selected' : ''}>Aberta</option>
-                        <option value="reviewing" ${item.status === 'reviewing' ? 'selected' : ''}>Em revisão</option>
-                        <option value="resolved" ${item.status === 'resolved' ? 'selected' : ''}>Resolvida</option>
-                    </select>
-                </div>
-            </article>
+    if (!visibleItems.length) {
+        list.innerHTML = `
+            <div class="qa-empty-state">
+                <i data-lucide="search-x"></i>
+                <h5>Nenhuma anotação encontrada</h5>
+                <p>Nenhum ID QA corresponde ao filtro informado.</p>
+            </div>
         `;
-    }).join('');
+    } else {
+        list.innerHTML = renderQaGroupedList(visibleItems);
+    }
 
-    renderQaKanban(items);
+    renderQaKanban(visibleItems);
     bindQaAnnotationActions();
     if (window.lucide) lucide.createIcons();
+}
+
+function renderQaGroupedList(items) {
+    const groups = [
+        { status: 'open', label: 'Abertas', icon: 'circle-dot', items: items.filter(item => item.status === 'open') },
+        { status: 'reviewing', label: 'Em revisão', icon: 'loader-circle', items: items.filter(item => item.status === 'reviewing') },
+        { status: 'resolved', label: 'Resolvidas', icon: 'circle-check', items: items.filter(item => item.status === 'resolved') }
+    ];
+    return groups
+        .filter(group => group.items.length)
+        .map(group => `
+            <section class="qa-status-group" data-qa-status-group="${group.status}">
+                <div class="qa-status-group-title">
+                    <span><i data-lucide="${group.icon}"></i>${group.label}</span>
+                    <strong>${group.items.length}</strong>
+                </div>
+                <div class="qa-status-group-items">
+                    ${group.items.map(renderQaListCard).join('')}
+                </div>
+            </section>
+        `).join('');
+}
+
+function renderQaListCard(item) {
+    const id = String(item.id || '');
+    const idSafe = escapeHtml(id);
+    return `
+        <article class="qa-card" data-qa-id="${idSafe}" role="button" tabindex="0">
+            <div class="qa-card-main">
+                ${qaAnnotationCardContent(item)}
+            </div>
+            ${item.screenshot ? `<img class="qa-card-shot" src="${item.screenshot}" alt="Captura da anotação ${idSafe}">` : ''}
+            <div class="qa-card-actions">
+                <button class="btn-icon qa-detail-button" data-qa-open="${idSafe}" type="button" title="Ver detalhes"><i data-lucide="panel-right-open"></i></button>
+                <button class="btn-icon qa-delete-button" data-qa-delete="${idSafe}" type="button" title="Deletar anotação"><i data-lucide="trash-2"></i></button>
+                <select class="select-input qa-status-select" data-qa-status="${idSafe}">
+                    <option value="open" ${item.status === 'open' ? 'selected' : ''}>Aberta</option>
+                    <option value="reviewing" ${item.status === 'reviewing' ? 'selected' : ''}>Em revisão</option>
+                    <option value="resolved" ${item.status === 'resolved' ? 'selected' : ''}>Resolvida</option>
+                </select>
+            </div>
+        </article>
+    `;
 }
 
 function qaAnnotationCardContent(item) {
@@ -3816,6 +3887,702 @@ async function opsInfraRunCommand(action) {
     }
 }
 
+// =============================================================================
+// --- UI CANVAS MODULE ---
+// =============================================================================
+
+function uiCanvasSlug(value) {
+    return (value || 'novo-canvas')
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '') || 'novo-canvas';
+}
+
+function uiCanvasCreateDocument(name = 'Novo Canvas') {
+    return {
+        version: 1,
+        name,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        viewport: { width: 2600, height: 1800 },
+        frames: [],
+        layers: []
+    };
+}
+
+function uiCanvasEnsureDraft() {
+    if (uiCanvasState.doc) return uiCanvasState.doc;
+    const stamp = new Date();
+    const name = `Canvas ${stamp.toLocaleDateString('pt-BR')} ${stamp.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
+    uiCanvasState.doc = uiCanvasCreateDocument(name);
+    uiCanvasState.filepath = `.documents/canvas/${uiCanvasSlug(name)}.canvas.json`;
+    uiCanvasState.selectedLayerId = null;
+    return uiCanvasState.doc;
+}
+
+function uiCanvasLayerLabel(type) {
+    const labels = {
+        frame: 'Frame',
+        group: 'Group',
+        section: 'Section',
+        rect: 'Retângulo',
+        text: 'Texto',
+        heading: 'Heading',
+        paragraph: 'Text Basic',
+        line: 'Linha',
+        divider: 'Divider',
+        button: 'Button',
+        input: 'Input',
+        card: 'Card',
+        table: 'Table',
+        list: 'List',
+        icon: 'Icon',
+        image: 'Image',
+        video: 'Video'
+    };
+    return labels[type] || type;
+}
+
+function uiCanvasDefaultLayer(type, x, y) {
+    const id = `${type}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
+    const framePresetKey = type === 'frame' ? document.getElementById('ui-canvas-frame-preset')?.value : '';
+    const framePreset = framePresetKey ? UI_CANVAS_FRAME_PRESETS[framePresetKey] : null;
+    const normalizedType = type === 'section' ? 'frame' : type;
+    const isText = ['text', 'heading', 'paragraph', 'button', 'input', 'list'].includes(normalizedType);
+    const base = {
+        id,
+        type: normalizedType,
+        name: framePreset?.name || uiCanvasLayerLabel(normalizedType),
+        x: Math.round(x),
+        y: Math.round(y),
+        width: framePreset?.width || (normalizedType === 'text' ? 220 : normalizedType === 'line' || normalizedType === 'divider' ? 220 : normalizedType === 'frame' ? 375 : normalizedType === 'table' ? 420 : normalizedType === 'image' || normalizedType === 'video' ? 260 : 180),
+        height: framePreset?.height || (normalizedType === 'text' ? 44 : normalizedType === 'heading' ? 48 : normalizedType === 'paragraph' ? 76 : normalizedType === 'line' || normalizedType === 'divider' ? 2 : normalizedType === 'frame' ? 667 : normalizedType === 'table' ? 180 : normalizedType === 'image' || normalizedType === 'video' ? 160 : 96),
+        widthMode: 'fixed',
+        heightMode: 'fixed',
+        fill: normalizedType === 'frame' ? '#101012' : normalizedType === 'line' || normalizedType === 'divider' ? '#f8fafc' : isText ? 'transparent' : '#1f1f22',
+        stroke: isText ? 'transparent' : '#2d2d31',
+        radius: normalizedType === 'frame' ? 18 : normalizedType === 'button' || normalizedType === 'input' ? 12 : 10,
+        opacity: 1,
+        token: '',
+        parentId: null
+    };
+    if (normalizedType === 'frame' || normalizedType === 'group') {
+        return { ...base, autoLayout: { enabled: false, direction: 'vertical', gap: 12, padding: 16 } };
+    }
+    if (normalizedType === 'heading') {
+        return { ...base, text: 'Heading', color: '#f8fafc', fontSize: 28, fontWeight: 800 };
+    }
+    if (normalizedType === 'paragraph') {
+        return { ...base, text: 'Texto básico', color: '#a1a1aa', fontSize: 16, fontWeight: 500 };
+    }
+    if (normalizedType === 'button') {
+        return { ...base, text: 'Button', color: '#050505', fill: '#f8fafc', stroke: 'transparent', fontSize: 15, fontWeight: 700, width: 128, height: 44 };
+    }
+    if (normalizedType === 'input') {
+        return { ...base, text: 'Placeholder', color: '#71717a', fill: '#111113', stroke: '#2d2d31', fontSize: 14, fontWeight: 500, width: 260, height: 44 };
+    }
+    if (normalizedType === 'list') {
+        return { ...base, text: 'Item 1\nItem 2\nItem 3', color: '#f8fafc', fontSize: 15, fontWeight: 500, width: 220, height: 100 };
+    }
+    if (normalizedType === 'icon') {
+        return { ...base, icon: 'sparkles', text: '', color: '#f8fafc', fontSize: 24, fontWeight: 700, width: 48, height: 48 };
+    }
+    if (normalizedType === 'image' || normalizedType === 'video') {
+        return { ...base, text: normalizedType === 'image' ? 'Image' : 'Video', color: '#71717a', fill: '#151518', stroke: '#34343a', fontSize: 14, fontWeight: 700 };
+    }
+    if (normalizedType === 'table') {
+        return { ...base, text: 'Table', fill: '#151518', stroke: '#34343a' };
+    }
+    if (normalizedType === 'text') {
+        return { ...base, text: 'Texto', color: '#f8fafc', fontSize: 18, fontWeight: 700 };
+    }
+    return base;
+}
+
+function uiCanvasGetLayers() {
+    return uiCanvasState.doc?.layers || [];
+}
+
+function uiCanvasGetSelectedLayer() {
+    return uiCanvasGetLayers().find(layer => layer.id === uiCanvasState.selectedLayerId) || null;
+}
+
+function uiCanvasSetTool(tool) {
+    if (tool && tool !== 'select') {
+        uiCanvasEnsureDraft();
+        uiCanvasRender();
+    }
+    uiCanvasState.tool = tool || 'select';
+    document.querySelectorAll('.ui-canvas-tool').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.uiCanvasTool === uiCanvasState.tool);
+    });
+}
+
+function uiCanvasSetZoom(nextZoom) {
+    uiCanvasState.zoom = Math.max(0.35, Math.min(2, Number(nextZoom) || 1));
+    const viewport = document.getElementById('ui-canvas-viewport');
+    if (viewport) viewport.style.transform = `scale(${uiCanvasState.zoom})`;
+    const label = document.getElementById('ui-canvas-zoom-label');
+    if (label) label.textContent = `${Math.round(uiCanvasState.zoom * 100)}%`;
+}
+
+function uiCanvasUpdateHeader() {
+    document.getElementById('ui-canvas-title').textContent = uiCanvasState.doc?.name || 'Sem canvas selecionado';
+    document.getElementById('ui-canvas-filepath').textContent = uiCanvasState.filepath || '.documents/canvas';
+}
+
+function uiCanvasRender() {
+    const viewport = document.getElementById('ui-canvas-viewport');
+    if (!viewport) return;
+    uiCanvasUpdateHeader();
+    if (!uiCanvasState.doc) {
+        viewport.innerHTML = '<div class="ui-canvas-start-state">Crie ou selecione um canvas para começar.</div>';
+        renderUiCanvasLayers();
+        renderUiCanvasProperties();
+        return;
+    }
+
+    uiCanvasAssignParents();
+    uiCanvasApplyAutoLayouts();
+    viewport.style.width = `${uiCanvasState.doc.viewport?.width || 2600}px`;
+    viewport.style.height = `${uiCanvasState.doc.viewport?.height || 1800}px`;
+    viewport.innerHTML = uiCanvasGetLayers().map(layer => uiCanvasLayerHtml(layer)).join('');
+    viewport.querySelectorAll('.ui-canvas-layer').forEach(el => {
+        el.addEventListener('pointerdown', uiCanvasLayerPointerDown);
+    });
+    viewport.querySelectorAll('.ui-canvas-resize-handle').forEach(el => {
+        el.addEventListener('pointerdown', uiCanvasResizePointerDown);
+    });
+    renderUiCanvasLayers();
+    renderUiCanvasProperties();
+    if (window.lucide) lucide.createIcons();
+}
+
+function uiCanvasLayerHtml(layer) {
+    const selected = layer.id === uiCanvasState.selectedLayerId ? ' is-selected' : '';
+    const dimensions = uiCanvasGetRenderedDimensions(layer);
+    const commonStyle = [
+        `left:${layer.x}px`,
+        `top:${layer.y}px`,
+        `width:${dimensions.width}px`,
+        `height:${dimensions.height}px`,
+        `opacity:${layer.opacity ?? 1}`,
+        `border-radius:${layer.radius || 0}px`,
+        `border-color:${layer.stroke || 'transparent'}`
+    ].join(';');
+
+    if (['text', 'heading', 'paragraph', 'button', 'input', 'list', 'icon', 'image', 'video'].includes(layer.type)) {
+        if (layer.type === 'icon') {
+            return `<div class="ui-canvas-layer ui-canvas-layer-text ui-canvas-layer-icon${selected}" data-layer-id="${layer.id}" style="${commonStyle};background:${layer.fill || 'transparent'};color:${layer.color || '#f8fafc'};border-color:${layer.stroke || 'transparent'};"><i data-lucide="${escapeHtml(layer.icon || 'sparkles')}" style="width:${layer.fontSize || 24}px;height:${layer.fontSize || 24}px;"></i><span class="ui-canvas-resize-handle" data-layer-id="${layer.id}"></span></div>`;
+        }
+        const text = layer.type === 'list' ? escapeHtml(layer.text || '').replace(/\n/g, '<br>') : escapeHtml(layer.text || uiCanvasLayerLabel(layer.type));
+        return `<div class="ui-canvas-layer ui-canvas-layer-text ui-canvas-layer-${layer.type}${selected}" data-layer-id="${layer.id}" style="${commonStyle};background:${layer.fill || 'transparent'};color:${layer.color || '#f8fafc'};font-size:${layer.fontSize || 16}px;font-weight:${layer.fontWeight || 600};border-color:${layer.stroke || 'transparent'};">${text}<span class="ui-canvas-resize-handle" data-layer-id="${layer.id}"></span></div>`;
+    }
+    if (layer.type === 'line' || layer.type === 'divider') {
+        return `<div class="ui-canvas-layer ui-canvas-layer-line${selected}" data-layer-id="${layer.id}" style="left:${layer.x}px;top:${layer.y}px;width:${dimensions.width}px;height:${Math.max(2, dimensions.height || 2)}px;background:${layer.fill || '#f8fafc'};opacity:${layer.opacity ?? 1};"><span class="ui-canvas-resize-handle" data-layer-id="${layer.id}"></span></div>`;
+    }
+    if (layer.type === 'table') {
+        return `<div class="ui-canvas-layer ui-canvas-layer-table${selected}" data-layer-id="${layer.id}" style="${commonStyle};background:${layer.fill || '#151518'};"><span class="ui-canvas-table-grid"></span><span class="ui-canvas-layer-name">${escapeHtml(layer.name || 'Table')}</span><span class="ui-canvas-resize-handle" data-layer-id="${layer.id}"></span></div>`;
+    }
+    const cls = layer.type === 'frame' ? 'ui-canvas-layer-frame' : layer.type === 'group' ? 'ui-canvas-layer-group' : 'ui-canvas-layer-rect';
+    return `<div class="ui-canvas-layer ${cls}${selected}" data-layer-id="${layer.id}" style="${commonStyle};background:${layer.fill || 'transparent'};"><span class="ui-canvas-layer-name">${escapeHtml(layer.name || layer.type)}</span><span class="ui-canvas-resize-handle" data-layer-id="${layer.id}"></span></div>`;
+}
+
+function uiCanvasGetParentLayer(layer) {
+    return layer?.parentId ? uiCanvasGetLayers().find(item => item.id === layer.parentId) || null : null;
+}
+
+function uiCanvasGetAutoDimension(layer, axis) {
+    if (layer.type === 'line' || layer.type === 'divider') return axis === 'width' ? Number(layer.width || 220) : 2;
+    if (layer.type === 'icon') {
+        const size = Math.max(24, Number(layer.fontSize || 24) + 20);
+        return size;
+    }
+    if (['heading', 'paragraph', 'text', 'button', 'input', 'list'].includes(layer.type)) {
+        const text = String(layer.text || uiCanvasLayerLabel(layer.type));
+        const lines = text.split('\n');
+        const longest = Math.max(...lines.map(line => line.length), 1);
+        const fontSize = Number(layer.fontSize || 16);
+        if (axis === 'width') return Math.max(48, Math.round(longest * fontSize * 0.58) + 24);
+        return Math.max(24, Math.round(lines.length * fontSize * 1.45) + 16);
+    }
+    return axis === 'width' ? Number(layer.width || 180) : Number(layer.height || 96);
+}
+
+function uiCanvasGetFullDimension(layer, axis) {
+    const parent = uiCanvasGetParentLayer(layer);
+    if (!parent) return axis === 'width' ? Number(layer.width || 180) : Number(layer.height || 96);
+    const parentDimensions = uiCanvasGetRenderedDimensions(parent);
+    const offset = axis === 'width' ? layer.x - parent.x : layer.y - parent.y;
+    const fallback = axis === 'width' ? Number(layer.width || 180) : Number(layer.height || 96);
+    return Math.max(12, Math.round(parentDimensions[axis] - Math.max(0, offset) - 16)) || fallback;
+}
+
+function uiCanvasGetRenderedDimensions(layer) {
+    const widthMode = layer.widthMode || 'fixed';
+    const heightMode = layer.heightMode || 'fixed';
+    return {
+        width: widthMode === 'auto' ? uiCanvasGetAutoDimension(layer, 'width') : widthMode === 'full' ? uiCanvasGetFullDimension(layer, 'width') : Number(layer.width || 0),
+        height: heightMode === 'auto' ? uiCanvasGetAutoDimension(layer, 'height') : heightMode === 'full' ? uiCanvasGetFullDimension(layer, 'height') : Number(layer.height || 0)
+    };
+}
+
+function renderUiCanvasLayers() {
+    const list = document.getElementById('ui-canvas-layer-list');
+    if (!list) return;
+    const layers = uiCanvasGetLayers();
+    if (!layers.length) {
+        list.innerHTML = '<div class="ui-canvas-empty">Nenhum layer.</div>';
+        return;
+    }
+    uiCanvasAssignParents();
+    const tree = uiCanvasBuildLayerTree();
+    list.innerHTML = tree.map(node => uiCanvasLayerTreeHtml(node)).join('');
+    list.querySelectorAll('.ui-canvas-layer-item').forEach(btn => {
+        btn.addEventListener('click', () => {
+            uiCanvasState.selectedLayerId = btn.dataset.layerId;
+            uiCanvasRender();
+        });
+    });
+    if (window.lucide) lucide.createIcons();
+}
+
+function uiCanvasLayerIcon(type) {
+    const icons = {
+        text: 'type',
+        heading: 'heading-1',
+        paragraph: 'pilcrow',
+        button: 'rectangle-ellipsis',
+        input: 'text-cursor-input',
+        frame: 'scan',
+        group: 'folder',
+        section: 'layout',
+        line: 'minus',
+        divider: 'separator-horizontal',
+        table: 'table',
+        list: 'list',
+        icon: 'sparkles',
+        image: 'image',
+        video: 'video',
+        card: 'panel-top',
+        rect: 'square'
+    };
+    return icons[type] || 'square';
+}
+
+function uiCanvasLayerTreeHtml(node, depth = 0) {
+    const layer = node.layer;
+    const children = node.children || [];
+    return `
+        <div class="ui-canvas-tree-node">
+            <button class="ui-canvas-layer-item ${layer.id === uiCanvasState.selectedLayerId ? 'active' : ''}" data-layer-id="${layer.id}" style="--tree-depth:${depth}">
+                <i data-lucide="${uiCanvasLayerIcon(layer.type)}"></i>
+                <span>${escapeHtml(layer.name || uiCanvasLayerLabel(layer.type))}</span>
+            </button>
+            ${children.length ? `<div class="ui-canvas-tree-children">${children.map(child => uiCanvasLayerTreeHtml(child, depth + 1)).join('')}</div>` : ''}
+        </div>
+    `;
+}
+
+function uiCanvasLayerContains(parent, child) {
+    if (!['frame', 'group'].includes(parent.type) || parent.id === child.id) return false;
+    const parentDimensions = uiCanvasGetRenderedDimensions(parent);
+    const childDimensions = uiCanvasGetRenderedDimensions(child);
+    const parentArea = parentDimensions.width * parentDimensions.height;
+    const childArea = childDimensions.width * childDimensions.height;
+    if (parentArea <= childArea) return false;
+    return child.x >= parent.x
+        && child.y >= parent.y
+        && child.x + childDimensions.width <= parent.x + parentDimensions.width
+        && child.y + childDimensions.height <= parent.y + parentDimensions.height;
+}
+
+function uiCanvasAssignParents() {
+    const layers = uiCanvasGetLayers();
+    layers.forEach(layer => {
+        const candidates = layers
+            .filter(parent => uiCanvasLayerContains(parent, layer))
+            .sort((a, b) => (a.width * a.height) - (b.width * b.height));
+        layer.parentId = candidates[0]?.id || null;
+    });
+}
+
+function uiCanvasBuildLayerTree() {
+    const layers = uiCanvasGetLayers();
+    const nodeById = new Map(layers.map(layer => [layer.id, { layer, children: [] }]));
+    const roots = [];
+    layers.forEach(layer => {
+        const node = nodeById.get(layer.id);
+        if (layer.parentId && nodeById.has(layer.parentId)) {
+            nodeById.get(layer.parentId).children.push(node);
+        } else {
+            roots.push(node);
+        }
+    });
+    const sortNodes = nodes => nodes
+        .sort((a, b) => uiCanvasGetLayers().indexOf(b.layer) - uiCanvasGetLayers().indexOf(a.layer))
+        .map(node => ({ ...node, children: sortNodes(node.children) }));
+    return sortNodes(roots);
+}
+
+function uiCanvasApplyAutoLayouts() {
+    const layers = uiCanvasGetLayers();
+    const containers = layers.filter(layer => ['frame', 'group'].includes(layer.type) && layer.autoLayout?.enabled);
+    containers.forEach(container => {
+        const layout = container.autoLayout || {};
+        const children = layers
+            .filter(layer => layer.parentId === container.id)
+            .sort((a, b) => (a.y - b.y) || (a.x - b.x));
+        let cursor = Number(layout.padding ?? 16);
+        const padding = Number(layout.padding ?? 16);
+        const gap = Number(layout.gap ?? 12);
+        children.forEach(child => {
+            const childDimensions = uiCanvasGetRenderedDimensions(child);
+            if (layout.direction === 'horizontal') {
+                child.x = Math.round(container.x + cursor);
+                child.y = Math.round(container.y + padding);
+                cursor += childDimensions.width + gap;
+            } else {
+                child.x = Math.round(container.x + padding);
+                child.y = Math.round(container.y + cursor);
+                cursor += childDimensions.height + gap;
+            }
+        });
+    });
+}
+
+function renderUiCanvasProperties() {
+    const form = document.getElementById('ui-canvas-property-form');
+    const label = document.getElementById('ui-canvas-selected-label');
+    if (!form) return;
+    const layer = uiCanvasGetSelectedLayer();
+    if (label) label.textContent = layer ? layer.name : 'Nenhum layer';
+    if (!layer) {
+        form.innerHTML = '<div class="ui-canvas-empty">Selecione um elemento no canvas.</div>';
+        return;
+    }
+    const textTypes = ['text', 'heading', 'paragraph', 'button', 'input', 'list', 'image', 'video'];
+    const hasText = textTypes.includes(layer.type);
+    const hasAutoLayout = ['frame', 'group'].includes(layer.type);
+    form.innerHTML = `
+        ${uiCanvasField('name', 'Nome', layer.name || '')}
+        ${hasText ? uiCanvasField('text', 'Texto', layer.text || '') : ''}
+        ${layer.type === 'icon' ? uiCanvasIconSelect(layer) : ''}
+        <div class="ui-canvas-grid-2">
+            ${uiCanvasField('x', 'X', layer.x, 'number')}
+            ${uiCanvasField('y', 'Y', layer.y, 'number')}
+        </div>
+        ${uiCanvasDimensionControls(layer)}
+        <div class="ui-canvas-grid-2">
+            ${uiCanvasField('fill', 'Fill', layer.fill || '#1f1f22', 'color')}
+            ${uiCanvasField('stroke', 'Borda', layer.stroke || '#2d2d31', 'color')}
+        </div>
+        ${hasText ? `<div class="ui-canvas-grid-2">${uiCanvasField('color', 'Cor', layer.color || '#f8fafc', 'color')}${uiCanvasField('fontSize', 'Font size', layer.fontSize || 16, 'number')}</div>` : ''}
+        <div class="ui-canvas-grid-2">
+            ${uiCanvasField('radius', 'Radius', layer.radius || 0, 'number')}
+            ${uiCanvasField('opacity', 'Opacity', layer.opacity ?? 1, 'number', '0.1')}
+        </div>
+        ${hasText ? uiCanvasField('fontWeight', 'Peso', layer.fontWeight || 600, 'number') : ''}
+        ${hasAutoLayout ? uiCanvasAutoLayoutFields(layer) : ''}
+        ${uiCanvasField('token', 'Token aplicado', layer.token || '', 'text', '', 'ex: color.surface.card')}
+        <button class="btn btn-secondary btn-sm" id="btn-ui-canvas-delete-layer"><i data-lucide="trash-2"></i> Remover layer</button>
+    `;
+    form.querySelectorAll('[data-ui-prop]').forEach(input => {
+        input.addEventListener('change', () => uiCanvasUpdateLayerProp(input.dataset.uiProp, input.value, input.type));
+    });
+    form.querySelectorAll('[data-ui-dimension-mode]').forEach(input => {
+        input.addEventListener('change', () => uiCanvasUpdateLayerProp(`${input.dataset.uiDimensionMode}Mode`, input.value, input.type));
+    });
+    form.querySelectorAll('[data-ui-autolayout]').forEach(input => {
+        input.addEventListener('change', () => uiCanvasUpdateAutoLayoutProp(input.dataset.uiAutolayout, input.type === 'checkbox' ? input.checked : input.value));
+    });
+    document.getElementById('btn-ui-canvas-delete-layer')?.addEventListener('click', uiCanvasDeleteSelectedLayer);
+    if (window.lucide) lucide.createIcons();
+}
+
+function uiCanvasDimensionControls(layer) {
+    return `
+        <div class="ui-canvas-dimensions">
+            <label class="ui-canvas-field">
+                <span>Width</span>
+                <div class="ui-canvas-dimension-control">
+                    <input class="text-input" data-ui-prop="width" type="number" value="${escapeHtml(String(layer.width ?? 0))}">
+                    ${uiCanvasDimensionModeSelect('width', layer.widthMode || 'fixed')}
+                </div>
+            </label>
+            <label class="ui-canvas-field">
+                <span>Height</span>
+                <div class="ui-canvas-dimension-control">
+                    <input class="text-input" data-ui-prop="height" type="number" value="${escapeHtml(String(layer.height ?? 0))}">
+                    ${uiCanvasDimensionModeSelect('height', layer.heightMode || 'fixed')}
+                </div>
+            </label>
+        </div>
+    `;
+}
+
+function uiCanvasDimensionModeSelect(axis, value) {
+    return `
+        <select class="select-input ui-canvas-dimension-mode" data-ui-dimension-mode="${axis}">
+            <option value="fixed" ${value === 'fixed' ? 'selected' : ''}>fixo</option>
+            <option value="auto" ${value === 'auto' ? 'selected' : ''}>auto</option>
+            <option value="full" ${value === 'full' ? 'selected' : ''}>full</option>
+        </select>
+    `;
+}
+
+function uiCanvasIconSelect(layer) {
+    return `
+        <label class="ui-canvas-field">
+            <span>Ícone Lucide</span>
+            <select class="select-input" data-ui-prop="icon">
+                ${UI_CANVAS_ICON_OPTIONS.map(icon => `<option value="${escapeHtml(icon)}" ${(layer.icon || 'sparkles') === icon ? 'selected' : ''}>${escapeHtml(icon)}</option>`).join('')}
+            </select>
+        </label>
+    `;
+}
+
+function uiCanvasAutoLayoutFields(layer) {
+    const layout = layer.autoLayout || { enabled: false, direction: 'vertical', gap: 12, padding: 16 };
+    return `
+        <div class="ui-canvas-property-group">
+            <div class="ui-canvas-section-title">Auto layout</div>
+            <label class="ui-canvas-checkbox-field">
+                <input type="checkbox" data-ui-autolayout="enabled" ${layout.enabled ? 'checked' : ''}>
+                <span>Ativar auto layout</span>
+            </label>
+            <label class="ui-canvas-field">
+                <span>Direção</span>
+                <select class="select-input" data-ui-autolayout="direction">
+                    <option value="vertical" ${layout.direction === 'vertical' ? 'selected' : ''}>Vertical</option>
+                    <option value="horizontal" ${layout.direction === 'horizontal' ? 'selected' : ''}>Horizontal</option>
+                </select>
+            </label>
+            <div class="ui-canvas-grid-2">
+                ${uiCanvasField('autoLayout.gap', 'Gap', layout.gap ?? 12, 'number')}
+                ${uiCanvasField('autoLayout.padding', 'Padding', layout.padding ?? 16, 'number')}
+            </div>
+        </div>
+    `;
+}
+
+function uiCanvasField(prop, label, value, type = 'text', step = '', placeholder = '') {
+    return `<label class="ui-canvas-field"><span>${label}</span><input class="text-input" data-ui-prop="${prop}" type="${type}" ${step ? `step="${step}"` : ''} value="${escapeHtml(String(value ?? ''))}" placeholder="${escapeHtml(placeholder)}"></label>`;
+}
+
+function uiCanvasUpdateLayerProp(prop, value, inputType) {
+    const layer = uiCanvasGetSelectedLayer();
+    if (!layer) return;
+    const numeric = ['x', 'y', 'width', 'height', 'radius', 'opacity', 'fontSize', 'fontWeight'];
+    if (prop.startsWith('autoLayout.')) {
+        layer.autoLayout = layer.autoLayout || { enabled: false, direction: 'vertical', gap: 12, padding: 16 };
+        const key = prop.split('.')[1];
+        layer.autoLayout[key] = Number(value);
+    } else {
+        layer[prop] = numeric.includes(prop) ? Number(value) : value;
+        if (prop === 'width') layer.widthMode = 'fixed';
+        if (prop === 'height') layer.heightMode = 'fixed';
+    }
+    uiCanvasAssignParents();
+    uiCanvasState.doc.updatedAt = new Date().toISOString();
+    uiCanvasRender();
+}
+
+function uiCanvasUpdateAutoLayoutProp(prop, value) {
+    const layer = uiCanvasGetSelectedLayer();
+    if (!layer) return;
+    layer.autoLayout = layer.autoLayout || { enabled: false, direction: 'vertical', gap: 12, padding: 16 };
+    layer.autoLayout[prop] = prop === 'enabled' ? Boolean(value) : value;
+    uiCanvasAssignParents();
+    uiCanvasState.doc.updatedAt = new Date().toISOString();
+    uiCanvasRender();
+}
+
+function uiCanvasDeleteSelectedLayer() {
+    if (!uiCanvasState.doc || !uiCanvasState.selectedLayerId) return;
+    const selectedId = uiCanvasState.selectedLayerId;
+    const idsToRemove = new Set([selectedId]);
+    let changed = true;
+    while (changed) {
+        changed = false;
+        uiCanvasGetLayers().forEach(layer => {
+            if (layer.parentId && idsToRemove.has(layer.parentId) && !idsToRemove.has(layer.id)) {
+                idsToRemove.add(layer.id);
+                changed = true;
+            }
+        });
+    }
+    uiCanvasState.doc.layers = uiCanvasGetLayers().filter(layer => !idsToRemove.has(layer.id));
+    uiCanvasState.selectedLayerId = null;
+    uiCanvasRender();
+}
+
+async function loadUiCanvasFiles() {
+    if (!state.activeProjectId) return;
+    const list = document.getElementById('ui-canvas-file-list');
+    if (list) list.innerHTML = '<div class="ui-canvas-empty">Carregando...</div>';
+    try {
+        const res = await fetch(`/api/projects/${state.activeProjectId}/files`);
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || 'Erro ao listar arquivos');
+        uiCanvasState.files = (data.files || [])
+            .filter(file => file.path?.startsWith('.documents/canvas/') && file.path.endsWith('.canvas.json'))
+            .sort((a, b) => a.path.localeCompare(b.path));
+        renderUiCanvasFileList();
+    } catch (err) {
+        if (list) list.innerHTML = `<div class="ui-canvas-empty is-error">${escapeHtml(err.message)}</div>`;
+    }
+}
+
+function renderUiCanvasFileList() {
+    const list = document.getElementById('ui-canvas-file-list');
+    if (!list) return;
+    if (!uiCanvasState.files.length) {
+        list.innerHTML = '<div class="ui-canvas-empty">Nenhum canvas encontrado.</div>';
+        return;
+    }
+    list.innerHTML = uiCanvasState.files.map(file => {
+        const name = file.path.split('/').pop().replace('.canvas.json', '');
+        return `<button class="ui-canvas-file-item ${file.path === uiCanvasState.filepath ? 'active' : ''}" data-filepath="${escapeHtml(file.path)}"><i data-lucide="file-json"></i><span>${escapeHtml(name)}</span></button>`;
+    }).join('');
+    list.querySelectorAll('.ui-canvas-file-item').forEach(btn => btn.addEventListener('click', () => loadUiCanvasDocument(btn.dataset.filepath)));
+    if (window.lucide) lucide.createIcons();
+}
+
+async function loadUiCanvasDocument(filepath) {
+    if (!state.activeProjectId || !filepath) return;
+    const res = await fetch(`/api/projects/${state.activeProjectId}/files/read?filepath=${encodeURIComponent(filepath)}`, { headers: getHeaders() });
+    const data = await res.json();
+    if (!res.ok) {
+        gitideNotify({ title: 'Erro ao abrir canvas', message: data.detail || 'Arquivo não encontrado.', variant: 'danger' });
+        return;
+    }
+    try {
+        uiCanvasState.doc = JSON.parse(data.content || '{}');
+        uiCanvasState.filepath = filepath;
+        uiCanvasState.selectedLayerId = null;
+        uiCanvasRender();
+        renderUiCanvasFileList();
+    } catch (err) {
+        gitideNotify({ title: 'Canvas inválido', message: err.message, variant: 'danger' });
+    }
+}
+
+function newUiCanvasDocument() {
+    const stamp = new Date();
+    const name = `Nova Tela ${stamp.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
+    uiCanvasState.doc = uiCanvasCreateDocument(name);
+    uiCanvasState.filepath = `.documents/canvas/${uiCanvasSlug(name)}.canvas.json`;
+    uiCanvasState.selectedLayerId = null;
+    uiCanvasSetTool('select');
+    uiCanvasRender();
+    renderUiCanvasFileList();
+}
+
+async function saveUiCanvasDocument() {
+    if (!state.activeProjectId || !uiCanvasState.doc) return;
+    uiCanvasState.doc.updatedAt = new Date().toISOString();
+    const res = await fetch(`/api/projects/${state.activeProjectId}/files/write`, {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify({
+            filepath: uiCanvasState.filepath,
+            content: JSON.stringify(uiCanvasState.doc, null, 2)
+        })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+        gitideNotify({ title: 'Erro ao salvar canvas', message: data.detail || 'Falha ao salvar.', variant: 'danger' });
+        return;
+    }
+    gitideNotify({ title: 'Canvas salvo', message: uiCanvasState.filepath, variant: 'success' });
+    await loadUiCanvasFiles();
+}
+
+function uiCanvasExportJson() {
+    if (!uiCanvasState.doc) return;
+    navigator.clipboard.writeText(JSON.stringify(uiCanvasState.doc, null, 2));
+    gitideNotify({ title: 'JSON copiado', message: 'Arquivo do canvas copiado para a área de transferência.', variant: 'success' });
+}
+
+function uiCanvasStagePoint(event) {
+    const viewport = document.getElementById('ui-canvas-viewport');
+    const rect = viewport.getBoundingClientRect();
+    return {
+        x: (event.clientX - rect.left) / uiCanvasState.zoom,
+        y: (event.clientY - rect.top) / uiCanvasState.zoom
+    };
+}
+
+function uiCanvasStagePointerDown(event) {
+    if (event.target.closest('.ui-canvas-layer')) return;
+    uiCanvasEnsureDraft();
+    const point = uiCanvasStagePoint(event);
+    if (uiCanvasState.tool === 'select') {
+        uiCanvasState.selectedLayerId = null;
+        uiCanvasRender();
+        return;
+    }
+    const layer = uiCanvasDefaultLayer(uiCanvasState.tool, point.x, point.y);
+    uiCanvasState.doc.layers.push(layer);
+    uiCanvasState.selectedLayerId = layer.id;
+    uiCanvasSetTool('select');
+    uiCanvasRender();
+}
+
+function uiCanvasLayerPointerDown(event) {
+    event.stopPropagation();
+    if (event.target.classList.contains('ui-canvas-resize-handle')) return;
+    const id = event.currentTarget.dataset.layerId;
+    const layer = uiCanvasGetLayers().find(item => item.id === id);
+    if (!layer) return;
+    uiCanvasState.selectedLayerId = id;
+    const point = uiCanvasStagePoint(event);
+    uiCanvasState.drag = { id, offsetX: point.x - layer.x, offsetY: point.y - layer.y };
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+    uiCanvasRender();
+}
+
+function uiCanvasResizePointerDown(event) {
+    event.stopPropagation();
+    const id = event.currentTarget.dataset.layerId;
+    const layer = uiCanvasGetLayers().find(item => item.id === id);
+    if (!layer) return;
+    uiCanvasState.selectedLayerId = id;
+    const point = uiCanvasStagePoint(event);
+    uiCanvasState.resize = { id, startX: point.x, startY: point.y, width: layer.width, height: layer.height };
+}
+
+function uiCanvasPointerMove(event) {
+    if (uiCanvasState.drag) {
+        const layer = uiCanvasGetLayers().find(item => item.id === uiCanvasState.drag.id);
+        if (!layer) return;
+        const point = uiCanvasStagePoint(event);
+        layer.x = Math.round(point.x - uiCanvasState.drag.offsetX);
+        layer.y = Math.round(point.y - uiCanvasState.drag.offsetY);
+        uiCanvasRender();
+    } else if (uiCanvasState.resize) {
+        const layer = uiCanvasGetLayers().find(item => item.id === uiCanvasState.resize.id);
+        if (!layer) return;
+        const point = uiCanvasStagePoint(event);
+        layer.width = Math.max(12, Math.round(uiCanvasState.resize.width + point.x - uiCanvasState.resize.startX));
+        layer.height = Math.max(layer.type === 'line' ? 2 : 12, Math.round(uiCanvasState.resize.height + point.y - uiCanvasState.resize.startY));
+        layer.widthMode = 'fixed';
+        layer.heightMode = 'fixed';
+        uiCanvasRender();
+    }
+}
+
+function uiCanvasPointerUp() {
+    if (uiCanvasState.drag || uiCanvasState.resize) {
+        if (uiCanvasState.doc) uiCanvasState.doc.updatedAt = new Date().toISOString();
+        uiCanvasState.drag = null;
+        uiCanvasState.resize = null;
+        uiCanvasRender();
+    }
+}
+
 // --- EVENT LISTENERS & UI EVENTS ---
 function setupEventListeners() {
     // SDD Module
@@ -3839,11 +4606,31 @@ function setupEventListeners() {
 
     document.getElementById('btn-qa-refresh')?.addEventListener('click', loadQaAnnotations);
     document.getElementById('qa-status-filter')?.addEventListener('change', loadQaAnnotations);
+    document.getElementById('qa-id-filter')?.addEventListener('input', renderQaAnnotations);
     document.getElementById('btn-qa-copy-extension-config')?.addEventListener('click', copyQaExtensionConfig);
     document.getElementById('btn-qa-export-pdf')?.addEventListener('click', () => exportQaAnnotations('pdf'));
     document.getElementById('btn-qa-export-xlsx')?.addEventListener('click', () => exportQaAnnotations('xlsx'));
     document.getElementById('btn-engineering-metrics-refresh')?.addEventListener('click', loadEngineeringMetrics);
     document.getElementById('engineering-metrics-period')?.addEventListener('change', loadEngineeringMetrics);
+    document.getElementById('btn-ui-canvas-refresh')?.addEventListener('click', loadUiCanvasFiles);
+    document.getElementById('btn-ui-canvas-new')?.addEventListener('click', newUiCanvasDocument);
+    document.getElementById('btn-ui-canvas-save')?.addEventListener('click', saveUiCanvasDocument);
+    document.getElementById('btn-ui-canvas-export-json')?.addEventListener('click', uiCanvasExportJson);
+    document.getElementById('btn-ui-canvas-zoom-in')?.addEventListener('click', () => uiCanvasSetZoom(uiCanvasState.zoom + 0.1));
+    document.getElementById('btn-ui-canvas-zoom-out')?.addEventListener('click', () => uiCanvasSetZoom(uiCanvasState.zoom - 0.1));
+    document.querySelectorAll('.ui-canvas-tool').forEach(btn => {
+        btn.addEventListener('click', () => uiCanvasSetTool(btn.dataset.uiCanvasTool));
+    });
+    document.getElementById('ui-canvas-frame-preset')?.addEventListener('change', () => uiCanvasSetTool('frame'));
+    document.getElementById('ui-canvas-element-preset')?.addEventListener('change', (event) => {
+        const type = event.target.value;
+        if (!type) return;
+        uiCanvasSetTool(type);
+        event.target.value = '';
+    });
+    document.getElementById('ui-canvas-viewport')?.addEventListener('pointerdown', uiCanvasStagePointerDown);
+    document.addEventListener('pointermove', uiCanvasPointerMove);
+    document.addEventListener('pointerup', uiCanvasPointerUp);
     document.querySelectorAll('.qa-view-tab').forEach(btn => {
         btn.addEventListener('click', () => setQaView(btn.dataset.qaView));
     });
