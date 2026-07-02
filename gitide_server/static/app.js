@@ -8080,6 +8080,8 @@ const sddState = {
         task_details: ''
     },
     taskFilepath: '.documents/task/task.md',
+    taskScope: 'current',
+    allCriteria: [],
     specs: [],
     executeTask: null,
     charterLoaded: false,
@@ -8461,6 +8463,7 @@ function sddResetWorkspaceEmpty() {
     sddState.activeFilepath = null;
     sddState.projectDocuments = { design: '', dri: '', task: '', task_details: '' };
     sddState.taskFilepath = '.documents/task/task.md';
+    sddState.allCriteria = [];
     sddState.executeTask = null;
 
     const nav = document.getElementById('sdd-workspace-nav-tabs');
@@ -8684,22 +8687,74 @@ async function sddLoadCriteria() {
         const data = await res.json();
         if (!res.ok) throw new Error(data.detail || 'Erro ao carregar tarefas');
         sddState.taskFilepath = data.filepath || '.documents/task/task.md';
-        sddRenderCriteria(data.criteria || []);
+        sddState.allCriteria = data.criteria || [];
+        sddRenderCriteria();
     } catch (e) {
         container.innerHTML = `<p style="color:#ef4444;padding:16px;">Erro ao carregar tarefas de <code>.documents/task/task.md</code>.</p>`;
     }
 }
 
-function sddRenderCriteria(criteria) {
+function sddExtractActiveReqCode() {
+    const source = [
+        sddState.activeFilename || '',
+        sddState.activeFilepath || '',
+        sddState.activeContent || ''
+    ].join('\n');
+    const match = source.match(/\bREQ-\d{2,6}\b/i);
+    return match ? match[0].toUpperCase() : '';
+}
+
+function sddGetVisibleCriteria() {
+    const criteria = sddState.allCriteria || [];
+    if (sddState.taskScope === 'all') return criteria;
+
+    const activeReq = sddExtractActiveReqCode();
+    if (!activeReq) return criteria;
+
+    return criteria.filter(c => {
+        const haystack = `${c.code || ''} ${c.text || ''} ${c.title || ''}`.toUpperCase();
+        return haystack.includes(activeReq);
+    });
+}
+
+function sddUpdateTaskScopeMeta() {
+    const scopeSelect = document.getElementById('sdd-task-scope');
+    const scopeHint = document.getElementById('sdd-task-scope-hint');
+    if (scopeSelect) scopeSelect.value = sddState.taskScope || 'current';
+    if (!scopeHint) return;
+
+    const total = (sddState.allCriteria || []).length;
+    const visible = sddGetVisibleCriteria().length;
+    const activeReq = sddExtractActiveReqCode();
+    scopeHint.textContent = sddState.taskScope === 'all'
+        ? `${visible} task(s) de todos os requisitos e QA.`
+        : activeReq
+            ? `${visible}/${total} task(s) vinculadas a ${activeReq}.`
+            : `${visible} task(s) disponíveis.`;
+}
+
+function sddSetTaskScope(scope) {
+    sddState.taskScope = scope === 'all' ? 'all' : 'current';
+    sddRenderCriteria();
+}
+
+function sddRenderCriteria() {
     const container = document.getElementById('sdd-criteria-checklist-container');
     const progressText = document.getElementById('sdd-checklist-progress-text');
     const progressFill = document.getElementById('sdd-progress-fill');
+    const criteria = sddGetVisibleCriteria();
+    sddUpdateTaskScopeMeta();
 
     if (!criteria.length) {
+        const activeReq = sddExtractActiveReqCode();
+        const hasAllTasks = (sddState.allCriteria || []).length > 0;
+        const emptyMessage = hasAllTasks && sddState.taskScope !== 'all' && activeReq
+            ? `Nenhuma tarefa vinculada a <code>${escapeHtml(activeReq)}</code>.<br>Altere para <strong>Todas as tasks</strong> para visualizar tarefas de outros REQs e QA.`
+            : `Nenhuma tarefa encontrada em <code>${escapeHtml(sddState.taskFilepath || '.documents/task/task.md')}</code>.<br>Use o formato <code>- [ ] TASK-REQ-0000-001: - Título curto</code> ou <code>- [ ] TASK-QA-ID-001: - Título curto</code>.`;
         container.innerHTML = `
             <div style="text-align:center;padding:40px;color:var(--text-muted);">
                 <i data-lucide="clipboard-list" style="width:40px;height:40px;margin-bottom:12px;opacity:0.4;"></i>
-                <p>Nenhuma tarefa encontrada em <code>${escapeHtml(sddState.taskFilepath || '.documents/task/task.md')}</code>.<br>Use o formato <code>- [ ] TASK-REQ-0000-001: - Título curto</code>.</p>
+                <p>${emptyMessage}</p>
             </div>`;
         if (window.lucide) lucide.createIcons();
         progressText.textContent = '0/0 concluídos';
@@ -8740,13 +8795,13 @@ function sddRenderCriteria(criteria) {
 }
 
 function sddExtractTaskId(taskText = '') {
-    const match = taskText.match(/\bTASK-REQ-\d{3,6}-\d{3}\b/i);
+    const match = taskText.match(/\bTASK-(?:REQ-\d{2,6}|QA-[A-Z0-9-]+)-\d{3}\b/i);
     return match ? match[0].toUpperCase() : '';
 }
 
 function sddExtractTaskTitle(taskText = '') {
     return taskText
-        .replace(/\bTASK-REQ-\d{3,6}-\d{3}\b:?\s*/i, '')
+        .replace(/\bTASK-(?:REQ-\d{2,6}|QA-[A-Z0-9-]+)-\d{3}\b:?\s*/i, '')
         .replace(/^\s*-\s*/, '')
         .trim();
 }
@@ -9545,6 +9600,11 @@ function setupSddEventListeners() {
     // Switch to IA wizard from empty workspace
     const btnToWizard = document.getElementById('btn-switch-to-ia-generator');
     if (btnToWizard) btnToWizard.addEventListener('click', () => sddSwitchTab('sdd-tab-ia-wizard'));
+
+    const taskScopeSelect = document.getElementById('sdd-task-scope');
+    if (taskScopeSelect) {
+        taskScopeSelect.addEventListener('change', () => sddSetTaskScope(taskScopeSelect.value));
+    }
 
     // Workspace sub-tabs
     document.querySelectorAll('.sdd-nav-btn').forEach(btn => {

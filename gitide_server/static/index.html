@@ -17,7 +17,7 @@
     <link rel="stylesheet" href="/static/workspace-switcher-refactor.css?v=2">
     <link rel="stylesheet" href="/static/workspace-native-fallback.css?v=1">
     <link rel="stylesheet" href="/static/settings-tabs.css?v=1">
-    <link rel="stylesheet" href="/static/rebrand.css?v=35">
+    <link rel="stylesheet" href="/static/rebrand.css?v=36">
     <script src="/static/lucide-bootstrap.js"></script>
     <script defer src="/static/ui/workspace-switcher.js?v=3"></script>
     <script defer src="/static/settings-tabs.js?v=4"></script>
@@ -1418,7 +1418,15 @@ REGRA INQUEBRÁVEL: antes de executar qualquer task, valide REQ, DRI e Task List
                                         <div class="sdd-checklist-header">
                                             <div style="display: flex; flex-direction: column;">
                                                 <h5>Task List - Tarefas</h5>
-                                                <p style="font-size: 12px; color: var(--text-muted); margin: 0;">Consome somente .documents/task/task.md. Formato: TASK-REQ-0000-001: - Título curto.</p>
+                                                <p style="font-size: 12px; color: var(--text-muted); margin: 0;">Consome somente .documents/task/task.md. Use o modo atual por REQ ou liste tudo, incluindo TASK-QA.</p>
+                                            </div>
+                                            <div class="sdd-task-scope-control">
+                                                <label for="sdd-task-scope">Visualização</label>
+                                                <select id="sdd-task-scope" class="select-input">
+                                                    <option value="current">REQ atual</option>
+                                                    <option value="all">Todas as tasks</option>
+                                                </select>
+                                                <span id="sdd-task-scope-hint">0 task(s) disponíveis.</span>
                                             </div>
                                             <div class="sdd-checklist-progress">
                                                 <span id="sdd-checklist-progress-text">0/0 concluídos</span>
@@ -2150,7 +2158,7 @@ REGRA INQUEBRÁVEL: antes de executar qualquer task, valide REQ, DRI e Task List
     </aside>
 
     <!-- Custom JavaScript -->
-    <script src="/static/app.js?v=56"></script>
+    <script src="/static/app.js?v=57"></script>
     <script src="/static/theme-toggle.js?v=1"></script>
 </body>
 </html>

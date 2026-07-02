@@ -6255,6 +6255,7 @@ input[type="checkbox"]:focus-visible{
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 16px;
     border-bottom: 1px solid var(--flat-border-soft);
     padding-bottom: 14px;
 }
@@ -6271,6 +6272,36 @@ input[type="checkbox"]:focus-visible{
     align-items: flex-end;
     gap: 6px;
     min-width: 140px;
+}
+
+.sdd-task-scope-control {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    margin-left: auto;
+    min-width: 176px;
+}
+
+.sdd-task-scope-control label {
+    color: var(--text-muted);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0;
+    text-transform: uppercase;
+}
+
+.sdd-task-scope-control select {
+    height: 34px;
+    min-height: 34px;
+    border-radius: 10px;
+    font-size: 12px;
+    padding: 0 32px 0 12px;
+}
+
+.sdd-task-scope-control span {
+    color: var(--text-muted);
+    font-size: 11px;
+    line-height: 1.25;
 }
 
 .sdd-checklist-progress span {
@@ -6310,6 +6341,20 @@ input[type="checkbox"]:focus-visible{
     background: rgba(255,255,255,0.01);
     border: 1px solid var(--flat-border-soft);
     transition: all 0.15s ease;
+}
+
+@media (max-width: 960px) {
+    .sdd-checklist-header {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .sdd-task-scope-control,
+    .sdd-checklist-progress {
+        width: 100%;
+        margin-left: 0;
+        align-items: stretch;
+    }
 }
 
 .sdd-task-toggle {

@@ -4110,7 +4110,7 @@ def get_sdd_spec_criteria(filename: str, project: Project = Depends(get_project_
             checkbox_match = re.match(r"^\-\s*\[([ xX])\]\s*(.*)", line_stripped)
             if checkbox_match:
                 raw_text = checkbox_match.group(2).strip()
-                task_match = re.match(r"^(TASK-REQ-\d{2,6}-\d{3})\s*:\s*-?\s*(.+)$", raw_text, flags=re.IGNORECASE)
+                task_match = re.match(r"^(TASK-(?:REQ-\d{2,6}|QA-[A-Z0-9-]+)-\d{3})\s*:\s*-?\s*(.+)$", raw_text, flags=re.IGNORECASE)
                 if not task_match:
                     continue
                 task_code = task_match.group(1).upper()
