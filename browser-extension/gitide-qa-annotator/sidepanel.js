@@ -120,7 +120,12 @@ async function polishDescriptionText() {
   }
   setStatus('Reescrevendo descrição com IA...');
   try {
-    const context = fields.title.value.trim();
+    const context = [
+      fields.title.value.trim() ? `Título atual: ${fields.title.value.trim()}` : '',
+      fields.category.value ? `Tipo: ${fields.category.value}` : '',
+      fields.severity.value ? `Severidade: ${fields.severity.value}` : '',
+      fields.selector.value.trim() ? `Elemento/selector: ${fields.selector.value.trim()}` : ''
+    ].filter(Boolean).join('\n');
     const polished = await polishQaText('description', original, context);
     fields.description.value = polished;
     setStatus(polished === original ? 'Texto já está claro.' : 'Descrição reescrita com IA.');
