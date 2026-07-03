@@ -4665,49 +4665,53 @@ def custom_openapi():
     if app.openapi_schema:
         return app.openapi_schema
         
-    # Filtra as rotas para expor menos de 30 operações para o GPT Action (evita erro de limite do ChatGPT)
-    exclude_prefixes = [
-        "/api/github/auth",
-        "/api/github/repos",
-        "/api/agent/config",
-        "/api/system/dirs",
-    ]
-    exclude_suffixes = [
-        "/rollback",
-        "/diff",
-        "/logs",
-        "/snapshots",
-        "/git/token",
-        "/git/merge/abort",
-        "/documents/{filename}/preview",
-        "/documents/upload",
-        "/agent/run",
-    ]
-    
+    # Allowlist explícita: expõe exatamente as operações abaixo para o GPT Action.
+    # Limite do ChatGPT: 30 operações. Adicionar rotas aqui é uma decisão consciente.
+    ALLOWED_OPERATIONS = {
+        # Projects
+        ("GET",    "/api/projects"),
+        ("POST",   "/api/projects"),
+        ("DELETE", "/api/projects/{project_id}"),
+        # Files
+        ("GET",    "/api/projects/{project_id}/files"),
+        ("GET",    "/api/projects/{project_id}/files/read"),
+        ("POST",   "/api/projects/{project_id}/files/write"),
+        ("PATCH",  "/api/projects/{project_id}/files/patch"),
+        ("DELETE", "/api/projects/{project_id}/files/delete"),
+        # Execute
+        ("POST",   "/api/projects/{project_id}/execute"),
+        ("GET",    "/api/projects/{project_id}/execute/pending"),
+        ("POST",   "/api/projects/{project_id}/execute/pending/{command_id}/approve"),
+        ("POST",   "/api/projects/{project_id}/execute/pending/{command_id}/reject"),
+        # Database
+        ("POST",   "/api/projects/{project_id}/db/query"),
+        # Git
+        ("GET",    "/api/projects/{project_id}/git/status"),
+        ("POST",   "/api/projects/{project_id}/git/init"),
+        ("POST",   "/api/projects/{project_id}/git/pull"),
+        ("POST",   "/api/projects/{project_id}/git/push"),
+        ("POST",   "/api/projects/{project_id}/git/deploy"),
+        ("GET",    "/api/projects/{project_id}/git/branches"),
+        ("POST",   "/api/projects/{project_id}/git/merge"),
+        ("POST",   "/api/projects/{project_id}/git/pullrequest"),
+        ("POST",   "/api/projects/{project_id}/git/commit-message/suggest"),
+        # SDD
+        ("GET",    "/api/projects/{project_id}/sdd/specs"),
+        ("GET",    "/api/projects/{project_id}/sdd/specs/{filename}"),
+        ("POST",   "/api/projects/{project_id}/sdd/specs"),
+        ("DELETE", "/api/projects/{project_id}/sdd/specs/{filename}"),
+        ("POST",   "/api/projects/{project_id}/sdd/generate-spec"),
+        ("GET",    "/api/projects/{project_id}/sdd/tasks"),
+    }
+
     filtered_routes = []
     for route in app.routes:
         path = getattr(route, "path", "")
-        should_exclude = False
-        
-        # Filtra por prefixo
-        for prefix in exclude_prefixes:
-            if path.startswith(prefix):
-                should_exclude = True
+        methods = getattr(route, "methods", None) or set()
+        for method in methods:
+            if (method.upper(), path) in ALLOWED_OPERATIONS:
+                filtered_routes.append(route)
                 break
-                
-        if not should_exclude:
-            # Filtra por sufixo
-            for suffix in exclude_suffixes:
-                if path.endswith(suffix):
-                    should_exclude = True
-                    break
-                    
-        # Filtra a rota raiz do Dashboard
-        if path == "/":
-            should_exclude = True
-            
-        if not should_exclude:
-            filtered_routes.append(route)
             
     openapi_schema = get_openapi(
         title="Act IA software engineer API",
