@@ -5921,6 +5921,9 @@ function setupEventListeners() {
     if (copyDocPromptBtn) {
         copyDocPromptBtn.addEventListener('click', copyDocPromptInstructions);
     }
+    
+    // Inicializa suporte a menções via @
+    setupChatMentions();
 }
 
 // --- IMPORT APP TABBED MODAL FUNCTIONS ---
@@ -10468,3 +10471,241 @@ function setupSddEventListeners() {
     `;
     document.head.appendChild(style);
 })();
+
+
+// --- AUTOCOMPLETE DE MENÇÃO DE ARQUIVOS COM @ ---
+
+let selectedMentionIndex = -1;
+let filteredMentionFiles = [];
+
+async function getProjectFiles() {
+    if (state.files && state.files.length > 0) {
+        return state.files;
+    }
+    if (!state.activeProjectId) return [];
+    try {
+        const res = await fetch(`/api/projects/${state.activeProjectId}/files`);
+        const data = await res.json();
+        if (data.status === 'success') {
+            state.files = data.files || [];
+            return state.files;
+        }
+    } catch (e) {
+        console.error("Erro ao carregar arquivos para autocomplete:", e);
+    }
+    return [];
+}
+
+function selectMentionFile(input, lastAtIndex, filepath) {
+    const text = input.value;
+    const beforeMention = text.slice(0, lastAtIndex);
+    const afterMention = text.slice(input.selectionStart);
+    
+    input.value = beforeMention + filepath + ' ' + afterMention;
+    
+    // Posiciona o cursor após o nome do arquivo + espaço
+    const newCursorPos = lastAtIndex + filepath.length + 1;
+    input.setSelectionRange(newCursorPos, newCursorPos);
+    
+    hideMentionDropdown();
+    input.focus();
+}
+
+function hideMentionDropdown() {
+    const dropdown = document.getElementById('agent-mention-dropdown');
+    if (dropdown) {
+        dropdown.style.display = 'none';
+    }
+    selectedMentionIndex = -1;
+    filteredMentionFiles = [];
+}
+
+async function handleMentionInput(e) {
+    const input = e.target;
+    const cursor = input.selectionStart;
+    const text = input.value.slice(0, cursor);
+    const lastAtIndex = text.lastIndexOf('@');
+    
+    if (lastAtIndex !== -1) {
+        const beforeAt = lastAtIndex > 0 ? text.charAt(lastAtIndex - 1) : ' ';
+        if (beforeAt === ' ' || beforeAt === '\n') {
+            const query = text.slice(lastAtIndex + 1);
+            if (!query.includes(' ')) {
+                const allFiles = await getProjectFiles();
+                const queryLower = query.toLowerCase();
+                
+                filteredMentionFiles = allFiles.filter(file => {
+                    const filename = file.path.split('/').pop().split('\\').pop().toLowerCase();
+                    const pathLower = file.path.toLowerCase();
+                    return filename.includes(queryLower) || pathLower.includes(queryLower);
+                }).slice(0, 10);
+                
+                renderMentionDropdown(input, lastAtIndex, query);
+                return;
+            }
+        }
+    }
+    hideMentionDropdown();
+}
+
+function renderMentionDropdown(input, lastAtIndex, query) {
+    let dropdown = document.getElementById('agent-mention-dropdown');
+    if (!dropdown) {
+        dropdown = document.createElement('div');
+        dropdown.id = 'agent-mention-dropdown';
+        dropdown.style.cssText = `
+            display: none;
+            position: absolute;
+            bottom: 60px;
+            left: 20px;
+            right: 20px;
+            background: rgba(30, 30, 30, 0.98);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.7);
+            max-height: 240px;
+            overflow-y: auto;
+            z-index: 1000;
+            padding: 8px 0;
+            scrollbar-width: thin;
+        `;
+        
+        const form = document.getElementById('agent-chat-form');
+        if (form) {
+            form.style.position = 'relative';
+            form.appendChild(dropdown);
+        }
+    }
+    
+    if (filteredMentionFiles.length === 0) {
+        dropdown.style.display = 'none';
+        return;
+    }
+    
+    dropdown.innerHTML = '';
+    
+    // Garante que o index selecionado é válido
+    selectedMentionIndex = Math.min(selectedMentionIndex, filteredMentionFiles.length - 1);
+    if (selectedMentionIndex < 0 && filteredMentionFiles.length > 0) {
+        selectedMentionIndex = 0;
+    }
+    
+    filteredMentionFiles.forEach((file, index) => {
+        const parts = file.path.split('/');
+        const filename = parts.pop();
+        const folder = parts.join('/');
+        
+        const item = document.createElement('div');
+        item.style.cssText = `
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 16px;
+            cursor: pointer;
+            transition: background 0.15s ease;
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.9);
+            background: ${index === selectedMentionIndex ? 'rgba(255, 255, 255, 0.08)' : 'transparent'};
+        `;
+        
+        item.addEventListener('mouseenter', () => {
+            selectedMentionIndex = index;
+            Array.from(dropdown.children).forEach((child, cIdx) => {
+                child.style.background = cIdx === selectedMentionIndex ? 'rgba(255, 255, 255, 0.08)' : 'transparent';
+            });
+        });
+        
+        const icon = document.createElement('i');
+        icon.className = 'fa-solid fa-file-code';
+        icon.style.color = 'var(--color-primary)';
+        icon.style.opacity = '0.8';
+        
+        const textWrapper = document.createElement('div');
+        textWrapper.style.cssText = `
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        `;
+        
+        const nameSpan = document.createElement('span');
+        nameSpan.style.fontWeight = '500';
+        nameSpan.textContent = filename;
+        
+        const pathSpan = document.createElement('span');
+        pathSpan.style.cssText = `
+            font-size: 11px;
+            color: var(--text-dark);
+            opacity: 0.8;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        `;
+        pathSpan.textContent = folder ? folder : './';
+        
+        textWrapper.appendChild(nameSpan);
+        textWrapper.appendChild(pathSpan);
+        
+        item.appendChild(icon);
+        item.appendChild(textWrapper);
+        
+        item.addEventListener('mousedown', (ev) => {
+            // Usa mousedown para rodar antes do evento blur do input
+            ev.preventDefault();
+            selectMentionFile(input, lastAtIndex, file.path);
+        });
+        
+        dropdown.appendChild(item);
+    });
+    
+    dropdown.style.display = 'block';
+    
+    const activeItem = dropdown.children[selectedMentionIndex];
+    if (activeItem) {
+        activeItem.scrollIntoView({ block: 'nearest' });
+    }
+}
+
+function handleMentionKeydown(e) {
+    const dropdown = document.getElementById('agent-mention-dropdown');
+    if (!dropdown || dropdown.style.display === 'none' || filteredMentionFiles.length === 0) {
+        return;
+    }
+    
+    const input = e.target;
+    const cursor = input.selectionStart;
+    const text = input.value.slice(0, cursor);
+    const lastAtIndex = text.lastIndexOf('@');
+    
+    if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        selectedMentionIndex = (selectedMentionIndex + 1) % filteredMentionFiles.length;
+        renderMentionDropdown(input, lastAtIndex, '');
+    } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        selectedMentionIndex = (selectedMentionIndex - 1 + filteredMentionFiles.length) % filteredMentionFiles.length;
+        renderMentionDropdown(input, lastAtIndex, '');
+    } else if (e.key === 'Enter' || e.key === 'Tab') {
+        e.preventDefault();
+        if (selectedMentionIndex >= 0 && selectedMentionIndex < filteredMentionFiles.length) {
+            selectMentionFile(input, lastAtIndex, filteredMentionFiles[selectedMentionIndex].path);
+        }
+    } else if (e.key === 'Escape') {
+        e.preventDefault();
+        hideMentionDropdown();
+    }
+}
+
+function setupChatMentions() {
+    const input = document.getElementById('agent-user-prompt');
+    if (!input) return;
+    
+    input.addEventListener('input', handleMentionInput);
+    input.addEventListener('keydown', handleMentionKeydown);
+    input.addEventListener('click', handleMentionInput);
+    input.addEventListener('blur', () => {
+        setTimeout(hideMentionDropdown, 150);
+    });
+}
