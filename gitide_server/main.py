@@ -233,6 +233,11 @@ class ProjectCreate(BaseModel):
     path: str = Field(..., description="Caminho absoluto da pasta do projeto no computador")
     git_remote: Optional[str] = Field(None, description="URL do repositório Git remoto (GitHub/GitLab)")
 
+
+class GitignoreUpdate(BaseModel):
+    entries: List[str] = Field(default_factory=list, description="Regras ativas do .gitignore, uma por linha")
+
+
 class LoginRequest(BaseModel):
     email: str = Field(..., description="E-mail do usuário")
     password: str = Field(..., description="Senha do usuário")
@@ -1407,6 +1412,75 @@ def git_status(project: Project = Depends(get_project_or_404)):
 def git_graph(project: Project = Depends(get_project_or_404)):
     """Retorna o gráfico de commits (git log --graph) do projeto."""
     return git_bridge.get_git_graph(project.path)
+
+
+def _normalize_gitignore_entry(entry: str) -> str:
+    value = (entry or "").strip().replace("\\", "/")
+    value = value.lstrip("/")
+    return value
+
+
+@app.get("/api/projects/{project_id}/git/gitignore", tags=["Git Bridge"])
+def get_gitignore(project: Project = Depends(get_project_or_404)):
+    """Retorna as regras atuais do .gitignore do projeto."""
+    path = vcs.get_safe_path(project.path, ".gitignore")
+    if not os.path.exists(path):
+        return {"status": "success", "exists": False, "entries": [], "comments": [], "content": ""}
+
+    with open(path, "r", encoding="utf-8") as f:
+        content = f.read()
+
+    entries = []
+    comments = []
+    for line in content.splitlines():
+        stripped = line.strip()
+        if not stripped:
+            continue
+        if stripped.startswith("#"):
+            comments.append(stripped)
+            continue
+        entries.append(stripped)
+
+    return {
+        "status": "success",
+        "exists": True,
+        "entries": entries,
+        "comments": comments,
+        "content": content,
+    }
+
+
+@app.put("/api/projects/{project_id}/git/gitignore", tags=["Git Bridge"])
+def update_gitignore(payload: GitignoreUpdate,
+                     project: Project = Depends(get_project_or_404),
+                     db: Session = Depends(get_db)):
+    """Atualiza o .gitignore do projeto com regras informadas pela interface."""
+    normalized_entries = []
+    seen = set()
+    for item in payload.entries:
+        entry = _normalize_gitignore_entry(item)
+        if not entry or entry.startswith("#"):
+            continue
+        if "\n" in entry or "\r" in entry:
+            raise HTTPException(status_code=400, detail="Cada regra deve ocupar apenas uma linha.")
+        if entry not in seen:
+            normalized_entries.append(entry)
+            seen.add(entry)
+
+    content = "# Gerenciado pelo Act IA - arquivos ignorados pelo Git\n"
+    if normalized_entries:
+        content += "\n".join(normalized_entries) + "\n"
+    else:
+        content += "\n"
+
+    result = vcs.write_project_file(db, project, ".gitignore", content)
+    return {
+        "status": "success",
+        "entries": normalized_entries,
+        "filepath": result.get("filepath", ".gitignore"),
+        "content": content,
+    }
+
 
 @app.post("/api/projects/{project_id}/git/commit-message/suggest", tags=["Git Bridge"])
 def git_suggest_commit_message(project: Project = Depends(get_project_or_404),

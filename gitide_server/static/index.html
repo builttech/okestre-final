@@ -17,7 +17,7 @@
     <link rel="stylesheet" href="/static/workspace-switcher-refactor.css?v=2">
     <link rel="stylesheet" href="/static/workspace-native-fallback.css?v=1">
     <link rel="stylesheet" href="/static/settings-tabs.css?v=1">
-    <link rel="stylesheet" href="/static/rebrand.css?v=38">
+    <link rel="stylesheet" href="/static/rebrand.css?v=39">
     <script src="/static/lucide-bootstrap.js"></script>
     <script defer src="/static/ui/workspace-switcher.js?v=3"></script>
     <script defer src="/static/settings-tabs.js?v=6"></script>
@@ -558,6 +558,9 @@
                                 <button type="button" class="git-side-tab" data-git-side-tab="files" role="tab" aria-selected="false" aria-controls="git-side-files-pane">
                                     <i class="fa-solid fa-file-lines"></i> Arquivos
                                 </button>
+                                <button type="button" class="git-side-tab" data-git-side-tab="ignore" role="tab" aria-selected="false" aria-controls="git-side-ignore-pane">
+                                    <i class="fa-solid fa-eye-slash"></i> .gitignore
+                                </button>
                             </div>
                             <div class="git-side-panel-content">
                                 <section class="git-side-panel-pane active" id="git-side-console-pane" data-git-side-pane="console" role="tabpanel">
@@ -573,6 +576,35 @@
                                 <section class="git-side-panel-pane" id="git-side-files-pane" data-git-side-pane="files" role="tabpanel" hidden>
                                     <div id="git-changed-files-list" class="git-changed-files-list">
                                         <div class="git-side-empty-state">Nenhuma alteração carregada ainda.</div>
+                                    </div>
+                                </section>
+                                <section class="git-side-panel-pane" id="git-side-ignore-pane" data-git-side-pane="ignore" role="tabpanel" hidden>
+                                    <div class="gitignore-manager">
+                                        <div class="gitignore-helper">
+                                            <strong>Arquivos que não devem subir para o Git</strong>
+                                            <span>Adicione arquivos, pastas ou padrões. Cada item vira uma linha no <code>.gitignore</code> do projeto.</span>
+                                        </div>
+                                        <div class="gitignore-add-row">
+                                            <input type="text" id="gitignore-entry-input" class="text-input" placeholder="ex: .env, node_modules/, dist/">
+                                            <button class="btn btn-primary btn-sm" id="btn-gitignore-add" type="button"><i data-lucide="plus"></i> Adicionar</button>
+                                        </div>
+                                        <div class="gitignore-presets" aria-label="Presets de gitignore">
+                                            <button type="button" data-gitignore-preset=".env">.env</button>
+                                            <button type="button" data-gitignore-preset="node_modules/">node_modules/</button>
+                                            <button type="button" data-gitignore-preset="dist/">dist/</button>
+                                            <button type="button" data-gitignore-preset="build/">build/</button>
+                                            <button type="button" data-gitignore-preset=".venv/">.venv/</button>
+                                            <button type="button" data-gitignore-preset="__pycache__/">__pycache__/</button>
+                                            <button type="button" data-gitignore-preset="*.log">*.log</button>
+                                            <button type="button" data-gitignore-preset=".DS_Store">.DS_Store</button>
+                                        </div>
+                                        <div class="gitignore-list" id="gitignore-list">
+                                            <div class="git-side-empty-state">Carregue o .gitignore para visualizar as regras.</div>
+                                        </div>
+                                        <div class="gitignore-footer">
+                                            <span id="gitignore-status">Aguardando leitura.</span>
+                                            <button class="btn btn-secondary btn-sm" id="btn-gitignore-refresh" type="button"><i data-lucide="refresh-cw"></i> Recarregar</button>
+                                        </div>
                                     </div>
                                 </section>
                             </div>
@@ -2269,7 +2301,7 @@ REGRA INQUEBRÁVEL: antes de executar qualquer task, valide REQ, DRI e Task List
     </aside>
 
     <!-- Custom JavaScript -->
-    <script src="/static/app.js?v=66"></script>
+    <script src="/static/app.js?v=67"></script>
     <script src="/static/theme-toggle.js?v=1"></script>
 </body>
 </html>

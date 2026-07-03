@@ -2333,6 +2333,108 @@ function switchGitSidePanelTab(tabName) {
             loadGitStatus();
         }
     }
+
+    if (tabName === 'ignore') {
+        loadGitignore();
+    }
+}
+
+async function loadGitignore() {
+    if (!state.activeProjectId) return;
+    const list = document.getElementById('gitignore-list');
+    const status = document.getElementById('gitignore-status');
+    if (!list) return;
+    list.innerHTML = '<div class="git-side-empty-state">Carregando .gitignore...</div>';
+    if (status) status.textContent = 'Lendo arquivo .gitignore...';
+    try {
+        const res = await fetch(`/api/projects/${state.activeProjectId}/git/gitignore`, {
+            headers: getHeaders()
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || 'Erro ao carregar .gitignore');
+        renderGitignoreEntries(data.entries || []);
+        if (status) {
+            status.textContent = data.exists
+                ? `${(data.entries || []).length} regra(s) no .gitignore`
+                : '.gitignore ainda não existe. Adicione uma regra para criar.';
+        }
+    } catch (err) {
+        list.innerHTML = `<div class="git-side-empty-state danger">${escapeHtml(err.message || String(err))}</div>`;
+        if (status) status.textContent = 'Erro ao carregar .gitignore.';
+    }
+}
+
+function getGitignoreEntriesFromDom() {
+    return Array.from(document.querySelectorAll('[data-gitignore-entry]'))
+        .map(item => item.dataset.gitignoreEntry)
+        .filter(Boolean);
+}
+
+function renderGitignoreEntries(entries) {
+    const list = document.getElementById('gitignore-list');
+    if (!list) return;
+    const cleanEntries = Array.from(new Set((entries || []).map(item => String(item || '').trim()).filter(Boolean)));
+    if (!cleanEntries.length) {
+        list.innerHTML = '<div class="git-side-empty-state">Nenhuma regra cadastrada. Adicione arquivos ou pastas para ignorar.</div>';
+        return;
+    }
+    list.innerHTML = cleanEntries.map(entry => `
+        <div class="gitignore-entry" data-gitignore-entry="${escapeHtml(entry)}">
+            <span><i data-lucide="eye-off"></i>${escapeHtml(entry)}</span>
+            <button type="button" class="gitignore-remove" title="Remover regra" aria-label="Remover ${escapeHtml(entry)}"><i data-lucide="x"></i></button>
+        </div>
+    `).join('');
+    list.querySelectorAll('.gitignore-remove').forEach(button => {
+        button.addEventListener('click', () => {
+            button.closest('.gitignore-entry')?.remove();
+            saveGitignoreEntries();
+        });
+    });
+    if (window.lucide) lucide.createIcons();
+}
+
+function normalizeGitignoreInput(value) {
+    return String(value || '').trim().replace(/\\/g, '/').replace(/^\/+/, '');
+}
+
+async function addGitignoreEntry(entry) {
+    const clean = normalizeGitignoreInput(entry);
+    if (!clean) return;
+    if (clean.includes('\n') || clean.includes('\r')) {
+        gitideNotify({ title: 'Regra inválida', message: 'Adicione uma regra por vez.', variant: 'warning' });
+        return;
+    }
+    const currentEntries = getGitignoreEntriesFromDom();
+    if (currentEntries.includes(clean)) {
+        gitideNotify({ title: 'Regra já existe', message: clean, variant: 'info' });
+        return;
+    }
+    renderGitignoreEntries([...currentEntries, clean]);
+    document.getElementById('gitignore-entry-input').value = '';
+    await saveGitignoreEntries();
+}
+
+async function saveGitignoreEntries() {
+    if (!state.activeProjectId) return;
+    const entries = getGitignoreEntriesFromDom();
+    const status = document.getElementById('gitignore-status');
+    if (status) status.textContent = 'Salvando .gitignore...';
+    try {
+        const res = await fetch(`/api/projects/${state.activeProjectId}/git/gitignore`, {
+            method: 'PUT',
+            headers: getHeaders(),
+            body: JSON.stringify({ entries })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || 'Erro ao salvar .gitignore');
+        renderGitignoreEntries(data.entries || []);
+        if (status) status.textContent = `${(data.entries || []).length} regra(s) salva(s) em .gitignore`;
+        appendGitConsole(`.gitignore atualizado com ${(data.entries || []).length} regra(s).`);
+        loadGitStatus();
+    } catch (err) {
+        if (status) status.textContent = 'Erro ao salvar .gitignore.';
+        gitideNotify({ title: 'Erro no .gitignore', message: err.message || String(err), variant: 'danger' });
+    }
 }
 
 function parseGitGraphLine(line) {
@@ -5062,6 +5164,19 @@ function setupEventListeners() {
     // 7. Ações do Git Bridge
     document.getElementById('btn-git-status-refresh').addEventListener('click', loadGitStatus);
     document.getElementById('btn-git-graph-refresh').addEventListener('click', loadGitGraph);
+    document.getElementById('btn-gitignore-refresh')?.addEventListener('click', loadGitignore);
+    document.getElementById('btn-gitignore-add')?.addEventListener('click', () => {
+        addGitignoreEntry(document.getElementById('gitignore-entry-input')?.value || '');
+    });
+    document.getElementById('gitignore-entry-input')?.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            addGitignoreEntry(event.currentTarget.value);
+        }
+    });
+    document.querySelectorAll('[data-gitignore-preset]').forEach(button => {
+        button.addEventListener('click', () => addGitignoreEntry(button.dataset.gitignorePreset));
+    });
     document.querySelectorAll('.git-side-tab').forEach(tab => {
         tab.addEventListener('click', () => switchGitSidePanelTab(tab.dataset.gitSideTab));
     });
