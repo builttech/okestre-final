@@ -40,6 +40,10 @@ REGRAS CRÍTICAS:
 2. Se um arquivo for muito grande, leia-o por fatias de linhas usando start_line e end_line.
 3. Se um comando falhar, analise o erro (stderr) e tente corrigi-lo.
 4. Seja conciso e cirúrgico em suas alterações.
+5. Antes de qualquer execução técnica de código, respeite o fluxo Harness documentado em GPT_INSTRUCTIONS.md.
+6. Para operações de VM, deploy, domínio, banco, Docker, Caddy, health check ou comandos remotos, use exclusivamente as ferramentas ops_infra_* disponíveis. Nunca responda que não tem acesso ao Ops Infra se essas ferramentas estiverem listadas.
+7. Não pule etapas: analise, gere/atualize documentação quando aplicável, aguarde validação quando o fluxo exigir, execute uma tarefa por vez e verifique o resultado.
+8. Não exponha secrets, senhas, chaves privadas ou tokens em respostas finais, pensamentos ou argumentos.
 """
 
 def load_agent_config():
@@ -56,6 +60,22 @@ def load_agent_config():
         "api_key": "",
         "enabled_tools": ["read_file", "write_file", "patch_file", "execute_command", "execute_db_query", "git_status", "git_branches", "git_deploy", "generate_word_document"]
     }
+
+def _safe_read_instruction(project_path: str, filename: str, max_chars: int = 12000) -> str:
+    if not re.match(r"^[A-Z0-9_./-]+\.md$", filename, re.IGNORECASE):
+        return ""
+    path = os.path.abspath(os.path.join(project_path, filename))
+    root = os.path.abspath(project_path)
+    if not path.startswith(root):
+        return ""
+    if not os.path.exists(path):
+        return ""
+    try:
+        with open(path, "r", encoding="utf-8", errors="replace") as f:
+            content = f.read(max_chars)
+        return content
+    except Exception:
+        return ""
 
 def save_agent_config(config_data):
     os.makedirs(CONFIG_DIR, exist_ok=True)
@@ -291,7 +311,7 @@ def execute_agent_tool(db: Session, project: Project, tool_name: str, args: dict
     except Exception as e:
         return json.dumps({"status": "error", "message": str(e)})
 
-def run_agent_loop(db: Session, project: Project, config: dict, user_prompt: str):
+def run_agent_loop(db: Session, project: Project, config: dict, user_prompt: str, extra_tools: dict = None, extra_tool_descriptions: list = None, system_context: str = ""):
     """
     Roda a thread do agente em loop.
     Yields chunks de JSON contendo progresso, pensamentos e ações.
@@ -300,6 +320,8 @@ def run_agent_loop(db: Session, project: Project, config: dict, user_prompt: str
     model = config.get("model")
     api_key = config.get("api_key")
     enabled_tools = config.get("enabled_tools", [])
+    extra_tools = extra_tools or {}
+    extra_tool_descriptions = extra_tool_descriptions or []
     
     if not api_key:
         yield f"data: {json.dumps({'type': 'error', 'content': 'Chave API não configurada no Agente IA.'})}\n\n"
@@ -325,8 +347,28 @@ def run_agent_loop(db: Session, project: Project, config: dict, user_prompt: str
         tool_desc.append("- `git_deploy(commit_message: str, branch: Optional[str])`: Adiciona, comita e envia arquivos para o GitHub.")
     if "generate_word_document" in enabled_tools:
         tool_desc.append("- `generate_word_document(title: str, sections: List[dict])`: Gera um documento Word (.docx) estruturado sob .documents. Cada seção tem: 'heading' (opcional), 'text' (obrigatório) e 'type' ('paragraph', 'bullet', 'highlight', 'code' ou 'table').")
+    tool_desc.extend(extra_tool_descriptions)
 
-    system_prompt = DEFAULT_SYSTEM_PROMPT + "\n\nFERRAMENTAS DISPONÍVEIS:\n" + "\n".join(tool_desc)
+    harness_rules = _safe_read_instruction(project.path, "GPT_INSTRUCTIONS.md")
+    ops_rules = _safe_read_instruction(project.path, "OPS_INFRA_OPERATOR.md")
+    prod_rules = _safe_read_instruction(project.path, "PROD_READINESS_VALIDATOR.md", max_chars=8000)
+    security_rules = _safe_read_instruction(project.path, "SECURITY_RULES.md", max_chars=8000)
+
+    system_prompt = (
+        DEFAULT_SYSTEM_PROMPT
+        + "\n\nFERRAMENTAS DISPONÍVEIS:\n"
+        + "\n".join(tool_desc)
+        + "\n\nCONTRATO OPERACIONAL DO PROJETO:\n"
+        + (system_context or "Sem contexto operacional extra.")
+        + "\n\nGPT_INSTRUCTIONS.md:\n"
+        + (harness_rules or "Arquivo não encontrado. Se a tarefa for técnica, leia/crie o documento antes de avançar.")
+        + "\n\nOPS_INFRA_OPERATOR.md:\n"
+        + (ops_rules or "Arquivo não encontrado. Para Ops Infra, use as ferramentas nativas ops_infra_* e preserve validações.")
+        + "\n\nPROD_READINESS_VALIDATOR.md:\n"
+        + (prod_rules or "Arquivo não encontrado.")
+        + "\n\nSECURITY_RULES.md:\n"
+        + (security_rules or "Arquivo não encontrado.")
+    )
     
     messages = [
         {"role": "user", "content": user_prompt}
@@ -363,7 +405,10 @@ def run_agent_loop(db: Session, project: Project, config: dict, user_prompt: str
             
         # Caso chamada de ferramenta
         if tool:
-            if tool not in enabled_tools:
+            if tool in extra_tools:
+                yield f"data: {json.dumps({'type': 'tool_call', 'tool': tool, 'args': args})}\n\n"
+                tool_result = extra_tools[tool](db, project, args)
+            elif tool not in enabled_tools:
                 tool_result = json.dumps({"status": "error", "message": f"A ferramenta '{tool}' está desabilitada nas configurações do agente."})
             else:
                 yield f"data: {json.dumps({'type': 'tool_call', 'tool': tool, 'args': args})}\n\n"

@@ -5064,6 +5064,257 @@ def generate_sdd_tests(
 
 # --- ENDPOINTS DO AGENTE IA NATIVO ---
 
+def _native_agent_ops_context(project: Project) -> str:
+    access = _ops_read_vm_access(project.path, public=True)
+    detected = _ops_detect_stack(project.path)
+    access_summary = "não configurado"
+    if access.get("host") and access.get("user"):
+        auth = access.get("auth_method", "key")
+        app_path = access.get("app_path") or "não informado"
+        access_summary = f"{access.get('user')}@{access.get('host')}:{access.get('port', 22)} via {auth}; app_path={app_path}"
+    return (
+        f"Project ID: {project.id}\n"
+        f"Projeto: {project.name}\n"
+        f"Workspace: {project.path}\n"
+        f"Git remote: {project.git_remote or 'não configurado'}\n"
+        f"Stack detectada: runtime={detected.get('runtime')}, package={detected.get('package_manager')}, port={detected.get('port')}\n"
+        f"Ops Infra VM: {access_summary}\n"
+        "A IA nativa tem acesso operacional ao Ops Infra por ferramentas internas ops_infra_*.\n"
+        "Sempre use essas ferramentas para VM/deploy/domínio/banco/Docker/Caddy/health check.\n"
+        "Operações destrutivas como down devem ser explicitamente confirmadas pelo usuário no pedido atual.\n"
+    )
+
+def _native_agent_ops_tool_descriptions() -> list:
+    return [
+        "- `ops_infra_status()`: Mostra stack detectada, VM cadastrada e capacidades de Ops Infra disponíveis.",
+        "- `ops_infra_generate_public_key()`: Gera par de chaves SSH do Act IA e retorna somente a chave pública para instalar na VM.",
+        "- `ops_infra_test_ssh()`: Testa conexão SSH cadastrada e valida Docker/Compose quando possível.",
+        "- `ops_infra_list_directories(path: str)`: Lista diretórios da VM via SSH para o usuário escolher o caminho do app.",
+        "- `ops_infra_create_directory(path: str)`: Cria/valida um diretório absoluto na VM.",
+        "- `ops_infra_bootstrap_vm()`: Instala/valida Docker, Docker Compose, Git e firewall básico na VM.",
+        "- `ops_infra_sync_project()`: Clona ou atualiza o repositório Git do projeto no diretório salvo da VM.",
+        "- `ops_infra_generate_artifacts(environment: str, domain: str, database: str, overwrite: bool)`: Gera Dockerfile, compose, env example e Caddyfile conforme stack detectada.",
+        "- `ops_infra_domain_preview(domain: str)`: Prepara prévia de Caddyfile e checklist DNS para o domínio.",
+        "- `ops_infra_domain_apply(domain: str, overwrite: bool)`: Escreve Caddyfile no projeto para o domínio informado.",
+        "- `ops_infra_env_validate(environment: str, variables: List[dict])`: Valida variáveis de ambiente e secrets planejados.",
+        "- `ops_infra_env_save(environment: str, variables: List[dict], write_env_file: bool)`: Salva variáveis por ambiente, criptografando secrets.",
+        "- `ops_infra_remote_command(action: str)`: Executa ação Docker Compose remota: build, up, down, restart, logs ou ps.",
+        "- `ops_infra_dns_check(domain: str)`: Valida se o domínio aponta para o IP/host da VM cadastrada.",
+        "- `ops_infra_health_check(url: str, domain: str)`: Testa HTTP/HTTPS da aplicação implantada.",
+        "- `ops_infra_database_check()`: Valida o serviço de banco definido no docker-compose remoto.",
+    ]
+
+def _native_agent_json(payload: dict) -> str:
+    return json.dumps(payload, ensure_ascii=False, default=str)
+
+def _native_agent_ops_tool(tool_name: str):
+    def _handler(db: Session, project: Project, args: dict) -> str:
+        try:
+            if tool_name == "ops_infra_status":
+                return _native_agent_json({
+                    "status": "success",
+                    "detected": _ops_detect_stack(project.path),
+                    "vm_access": _ops_read_vm_access(project.path, public=True),
+                    "capabilities": [
+                        "SSH", "VM directory browser", "bootstrap Docker/Git", "sync Git repo",
+                        "Docker Compose remote commands", "Caddy/domain", "env/secrets", "database check", "health check"
+                    ],
+                })
+
+            if tool_name == "ops_infra_generate_public_key":
+                result = _ops_generate_keypair(project.path, f"act-ia-{project.name or project.id}")
+                db.add(ActivityLog(project_id=project.id, action_type="OPS_INFRA_SSH_KEY", details="[Agente] Par de chaves SSH gerado para Ops Infra."))
+                db.commit()
+                return _native_agent_json({"status": "success", "public_key": result.get("public_key"), "vm_access": _ops_read_vm_access(project.path, public=True)})
+
+            if tool_name == "ops_infra_test_ssh":
+                access = _ops_require_vm_access(project.path)
+                parts = ["printf ACTIA_SSH_OK", "pwd", "command -v docker || true", "docker compose version || docker-compose version || true"]
+                if access.get("app_path"):
+                    parts.insert(1, f"test -d {_ops_shell_quote(access['app_path'])} && printf '\\nAPP_PATH_OK\\n' || printf '\\nAPP_PATH_NOT_FOUND\\n'")
+                result = _ops_run_ssh(access, " && ".join(parts), timeout=30)
+                db.add(ActivityLog(project_id=project.id, action_type="OPS_INFRA_SSH_TEST", details=f"[Agente] SSH testado em {access['user']}@{access['host']}:{access['port']} | Exit: {result['exit_code']}"))
+                db.commit()
+                return _native_agent_json(result)
+
+            if tool_name == "ops_infra_list_directories":
+                access = _ops_require_vm_access(project.path)
+                return _native_agent_json(_ops_list_remote_directories(access, args.get("path") or "/"))
+
+            if tool_name == "ops_infra_create_directory":
+                access = _ops_require_vm_access(project.path)
+                target = _ops_normalize_remote_path(args.get("path") or "")
+                result = _ops_run_ssh(access, f"mkdir -p {_ops_shell_quote(target)} && test -d {_ops_shell_quote(target)} && printf ACTIA_DIR_CREATED", timeout=45)
+                db.add(ActivityLog(project_id=project.id, action_type="OPS_INFRA_VM_DIR", details=f"[Agente] Diretório VM criado/validado: {target} | Exit: {result.get('exit_code')}"))
+                db.commit()
+                return _native_agent_json(result)
+
+            if tool_name == "ops_infra_bootstrap_vm":
+                access = _ops_require_vm_access(project.path)
+                result = _ops_run_ssh(access, _ops_bootstrap_script(), timeout=600)
+                db.add(ActivityLog(project_id=project.id, action_type="OPS_INFRA_BOOTSTRAP", details=f"[Agente] Bootstrap VM {access.get('host')} | Exit: {result.get('exit_code')}"))
+                db.commit()
+                return _native_agent_json(result)
+
+            if tool_name == "ops_infra_sync_project":
+                access = _ops_require_vm_access(project.path)
+                app_path = _ops_require_app_path(access)
+                result = _ops_run_ssh(access, _ops_sync_script(app_path, project.git_remote), timeout=240)
+                db.add(ActivityLog(project_id=project.id, action_type="OPS_INFRA_SYNC", details=f"[Agente] Sync {project.git_remote or '-'} -> {access.get('host')}:{app_path} | Exit: {result.get('exit_code')}"))
+                db.commit()
+                return _native_agent_json(result)
+
+            if tool_name == "ops_infra_generate_artifacts":
+                artifacts = _ops_artifacts(project.path, args.get("environment") or "prod", args.get("domain") or "", args.get("database") or "none")
+                overwrite = bool(args.get("overwrite", False))
+                written, skipped = [], []
+                for rel_path, content in artifacts["files"].items():
+                    full_path = os.path.join(project.path, rel_path)
+                    if os.path.exists(full_path) and not overwrite:
+                        skipped.append(rel_path)
+                        continue
+                    with open(full_path, "w", encoding="utf-8") as f:
+                        f.write(content)
+                    written.append(rel_path)
+                db.add(ActivityLog(project_id=project.id, action_type="OPS_INFRA_ARTIFACTS", details=f"[Agente] Arquivos gerados: {', '.join(written)}"))
+                db.commit()
+                return _native_agent_json({"status": "success", "written": written, "skipped": skipped, "detected": artifacts.get("detected")})
+
+            if tool_name == "ops_infra_domain_preview":
+                domain = (args.get("domain") or "").strip()
+                if not domain:
+                    raise HTTPException(status_code=400, detail="Informe o domínio.")
+                return _native_agent_json({"status": "success", **_ops_domain_preview(project.path, domain)})
+
+            if tool_name == "ops_infra_domain_apply":
+                domain = (args.get("domain") or "").strip()
+                if not domain:
+                    raise HTTPException(status_code=400, detail="Informe o domínio.")
+                preview = _ops_domain_preview(project.path, domain)
+                caddy_path = os.path.join(project.path, "Caddyfile")
+                if os.path.exists(caddy_path) and not bool(args.get("overwrite", False)):
+                    return _native_agent_json({"status": "skipped", "message": "Caddyfile já existe.", **preview})
+                with open(caddy_path, "w", encoding="utf-8") as f:
+                    f.write(preview["caddyfile"])
+                db.add(ActivityLog(project_id=project.id, action_type="OPS_INFRA_DOMAIN", details=f"[Agente] Caddyfile configurado para {preview['domain']}"))
+                db.commit()
+                return _native_agent_json({"status": "success", "written": ["Caddyfile"], **preview})
+
+            if tool_name in {"ops_infra_env_validate", "ops_infra_env_save"}:
+                variables = [OpsInfraEnvItem(**item) for item in args.get("variables", []) if isinstance(item, dict)]
+                req = OpsInfraEnvRequest(
+                    environment=args.get("environment") or "prod",
+                    variables=variables,
+                    write_env_file=bool(args.get("write_env_file", False)),
+                )
+                if tool_name == "ops_infra_env_validate":
+                    keys = [re.sub(r"[^A-Z0-9_]", "_", item.key.strip().upper()) for item in req.variables if item.key.strip()]
+                    detected = _ops_detect_stack(project.path)
+                    issues = []
+                    if "APP_ENV" not in keys:
+                        issues.append("APP_ENV ausente.")
+                    if "APP_PORT" not in keys:
+                        issues.append("APP_PORT ausente.")
+                    if req.environment.lower() == "prod" and not any(k in keys for k in ["APP_DOMAIN", "DOMAIN"]):
+                        issues.append("Domínio de produção não informado em APP_DOMAIN ou DOMAIN.")
+                    return _native_agent_json({"status": "success", "valid": not issues, "issues": issues, "detected": detected})
+                result = _ops_write_env(project.path, req)
+                db.add(ActivityLog(project_id=project.id, action_type="OPS_INFRA_ENV", details=f"[Agente] Ambiente {req.environment} salvo. Env file: {result.get('env_file')}"))
+                db.commit()
+                return _native_agent_json({"status": "success", **result})
+
+            if tool_name == "ops_infra_remote_command":
+                action = (args.get("action") or "").strip().lower()
+                commands = {
+                    "build": "docker compose build",
+                    "up": "docker compose up -d",
+                    "down": "docker compose down",
+                    "restart": "docker compose restart",
+                    "logs": "docker compose logs --tail=120",
+                    "ps": "docker compose ps",
+                    "status": "docker compose ps",
+                }
+                if action == "status":
+                    action = "ps"
+                if action not in commands:
+                    raise HTTPException(status_code=400, detail="Ação inválida para Ops Infra.")
+                access = _ops_require_vm_access(project.path)
+                app_path = _ops_require_app_path(access)
+                remote_command = f"cd {_ops_shell_quote(app_path)} && {commands[action]}"
+                result = _ops_run_ssh(access, remote_command, timeout=180 if action in ["build", "up"] else 90)
+                db.add(ActivityLog(project_id=project.id, action_type="OPS_INFRA_REMOTE_COMMAND", details=f"[Agente] {commands[action]} em {access['host']}:{app_path}\nExit: {result['exit_code']}"))
+                db.commit()
+                return _native_agent_json(result)
+
+            if tool_name == "ops_infra_dns_check":
+                access = _ops_require_vm_access(project.path)
+                domain = (args.get("domain") or "").strip().lower()
+                if not domain:
+                    raise HTTPException(status_code=400, detail="Informe o domínio.")
+                try:
+                    records = sorted({item[4][0] for item in socket.getaddrinfo(domain, None, type=socket.SOCK_STREAM)})
+                except Exception as e:
+                    return _native_agent_json({"status": "error", "domain": domain, "expected": access.get("host"), "records": [], "matches": False, "detail": str(e)})
+                return _native_agent_json({"status": "success", "domain": domain, "expected": access.get("host"), "records": records, "matches": access.get("host") in records})
+
+            if tool_name == "ops_infra_health_check":
+                access = _ops_require_vm_access(project.path)
+                req = OpsInfraHealthRequest(url=args.get("url") or "", domain=args.get("domain") or "")
+                url = _ops_health_url(project.path, access, req)
+                response = requests.get(url, timeout=15, allow_redirects=True)
+                return _native_agent_json({
+                    "status": "success" if response.status_code < 500 else "error",
+                    "url": url,
+                    "status_code": response.status_code,
+                    "final_url": response.url,
+                    "ok": response.ok,
+                    "elapsed_ms": int(response.elapsed.total_seconds() * 1000),
+                    "content_type": response.headers.get("content-type", ""),
+                    "body_preview": response.text[:500],
+                })
+
+            if tool_name == "ops_infra_database_check":
+                access = _ops_require_vm_access(project.path)
+                app_path = _ops_require_app_path(access)
+                command = (
+                    f"cd {_ops_shell_quote(app_path)} && "
+                    "if docker compose config --services | grep -qx postgres; then "
+                    "docker compose exec -T postgres pg_isready -U ${POSTGRES_USER:-app} -d ${POSTGRES_DB:-app}; "
+                    "else echo 'Nenhum serviço postgres encontrado no docker-compose.yml'; exit 3; fi"
+                )
+                result = _ops_run_ssh(access, command, timeout=60)
+                db.add(ActivityLog(project_id=project.id, action_type="OPS_INFRA_DB_CHECK", details=f"[Agente] Database check em {access.get('host')}:{app_path} | Exit: {result.get('exit_code')}"))
+                db.commit()
+                return _native_agent_json(result)
+
+            return _native_agent_json({"status": "error", "message": f"Ferramenta Ops desconhecida: {tool_name}"})
+        except HTTPException as e:
+            return _native_agent_json({"status": "error", "message": e.detail})
+        except Exception as e:
+            return _native_agent_json({"status": "error", "message": str(e)})
+    return _handler
+
+def _native_agent_ops_tools() -> dict:
+    names = [
+        "ops_infra_status",
+        "ops_infra_generate_public_key",
+        "ops_infra_test_ssh",
+        "ops_infra_list_directories",
+        "ops_infra_create_directory",
+        "ops_infra_bootstrap_vm",
+        "ops_infra_sync_project",
+        "ops_infra_generate_artifacts",
+        "ops_infra_domain_preview",
+        "ops_infra_domain_apply",
+        "ops_infra_env_validate",
+        "ops_infra_env_save",
+        "ops_infra_remote_command",
+        "ops_infra_dns_check",
+        "ops_infra_health_check",
+        "ops_infra_database_check",
+    ]
+    return {name: _native_agent_ops_tool(name) for name in names}
+
 @app.get("/api/agent/config", tags=["Agente IA"])
 def get_agent_config():
     """Retorna as configurações atuais do agente IA."""
@@ -5086,7 +5337,15 @@ def run_agent(project_id: int,
     """
     config = agent.load_agent_config()
     return StreamingResponse(
-        agent.run_agent_loop(db, project, config, req.prompt),
+        agent.run_agent_loop(
+            db,
+            project,
+            config,
+            req.prompt,
+            extra_tools=_native_agent_ops_tools(),
+            extra_tool_descriptions=_native_agent_ops_tool_descriptions(),
+            system_context=_native_agent_ops_context(project),
+        ),
         media_type="text/event-stream"
     )
 
