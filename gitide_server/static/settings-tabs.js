@@ -72,6 +72,9 @@
     if (tabName === 'prod-validator' && typeof window.loadProdReadinessValidator === 'function') {
       window.loadProdReadinessValidator();
     }
+    if (tabName === 'security-rules' && typeof window.loadSecurityRulesPrompt === 'function') {
+      window.loadSecurityRulesPrompt();
+    }
   }
 
   function createTabButton(tabName, icon, label, active) {
@@ -158,6 +161,7 @@
     const agentCard = cards[0];
     const gptCard = cards[1];
     const prodValidatorCard = cards[2];
+    const securityRulesCard = cards[3];
     if (!agentCard || !gptCard) return;
 
     layout.dataset.settingsTabsReady = 'true';
@@ -173,6 +177,9 @@
     if (prodValidatorCard) {
       sidebar.appendChild(createTabButton('prod-validator', 'shield-check', 'Prod-Ready Validator', false));
     }
+    if (securityRulesCard) {
+      sidebar.appendChild(createTabButton('security-rules', 'lock-keyhole', 'Security Rules', false));
+    }
 
     const content = document.createElement('div');
     content.className = 'settings-tabs-content';
@@ -181,14 +188,17 @@
     const agentPanel = createPanel('agent-config', false);
     const gptPanel = createPanel('gpt-action', false);
     const prodValidatorPanel = createPanel('prod-validator', false);
+    const securityRulesPanel = createPanel('security-rules', false);
 
     agentPanel.appendChild(agentCard);
     gptPanel.appendChild(gptCard);
     if (prodValidatorCard) prodValidatorPanel.appendChild(prodValidatorCard);
+    if (securityRulesCard) securityRulesPanel.appendChild(securityRulesCard);
     content.appendChild(promptPanel);
     content.appendChild(agentPanel);
     content.appendChild(gptPanel);
     if (prodValidatorCard) content.appendChild(prodValidatorPanel);
+    if (securityRulesCard) content.appendChild(securityRulesPanel);
 
     layout.innerHTML = '';
     layout.appendChild(sidebar);

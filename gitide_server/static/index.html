@@ -20,7 +20,7 @@
     <link rel="stylesheet" href="/static/rebrand.css?v=38">
     <script src="/static/lucide-bootstrap.js"></script>
     <script defer src="/static/ui/workspace-switcher.js?v=3"></script>
-    <script defer src="/static/settings-tabs.js?v=5"></script>
+    <script defer src="/static/settings-tabs.js?v=6"></script>
     <script defer src="/static/sidebar-workspace-footer.js?v=2"></script>
     <script defer src="/static/navigation-unlock.js?v=2"></script>
 </head>
@@ -744,6 +744,25 @@ REGRA INQUEBRÁVEL: antes de executar qualquer task, valide REQ, DRI e Task List
                                 </div>
                                 <div class="generated-command-container prod-validator-preview">
                                     <pre id="prod-readiness-validator-text">Carregando PROD_READINESS_VALIDATOR.md...</pre>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- CARD 4: SECURITY RULES -->
+                        <div class="settings-card card" style="display: flex; flex-direction: column; height: fit-content;">
+                            <div class="card-header" style="border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 16px;">
+                                <h4 style="margin: 0; font-size: 16px; display: flex; align-items: center; gap: 8px;">
+                                    <i class="fa-solid fa-lock" style="color: var(--color-primary);"></i> Security Rules
+                                </h4>
+                            </div>
+                            <div class="card-body">
+                                <p style="font-size: 13px; color: var(--text-light); line-height: 1.5; margin-bottom: 14px;">Copie um comando curto para o GPT Action executar o Security Review. O GPT deve ler o <code>SECURITY_RULES.md</code> completo antes de iniciar e salvar o relatório em <code>.documents/security/</code>.</p>
+                                <div class="prod-validator-actions">
+                                    <a href="/api/security-rules" target="_blank" class="btn btn-secondary btn-sm"><i class="fa-solid fa-file-lines"></i> Abrir Markdown</a>
+                                    <button type="button" class="btn btn-primary btn-sm" id="btn-copy-security-rules"><i class="fa-solid fa-copy"></i> Copiar Prompt</button>
+                                </div>
+                                <div class="generated-command-container prod-validator-preview">
+                                    <pre id="security-rules-text">Carregando SECURITY_RULES.md...</pre>
                                 </div>
                             </div>
                         </div>
@@ -2204,7 +2223,7 @@ REGRA INQUEBRÁVEL: antes de executar qualquer task, valide REQ, DRI e Task List
     </aside>
 
     <!-- Custom JavaScript -->
-    <script src="/static/app.js?v=63"></script>
+    <script src="/static/app.js?v=64"></script>
     <script src="/static/theme-toggle.js?v=1"></script>
 </body>
 </html>

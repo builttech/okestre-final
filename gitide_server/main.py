@@ -559,6 +559,17 @@ def get_prod_readiness_validator():
         return Response(content=f.read(), media_type="text/markdown; charset=utf-8")
 
 
+@app.get("/api/security-rules", tags=["Configuração"])
+def get_security_rules():
+    """Retorna o System Prompt do auditor AppSec/Security Review."""
+    repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+    prompt_path = os.path.join(repo_root, "SECURITY_RULES.md")
+    if not os.path.exists(prompt_path):
+        raise HTTPException(status_code=404, detail="SECURITY_RULES.md não encontrado.")
+    with open(prompt_path, "r", encoding="utf-8") as f:
+        return Response(content=f.read(), media_type="text/markdown; charset=utf-8")
+
+
 # Projetos
 @app.get("/api/projects", tags=["Projetos"])
 def list_projects(db: Session = Depends(get_db)):

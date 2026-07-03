@@ -110,6 +110,37 @@ No chat, responda somente com:
 - próximos passos mínimos para aprovação.`;
 }
 
+async function loadSecurityRulesPrompt() {
+    const target = document.getElementById('security-rules-text');
+    if (!target) return;
+    target.textContent = buildSecurityRulesPrompt();
+    target.dataset.loaded = 'true';
+}
+window.loadSecurityRulesPrompt = loadSecurityRulesPrompt;
+
+function buildSecurityRulesPrompt() {
+    const projectName = state.activeProject?.name || 'Projeto ativo não selecionado';
+    const projectId = state.activeProjectId || 'NÃO INFORMADO';
+    return `Execute o Security Review/AppSec neste projeto do Act IA.
+
+Project ID: ${projectId}
+Projeto: ${projectName}
+
+Antes de iniciar, leia e siga rigorosamente o arquivo SECURITY_RULES.md na raiz do workspace.
+
+Audite código, arquitetura, autenticação, autorização, segredos, dados, dependências e infraestrutura.
+
+Salve o relatório completo em:
+.documents/security/security-review-report.md
+
+No chat, responda somente com:
+- veredito de segurança;
+- quantidade de Critical, High, Medium, Low e Info;
+- principais riscos bloqueantes;
+- caminho do relatório salvo;
+- próximos passos mínimos de mitigação.`;
+}
+
 // --- CUSTOM SELECT COMPONENT ---
 
 // --- INICIALIZAÇÃO ---
@@ -263,6 +294,7 @@ function selectProject(projectId) {
     // Sincroniza o valor do dropdown selector
     document.getElementById('project-selector').value = projectId;
     loadProdReadinessValidator();
+    loadSecurityRulesPrompt();
     
     // Carrega configurações de banco de dados do projeto de localStorage
     const savedDbType = localStorage.getItem(`gitide_project_${projectId}_db_type`);
@@ -349,6 +381,7 @@ function switchTab(tabId) {
     if (tabId === 'tab-settings') {
         loadAgentConfig();
         loadProdReadinessValidator();
+        loadSecurityRulesPrompt();
     }
     
     // Carrega dados específicos da aba
@@ -5040,6 +5073,21 @@ function setupEventListeners() {
                 copyProdValidatorBtn.innerHTML = '<i class="fa-solid fa-check"></i> Copiado!';
                 setTimeout(() => {
                     copyProdValidatorBtn.innerHTML = originalText;
+                }, 1500);
+            });
+        });
+    }
+
+    const copySecurityRulesBtn = document.getElementById('btn-copy-security-rules');
+    if (copySecurityRulesBtn) {
+        copySecurityRulesBtn.addEventListener('click', async () => {
+            await loadSecurityRulesPrompt();
+            const text = document.getElementById('security-rules-text')?.textContent || '';
+            navigator.clipboard.writeText(text).then(() => {
+                const originalText = copySecurityRulesBtn.innerHTML;
+                copySecurityRulesBtn.innerHTML = '<i class="fa-solid fa-check"></i> Copiado!';
+                setTimeout(() => {
+                    copySecurityRulesBtn.innerHTML = originalText;
                 }, 1500);
             });
         });
