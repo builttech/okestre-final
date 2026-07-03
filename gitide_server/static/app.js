@@ -8390,6 +8390,7 @@ const sddState = {
     taskFilepath: '.documents/task/task.md',
     allCriteria: [],
     projectCriteria: [],
+    projectTaskFilter: 'all',
     specs: [],
     executeTask: null,
     charterLoaded: false,
@@ -9105,7 +9106,14 @@ function sddRenderProjectTasks() {
     const progressText = document.getElementById('sdd-project-tasks-progress-text');
     const progressFill = document.getElementById('sdd-project-tasks-progress-fill');
     const criteria = sddState.projectCriteria || [];
+    const filter = sddState.projectTaskFilter || 'all';
     if (!container) return;
+
+    document.querySelectorAll('[data-sdd-task-filter]').forEach(button => {
+        const isActive = button.dataset.sddTaskFilter === filter;
+        button.classList.toggle('active', isActive);
+        button.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+    });
 
     if (!criteria.length) {
         container.innerHTML = `
@@ -9125,7 +9133,24 @@ function sddRenderProjectTasks() {
     if (progressText) progressText.textContent = `${done}/${total} concluídos (${pct}%)`;
     if (progressFill) progressFill.style.width = `${pct}%`;
 
-    container.innerHTML = criteria.map(c => `
+    const filteredCriteria = criteria.filter(c => {
+        if (filter === 'open') return !c.checked;
+        if (filter === 'done') return c.checked;
+        return true;
+    });
+
+    if (!filteredCriteria.length) {
+        const label = filter === 'open' ? 'abertas' : filter === 'done' ? 'concluídas' : 'cadastradas';
+        container.innerHTML = `
+            <div style="text-align:center;padding:48px;color:var(--text-muted);">
+                <i data-lucide="list-filter" style="width:40px;height:40px;margin-bottom:12px;opacity:0.4;"></i>
+                <p>Nenhuma tarefa ${label} neste filtro.</p>
+            </div>`;
+        if (window.lucide) lucide.createIcons();
+        return;
+    }
+
+    container.innerHTML = filteredCriteria.map(c => `
         <div class="sdd-criteria-row ${c.checked ? 'checked' : ''}" data-line="${c.line_no}">
             <button type="button"
                     class="sdd-task-toggle ${c.checked ? 'is-checked' : ''}"
@@ -9149,6 +9174,11 @@ function sddRenderProjectTasks() {
             </select>
         </div>`).join('');
     if (window.lucide) lucide.createIcons();
+}
+
+function sddSetProjectTaskFilter(filter) {
+    sddState.projectTaskFilter = ['all', 'open', 'done'].includes(filter) ? filter : 'all';
+    sddRenderProjectTasks();
 }
 
 function sddExtractTaskId(taskText = '') {
@@ -9952,6 +9982,10 @@ function setupSddEventListeners() {
 
     const btnRefreshProjectTasks = document.getElementById('btn-refresh-sdd-project-tasks');
     if (btnRefreshProjectTasks) btnRefreshProjectTasks.addEventListener('click', sddLoadProjectTasks);
+
+    document.querySelectorAll('[data-sdd-task-filter]').forEach(btn => {
+        btn.addEventListener('click', () => sddSetProjectTaskFilter(btn.dataset.sddTaskFilter));
+    });
 
     document.getElementById('btn-sdd-task-detail-close')?.addEventListener('click', sddCloseTaskDetail);
     document.getElementById('sdd-task-detail-backdrop')?.addEventListener('click', sddCloseTaskDetail);

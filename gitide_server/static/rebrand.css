@@ -6496,6 +6496,58 @@ input[type="checkbox"]:focus-visible{
     padding: 20px;
 }
 
+.harness-task-controls{
+    display:flex;
+    align-items:center;
+    gap:16px;
+    margin-left:auto;
+}
+
+.harness-task-filter{
+    display:inline-flex;
+    gap:4px;
+    padding:4px;
+    border:1px solid var(--frame-border);
+    border-radius:14px;
+    background:rgba(255,255,255,.025);
+}
+
+.harness-task-filter button{
+    min-height:30px;
+    padding:0 12px;
+    border:0;
+    border-radius:10px;
+    background:transparent;
+    color:var(--text-muted);
+    font-size:12px;
+    font-weight:750;
+    cursor:pointer;
+    transition:background .16s ease,color .16s ease;
+}
+
+.harness-task-filter button:hover,
+.harness-task-filter button.active{
+    background:rgba(255,255,255,.075);
+    color:var(--text-main);
+}
+
+@media (max-width: 860px){
+    .harness-task-controls{
+        width:100%;
+        align-items:stretch;
+        flex-direction:column;
+        margin-left:0;
+    }
+
+    .harness-task-filter{
+        width:100%;
+    }
+
+    .harness-task-filter button{
+        flex:1;
+    }
+}
+
 .sdd-task-toggle {
     width: 22px;
     height: 22px;
