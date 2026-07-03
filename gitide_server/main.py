@@ -570,11 +570,52 @@ def get_security_rules():
         return Response(content=f.read(), media_type="text/markdown; charset=utf-8")
 
 
+def sync_project_system_files(project_path: str) -> list[str]:
+    """Garante os prompts de sistema necessários na raiz do workspace do projeto."""
+    server_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    files = [
+        ("GPT_INSTRUCTIONS.md", False),
+        ("PROD_READINESS_VALIDATOR.md", True),
+        ("SECURITY_RULES.md", True),
+    ]
+    synced = []
+    if not os.path.isdir(project_path):
+        return synced
+
+    for rel_dir in (
+        os.path.join(".documents", "prod-readiness"),
+        os.path.join(".documents", "security"),
+    ):
+        try:
+            os.makedirs(os.path.join(project_path, rel_dir), exist_ok=True)
+        except Exception as e:
+            print(f"Erro ao criar diretório {rel_dir} no workspace: {str(e)}")
+
+    for filename, overwrite in files:
+        src = os.path.join(server_root, filename)
+        dest = os.path.join(project_path, filename)
+        if not os.path.exists(src):
+            continue
+        if os.path.abspath(src) == os.path.abspath(dest):
+            continue
+        if os.path.exists(dest) and not overwrite:
+            continue
+        try:
+            shutil.copy2(src, dest)
+            synced.append(filename)
+        except Exception as e:
+            print(f"Erro ao sincronizar {filename} para o workspace: {str(e)}")
+    return synced
+
+
 # Projetos
 @app.get("/api/projects", tags=["Projetos"])
 def list_projects(db: Session = Depends(get_db)):
     """Lista todos os projetos cadastrados."""
-    return db.query(Project).all()
+    projects = db.query(Project).all()
+    for project in projects:
+        sync_project_system_files(project.path)
+    return projects
 
 @app.post("/api/projects", tags=["Projetos"])
 def create_project(project_in: ProjectCreate, db: Session = Depends(get_db)):
@@ -588,6 +629,7 @@ def create_project(project_in: ProjectCreate, db: Session = Depends(get_db)):
     # Verifica se já está cadastrado com o mesmo caminho
     existing = db.query(Project).filter(Project.path == project_in.path).first()
     if existing:
+        sync_project_system_files(existing.path)
         project_data = {
             "id": existing.id,
             "name": existing.name,
@@ -642,16 +684,8 @@ def create_project(project_in: ProjectCreate, db: Session = Depends(get_db)):
                     detail=f"Pasta de destino não está vazia e falhou ao vincular repositório Git: {str(e)}"
                 )
                 
-    # Garante que o arquivo GPT_INSTRUCTIONS.md existe na raiz do projeto
-    gpt_instructions_dest = os.path.join(project_in.path, "GPT_INSTRUCTIONS.md")
-    if not os.path.exists(gpt_instructions_dest):
-        server_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        gpt_instructions_src = os.path.join(server_root, "GPT_INSTRUCTIONS.md")
-        if os.path.exists(gpt_instructions_src):
-            try:
-                shutil.copy2(gpt_instructions_src, gpt_instructions_dest)
-            except Exception as e:
-                print(f"Erro ao copiar GPT_INSTRUCTIONS.md para o workspace: {str(e)}")
+    # Garante os prompts de sistema na raiz do projeto.
+    sync_project_system_files(project_in.path)
 
     db_project = Project(
         name=project_in.name,
@@ -700,6 +734,7 @@ def delete_project(project_id: int, db: Session = Depends(get_db)):
 def list_files(project: Project = Depends(get_project_or_404)):
     """Lista recursivamente os arquivos do projeto, ignorando pastas de build/dependências."""
     try:
+        sync_project_system_files(project.path)
         files = vcs.list_project_files(project.path)
         return {"status": "success", "files": files}
     except Exception as e:
@@ -744,6 +779,8 @@ def read_file(filepath: str = Query(..., description="Caminho relativo do arquiv
     Suporta paginação por intervalo de linhas para evitar erros de limite de resposta.
     """
     try:
+        if filepath in {"GPT_INSTRUCTIONS.md", "PROD_READINESS_VALIDATOR.md", "SECURITY_RULES.md"}:
+            sync_project_system_files(project.path)
         content = vcs.read_project_file(project.path, filepath)
         lines = content.split('\n')
         total_lines = len(lines)
