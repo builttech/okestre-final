@@ -8080,8 +8080,8 @@ const sddState = {
         task_details: ''
     },
     taskFilepath: '.documents/task/task.md',
-    taskScope: 'current',
     allCriteria: [],
+    projectCriteria: [],
     specs: [],
     executeTask: null,
     charterLoaded: false,
@@ -8172,6 +8172,8 @@ function sddSwitchHarnessPanel(panelId) {
         sddLoadCharter();
     } else if (panelId === 'harness-specs-panel') {
         sddLoadSpecs(true);
+    } else if (panelId === 'harness-tasks-panel') {
+        sddLoadProjectTasks();
     }
 }
 
@@ -8704,10 +8706,8 @@ function sddExtractActiveReqCode() {
     return match ? match[0].toUpperCase() : '';
 }
 
-function sddGetVisibleCriteria() {
+function sddGetCurrentReqCriteria() {
     const criteria = sddState.allCriteria || [];
-    if (sddState.taskScope === 'all') return criteria;
-
     const activeReq = sddExtractActiveReqCode();
     if (!activeReq) return criteria;
 
@@ -8717,39 +8717,17 @@ function sddGetVisibleCriteria() {
     });
 }
 
-function sddUpdateTaskScopeMeta() {
-    const scopeSelect = document.getElementById('sdd-task-scope');
-    const scopeHint = document.getElementById('sdd-task-scope-hint');
-    if (scopeSelect) scopeSelect.value = sddState.taskScope || 'current';
-    if (!scopeHint) return;
-
-    const total = (sddState.allCriteria || []).length;
-    const visible = sddGetVisibleCriteria().length;
-    const activeReq = sddExtractActiveReqCode();
-    scopeHint.textContent = sddState.taskScope === 'all'
-        ? `${visible} task(s) de todos os requisitos e QA.`
-        : activeReq
-            ? `${visible}/${total} task(s) vinculadas a ${activeReq}.`
-            : `${visible} task(s) disponíveis.`;
-}
-
-function sddSetTaskScope(scope) {
-    sddState.taskScope = scope === 'all' ? 'all' : 'current';
-    sddRenderCriteria();
-}
-
 function sddRenderCriteria() {
     const container = document.getElementById('sdd-criteria-checklist-container');
     const progressText = document.getElementById('sdd-checklist-progress-text');
     const progressFill = document.getElementById('sdd-progress-fill');
-    const criteria = sddGetVisibleCriteria();
-    sddUpdateTaskScopeMeta();
+    const criteria = sddGetCurrentReqCriteria();
 
     if (!criteria.length) {
         const activeReq = sddExtractActiveReqCode();
         const hasAllTasks = (sddState.allCriteria || []).length > 0;
-        const emptyMessage = hasAllTasks && sddState.taskScope !== 'all' && activeReq
-            ? `Nenhuma tarefa vinculada a <code>${escapeHtml(activeReq)}</code>.<br>Altere para <strong>Todas as tasks</strong> para visualizar tarefas de outros REQs e QA.`
+        const emptyMessage = hasAllTasks && activeReq
+            ? `Nenhuma tarefa vinculada a <code>${escapeHtml(activeReq)}</code>.<br>Use a aba superior <strong>Task List</strong> para visualizar todas as tarefas do projeto.`
             : `Nenhuma tarefa encontrada em <code>${escapeHtml(sddState.taskFilepath || '.documents/task/task.md')}</code>.<br>Use o formato <code>- [ ] TASK-REQ-0000-001: - Título curto</code> ou <code>- [ ] TASK-QA-ID-001: - Título curto</code>.`;
         container.innerHTML = `
             <div style="text-align:center;padding:40px;color:var(--text-muted);">
@@ -8775,7 +8753,7 @@ function sddRenderCriteria() {
                     role="checkbox"
                     aria-checked="${c.checked ? 'true' : 'false'}"
                     aria-label="${c.checked ? 'Marcar tarefa como pendente' : 'Marcar tarefa como concluída'}"
-                    onclick="sddToggleCriteria(${c.line_no}, ${c.checked ? 'false' : 'true'})">
+                    onclick="sddToggleCriteria(${c.line_no}, ${c.checked ? 'false' : 'true'}, 'current')">
                 <span class="sdd-task-toggle-dot"></span>
             </button>
             <span class="sdd-criteria-text">${escapeHtml(c.text)}</span>
@@ -8787,6 +8765,77 @@ function sddRenderCriteria() {
                 <i data-lucide="file-text"></i>
             </button>
             <select class="sdd-task-status select-input" onchange="sddSetTaskStatus(${c.line_no}, this.value)">
+                <option value="todo">todo</option>
+                <option value="execute">executar</option>
+            </select>
+        </div>`).join('');
+    if (window.lucide) lucide.createIcons();
+}
+
+async function sddLoadProjectTasks() {
+    if (!state.activeProjectId) return;
+    const container = document.getElementById('sdd-project-tasks-container');
+    if (container) {
+        container.innerHTML = '<p style="color:var(--text-muted);padding:16px;">Carregando todas as tarefas de .documents/task/task.md...</p>';
+    }
+    try {
+        const res = await fetch(`/api/projects/${state.activeProjectId}/sdd/tasks`, { headers: getHeaders() });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || 'Erro ao carregar tarefas');
+        sddState.taskFilepath = data.filepath || '.documents/task/task.md';
+        sddState.projectCriteria = data.criteria || [];
+        sddRenderProjectTasks();
+    } catch (e) {
+        if (container) {
+            container.innerHTML = `<p style="color:#ef4444;padding:16px;">Erro ao carregar tarefas de <code>.documents/task/task.md</code>.</p>`;
+        }
+    }
+}
+
+function sddRenderProjectTasks() {
+    const container = document.getElementById('sdd-project-tasks-container');
+    const progressText = document.getElementById('sdd-project-tasks-progress-text');
+    const progressFill = document.getElementById('sdd-project-tasks-progress-fill');
+    const criteria = sddState.projectCriteria || [];
+    if (!container) return;
+
+    if (!criteria.length) {
+        container.innerHTML = `
+            <div style="text-align:center;padding:48px;color:var(--text-muted);">
+                <i data-lucide="list-checks" style="width:40px;height:40px;margin-bottom:12px;opacity:0.4;"></i>
+                <p>Nenhuma tarefa encontrada em <code>${escapeHtml(sddState.taskFilepath || '.documents/task/task.md')}</code>.</p>
+            </div>`;
+        if (progressText) progressText.textContent = '0/0 concluídos';
+        if (progressFill) progressFill.style.width = '0%';
+        if (window.lucide) lucide.createIcons();
+        return;
+    }
+
+    const total = criteria.length;
+    const done = criteria.filter(c => c.checked).length;
+    const pct = total ? Math.round((done / total) * 100) : 0;
+    if (progressText) progressText.textContent = `${done}/${total} concluídos (${pct}%)`;
+    if (progressFill) progressFill.style.width = `${pct}%`;
+
+    container.innerHTML = criteria.map(c => `
+        <div class="sdd-criteria-row ${c.checked ? 'checked' : ''}" data-line="${c.line_no}">
+            <button type="button"
+                    class="sdd-task-toggle ${c.checked ? 'is-checked' : ''}"
+                    role="checkbox"
+                    aria-checked="${c.checked ? 'true' : 'false'}"
+                    aria-label="${c.checked ? 'Marcar tarefa como pendente' : 'Marcar tarefa como concluída'}"
+                    onclick="sddToggleCriteria(${c.line_no}, ${c.checked ? 'false' : 'true'}, 'project')">
+                <span class="sdd-task-toggle-dot"></span>
+            </button>
+            <span class="sdd-criteria-text">${escapeHtml(c.text)}</span>
+            <button type="button"
+                    class="sdd-task-detail-action"
+                    title="Visualizar detalhe da task"
+                    aria-label="Visualizar detalhe da task"
+                    onclick="sddOpenTaskDetail(${c.line_no}, 'project')">
+                <i data-lucide="file-text"></i>
+            </button>
+            <select class="sdd-task-status select-input" onchange="sddSetTaskStatus(${c.line_no}, this.value, 'project')">
                 <option value="todo">todo</option>
                 <option value="execute">executar</option>
             </select>
@@ -8847,8 +8896,13 @@ async function sddEnsureTaskDetailsLoaded(force = false) {
     return sddState.projectDocuments.task_details;
 }
 
-async function sddOpenTaskDetail(lineNo) {
-    const row = document.querySelector(`.sdd-criteria-row[data-line="${lineNo}"]`);
+function sddGetTaskRow(lineNo, source = 'current') {
+    const containerId = source === 'project' ? 'sdd-project-tasks-container' : 'sdd-criteria-checklist-container';
+    return document.querySelector(`#${containerId} .sdd-criteria-row[data-line="${lineNo}"]`);
+}
+
+async function sddOpenTaskDetail(lineNo, source = 'current') {
+    const row = sddGetTaskRow(lineNo, source);
     const taskText = row?.querySelector('.sdd-criteria-text')?.textContent?.trim() || '';
     const taskId = sddExtractTaskId(taskText);
     const drawer = document.getElementById('sdd-task-detail-drawer');
@@ -8878,7 +8932,7 @@ async function sddOpenTaskDetail(lineNo) {
                 <div class="sdd-task-detail-empty">
                     <i data-lucide="badge-alert"></i>
                     <h5>ID da task não encontrado</h5>
-                    <p>Use o formato <code>TASK-REQ-0000-001: - Título curto</code> em .documents/task/task.md.</p>
+                    <p>Use o formato <code>TASK-REQ-0000-001: - Título curto</code> ou <code>TASK-QA-ID-001: - Título curto</code> em .documents/task/task.md.</p>
                 </div>
             `;
         } else if (!section) {
@@ -8940,12 +8994,15 @@ function sddCloseTaskDetail() {
     drawer?.setAttribute('aria-hidden', 'true');
 }
 
-function sddSetTaskStatus(lineNo, value) {
+function sddSetTaskStatus(lineNo, value, source = 'current') {
     if (value !== 'execute') return;
-    const row = document.querySelector(`.sdd-criteria-row[data-line="${lineNo}"]`);
+    const row = sddGetTaskRow(lineNo, source);
     const taskText = row?.querySelector('.sdd-criteria-text')?.textContent?.trim() || '';
     sddState.executeTask = { lineNo, text: taskText };
     sddPopulateExecuteInstructions(taskText);
+    if (source === 'project') {
+        sddSwitchHarnessPanel('harness-specs-panel');
+    }
     sddSwitchTab('sdd-tab-tests');
 }
 
@@ -8966,19 +9023,28 @@ function sddPopulateExecuteInstructions(taskText) {
     textarea.value = `# Execute\n\n## Tarefa selecionada\n${taskText || 'Nenhuma tarefa selecionada.'}\n\n## Instruções para IA/agente\nExecute estritamente esta tarefa contra o REQ selecionado, os documentos vivos do projeto e a Task List abaixo. Não implemente escopo fora da task selecionada. Ao terminar, indique arquivos alterados e testes executados.\n\n## REQ de referência\n${specify || 'REQ não encontrado.'}\n\n## Design vivo de referência\n${design || 'Design não encontrado.'}\n\n## DRI vivo de referência\n${dri || 'DRI não encontrado ou não aplicável.'}\n\n## Task List viva de referência\n${taskDocument || 'Task List não encontrada.'}\n`;
 }
 
-async function sddToggleCriteria(lineNo, checked) {
-    if (!state.activeProjectId || !sddState.activeFilename) return;
+async function sddToggleCriteria(lineNo, checked, source = 'current') {
+    if (!state.activeProjectId) return;
+    if (source !== 'project' && !sddState.activeFilename) return;
     // Optimistic UI update
-    const row = document.querySelector(`.sdd-criteria-row[data-line="${lineNo}"]`);
+    const row = sddGetTaskRow(lineNo, source);
     if (row) row.classList.toggle('checked', checked);
 
     try {
-        await fetch(`/api/projects/${state.activeProjectId}/sdd/specs/${encodeURIComponent(sddState.activeFilename)}/criteria`, {
+        const url = source === 'project'
+            ? `/api/projects/${state.activeProjectId}/sdd/tasks/criteria`
+            : `/api/projects/${state.activeProjectId}/sdd/specs/${encodeURIComponent(sddState.activeFilename)}/criteria`;
+        await fetch(url, {
             method: 'POST',
             headers: { ...getHeaders(), 'Content-Type': 'application/json' },
             body: JSON.stringify({ criteria: [{ line_no: lineNo, checked }] })
         });
-        await sddLoadCriteria();
+        if (source === 'project') {
+            await sddLoadProjectTasks();
+            if (sddState.activeFilename) await sddLoadCriteria();
+        } else {
+            await sddLoadCriteria();
+        }
         await sddLoadProjectDocuments();
         sddPopulateStageEditors(sddState.activeContent);
     } catch (e) {
@@ -9576,6 +9642,9 @@ function setupSddEventListeners() {
     const btnRefresh = document.getElementById('btn-refresh-sdd-specs');
     if (btnRefresh) btnRefresh.addEventListener('click', sddLoadSpecs);
 
+    const btnRefreshProjectTasks = document.getElementById('btn-refresh-sdd-project-tasks');
+    if (btnRefreshProjectTasks) btnRefreshProjectTasks.addEventListener('click', sddLoadProjectTasks);
+
     document.getElementById('btn-sdd-task-detail-close')?.addEventListener('click', sddCloseTaskDetail);
     document.getElementById('sdd-task-detail-backdrop')?.addEventListener('click', sddCloseTaskDetail);
 
@@ -9600,11 +9669,6 @@ function setupSddEventListeners() {
     // Switch to IA wizard from empty workspace
     const btnToWizard = document.getElementById('btn-switch-to-ia-generator');
     if (btnToWizard) btnToWizard.addEventListener('click', () => sddSwitchTab('sdd-tab-ia-wizard'));
-
-    const taskScopeSelect = document.getElementById('sdd-task-scope');
-    if (taskScopeSelect) {
-        taskScopeSelect.addEventListener('change', () => sddSetTaskScope(taskScopeSelect.value));
-    }
 
     // Workspace sub-tabs
     document.querySelectorAll('.sdd-nav-btn').forEach(btn => {

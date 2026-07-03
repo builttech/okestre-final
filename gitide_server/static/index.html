@@ -17,7 +17,7 @@
     <link rel="stylesheet" href="/static/workspace-switcher-refactor.css?v=2">
     <link rel="stylesheet" href="/static/workspace-native-fallback.css?v=1">
     <link rel="stylesheet" href="/static/settings-tabs.css?v=1">
-    <link rel="stylesheet" href="/static/rebrand.css?v=36">
+    <link rel="stylesheet" href="/static/rebrand.css?v=37">
     <script src="/static/lucide-bootstrap.js"></script>
     <script defer src="/static/ui/workspace-switcher.js?v=3"></script>
     <script defer src="/static/settings-tabs.js?v=4"></script>
@@ -1246,6 +1246,9 @@ REGRA INQUEBRÁVEL: antes de executar qualquer task, valide REQ, DRI e Task List
                                 <button class="harness-top-tab" data-harness-panel="harness-specs-panel">
                                     <i data-lucide="file-check"></i> Functional Specs
                                 </button>
+                                <button class="harness-top-tab" data-harness-panel="harness-tasks-panel">
+                                    <i data-lucide="list-checks"></i> Task List
+                                </button>
                             </div>
                         </div>
 
@@ -1418,15 +1421,7 @@ REGRA INQUEBRÁVEL: antes de executar qualquer task, valide REQ, DRI e Task List
                                         <div class="sdd-checklist-header">
                                             <div style="display: flex; flex-direction: column;">
                                                 <h5>Task List - Tarefas</h5>
-                                                <p style="font-size: 12px; color: var(--text-muted); margin: 0;">Consome somente .documents/task/task.md. Use o modo atual por REQ ou liste tudo, incluindo TASK-QA.</p>
-                                            </div>
-                                            <div class="sdd-task-scope-control">
-                                                <label for="sdd-task-scope">Visualização</label>
-                                                <select id="sdd-task-scope" class="select-input">
-                                                    <option value="current">REQ atual</option>
-                                                    <option value="all">Todas as tasks</option>
-                                                </select>
-                                                <span id="sdd-task-scope-hint">0 task(s) disponíveis.</span>
+                                                <p style="font-size: 12px; color: var(--text-muted); margin: 0;">Mostra somente as tarefas vinculadas ao REQ selecionado. A lista completa fica na aba superior Task List.</p>
                                             </div>
                                             <div class="sdd-checklist-progress">
                                                 <span id="sdd-checklist-progress-text">0/0 concluídos</span>
@@ -1476,7 +1471,39 @@ REGRA INQUEBRÁVEL: antes de executar qualquer task, valide REQ, DRI e Task List
                                 </div>
                             </div>
                         </section>
-                            </div>
+                    </div>
+                </div>
+
+                        <div id="harness-tasks-panel" class="harness-panel">
+                            <section class="sdd-workspace card harness-tasks-card">
+                                <div class="sdd-workspace-header">
+                                    <div class="sdd-active-spec-info">
+                                        <h4>Task List do Projeto</h4>
+                                        <span class="badge">.documents/task/task.md</span>
+                                    </div>
+                                    <button class="btn btn-sm btn-secondary btn-icon-only" id="btn-refresh-sdd-project-tasks" title="Recarregar tasks"><i data-lucide="refresh-cw"></i></button>
+                                </div>
+                                <div class="sdd-workspace-body">
+                                    <div class="sdd-checklist-wrapper harness-project-tasks-wrapper">
+                                        <div class="sdd-checklist-header">
+                                            <div style="display: flex; flex-direction: column;">
+                                                <h5>Todas as tarefas</h5>
+                                                <p style="font-size: 12px; color: var(--text-muted); margin: 0;">Visão global das tarefas em .documents/task/task.md, incluindo TASK-REQ e TASK-QA.</p>
+                                            </div>
+                                            <div class="sdd-checklist-progress">
+                                                <span id="sdd-project-tasks-progress-text">0/0 concluídos</span>
+                                                <div class="sdd-progress-bar"><div id="sdd-project-tasks-progress-fill" style="width: 0%;"></div></div>
+                                            </div>
+                                        </div>
+                                        <div class="sdd-checklist-body" id="sdd-project-tasks-container">
+                                            <div style="text-align:center;padding:48px;color:var(--text-muted);">
+                                                <i data-lucide="list-checks" style="width:40px;height:40px;margin-bottom:12px;opacity:0.4;"></i>
+                                                <p>Abra esta aba para carregar as tarefas do projeto.</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </section>
                         </div>
                     </div>
                 </div>
@@ -2158,7 +2185,7 @@ REGRA INQUEBRÁVEL: antes de executar qualquer task, valide REQ, DRI e Task List
     </aside>
 
     <!-- Custom JavaScript -->
-    <script src="/static/app.js?v=57"></script>
+    <script src="/static/app.js?v=58"></script>
     <script src="/static/theme-toggle.js?v=1"></script>
 </body>
 </html>

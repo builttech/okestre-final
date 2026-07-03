@@ -6274,36 +6274,6 @@ input[type="checkbox"]:focus-visible{
     min-width: 140px;
 }
 
-.sdd-task-scope-control {
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-    margin-left: auto;
-    min-width: 176px;
-}
-
-.sdd-task-scope-control label {
-    color: var(--text-muted);
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: 0;
-    text-transform: uppercase;
-}
-
-.sdd-task-scope-control select {
-    height: 34px;
-    min-height: 34px;
-    border-radius: 10px;
-    font-size: 12px;
-    padding: 0 32px 0 12px;
-}
-
-.sdd-task-scope-control span {
-    color: var(--text-muted);
-    font-size: 11px;
-    line-height: 1.25;
-}
-
 .sdd-checklist-progress span {
     font-size: 11px;
     font-weight: 600;
@@ -6349,12 +6319,24 @@ input[type="checkbox"]:focus-visible{
         flex-direction: column;
     }
 
-    .sdd-task-scope-control,
     .sdd-checklist-progress {
         width: 100%;
         margin-left: 0;
         align-items: stretch;
     }
+}
+
+.harness-tasks-card {
+    flex: 1;
+    min-height: 0;
+}
+
+.harness-project-tasks-wrapper {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    gap: 16px;
+    padding: 20px;
 }
 
 .sdd-task-toggle {

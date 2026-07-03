@@ -4132,6 +4132,50 @@ def get_sdd_spec_criteria(filename: str, project: Project = Depends(get_project_
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro ao extrair tarefas: {str(e)}")
 
+@app.get("/api/projects/{project_id}/sdd/tasks", tags=["Spec-Driven Development"])
+def get_sdd_project_tasks(project: Project = Depends(get_project_or_404)):
+    """Extrai todas as tarefas do task.md vivo do projeto."""
+    task_path = _sdd_project_document_path(project, "task")
+    source_type = "project_task_document"
+
+    if not os.path.exists(task_path):
+        return {
+            "source_type": source_type,
+            "filepath": os.path.relpath(task_path, project.path).replace("\\", "/"),
+            "criteria": []
+        }
+
+    criteria = []
+    try:
+        with open(task_path, "r", encoding="utf-8") as f:
+            lines = f.readlines()
+
+        for i in range(0, len(lines)):
+            line_stripped = lines[i].strip()
+            checkbox_match = re.match(r"^\-\s*\[([ xX])\]\s*(.*)", line_stripped)
+            if checkbox_match:
+                raw_text = checkbox_match.group(2).strip()
+                task_match = re.match(r"^(TASK-(?:REQ-\d{2,6}|QA-[A-Z0-9-]+)-\d{3})\s*:\s*-?\s*(.+)$", raw_text, flags=re.IGNORECASE)
+                if not task_match:
+                    continue
+                task_code = task_match.group(1).upper()
+                task_title = task_match.group(2).strip()
+                criteria.append({
+                    "id": i,
+                    "line_no": i + 1,
+                    "code": task_code,
+                    "title": task_title,
+                    "text": f"{task_code}: - {task_title}",
+                    "checked": checkbox_match.group(1).lower() == "x"
+                })
+        return {
+            "source_type": source_type,
+            "filepath": os.path.relpath(task_path, project.path).replace("\\", "/"),
+            "criteria": criteria
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao extrair tarefas: {str(e)}")
+
 @app.post("/api/projects/{project_id}/sdd/specs/{filename}/criteria", tags=["Spec-Driven Development"])
 def update_sdd_spec_criteria(
     filename: str,
@@ -4173,6 +4217,55 @@ def update_sdd_spec_criteria(
         db.add(ActivityLog(
             project_id=project.id,
             action_type="SDD_TASK_CRITERIA_UPDATED",
+            details=f"Checkboxes atualizados em {rel_path}"
+        ))
+        db.commit()
+
+        return {
+            "status": "success",
+            "message": "Tarefas atualizadas com sucesso.",
+            "source_type": source_type,
+            "filepath": rel_path
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao atualizar tarefas: {str(e)}")
+
+@app.post("/api/projects/{project_id}/sdd/tasks/criteria", tags=["Spec-Driven Development"])
+def update_sdd_project_tasks(
+    req: SddCriteriaUpdateRequest,
+    project: Project = Depends(get_project_or_404),
+    db: Session = Depends(get_db),
+    _ = Depends(get_api_key)
+):
+    """Atualiza checkboxes diretamente no task.md vivo do projeto."""
+    task_path = _sdd_project_document_path(project, "task")
+    source_type = "project_task_document"
+
+    if not os.path.exists(task_path):
+        raise HTTPException(status_code=404, detail="Documento de tarefas não encontrado.")
+
+    try:
+        with open(task_path, "r", encoding="utf-8") as f:
+            lines = f.readlines()
+
+        updates = {item.line_no: item.checked for item in req.criteria}
+        for line_no, checked in updates.items():
+            idx = line_no - 1
+            if 0 <= idx < len(lines):
+                indent_match = re.match(r"^(\s*)\-\s*\[[ xX]\](.*)", lines[idx])
+                if indent_match:
+                    indent = indent_match.group(1)
+                    rest = indent_match.group(2)
+                    box = "[x]" if checked else "[ ]"
+                    lines[idx] = f"{indent}- {box}{rest}\n"
+
+        with open(task_path, "w", encoding="utf-8") as f:
+            f.writelines(lines)
+
+        rel_path = os.path.relpath(task_path, project.path).replace("\\", "/")
+        db.add(ActivityLog(
+            project_id=project.id,
+            action_type="SDD_PROJECT_TASKS_UPDATED",
             details=f"Checkboxes atualizados em {rel_path}"
         ))
         db.commit()
