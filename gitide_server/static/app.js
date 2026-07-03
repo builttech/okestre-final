@@ -5748,6 +5748,22 @@ function setupEventListeners() {
     if (providerSelect) {
         providerSelect.addEventListener('change', updateAgentModelOptions);
     }
+    const btnRefreshOllamaModels = document.getElementById('btn-refresh-ollama-models');
+    if (btnRefreshOllamaModels) {
+        btnRefreshOllamaModels.addEventListener('click', () => loadOllamaInstalledModels(getSelectedOllamaModel()));
+    }
+    const ollamaModelSelect = document.getElementById('agent-ollama-model');
+    if (ollamaModelSelect) {
+        ollamaModelSelect.addEventListener('change', toggleOllamaCustomModel);
+    }
+    const ollamaUrlInput = document.getElementById('agent-ollama-url');
+    if (ollamaUrlInput) {
+        ollamaUrlInput.addEventListener('change', () => loadOllamaInstalledModels(getSelectedOllamaModel()));
+    }
+    const ollamaPerformanceSelect = document.getElementById('agent-ollama-performance');
+    if (ollamaPerformanceSelect) {
+        ollamaPerformanceSelect.addEventListener('change', applyOllamaPerformancePreset);
+    }
     const btnToggleAgentKey = document.getElementById('btn-toggle-agent-key');
     if (btnToggleAgentKey) {
         btnToggleAgentKey.addEventListener('click', toggleAgentApiKeyVisibility);
@@ -7424,6 +7440,12 @@ const AGENT_MODELS = {
         { value: 'gpt-4o', label: 'GPT-4o (Recomendado)' },
         { value: 'gpt-4o-mini', label: 'GPT-4o Mini (Econômico)' },
         { value: 'gpt-4-turbo', label: 'GPT-4 Turbo' }
+    ],
+    ollama: [
+        { value: 'llama3.1', label: 'llama3.1' },
+        { value: 'qwen2.5-coder:7b', label: 'qwen2.5-coder:7b' },
+        { value: 'deepseek-coder', label: 'deepseek-coder' },
+        { value: 'codellama', label: 'codellama' }
     ]
 };
 
@@ -7431,6 +7453,10 @@ function updateAgentModelOptions() {
     const provider = document.getElementById('agent-provider').value;
     const modelSelect = document.getElementById('agent-model');
     if (!modelSelect) return;
+    const apiKeyGroup = document.getElementById('agent-apikey-group');
+    const ollamaUrlGroup = document.getElementById('agent-ollama-url-group');
+    const ollamaModelGroup = document.getElementById('agent-ollama-model-group');
+    const ollamaPerformanceGroup = document.getElementById('agent-ollama-performance-group');
     
     modelSelect.innerHTML = '';
     const models = AGENT_MODELS[provider] || [];
@@ -7440,6 +7466,120 @@ function updateAgentModelOptions() {
         opt.textContent = m.label;
         modelSelect.appendChild(opt);
     });
+
+    const isOllama = provider === 'ollama';
+    modelSelect.parentElement.style.display = isOllama ? 'none' : '';
+    if (apiKeyGroup) apiKeyGroup.style.display = isOllama ? 'none' : '';
+    if (ollamaUrlGroup) ollamaUrlGroup.style.display = isOllama ? '' : 'none';
+    if (ollamaModelGroup) ollamaModelGroup.style.display = isOllama ? '' : 'none';
+    if (ollamaPerformanceGroup) ollamaPerformanceGroup.style.display = isOllama ? '' : 'none';
+    const ollamaModelInput = document.getElementById('agent-ollama-model');
+    const ollamaUrlInput = document.getElementById('agent-ollama-url');
+    if (isOllama && ollamaModelInput && !ollamaModelInput.value.trim()) ollamaModelInput.value = 'llama3.1';
+    if (isOllama && ollamaUrlInput && !ollamaUrlInput.value.trim()) ollamaUrlInput.value = 'http://127.0.0.1:11434';
+    if (isOllama) loadOllamaInstalledModels(ollamaModelInput?.value || 'llama3.1');
+}
+
+function applyOllamaPerformancePreset() {
+    const mode = document.getElementById('agent-ollama-performance')?.value || 'balanced';
+    const ctx = document.getElementById('agent-ollama-num-ctx');
+    const predict = document.getElementById('agent-ollama-num-predict');
+    if (!ctx || !predict) return;
+    if (mode === 'fast') {
+        ctx.value = '2048';
+        predict.value = '384';
+    } else if (mode === 'deep') {
+        ctx.value = '8192';
+        predict.value = '1200';
+    } else {
+        ctx.value = '4096';
+        predict.value = '768';
+    }
+}
+
+function formatModelSize(bytes) {
+    const size = Number(bytes || 0);
+    if (!size) return '';
+    const gb = size / 1024 / 1024 / 1024;
+    if (gb >= 1) return `${gb.toFixed(1)} GB`;
+    const mb = size / 1024 / 1024;
+    return mb >= 1 ? `${mb.toFixed(0)} MB` : '';
+}
+
+async function loadOllamaInstalledModels(selectedModel = '') {
+    const select = document.getElementById('agent-ollama-model');
+    const endpointInput = document.getElementById('agent-ollama-url');
+    const hint = document.getElementById('agent-ollama-model-hint');
+    if (!select) return;
+    const baseUrl = endpointInput?.value.trim() || 'http://127.0.0.1:11434';
+    const current = selectedModel || select.value || 'llama3.1';
+    select.innerHTML = '<option value="">Carregando modelos...</option>';
+    try {
+        const res = await fetch(`/api/agent/ollama/models?base_url=${encodeURIComponent(baseUrl)}`, { headers: getHeaders() });
+        const data = await res.json();
+        select.innerHTML = '';
+        const models = Array.isArray(data.models) ? data.models : [];
+        if (data.status === 'success' && models.length) {
+            models.forEach(model => {
+                const opt = document.createElement('option');
+                opt.value = model.name;
+                const size = formatModelSize(model.size);
+                opt.textContent = size ? `${model.name} - ${size}` : model.name;
+                select.appendChild(opt);
+            });
+            const customOpt = document.createElement('option');
+            customOpt.value = '__custom__';
+            customOpt.textContent = 'Outro modelo...';
+            select.appendChild(customOpt);
+            const hasCurrent = models.some(model => model.name === current);
+            select.value = hasCurrent ? current : '__custom__';
+            toggleOllamaCustomModel();
+            const customInput = document.getElementById('agent-ollama-model-custom');
+            if (!hasCurrent && customInput) customInput.value = current;
+            if (hint) hint.textContent = `${models.length} modelo(s) instalado(s) encontrados no Ollama.`;
+            return;
+        }
+        const fallbackModels = AGENT_MODELS.ollama || [];
+        fallbackModels.forEach(model => {
+            const opt = document.createElement('option');
+            opt.value = model.value;
+            opt.textContent = model.label;
+            select.appendChild(opt);
+        });
+        const customOpt = document.createElement('option');
+        customOpt.value = '__custom__';
+        customOpt.textContent = 'Outro modelo...';
+        select.appendChild(customOpt);
+        select.value = fallbackModels.some(model => model.value === current) ? current : '__custom__';
+        toggleOllamaCustomModel();
+        const customInput = document.getElementById('agent-ollama-model-custom');
+        if (select.value === '__custom__' && customInput) customInput.value = current;
+        if (hint) hint.textContent = data.message ? `Não foi possível consultar o Ollama: ${data.message}` : 'Ollama sem modelos instalados. Use outro modelo ou instale com ollama pull.';
+    } catch (err) {
+        select.innerHTML = '<option value="__custom__">Outro modelo...</option>';
+        select.value = '__custom__';
+        toggleOllamaCustomModel();
+        const customInput = document.getElementById('agent-ollama-model-custom');
+        if (customInput) customInput.value = current;
+        if (hint) hint.textContent = `Falha ao carregar modelos: ${err.message}`;
+    }
+}
+
+function toggleOllamaCustomModel() {
+    const select = document.getElementById('agent-ollama-model');
+    const customInput = document.getElementById('agent-ollama-model-custom');
+    if (!select || !customInput) return;
+    customInput.style.display = select.value === '__custom__' ? '' : 'none';
+}
+
+function getSelectedOllamaModel() {
+    const select = document.getElementById('agent-ollama-model');
+    const customInput = document.getElementById('agent-ollama-model-custom');
+    if (!select) return 'llama3.1';
+    if (select.value === '__custom__') {
+        return customInput?.value.trim() || 'llama3.1';
+    }
+    return select.value || 'llama3.1';
 }
 
 function toggleAgentApiKeyVisibility() {
@@ -7467,6 +7607,18 @@ async function loadAgentConfig() {
         updateAgentModelOptions();
         
         document.getElementById('agent-model').value = config.model || '';
+        const ollamaModelInput = document.getElementById('agent-ollama-model');
+        const ollamaUrlInput = document.getElementById('agent-ollama-url');
+        if (ollamaUrlInput) ollamaUrlInput.value = config.ollama_base_url || 'http://127.0.0.1:11434';
+        const perfInput = document.getElementById('agent-ollama-performance');
+        const ctxInput = document.getElementById('agent-ollama-num-ctx');
+        const predictInput = document.getElementById('agent-ollama-num-predict');
+        if (perfInput) perfInput.value = config.ollama_performance_mode || 'balanced';
+        if (ctxInput) ctxInput.value = config.ollama_num_ctx || 4096;
+        if (predictInput) predictInput.value = config.ollama_num_predict || 768;
+        if (ollamaModelInput && config.provider === 'ollama') {
+            await loadOllamaInstalledModels(config.model || 'llama3.1');
+        }
         document.getElementById('agent-apikey').value = config.api_key || '';
         
         // Habilita inputs se tivermos projeto ativo
@@ -7495,8 +7647,14 @@ async function loadAgentConfig() {
 
 async function saveAgentConfigToServer() {
     const provider = document.getElementById('agent-provider').value;
-    const model = document.getElementById('agent-model').value;
+    const model = provider === 'ollama'
+        ? getSelectedOllamaModel()
+        : document.getElementById('agent-model').value;
     const apiKey = document.getElementById('agent-apikey').value.trim();
+    const ollamaBaseUrl = document.getElementById('agent-ollama-url')?.value.trim() || 'http://127.0.0.1:11434';
+    const ollamaPerformanceMode = document.getElementById('agent-ollama-performance')?.value || 'balanced';
+    const ollamaNumCtx = Number(document.getElementById('agent-ollama-num-ctx')?.value || 4096);
+    const ollamaNumPredict = Number(document.getElementById('agent-ollama-num-predict')?.value || 768);
     
     const enabled_tools = [];
     document.querySelectorAll('#agent-tools-container input[type="checkbox"]').forEach(cb => {
@@ -7507,6 +7665,10 @@ async function saveAgentConfigToServer() {
         provider,
         model,
         api_key: apiKey,
+        ollama_base_url: ollamaBaseUrl,
+        ollama_performance_mode: ollamaPerformanceMode,
+        ollama_num_ctx: ollamaNumCtx,
+        ollama_num_predict: ollamaNumPredict,
         enabled_tools
     };
     
@@ -7530,10 +7692,9 @@ async function saveAgentConfigToServer() {
 
 function formatAgentMessage(text) {
     if (!text) return '';
-    
-    // Escapa HTML básico para evitar problemas de segurança
-    let html = escapeHtml(text);
-    
+
+    let html = escapeHtml(text.trim());
+
     // Converte os blocos de código
     html = html.replace(/```(\w+)?\n([\s\S]*?)```/g, (match, lang, code) => {
         lang = lang || 'code';
@@ -7562,26 +7723,69 @@ function formatAgentMessage(text) {
         return `
             <div class="code-block-card" style="background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); border-radius: 8px; margin: 12px 0; overflow: hidden; display: flex; flex-direction: column;">
                 <div class="code-block-header" style="display: flex; justify-content: space-between; align-items: center; padding: 8px 16px; background: rgba(255,255,255,0.02); border-bottom: 1px solid var(--border-color); font-size: 12px; color: var(--text-light);">
-                    <span><i class="fa-solid fa-code" style="margin-right: 6px; color: var(--color-primary);"></i> ${filename}</span>
-                    <button class="btn-copy-code" style="background: none; border: none; color: var(--text-muted); cursor: pointer; display: flex; align-items: center; gap: 4px; font-size: 11px;" onclick="navigator.clipboard.writeText(\`${escapedCode}\`).then(() => { this.innerHTML = '<i class=&quot;fa-solid fa-check&quot;></i> Copied'; setTimeout(() => this.innerHTML = '<i class=&quot;fa-solid fa-copy&quot;></i> Copy', 1500); })"><i class="fa-solid fa-copy"></i> Copy</button>
+                    <span><i data-lucide="code-2"></i> ${filename}</span>
+                    <button class="btn-copy-code" onclick="navigator.clipboard.writeText(\`${escapedCode}\`).then(() => { this.textContent = 'Copiado'; setTimeout(() => this.textContent = 'Copiar', 1500); })">Copiar</button>
                 </div>
                 <pre style="margin: 0; padding: 16px; overflow-x: auto; font-family: monospace; font-size: 12px; line-height: 1.5; color: #e2e8f0; background: transparent;"><code style="font-family: inherit;">${codeToShow}</code></pre>
                 <div class="code-block-actions" style="display: flex; gap: 10px; padding: 10px 16px; background: rgba(0,0,0,0.1); border-top: 1px solid var(--border-color);">
-                    <button class="action-pill-btn btn-apply" style="display: flex; align-items: center; gap: 6px; background: var(--color-primary); border: none; border-radius: 20px; padding: 6px 12px; font-size: 11px; color: white; cursor: pointer;"><i class="fa-solid fa-check"></i> Apply Fix</button>
-                    <button class="action-pill-btn btn-test" style="display: flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: 20px; padding: 6px 12px; font-size: 11px; color: var(--text-light); cursor: pointer;"><i class="fa-solid fa-play"></i> Run test</button>
-                    <button class="action-pill-btn btn-diff" style="display: flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: 20px; padding: 6px 12px; font-size: 11px; color: var(--text-light); cursor: pointer;"><i class="fa-solid fa-eye"></i> View Diff</button>
+                    <button class="action-pill-btn btn-apply"><i data-lucide="check"></i> Aplicar</button>
+                    <button class="action-pill-btn btn-test"><i data-lucide="play"></i> Testar</button>
+                    <button class="action-pill-btn btn-diff"><i data-lucide="eye"></i> Diff</button>
                 </div>
             </div>
         `;
     });
-    
-    // Converte negritos **texto**
+
+    html = html.replace(/^###\s+(.+)$/gm, '<h5>$1</h5>');
+    html = html.replace(/^##\s+(.+)$/gm, '<h4>$1</h4>');
+    html = html.replace(/^#\s+(.+)$/gm, '<h3>$1</h3>');
     html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-    
-    // Converte códigos inline `codigo`
-    html = html.replace(/`(.*?)`/g, '<code style="background: rgba(255,255,255,0.08); padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 12px; color: #f6ad55;">$1</code>');
-    
+    html = html.replace(/`(.*?)`/g, '<code>$1</code>');
+    html = html.replace(/^\s*[-*]\s+(.+)$/gm, '<li>$1</li>');
+    html = html.replace(/((?:<li>.*?<\/li>\n?)+)/gs, '<ul>$1</ul>');
+    html = html.replace(/\n{2,}/g, '</p><p>');
+    html = html.replace(/\n/g, '<br>');
+    if (!/^<(h3|h4|h5|ul|div|pre|p)/.test(html.trim())) {
+        html = `<p>${html}</p>`;
+    }
     return html;
+}
+
+function getAgentMonitorMeta(event) {
+    if (event.type === 'status') return { icon: 'activity', title: 'Status', body: event.content || 'Processando...' };
+    if (event.type === 'thought') return { icon: 'brain', title: 'Pensamento', body: event.content || 'Analisando contexto...' };
+    if (event.type === 'tool_call') return { icon: 'wrench', title: `Ação: ${event.tool}`, body: formatToolArgs(event.args) };
+    if (event.type === 'tool_result') return { icon: 'check-circle-2', title: 'Resultado', body: compactAgentText(event.result || '') };
+    if (event.type === 'error') return { icon: 'triangle-alert', title: 'Erro', body: event.content || 'Falha ao executar.' };
+    return { icon: 'circle', title: 'Evento', body: JSON.stringify(event) };
+}
+
+function compactAgentText(value) {
+    const text = String(value || '');
+    return text.length > 360 ? `${text.slice(0, 360)}...` : text;
+}
+
+function formatToolArgs(args) {
+    if (!args || !Object.keys(args).length) return 'Executando sem parâmetros.';
+    return Object.entries(args)
+        .map(([key, value]) => `${key}: ${typeof value === 'string' ? value : JSON.stringify(value)}`)
+        .join(' | ');
+}
+
+function appendAgentMonitorEvent(monitorLogs, monitor, event) {
+    const meta = getAgentMonitorMeta(event);
+    const div = document.createElement('div');
+    div.className = `agent-workflow-item ${event.type || 'status'}`;
+    div.innerHTML = `
+        <span class="agent-workflow-icon"><i data-lucide="${meta.icon}"></i></span>
+        <span class="agent-workflow-copy">
+            <strong>${escapeHtml(meta.title)}</strong>
+            <small>${escapeHtml(meta.body)}</small>
+        </span>
+    `;
+    monitorLogs.appendChild(div);
+    if (window.lucide) lucide.createIcons();
+    monitor.scrollTop = monitor.scrollHeight;
 }
 
 async function sendPromptToAgent(e) {
@@ -7623,7 +7827,8 @@ async function sendPromptToAgent(e) {
     
     // Exibe monitor e limpa logs
     monitor.style.display = 'block';
-    monitorLogs.innerHTML = `<div class="monitor-line status">Iniciando execução do agente local...</div>`;
+    monitorLogs.innerHTML = '';
+    appendAgentMonitorEvent(monitorLogs, monitor, { type: 'status', content: 'Iniciando execução do agente local...' });
     
     try {
         const response = await fetch(`/api/projects/${state.activeProjectId}/agent/run`, {
@@ -7657,60 +7862,27 @@ async function sendPromptToAgent(e) {
                     try {
                         const event = JSON.parse(jsonStr);
                         
-                        if (event.type === 'status') {
-                            const div = document.createElement('div');
-                            div.className = 'monitor-line status';
-                            div.textContent = event.content;
-                            monitorLogs.appendChild(div);
-                            monitor.scrollTop = monitor.scrollHeight;
-                        } 
-                        else if (event.type === 'thought') {
-                            const div = document.createElement('div');
-                            div.className = 'monitor-line thought';
-                            div.textContent = `[PENSAMENTO]: ${event.content}`;
-                            monitorLogs.appendChild(div);
-                            monitor.scrollTop = monitor.scrollHeight;
-                        } 
-                        else if (event.type === 'tool_call') {
-                            const div = document.createElement('div');
-                            div.className = 'monitor-line tool';
-                            div.textContent = `[AÇÃO (Ferramenta)]: Roda '${event.tool}' com args: ${JSON.stringify(event.args)}`;
-                            monitorLogs.appendChild(div);
-                            monitor.scrollTop = monitor.scrollHeight;
-                        } 
-                        else if (event.type === 'tool_result') {
-                            const div = document.createElement('div');
-                            div.className = 'monitor-line result';
-                            div.textContent = `[RESULTADO]: ${event.result.substring(0, 300)}${event.result.length > 300 ? '...' : ''}`;
-                            monitorLogs.appendChild(div);
-                            monitor.scrollTop = monitor.scrollHeight;
-                        } 
+                        if (['status', 'thought', 'tool_call', 'tool_result'].includes(event.type)) {
+                            appendAgentMonitorEvent(monitorLogs, monitor, event);
+                        }
                         else if (event.type === 'final') {
                             // Cria balão do agente com a resposta final
                             const agentMsg = document.createElement('div');
-                            agentMsg.className = 'agent-message-wrapper';
-                            agentMsg.style.cssText = 'display: flex; gap: 12px; align-self: flex-start; max-width: 85%; margin-bottom: 14px;';
+                            agentMsg.className = 'agent-message-wrapper agent-assistant-message';
                             agentMsg.innerHTML = `
-                                <!-- Avatar -->
-                                <div style="background: rgba(139, 92, 246, 0.15); border: 1px solid rgba(139, 92, 246, 0.25); width: 34px; height: 34px; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #a78bfa; font-size: 16px; flex-shrink: 0; margin-top: 4px;">
-                                    <i class="fa-solid fa-robot"></i>
+                                <div class="agent-message-avatar">
+                                    <i data-lucide="bot"></i>
                                 </div>
-                                <!-- Conteúdo -->
-                                <div style="flex: 1; display: flex; flex-direction: column;">
-                                    <div class="agent-message-text" style="color: var(--text-light); font-size: 13px; line-height: 1.5;">
-                                        ${formatAgentMessage(event.content)}
-                                    </div>
+                                <div class="agent-message-text">
+                                    ${formatAgentMessage(event.content)}
                                 </div>
                             `;
                             chatHistory.appendChild(agentMsg);
+                            if (window.lucide) lucide.createIcons();
                             chatHistory.scrollTop = chatHistory.scrollHeight;
                         } 
                         else if (event.type === 'error') {
-                            const div = document.createElement('div');
-                            div.className = 'monitor-line error';
-                            div.textContent = `[ERRO]: ${event.content}`;
-                            monitorLogs.appendChild(div);
-                            monitor.scrollTop = monitor.scrollHeight;
+                            appendAgentMonitorEvent(monitorLogs, monitor, event);
                         }
                     } catch (e) {
                         console.error('Erro ao fazer parse do streaming chunk:', e);
@@ -7720,11 +7892,7 @@ async function sendPromptToAgent(e) {
         }
         
     } catch (err) {
-        const div = document.createElement('div');
-        div.className = 'monitor-line error';
-        div.textContent = `[FALHA NA CONEXÃO]: ${err.message}`;
-        monitorLogs.appendChild(div);
-        monitor.scrollTop = monitor.scrollHeight;
+        appendAgentMonitorEvent(monitorLogs, monitor, { type: 'error', content: `Falha na conexão: ${err.message}` });
     } finally {
         promptInput.disabled = false;
         document.getElementById('btn-send-agent-prompt').disabled = false;

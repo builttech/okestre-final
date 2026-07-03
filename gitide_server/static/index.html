@@ -656,6 +656,7 @@
                                     <select id="agent-provider" class="select-input" style="width: 100%;">
                                         <option value="gemini">Google Gemini</option>
                                         <option value="openai">OpenAI</option>
+                                        <option value="ollama">Ollama (Modelo local)</option>
                                     </select>
                                 </div>
                                 <div class="form-group">
@@ -664,7 +665,44 @@
                                         <!-- Preenchido via JS baseado no provedor -->
                                     </select>
                                 </div>
-                                <div class="form-group">
+                                <div class="form-group" id="agent-ollama-model-group" style="display: none;">
+                                    <label for="agent-ollama-model" style="font-weight: 500; font-size: 13px; margin-bottom: 6px; display: block;">Modelo local:</label>
+                                    <div style="display: flex; gap: 8px; align-items: center;">
+                                        <select id="agent-ollama-model" class="select-input" style="width: 100%;">
+                                            <option value="llama3.1">llama3.1</option>
+                                        </select>
+                                        <button class="btn btn-secondary btn-sm" id="btn-refresh-ollama-models" type="button" title="Atualizar modelos instalados" style="height: 38px; width: 42px; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                                            <i class="fa-solid fa-rotate"></i>
+                                        </button>
+                                    </div>
+                                    <input type="text" id="agent-ollama-model-custom" class="text-input" placeholder="Digite o nome do modelo" style="width: 100%; margin-top: 8px; display: none;" autocomplete="off">
+                                    <small id="agent-ollama-model-hint" style="display: block; margin-top: 6px; color: var(--text-muted); font-size: 12px;">Modelos instalados localmente via Ollama.</small>
+                                </div>
+                                <div class="form-group" id="agent-ollama-url-group" style="display: none;">
+                                    <label for="agent-ollama-url" style="font-weight: 500; font-size: 13px; margin-bottom: 6px; display: block;">Endpoint Ollama:</label>
+                                    <input type="text" id="agent-ollama-url" class="text-input" placeholder="http://127.0.0.1:11434" style="width: 100%;" autocomplete="off">
+                                    <small style="display: block; margin-top: 6px; color: var(--text-muted); font-size: 12px;">O Ollama precisa estar rodando no mesmo servidor do Act IA.</small>
+                                </div>
+                                <div class="form-group" id="agent-ollama-performance-group" style="display: none;">
+                                    <label for="agent-ollama-performance" style="font-weight: 500; font-size: 13px; margin-bottom: 6px; display: block;">Performance local:</label>
+                                    <select id="agent-ollama-performance" class="select-input" style="width: 100%;">
+                                        <option value="fast">Rápido - respostas curtas</option>
+                                        <option value="balanced" selected>Balanceado - recomendado</option>
+                                        <option value="deep">Profundo - mais contexto</option>
+                                    </select>
+                                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px;">
+                                        <div>
+                                            <label for="agent-ollama-num-ctx" style="font-weight: 500; font-size: 12px; margin-bottom: 4px; display: block; color: var(--text-muted);">Contexto</label>
+                                            <input type="number" id="agent-ollama-num-ctx" class="text-input" min="1024" step="1024" value="4096" style="width: 100%;">
+                                        </div>
+                                        <div>
+                                            <label for="agent-ollama-num-predict" style="font-weight: 500; font-size: 12px; margin-bottom: 4px; display: block; color: var(--text-muted);">Resposta</label>
+                                            <input type="number" id="agent-ollama-num-predict" class="text-input" min="128" step="128" value="768" style="width: 100%;">
+                                        </div>
+                                    </div>
+                                    <small style="display: block; margin-top: 6px; color: var(--text-muted); font-size: 12px;">Para mais velocidade, use modelos menores e modo Rápido.</small>
+                                </div>
+                                <div class="form-group" id="agent-apikey-group">
                                     <label for="agent-apikey" style="font-weight: 500; font-size: 13px; margin-bottom: 6px; display: block;">API Key:</label>
                                     <div style="position: relative; display: flex; align-items: center;">
                                         <input type="password" id="agent-apikey" class="text-input" placeholder="Cole sua chave API aqui" style="width: 100%; padding-right: 40px;" autocomplete="off">
@@ -1182,34 +1220,34 @@ REGRA INQUEBRÁVEL: antes de executar qualquer task, valide REQ, DRI e Task List
                         <div class="agent-main-panel card" style="flex: 1; display: flex; flex-direction: column; min-width: 0; height: 100%; overflow: hidden;">
                             
                             <!-- Cabeçalho do Chat -->
-                            <div class="agent-chat-header" style="display: flex; justify-content: space-between; align-items: center; padding: 14px 20px; border-bottom: 1px solid var(--border-color); background: rgba(0,0,0,0.15); flex-shrink: 0;">
-                                <div style="display: flex; align-items: center; gap: 12px;">
-                                    <div style="background: rgba(99, 102, 241, 0.15); border: 1px solid rgba(99, 102, 241, 0.25); width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: var(--color-primary); font-size: 18px;">
-                                        <i class="fa-solid fa-robot"></i>
+                            <div class="agent-chat-header">
+                                <div class="agent-title-row">
+                                    <div class="agent-avatar">
+                                        <i data-lucide="bot"></i>
                                     </div>
                                     <div>
-                                        <h3 style="margin: 0; font-size: 15px; font-weight: 600; color: var(--text-light);">Agente IA Nativo</h3>
-                                        <div style="display: flex; align-items: center; gap: 6px; font-size: 11px; margin-top: 2px;">
-                                            <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #eab308; box-shadow: 0 0 6px #eab308;"></span>
-                                            <span style="color: var(--text-muted);">Online</span>
+                                        <h3>Agente IA Nativo</h3>
+                                        <div class="agent-status-pill">
+                                            <span></span>
+                                            Online
                                         </div>
                                     </div>
                                 </div>
-                                <div style="display: flex; gap: 8px;">
-                                    <button class="btn btn-secondary btn-sm" id="btn-agent-history" style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); color: var(--text-light); padding: 6px 12px; font-size: 12px; display: flex; align-items: center; gap: 6px; cursor: pointer; border-radius: 6px; transition: all 0.2s;">
-                                        <i class="fa-solid fa-clock-rotate-left"></i> History
+                                <div class="agent-header-actions">
+                                    <button class="btn btn-secondary btn-sm" id="btn-agent-history">
+                                        <i data-lucide="history"></i> Histórico
                                     </button>
-                                    <button class="btn btn-secondary btn-sm" id="btn-clear-agent-chat" style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); color: var(--text-light); padding: 6px 12px; font-size: 12px; display: flex; align-items: center; gap: 6px; cursor: pointer; border-radius: 6px; transition: all 0.2s;">
-                                        <i class="fa-solid fa-trash"></i> Clear Chat
+                                    <button class="btn btn-secondary btn-sm" id="btn-clear-agent-chat">
+                                        <i data-lucide="trash-2"></i> Limpar
                                     </button>
                                 </div>
                             </div>
 
                             <!-- Monitor de Raciocínio (Pensamentos em tempo real) -->
-                            <div class="agent-reasoning-monitor" id="agent-monitor" style="display: none; padding: 14px; background: rgba(0,0,0,0.2); border-bottom: 1px solid var(--border-color); flex-shrink: 0; max-height: 150px; overflow-y: auto; font-family: monospace; font-size: 12px; color: var(--text-muted);">
-                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; font-weight: bold; color: var(--color-primary);">
-                                    <span><i class="fa-solid fa-brain fa-pulse"></i> FLUXO DE RACIOCÍNIO DO AGENTE (PENSAMENTO & AÇÃO)</span>
-                                    <button id="btn-clear-agent-monitor" style="background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 10px;" type="button"><i class="fa-solid fa-trash"></i></button>
+                            <div class="agent-reasoning-monitor" id="agent-monitor">
+                                <div class="agent-monitor-header">
+                                    <span><i data-lucide="workflow"></i> Workflow do agente</span>
+                                    <button id="btn-clear-agent-monitor" type="button" title="Limpar workflow"><i data-lucide="x"></i></button>
                                 </div>
                                 <div id="agent-monitor-logs">
                                     <!-- Injetado dinamicamente -->
@@ -1217,27 +1255,27 @@ REGRA INQUEBRÁVEL: antes de executar qualquer task, valide REQ, DRI e Task List
                             </div>
                             
                             <!-- Área de Chat Histórico -->
-                            <div class="agent-chat-container" id="agent-chat-history" style="flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; background: rgba(0,0,0,0.05);">
-                                <div class="agent-chat-welcome" style="text-align: center; color: var(--text-muted); margin: auto; max-width: 480px; padding: 20px;">
-                                    <i class="fa-solid fa-robot" style="font-size: 48px; color: var(--color-primary); margin-bottom: 14px;"></i>
+                            <div class="agent-chat-container" id="agent-chat-history">
+                                <div class="agent-chat-welcome">
+                                    <i data-lucide="bot"></i>
                                     <h3>Olá! Eu sou o Agente IA Local do Act IA</h3>
-                                    <p style="font-size: 13px; margin-top: 8px;">Dê-me um objetivo e eu usarei as ferramentas locais (Arquivos, Git, Terminal, SQL) para resolver de forma autônoma. Configure sua chave API nas <a href="#" id="link-welcome-settings" style="color: var(--color-primary); text-decoration: underline;">Configurações</a> para começar.</p>
+                                    <p>Dê-me um objetivo e eu usarei as ferramentas locais, Git, Terminal, SQL e Ops Infra seguindo o fluxo Harness. Configure o modelo nas <a href="#" id="link-welcome-settings">Configurações</a> para começar.</p>
                                 </div>
                             </div>
                             
                             <!-- Ações Rápidas (Explain, Bugs, Tests, Refactor) -->
-                            <div class="agent-quick-actions" style="display: flex; gap: 10px; padding: 12px 20px; background: transparent; flex-shrink: 0; flex-wrap: wrap; border-top: 1px solid var(--border-color);">
-                                <button class="quick-action-btn" data-action="explain" style="display: flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: 8px; padding: 8px 14px; font-size: 12px; color: var(--text-light); cursor: pointer; transition: all 0.2s;">
-                                    <i class="fa-solid fa-file-invoice"></i> Explain this file
+                            <div class="agent-quick-actions">
+                                <button class="quick-action-btn" data-action="explain">
+                                    <i data-lucide="file-text"></i> Explicar arquivo
                                 </button>
-                                <button class="quick-action-btn" data-action="bugs" style="display: flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: 8px; padding: 8px 14px; font-size: 12px; color: var(--text-light); cursor: pointer; transition: all 0.2s;">
-                                    <i class="fa-solid fa-bug"></i> Find bugs
+                                <button class="quick-action-btn" data-action="bugs">
+                                    <i data-lucide="bug"></i> Encontrar bugs
                                 </button>
-                                <button class="quick-action-btn" data-action="test" style="display: flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: 8px; padding: 8px 14px; font-size: 12px; color: var(--text-light); cursor: pointer; transition: all 0.2s;">
-                                    <i class="fa-solid fa-flask"></i> Generate unit test
+                                <button class="quick-action-btn" data-action="test">
+                                    <i data-lucide="flask-conical"></i> Gerar teste
                                 </button>
-                                <button class="quick-action-btn" data-action="refactor" style="display: flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: 8px; padding: 8px 14px; font-size: 12px; color: var(--text-light); cursor: pointer; transition: all 0.2s;">
-                                    <i class="fa-solid fa-wand-magic-sparkles"></i> Refactor code
+                                <button class="quick-action-btn" data-action="refactor">
+                                    <i data-lucide="wand-sparkles"></i> Refatorar
                                 </button>
                             </div>
 

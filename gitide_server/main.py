@@ -333,6 +333,10 @@ class AgentConfigInput(BaseModel):
     model: str
     api_key: str
     enabled_tools: List[str]
+    ollama_base_url: Optional[str] = Field("http://127.0.0.1:11434", description="URL local do servidor Ollama")
+    ollama_performance_mode: Optional[str] = Field("balanced", description="Modo do Ollama: fast, balanced ou deep")
+    ollama_num_ctx: Optional[int] = Field(4096, description="Janela de contexto do Ollama")
+    ollama_num_predict: Optional[int] = Field(768, description="Limite de tokens gerados pelo Ollama")
 
 class AgentChatRequest(BaseModel):
     prompt: str
@@ -5325,6 +5329,31 @@ def save_agent_config(config_in: AgentConfigInput):
     """Salva as configurações do agente IA."""
     agent.save_agent_config(config_in.model_dump())
     return {"status": "success", "message": "Configurações do agente salvas."}
+
+@app.get("/api/agent/ollama/models", tags=["Agente IA"])
+def list_ollama_models(base_url: str = Query("http://127.0.0.1:11434", description="Endpoint local do Ollama")):
+    """Lista modelos instalados no Ollama local."""
+    clean_url = (base_url or "http://127.0.0.1:11434").strip().rstrip("/")
+    if not clean_url.startswith(("http://127.0.0.1", "http://localhost", "http://0.0.0.0")):
+        raise HTTPException(status_code=400, detail="Por segurança, informe um endpoint local do Ollama.")
+    try:
+        response = requests.get(f"{clean_url}/api/tags", timeout=8)
+        response.raise_for_status()
+        data = response.json()
+        models = []
+        for item in data.get("models", []):
+            name = item.get("name")
+            if not name:
+                continue
+            models.append({
+                "name": name,
+                "size": item.get("size"),
+                "modified_at": item.get("modified_at"),
+                "details": item.get("details") or {},
+            })
+        return {"status": "success", "base_url": clean_url, "models": models}
+    except Exception as e:
+        return {"status": "error", "base_url": clean_url, "models": [], "message": str(e)}
 
 @app.post("/api/projects/{project_id}/agent/run", tags=["Agente IA"])
 def run_agent(project_id: int, 

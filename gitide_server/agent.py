@@ -58,6 +58,10 @@ def load_agent_config():
         "provider": "gemini",
         "model": "gemini-1.5-pro",
         "api_key": "",
+        "ollama_base_url": "http://127.0.0.1:11434",
+        "ollama_performance_mode": "balanced",
+        "ollama_num_ctx": 4096,
+        "ollama_num_predict": 768,
         "enabled_tools": ["read_file", "write_file", "patch_file", "execute_command", "execute_db_query", "git_status", "git_branches", "git_deploy", "generate_word_document"]
     }
 
@@ -101,7 +105,24 @@ def extract_json(response_text: str) -> dict:
             
     return json.loads(clean_text)
 
-def call_llm(provider: str, model: str, api_key: str, messages: list, system_prompt: str) -> str:
+def _compact_tool_result_for_local_model(tool_result: str, max_chars: int = 2200) -> str:
+    try:
+        data = json.loads(tool_result)
+        for key in ["private_key", "password", "token", "api_key"]:
+            if key in data:
+                data[key] = ""
+        if isinstance(data.get("vm_access"), dict):
+            data["vm_access"].pop("private_key", None)
+            data["vm_access"].pop("password", None)
+        for key in ["stdout", "stderr", "body_preview"]:
+            if isinstance(data.get(key), str) and len(data[key]) > 700:
+                data[key] = data[key][:700] + "... [truncado]"
+        compact = json.dumps(data, ensure_ascii=False)
+        return compact[:max_chars] + ("... [truncado]" if len(compact) > max_chars else "")
+    except Exception:
+        return tool_result[:max_chars] + ("... [truncado]" if len(tool_result) > max_chars else "")
+
+def call_llm(provider: str, model: str, api_key: str, messages: list, system_prompt: str, ollama_base_url: str = "http://127.0.0.1:11434", ollama_options: dict = None) -> str:
     """Faz a chamada à API correspondente (Gemini ou OpenAI)."""
     if provider == "gemini":
         # Ajusta histórico de mensagens para o formato do Gemini
@@ -148,6 +169,31 @@ def call_llm(provider: str, model: str, api_key: str, messages: list, system_pro
         res.raise_for_status()
         data = res.json()
         return data["choices"][0]["message"]["content"]
+
+    elif provider == "ollama":
+        base_url = (ollama_base_url or "http://127.0.0.1:11434").rstrip("/")
+        if not model:
+            raise ValueError("Modelo Ollama não configurado.")
+        ollama_messages = [{"role": "system", "content": system_prompt}]
+        for msg in messages:
+            role = "assistant" if msg["role"] == "assistant" else "user"
+            ollama_messages.append({"role": role, "content": msg["content"]})
+
+        payload = {
+            "model": model,
+            "messages": ollama_messages,
+            "stream": False,
+            "format": "json",
+            "options": {
+                "temperature": 0.1,
+                **(ollama_options or {})
+            },
+            "keep_alive": "10m"
+        }
+        res = requests.post(f"{base_url}/api/chat", json=payload, timeout=120)
+        res.raise_for_status()
+        data = res.json()
+        return data.get("message", {}).get("content", "")
         
     else:
         raise ValueError(f"Provedor de LLM inválido: {provider}")
@@ -319,11 +365,21 @@ def run_agent_loop(db: Session, project: Project, config: dict, user_prompt: str
     provider = config.get("provider")
     model = config.get("model")
     api_key = config.get("api_key")
+    ollama_base_url = config.get("ollama_base_url") or "http://127.0.0.1:11434"
+    ollama_performance_mode = config.get("ollama_performance_mode") or "balanced"
+    ollama_num_ctx = int(config.get("ollama_num_ctx") or 4096)
+    ollama_num_predict = int(config.get("ollama_num_predict") or 768)
+    if ollama_performance_mode == "fast":
+        ollama_num_ctx = min(ollama_num_ctx, 2048)
+        ollama_num_predict = min(ollama_num_predict, 384)
+    elif ollama_performance_mode == "deep":
+        ollama_num_ctx = max(ollama_num_ctx, 8192)
+        ollama_num_predict = max(ollama_num_predict, 1200)
     enabled_tools = config.get("enabled_tools", [])
     extra_tools = extra_tools or {}
     extra_tool_descriptions = extra_tool_descriptions or []
     
-    if not api_key:
+    if provider != "ollama" and not api_key:
         yield f"data: {json.dumps({'type': 'error', 'content': 'Chave API não configurada no Agente IA.'})}\n\n"
         return
         
@@ -349,10 +405,15 @@ def run_agent_loop(db: Session, project: Project, config: dict, user_prompt: str
         tool_desc.append("- `generate_word_document(title: str, sections: List[dict])`: Gera um documento Word (.docx) estruturado sob .documents. Cada seção tem: 'heading' (opcional), 'text' (obrigatório) e 'type' ('paragraph', 'bullet', 'highlight', 'code' ou 'table').")
     tool_desc.extend(extra_tool_descriptions)
 
-    harness_rules = _safe_read_instruction(project.path, "GPT_INSTRUCTIONS.md")
-    ops_rules = _safe_read_instruction(project.path, "OPS_INFRA_OPERATOR.md")
-    prod_rules = _safe_read_instruction(project.path, "PROD_READINESS_VALIDATOR.md", max_chars=8000)
-    security_rules = _safe_read_instruction(project.path, "SECURITY_RULES.md", max_chars=8000)
+    is_ollama = provider == "ollama"
+    instruction_chars = 2500 if is_ollama else 12000
+    audit_chars = 1200 if is_ollama else 8000
+    harness_rules = _safe_read_instruction(project.path, "GPT_INSTRUCTIONS.md", max_chars=instruction_chars)
+    ops_rules = _safe_read_instruction(project.path, "OPS_INFRA_OPERATOR.md", max_chars=instruction_chars)
+    prod_rules = _safe_read_instruction(project.path, "PROD_READINESS_VALIDATOR.md", max_chars=audit_chars)
+    security_rules = _safe_read_instruction(project.path, "SECURITY_RULES.md", max_chars=audit_chars)
+    if is_ollama:
+        tool_desc = tool_desc[:18]
 
     system_prompt = (
         DEFAULT_SYSTEM_PROMPT
@@ -369,12 +430,21 @@ def run_agent_loop(db: Session, project: Project, config: dict, user_prompt: str
         + "\n\nSECURITY_RULES.md:\n"
         + (security_rules or "Arquivo não encontrado.")
     )
+    if is_ollama:
+        system_prompt += (
+            "\n\nMODO OLLAMA PERFORMANCE:\n"
+            "- Responda JSON curto e válido.\n"
+            "- Use pensamento com no máximo 1 frase.\n"
+            "- Só chame ferramenta quando necessário.\n"
+            "- Se a resposta puder ser direta, use final_answer sem consultar ferramentas.\n"
+            "- Não resuma resultados longos; diga o essencial e próximo passo.\n"
+        )
     
     messages = [
         {"role": "user", "content": user_prompt}
     ]
     
-    max_steps = 50
+    max_steps = 12 if is_ollama else 50
     step = 0
     
     yield f"data: {json.dumps({'type': 'start', 'prompt': user_prompt})}\n\n"
@@ -384,7 +454,20 @@ def run_agent_loop(db: Session, project: Project, config: dict, user_prompt: str
         yield f"data: {json.dumps({'type': 'status', 'content': f'Raciocinando (Passo {step})...'})}\n\n"
         
         try:
-            raw_response = call_llm(provider, model, api_key, messages, system_prompt)
+            raw_response = call_llm(
+                provider,
+                model,
+                api_key,
+                messages,
+                system_prompt,
+                ollama_base_url=ollama_base_url,
+                ollama_options={
+                    "num_ctx": ollama_num_ctx,
+                    "num_predict": ollama_num_predict,
+                    "num_thread": 0,
+                    "repeat_penalty": 1.08,
+                } if is_ollama else None
+            )
             parsed = extract_json(raw_response)
         except Exception as le:
             yield f"data: {json.dumps({'type': 'error', 'content': f'Erro na chamada do cérebro (LLM): {str(le)}'})}\n\n"
@@ -415,12 +498,14 @@ def run_agent_loop(db: Session, project: Project, config: dict, user_prompt: str
                 tool_result = execute_agent_tool(db, project, tool, args)
 
                 
+            model_tool_result = _compact_tool_result_for_local_model(tool_result) if is_ollama else tool_result
+
             # Log de tool result
-            yield f"data: {json.dumps({'type': 'tool_result', 'tool': tool, 'result': tool_result})}\n\n"
+            yield f"data: {json.dumps({'type': 'tool_result', 'tool': tool, 'result': model_tool_result})}\n\n"
             
             # Adiciona ao histórico do chat
             messages.append({"role": "assistant", "content": json.dumps(parsed)})
-            messages.append({"role": "user", "content": f"Resultado da ferramenta '{tool}': {tool_result}"})
+            messages.append({"role": "user", "content": f"Resultado da ferramenta '{tool}': {model_tool_result}"})
         else:
             # Caso não tenha nem resposta final e nem ferramenta (erro de formatação da LLM)
             messages.append({"role": "assistant", "content": raw_response})
