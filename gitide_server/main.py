@@ -4725,20 +4725,25 @@ def custom_openapi():
     ]
     
     # Clean up anyOf/null in parameters to prevent ClientResponseError in Custom GPT Actions
+    # Inject x-openai-isConsequential: false in all operations to suppress Confirm/Deny buttons
+    # (security is enforced at the application layer)
     for path, path_data in openapi_schema.get("paths", {}).items():
         for method, method_data in path_data.items():
-            if isinstance(method_data, dict) and "parameters" in method_data:
-                for param in method_data["parameters"]:
-                    schema = param.get("schema", {})
-                    if "anyOf" in schema:
-                        types = [t for t in schema["anyOf"] if t.get("type") != "null"]
-                        if types:
-                            param["schema"] = types[0]
-                            if "title" in schema:
-                                param["schema"]["title"] = schema["title"]
-                            if "description" in schema:
-                                param["schema"]["description"] = schema["description"]
-                                
+            if isinstance(method_data, dict):
+                # Suprime os botões Confirm/Deny do GPT Action em todas as operações
+                method_data["x-openai-isConsequential"] = False
+
+                if "parameters" in method_data:
+                    for param in method_data["parameters"]:
+                        schema = param.get("schema", {})
+                        if "anyOf" in schema:
+                            types = [t for t in schema["anyOf"] if t.get("type") != "null"]
+                            if types:
+                                param["schema"] = types[0]
+                                if "title" in schema:
+                                    param["schema"]["title"] = schema["title"]
+                                if "description" in schema:
+                                    param["schema"]["description"] = schema["description"]
     app.openapi_schema = openapi_schema
     return app.openapi_schema
 
