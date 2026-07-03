@@ -99,14 +99,18 @@ Projeto: ${projectName}
 
 Antes de iniciar, leia e siga rigorosamente o arquivo PROD_READINESS_VALIDATOR.md na raiz do workspace.
 
-Audite o projeto de ponta a ponta e salve o relatório completo em:
+Audite o projeto de ponta a ponta, salve o relatório completo em:
 .documents/prod-readiness/prod-readiness-report.md
+
+Depois siga o fluxo Harness obrigatório descrito no arquivo: crie ou atualize REQ, revise Design, crie Task List e task.details, aguarde validação do usuário e execute somente uma task por vez quando aprovada.
 
 No chat, responda somente com:
 - veredito final;
 - pontuação de prontidão;
 - quantidade de Blockers, Warnings e Infos;
 - caminho do relatório salvo;
+- documentos Harness atualizados;
+- tasks criadas;
 - próximos passos mínimos para aprovação.`;
 }
 
@@ -133,11 +137,15 @@ Audite código, arquitetura, autenticação, autorização, segredos, dados, dep
 Salve o relatório completo em:
 .documents/security/security-review-report.md
 
+Depois siga o fluxo Harness obrigatório descrito no arquivo: crie ou atualize REQ, revise Design, crie Task List e task.details, aguarde validação do usuário e execute somente uma task por vez quando aprovada.
+
 No chat, responda somente com:
 - veredito de segurança;
 - quantidade de Critical, High, Medium, Low e Info;
 - principais riscos bloqueantes;
 - caminho do relatório salvo;
+- documentos Harness atualizados;
+- tasks criadas;
 - próximos passos mínimos de mitigação.`;
 }
 
