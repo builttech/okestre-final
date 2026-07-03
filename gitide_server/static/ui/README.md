@@ -1,6 +1,6 @@
-# GitIDE UI Components
+# Act IA software engineer UI Components
 
-Reusable native UI components for the GitIDE frontend.
+Reusable native UI components for the Act IA software engineer frontend.
 
 ## Components
 

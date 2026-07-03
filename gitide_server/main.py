@@ -88,7 +88,7 @@ ROOT_PASSWORD_ENV = os.getenv("GITIDE_ROOT_PASSWORD")
 ROOT_CREDENTIALS_PATH = os.path.join(CONFIG_DIR, "root_credentials.txt")
 
 app = FastAPI(
-    title="GitIDE API",
+    title="Act IA software engineer API",
     description="Interface para GPT Actions interagirem livremente com código, comandos e bancos de dados locais.",
     version="1.0.0"
 )
@@ -174,7 +174,7 @@ def ensure_root_user():
                 existing.role = "root"
                 existing.updated_at = datetime.utcnow()
                 db.commit()
-                print(f"[GitIDE Auth] Senha do usuário root atualizada via GITIDE_ROOT_PASSWORD: {ROOT_EMAIL}")
+                print(f"[Act IA Auth] Senha do usuário root atualizada via GITIDE_ROOT_PASSWORD: {ROOT_EMAIL}")
             return
         password = ROOT_PASSWORD_ENV or secrets.token_urlsafe(18)
         user = User(
@@ -189,16 +189,16 @@ def ensure_root_user():
         os.makedirs(CONFIG_DIR, exist_ok=True)
         with open(ROOT_CREDENTIALS_PATH, "w", encoding="utf-8") as f:
             f.write(
-                "GitIDE root user\n"
+                "Act IA root user\n"
                 "URL local: http://127.0.0.1:8000/login\n"
                 f"Usuário: {ROOT_EMAIL}\n"
                 f"Senha: {password if not ROOT_PASSWORD_ENV else '[definida via GITIDE_ROOT_PASSWORD]'}\n"
             )
-        print(f"[GitIDE Auth] Usuário root criado: {ROOT_EMAIL}")
+        print(f"[Act IA Auth] Usuário root criado: {ROOT_EMAIL}")
         if ROOT_PASSWORD_ENV:
-            print("[GitIDE Auth] Senha inicial definida via GITIDE_ROOT_PASSWORD.")
+            print("[Act IA Auth] Senha inicial definida via GITIDE_ROOT_PASSWORD.")
         else:
-            print(f"[GitIDE Auth] Senha inicial salva em: {ROOT_CREDENTIALS_PATH}")
+            print(f"[Act IA Auth] Senha inicial salva em: {ROOT_CREDENTIALS_PATH}")
     finally:
         db.close()
 
@@ -223,7 +223,7 @@ def get_api_key(credentials: HTTPAuthorizationCredentials = Security(security)):
     if credentials.credentials != API_KEY:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token de API GitIDE inválido ou não fornecido."
+            detail="Token de API Act IA inválido ou não fornecido."
         )
     return credentials.credentials
 
@@ -436,7 +436,7 @@ def get_project_or_404(project_id: int, db: Session = Depends(get_db)) -> Projec
 
 @app.get("/login", response_class=HTMLResponse, tags=["Autenticação"])
 def get_login_page(request: Request):
-    """Tela de autenticação do GitIDE."""
+    """Tela de autenticação do Act IA."""
     if get_current_user_from_request(request):
         return RedirectResponse(url="/", status_code=status.HTTP_303_SEE_OTHER)
     return HTMLResponse(
@@ -445,7 +445,7 @@ def get_login_page(request: Request):
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>GitIDE Login</title>
+  <title>Act IA Login</title>
   <style>
     :root {{ color-scheme: dark; font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }}
     * {{ box-sizing: border-box; }}
@@ -464,7 +464,7 @@ def get_login_page(request: Request):
 </head>
 <body>
   <main>
-    <span>GitIDE Canvas</span>
+    <span>Act IA software engineer</span>
     <h1>Acessar ferramenta</h1>
     <p>Informe o usuário root da instalação para acessar o ambiente.</p>
     <form id="login-form">
@@ -547,6 +547,16 @@ def get_server_info():
         "api_key": API_KEY,
         "os": platform.system()
     }
+
+@app.get("/api/prod-readiness-validator", tags=["Configuração"])
+def get_prod_readiness_validator():
+    """Retorna o System Prompt do auditor Production-Ready."""
+    repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+    prompt_path = os.path.join(repo_root, "PROD_READINESS_VALIDATOR.md")
+    if not os.path.exists(prompt_path):
+        raise HTTPException(status_code=404, detail="PROD_READINESS_VALIDATOR.md não encontrado.")
+    with open(prompt_path, "r", encoding="utf-8") as f:
+        return Response(content=f.read(), media_type="text/markdown; charset=utf-8")
 
 
 # Projetos
@@ -666,7 +676,7 @@ def create_project(project_in: ProjectCreate, db: Session = Depends(get_db)):
 
 @app.delete("/api/projects/{project_id}", tags=["Projetos"])
 def delete_project(project_id: int, db: Session = Depends(get_db)):
-    """Remove o cadastro do projeto do GitIDE (não apaga os arquivos do computador)."""
+    """Remove o cadastro do projeto do Act IA (não apaga os arquivos do computador)."""
     project = db.query(Project).filter(Project.id == project_id).first()
     if not project:
         raise HTTPException(status_code=404, detail="Projeto não encontrado")
@@ -880,7 +890,7 @@ def execute_command(cmd_in: CommandExecute,
     Requer autenticação Bearer Token para chamadas externas.
     Se a requisição for externa, exige aprovação prévia do usuário via Dashboard.
     """
-    is_dashboard = request.headers.get("x-gitide-source") == "dashboard" or request.headers.get("X-GitIDE-Source") == "dashboard"
+    is_dashboard = request.headers.get("x-gitide-source") == "dashboard" or request.headers.get("x-gitide-source") == "dashboard"
     
     if not is_dashboard:
         cmd_str = cmd_in.command.strip()
@@ -922,7 +932,7 @@ def execute_command(cmd_in: CommandExecute,
                 "command_id": cmd_id,
                 "message": (
                     f"A execução do comando '{cmd_str}' foi retida por motivos de segurança e requer aprovação manual. "
-                    "Por favor, peça ao usuário para aprovar a execução deste comando no painel Web do GitIDE. "
+                    "Por favor, peça ao usuário para aprovar a execução deste comando no painel Web do Act IA. "
                     "Assim que o usuário aprovar, ele te avisará no chat para que você execute o comando novamente."
                 )
             }
@@ -1049,7 +1059,7 @@ def execute_db_query(db_in: DbQuery,
             if db_url.startswith("postgres://"):
                 db_url = db_url.replace("postgres://", "postgresql://", 1)
 
-        # Registra no log do GitIDE
+        # Registra no log do Act IA
         log = ActivityLog(
             project_id=project.id,
             action_type="DB_QUERY",
@@ -1703,7 +1713,7 @@ def git_create_pull_request(req: GitPullRequestCreate,
     headers = {
         "Authorization": f"token {token}",
         "Accept": "application/vnd.github.v3+json",
-        "User-Agent": "GitIDE"
+        "User-Agent": "Act IA"
     }
     payload = {
         "title": req.title,
@@ -1834,7 +1844,7 @@ def github_auth_status():
             headers={
                 "Authorization": f"Bearer {token}",
                 "Accept": "application/json",
-                "User-Agent": "GitIDE"
+                "User-Agent": "Act IA"
             },
             timeout=10
         )
@@ -1883,7 +1893,7 @@ def github_list_repos():
             headers={
                 "Authorization": f"Bearer {token}",
                 "Accept": "application/json",
-                "User-Agent": "GitIDE"
+                "User-Agent": "Act IA"
             },
             timeout=10
         )
@@ -2421,7 +2431,7 @@ def _ops_artifacts(project_path: str, env: str, domain: Optional[str], database:
         "services:",
         "  app:",
         "    build: .",
-        f"    container_name: ${{APP_NAME:-gitide-app}}-{env}",
+        f"    container_name: ${{APP_NAME:-act-ia-app}}-{env}",
         "    restart: unless-stopped",
         "    env_file:",
         "      - .env",
@@ -2438,7 +2448,7 @@ def _ops_artifacts(project_path: str, env: str, domain: Optional[str], database:
             f"      - \"{port}\"",
             "  caddy:",
             "    image: caddy:2-alpine",
-            f"    container_name: ${{APP_NAME:-gitide-app}}-{env}-caddy",
+            f"    container_name: ${{APP_NAME:-act-ia-app}}-{env}-caddy",
             "    restart: unless-stopped",
             "    depends_on:",
             "      - app",
@@ -2455,7 +2465,7 @@ def _ops_artifacts(project_path: str, env: str, domain: Optional[str], database:
             "    ports:",
             f"      - \"${{APP_PORT:-{port}}}:{port}\"",
         ]
-    env_lines = [f"APP_ENV={env}", "APP_NAME=gitide-app", f"APP_PORT={port}", f"APP_DOMAIN={domain or ''}"]
+    env_lines = [f"APP_ENV={env}", "APP_NAME=act-ia-app", f"APP_PORT={port}", f"APP_DOMAIN={domain or ''}"]
     volumes = []
     if clean_domain:
         volumes += ["  caddy_data:", "  caddy_config:"]
@@ -3242,7 +3252,7 @@ def export_qa_annotations_pdf(status_filter: Optional[str] = Query(None, alias="
 
 @app.post("/api/projects/{project_id}/qa/text/polish", tags=["QA"])
 def polish_qa_text(payload: QaTextPolishRequest, project: Project = Depends(get_project_or_404), _ = Depends(get_api_key)):
-    """Reescreve título ou descrição de uma anotação QA usando a IA configurada no GitIDE."""
+    """Reescreve título ou descrição de uma anotação QA usando a IA configurada no Act IA."""
     original = (payload.text or "").strip()
     if not original:
         raise HTTPException(status_code=400, detail="Texto obrigatório.")
@@ -4468,12 +4478,12 @@ if os.path.exists(STATIC_DIR):
 
 @app.get("/", response_class=HTMLResponse, tags=["Dashboard UI"])
 def get_dashboard():
-    """Servidor HTML principal do Dashboard do GitIDE."""
+    """Servidor HTML principal do Dashboard do Act IA."""
     index_path = os.path.join(STATIC_DIR, "index.html")
     if os.path.exists(index_path):
         with open(index_path, 'r', encoding='utf-8') as f:
             return f.read()
-    return HTMLResponse(content="<h1>GitIDE está rodando!</h1><p>Dashboard HTML não encontrado na pasta <code>static/</code>.</p>", status_code=200)
+    return HTMLResponse(content="<h1>Act IA está rodando!</h1><p>Dashboard HTML não encontrado na pasta <code>static/</code>.</p>", status_code=200)
 
 @app.get("/favicon.ico", include_in_schema=False)
 def favicon():
@@ -4531,7 +4541,7 @@ def custom_openapi():
             filtered_routes.append(route)
             
     openapi_schema = get_openapi(
-        title="GitIDE API",
+        title="Act IA software engineer API",
         version="1.0.0",
         description="Interface para GPT Actions interagirem livremente com código, comandos e bancos de dados locais.",
         routes=filtered_routes,
@@ -4541,7 +4551,7 @@ def custom_openapi():
     openapi_schema["servers"] = [
         {
             "url": "https://ide.builtt.com.br",
-            "description": "Servidor local GitIDE"
+            "description": "Servidor local Act IA"
         }
     ]
     

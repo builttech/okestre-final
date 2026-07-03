@@ -169,7 +169,7 @@
       orgTitle.textContent = text;
       avatar.textContent = initials(text);
       root.querySelector('.workspace-account-org-row .workspace-switcher-avatar').textContent = initials(text);
-      if (emailLabel) emailLabel.textContent = getTokenPreview() || 'GitIDE Workspace';
+      if (emailLabel) emailLabel.textContent = getTokenPreview() || 'Act IA Workspace';
     }
 
     function runCopyAction() {

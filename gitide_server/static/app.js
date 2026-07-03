@@ -1,4 +1,4 @@
-// --- GITIDE FRONTEND ENGINE ---
+// --- Act IA FRONTEND ENGINE ---
 
 // Estado da Aplicação
 const state = {
@@ -81,6 +81,35 @@ const workspaceDeleteState = {
     type: 'file'
 };
 
+async function loadProdReadinessValidator() {
+    const target = document.getElementById('prod-readiness-validator-text');
+    if (!target) return;
+    target.textContent = buildProdReadinessValidatorPrompt();
+    target.dataset.loaded = 'true';
+}
+window.loadProdReadinessValidator = loadProdReadinessValidator;
+
+function buildProdReadinessValidatorPrompt() {
+    const projectName = state.activeProject?.name || 'Projeto ativo não selecionado';
+    const projectId = state.activeProjectId || 'NÃO INFORMADO';
+    return `Execute a auditoria Production-Ready neste projeto do Act IA.
+
+Project ID: ${projectId}
+Projeto: ${projectName}
+
+Antes de iniciar, leia e siga rigorosamente o arquivo PROD_READINESS_VALIDATOR.md na raiz do workspace.
+
+Audite o projeto de ponta a ponta e salve o relatório completo em:
+.documents/prod-readiness/prod-readiness-report.md
+
+No chat, responda somente com:
+- veredito final;
+- pontuação de prontidão;
+- quantidade de Blockers, Warnings e Infos;
+- caminho do relatório salvo;
+- próximos passos mínimos para aprovação.`;
+}
+
 // --- CUSTOM SELECT COMPONENT ---
 
 // --- INICIALIZAÇÃO ---
@@ -141,11 +170,11 @@ async function initApp() {
         
     } catch (err) {
         console.error('Erro na inicialização:', err);
-        alert('Erro ao conectar com o backend do GitIDE. Certifique-se de que o servidor FastAPI está rodando.');
+        alert('Erro ao conectar com o backend do Act IA. Certifique-se de que o servidor FastAPI está rodando.');
     }
 }
 
-async function logoutGitIde() {
+async function logoutGitide() {
     try {
         await fetch('/api/auth/logout', { method: 'POST', headers: getHeaders() });
     } catch (_err) {
@@ -180,7 +209,7 @@ function getHeaders() {
     return {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${state.apiKey}`,
-        'X-GitIDE-Source': 'dashboard'
+        'x-gitide-source': 'dashboard'
     };
 }
 
@@ -233,6 +262,7 @@ function selectProject(projectId) {
     
     // Sincroniza o valor do dropdown selector
     document.getElementById('project-selector').value = projectId;
+    loadProdReadinessValidator();
     
     // Carrega configurações de banco de dados do projeto de localStorage
     const savedDbType = localStorage.getItem(`gitide_project_${projectId}_db_type`);
@@ -318,6 +348,7 @@ function switchTab(tabId) {
     // Carrega dados específicos da aba (independente de ter projeto ativo ou não)
     if (tabId === 'tab-settings') {
         loadAgentConfig();
+        loadProdReadinessValidator();
     }
     
     // Carrega dados específicos da aba
@@ -2325,7 +2356,7 @@ async function initGitRepo() {
         
         if (res.status === 200) {
             appendGitConsole(`Repositório Git inicializado! Remotos configurados: ${data.remotes.join(', ')}`);
-            // Se informou URL de remoto, atualiza no DB do GitIDE
+            // Se informou URL de remoto, atualiza no DB do Act IA
             if (remoteUrl) {
                 // Atualização lógica rápida
                 state.activeProject.git_remote = remoteUrl;
@@ -2998,7 +3029,7 @@ function confirmDirectorySelection() {
     closeDirectoryBrowser();
 }
 
-function gitideNotify({ title = 'GitIDE', message = '', variant = 'info', duration = 3500 } = {}) {
+function gitideNotify({ title = 'Act IA', message = '', variant = 'info', duration = 3500 } = {}) {
     const viewport = document.getElementById('gitide-toast-viewport');
     if (!viewport) return;
     const icons = {
@@ -3501,7 +3532,7 @@ function renderEngineeringMetrics(data) {
     if (window.lucide) lucide.createIcons();
 }
 
-function gitideConfirm({ title = 'Confirmar ação', message = '', confirmText = 'Confirmar', cancelText = 'Cancelar', variant = 'info', kicker = 'GitIDE' } = {}) {
+function gitideConfirm({ title = 'Confirmar ação', message = '', confirmText = 'Confirmar', cancelText = 'Cancelar', variant = 'info', kicker = 'Act IA' } = {}) {
     return new Promise((resolve) => {
         const modal = document.getElementById('modal-confirm');
         const titleEl = document.getElementById('confirm-title');
@@ -4589,7 +4620,7 @@ function setupEventListeners() {
     setupSddEventListeners();
 
     document.getElementById('btn-sidebar-collapse')?.addEventListener('click', toggleSidebarCollapsed);
-    document.getElementById('btn-auth-logout')?.addEventListener('click', logoutGitIde);
+    document.getElementById('btn-auth-logout')?.addEventListener('click', logoutGitide);
 
     // 1. Selector de Projeto
     document.getElementById('project-selector').addEventListener('change', (e) => {
@@ -4718,7 +4749,7 @@ function setupEventListeners() {
         
         const confirmed = await showCustomConfirm(
             'Remover Projeto',
-            `Tem certeza que deseja remover o projeto "${state.activeProject.name}" do GitIDE?<br><br>Isso apenas apagará o registro no GitIDE e os logs, os seus arquivos locais no disco NÃO serão excluídos.`,
+            `Tem certeza que deseja remover o projeto "${state.activeProject.name}" do Act IA?<br><br>Isso apenas apagará o registro no Act IA e os logs, os seus arquivos locais no disco NÃO serão excluídos.`,
             'Remover',
             true
         );
@@ -4747,7 +4778,7 @@ function setupEventListeners() {
     // 3.8. Copiar ID e instruções para o GPT
     document.getElementById('btn-copy-project-gpt-info').addEventListener('click', () => {
         if (!state.activeProject) return;
-        const infoText = `Olá! O projeto ativo no qual estamos trabalhando no GitIDE é "${state.activeProject.name}" (ID do projeto: ${state.activeProjectId}). Por favor, use sempre o ID de projeto "${state.activeProjectId}" em todas as chamadas de API (como no path /api/projects/${state.activeProjectId}/...).`;
+        const infoText = `Olá! O projeto ativo no qual estamos trabalhando no Act IA é "${state.activeProject.name}" (ID do projeto: ${state.activeProjectId}). Por favor, use sempre o ID de projeto "${state.activeProjectId}" em todas as chamadas de API (como no path /api/projects/${state.activeProjectId}/...).`;
         
         navigator.clipboard.writeText(infoText).then(() => {
             const btn = document.getElementById('btn-copy-project-gpt-info');
@@ -4998,6 +5029,21 @@ function setupEventListeners() {
             }, 1500);
         });
     });
+
+    const copyProdValidatorBtn = document.getElementById('btn-copy-prod-readiness-validator');
+    if (copyProdValidatorBtn) {
+        copyProdValidatorBtn.addEventListener('click', async () => {
+            await loadProdReadinessValidator();
+            const text = document.getElementById('prod-readiness-validator-text')?.textContent || '';
+            navigator.clipboard.writeText(text).then(() => {
+                const originalText = copyProdValidatorBtn.innerHTML;
+                copyProdValidatorBtn.innerHTML = '<i class="fa-solid fa-check"></i> Copiado!';
+                setTimeout(() => {
+                    copyProdValidatorBtn.innerHTML = originalText;
+                }, 1500);
+            });
+        });
+    }
     
     // 10. Database Sub-tabs and Credentials
     document.querySelectorAll('.db-tab-btn').forEach(btn => {
@@ -5132,7 +5178,7 @@ function setupEventListeners() {
                 chatHistory.innerHTML = `
                     <div class="agent-chat-welcome" style="text-align: center; color: var(--text-muted); margin: auto; max-width: 480px; padding: 20px;">
                         <i class="fa-solid fa-robot" style="font-size: 48px; color: var(--color-primary); margin-bottom: 14px;"></i>
-                        <h3>Olá! Eu sou o Agente IA Local do GitIDE</h3>
+                        <h3>Olá! Eu sou o Agente IA Local do Act IA</h3>
                         <p style="font-size: 13px; margin-top: 8px;">Dê-me um objetivo e eu usarei as ferramentas locais (Arquivos, Git, Terminal, SQL) para resolver de forma autônoma. Configure sua chave API nas <a href="#" id="link-welcome-settings" style="color: var(--color-primary); text-decoration: underline;">Configurações</a> para começar.</p>
                     </div>
                 `;
@@ -7703,7 +7749,7 @@ function copyDocPromptInstructions() {
         return;
     }
     
-    const instructions = `Você está apoiando o projeto "${state.activeProject.name}" (ID: ${state.activeProjectId}) no GitIDE.
+    const instructions = `Você está apoiando o projeto "${state.activeProject.name}" (ID: ${state.activeProjectId}) no Act IA.
 Para documentação executiva, NÃO escreva o documento Word diretamente no chat.
 Primeiro mantenha os arquivos vivos do Harness Engineering atualizados:
 - TAP: .documents/project-charter.md
@@ -7713,7 +7759,7 @@ Primeiro mantenha os arquivos vivos do Harness Engineering atualizados:
 - Task List: .documents/task/task.md
 - Task Details: .documents/task/task.details.md
 
-Depois, use a aba Documentos (Word) do GitIDE para gerar/atualizar os .docx oficiais:
+Depois, use a aba Documentos (Word) do Act IA para gerar/atualizar os .docx oficiais:
 - Termo de Abertura do Projeto
 - Specify - Especificação, com cada REQ em uma página
 - Design - Planejamento
@@ -7813,7 +7859,7 @@ function renderDocumentPreview(data) {
     meta.style.fontStyle = 'italic';
     meta.style.margin = '0 0 20px 0';
     meta.style.lineHeight = '1.4';
-    meta.innerHTML = `Data de Geração: ${new Date().toLocaleString()}<br>Gerado via: Agente GitIDE`;
+    meta.innerHTML = `Data de Geração: ${new Date().toLocaleString()}<br>Gerado via: Agente Act IA`;
     sheet.appendChild(meta);
     
     // 2. Seções
@@ -9483,7 +9529,7 @@ Como um [tipo de usuário], eu quero [ação/funcionalidade], para que [valor/be
 
 **Trilha de Auditoria e Comentários:**
 
-- Criado no GitIDE Harness Engineering em .documents/spec/${id}.md.
+- Criado no Act IA Harness Engineering em .documents/spec/${id}.md.
 `;
 }
 

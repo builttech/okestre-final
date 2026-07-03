@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GitIDE Dashboard</title>
+    <title>Act IA software engineer</title>
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -17,10 +17,10 @@
     <link rel="stylesheet" href="/static/workspace-switcher-refactor.css?v=2">
     <link rel="stylesheet" href="/static/workspace-native-fallback.css?v=1">
     <link rel="stylesheet" href="/static/settings-tabs.css?v=1">
-    <link rel="stylesheet" href="/static/rebrand.css?v=37">
+    <link rel="stylesheet" href="/static/rebrand.css?v=38">
     <script src="/static/lucide-bootstrap.js"></script>
     <script defer src="/static/ui/workspace-switcher.js?v=3"></script>
-    <script defer src="/static/settings-tabs.js?v=4"></script>
+    <script defer src="/static/settings-tabs.js?v=5"></script>
     <script defer src="/static/sidebar-workspace-footer.js?v=2"></script>
     <script defer src="/static/navigation-unlock.js?v=2"></script>
 </head>
@@ -31,7 +31,7 @@
             <div class="brand">
                 <div class="logo-icon"><i class="fa-solid fa-code-merge"></i></div>
                 <div class="brand-text">
-                    <h1>GitIDE</h1>
+                    <h1>Act IA software engineer</h1>
                     <span>LLM-Permissive Workspace & Git Bridge</span>
                 </div>
             </div>
@@ -209,7 +209,7 @@
                             </div>
                         </div>
                         <div class="terminal-output" id="terminal-output">
-                            <div class="terminal-line system-msg">GitIDE Terminal pronto. Execute comandos na pasta do projeto ativo.</div>
+                            <div class="terminal-line system-msg">Act IA Terminal pronto. Execute comandos na pasta do projeto ativo.</div>
                         </div>
                         <form class="terminal-input-wrapper" id="terminal-form">
                             <span class="prompt" id="terminal-prompt">C:\workspace></span>
@@ -703,12 +703,12 @@ cloudflared tunnel --url http://localhost:8000</pre>
                                     </li>
                                     <li style="font-size: 13px; line-height: 1.4;">
                                         <strong>Cole a Especificação OpenAPI:</strong>
-                                        <p style="margin: 4px 0; color: var(--text-muted);">Copie o conteúdo de <code>/openapi.json</code> do seu servidor GitIDE (você pode baixar clicando no botão abaixo) e cole no editor de schema da Action. Altere o campo <code>servers</code> para a URL do seu túnel público.</p>
+                                        <p style="margin: 4px 0; color: var(--text-muted);">Copie o conteúdo de <code>/openapi.json</code> do seu servidor Act IA (você pode baixar clicando no botão abaixo) e cole no editor de schema da Action. Altere o campo <code>servers</code> para a URL do seu túnel público.</p>
                                         <a href="/openapi.json" target="_blank" class="btn btn-secondary btn-sm" style="margin-top: 6px; padding: 6px 12px; font-size: 11px;"><i class="fa-solid fa-file-invoice"></i> Visualizar OpenAPI JSON</a>
                                     </li>
                                     <li style="font-size: 13px; line-height: 1.4;">
                                         <strong>Configure a Autenticação:</strong>
-                                        <p style="margin: 4px 0; color: var(--text-muted);">Nas configurações de autenticação da Action do ChatGPT, escolha <strong>API Key</strong>, tipo <strong>Bearer</strong> e insira o Token do GitIDE abaixo:</p>
+                                        <p style="margin: 4px 0; color: var(--text-muted);">Nas configurações de autenticação da Action do ChatGPT, escolha <strong>API Key</strong>, tipo <strong>Bearer</strong> e insira o Token do Act IA abaixo:</p>
                                         <div class="token-container" style="display: flex; gap: 8px; margin-top: 8px;">
                                             <input type="text" id="api-token-full-view" class="text-input" readonly value="Carregando Token..." style="flex: 1; font-size: 12px;">
                                             <button class="btn btn-primary" id="btn-copy-token-settings" style="padding: 6px 12px; font-size: 12px;"><i class="fa-solid fa-copy"></i> Copiar Token</button>
@@ -718,7 +718,7 @@ cloudflared tunnel --url http://localhost:8000</pre>
                                         <strong>Configure as Instruções do GPT (GPT Instructions):</strong>
                                         <p style="margin: 4px 0; color: var(--text-muted);">Copie as instruções abaixo e cole no campo <strong>Instructions</strong> do seu Custom GPT no ChatGPT para guiar a IA de forma segura:</p>
                                         <div class="generated-command-container" style="background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); padding: 12px; border-radius: 8px; font-family: var(--font-mono); font-size: 11.5px; line-height: 1.4; word-break: break-word; position: relative; margin-top: 8px;">
-                                            <pre id="gpt-custom-instructions-text" style="white-space: pre-wrap; margin: 0; color: var(--text-light); max-height: 150px; overflow-y: auto;">Você é um Agente de Engenharia de Software conectado ao computador local do usuário via GitIDE.
+                                            <pre id="gpt-custom-instructions-text" style="white-space: pre-wrap; margin: 0; color: var(--text-light); max-height: 150px; overflow-y: auto;">Você é um Agente de Engenharia de Software conectado ao computador local do usuário via Act IA.
 Antes de realizar qualquer tarefa de leitura, escrita ou execução de comandos, você DEVE verificar se existe o arquivo 'GPT_INSTRUCTIONS.md' na raiz do workspace do projeto atual (usando o endpoint de leitura de arquivos).
 Se o arquivo existir, leia e siga rigorosamente todas as diretrizes, fases de análise e o protocolo de execução contidos nele.
 REGRA INQUEBRÁVEL: antes de executar qualquer task, valide REQ, DRI e Task List. Depois atualize o plano detalhado em .documents/task/task.details.md, aguarde a autorização explícita do usuário no formato "Aprovado executar TASK-REQ-0000-000" e só depois implemente. O plano detalhado não deve ficar somente no chat. Nunca sobrescreva task.details.md apagando seções anteriores; anexe nova seção ou atualize somente a seção da task atual.</pre>
@@ -729,6 +729,25 @@ REGRA INQUEBRÁVEL: antes de executar qualquer task, valide REQ, DRI e Task List
                             </div>
                         </div>
                         
+                        <!-- CARD 3: PROD READINESS VALIDATOR -->
+                        <div class="settings-card card" style="display: flex; flex-direction: column; height: fit-content;">
+                            <div class="card-header" style="border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 16px;">
+                                <h4 style="margin: 0; font-size: 16px; display: flex; align-items: center; gap: 8px;">
+                                    <i class="fa-solid fa-shield-halved" style="color: var(--color-primary);"></i> Prod-Ready Validator
+                                </h4>
+                            </div>
+                            <div class="card-body">
+                                <p style="font-size: 13px; color: var(--text-light); line-height: 1.5; margin-bottom: 14px;">Copie um comando curto para o GPT Action executar a auditoria. O GPT deve ler o <code>PROD_READINESS_VALIDATOR.md</code> completo antes de iniciar e salvar o relatório em <code>.documents/prod-readiness/</code>.</p>
+                                <div class="prod-validator-actions">
+                                    <a href="/api/prod-readiness-validator" target="_blank" class="btn btn-secondary btn-sm"><i class="fa-solid fa-file-lines"></i> Abrir Markdown</a>
+                                    <button type="button" class="btn btn-primary btn-sm" id="btn-copy-prod-readiness-validator"><i class="fa-solid fa-copy"></i> Copiar Prompt</button>
+                                </div>
+                                <div class="generated-command-container prod-validator-preview">
+                                    <pre id="prod-readiness-validator-text">Carregando PROD_READINESS_VALIDATOR.md...</pre>
+                                </div>
+                            </div>
+                        </div>
+
                     </div>
                 </div>
 
@@ -1045,7 +1064,7 @@ REGRA INQUEBRÁVEL: antes de executar qualquer task, valide REQ, DRI e Task List
                         </section>
                         <aside class="engineering-metrics-side card">
                             <h5><i data-lucide="info"></i> Como a métrica é calculada</h5>
-                            <p>Esta primeira leitura usa os sinais já disponíveis no GitIDE: commits, logs de deploy, comandos Ops, anotações QA e tasks em <code>.documents/task/task.md</code>.</p>
+                            <p>Esta primeira leitura usa os sinais já disponíveis no Act IA: commits, logs de deploy, comandos Ops, anotações QA e tasks em <code>.documents/task/task.md</code>.</p>
                             <div class="engineering-formula">
                                 <label>Success Rate</label>
                                 <code>tasks concluídas / tasks planejadas</code>
@@ -1104,7 +1123,7 @@ REGRA INQUEBRÁVEL: antes de executar qualquer task, valide REQ, DRI e Task List
                             <div class="agent-chat-container" id="agent-chat-history" style="flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; background: rgba(0,0,0,0.05);">
                                 <div class="agent-chat-welcome" style="text-align: center; color: var(--text-muted); margin: auto; max-width: 480px; padding: 20px;">
                                     <i class="fa-solid fa-robot" style="font-size: 48px; color: var(--color-primary); margin-bottom: 14px;"></i>
-                                    <h3>Olá! Eu sou o Agente IA Local do GitIDE</h3>
+                                    <h3>Olá! Eu sou o Agente IA Local do Act IA</h3>
                                     <p style="font-size: 13px; margin-top: 8px;">Dê-me um objetivo e eu usarei as ferramentas locais (Arquivos, Git, Terminal, SQL) para resolver de forma autônoma. Configure sua chave API nas <a href="#" id="link-welcome-settings" style="color: var(--color-primary); text-decoration: underline;">Configurações</a> para começar.</p>
                                 </div>
                             </div>
@@ -1134,7 +1153,7 @@ REGRA INQUEBRÁVEL: antes de executar qualquer task, valide REQ, DRI e Task List
                                     <button type="submit" id="btn-send-agent-prompt" disabled style="background: var(--color-primary); border: none; color: white; width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; flex-shrink: 0;"><i class="fa-solid fa-paper-plane"></i></button>
                                 </div>
                                 <div style="font-size: 11px; color: var(--text-dark); margin-top: 4px; text-align: center;">
-                                    GitIDE AI uses advanced LLMs and can occasionally hallucinate. Verify critical code.
+                                    Act IA uses advanced LLMs and can occasionally hallucinate. Verify critical code.
                                 </div>
                             </form>
                         </div>
@@ -1515,7 +1534,7 @@ REGRA INQUEBRÁVEL: antes de executar qualquer task, valide REQ, DRI e Task List
                             <div class="card-header">
                                 <div>
                                     <h4><i data-lucide="server-cog"></i> Ops Infra</h4>
-                                    <p class="ops-infra-subtitle">Fluxo para operar uma VM já criada pelo usuário. O GitIDE recebe o acesso, configura ambiente, proxy, banco e deploy.</p>
+                                    <p class="ops-infra-subtitle">Fluxo para operar uma VM já criada pelo usuário. o Act IA recebe o acesso, configura ambiente, proxy, banco e deploy.</p>
                                 </div>
                                 <button class="btn btn-sm btn-secondary git-icon-action" id="btn-ops-detect" type="button" title="Detectar stack" aria-label="Detectar stack"><i data-lucide="scan-search"></i></button>
                             </div>
@@ -1532,7 +1551,7 @@ REGRA INQUEBRÁVEL: antes de executar qualquer task, valide REQ, DRI e Task List
                             <div class="ops-flow-panel active" data-ops-flow-panel="vm">
                                 <div class="ops-info-band">
                                     <i data-lucide="info"></i>
-                                    <span>O GitIDE não cria a VM. Crie a máquina no provedor de sua escolha e informe aqui os dados de acesso SSH.</span>
+                                    <span>o Act IA não cria a VM. Crie a máquina no provedor de sua escolha e informe aqui os dados de acesso SSH.</span>
                                 </div>
                                 <div class="ops-infra-field">
                                     <label for="ops-vm-host">IP ou host da VM</label>
@@ -1627,7 +1646,7 @@ REGRA INQUEBRÁVEL: antes de executar qualquer task, valide REQ, DRI e Task List
                             <div class="ops-flow-panel" data-ops-flow-panel="database">
                                 <div class="ops-info-band">
                                     <i data-lucide="database"></i>
-                                    <span>Nesta etapa, o GitIDE prepara o serviço de banco no Docker Compose. A criação em produção depende do deploy na VM.</span>
+                                    <span>Nesta etapa, o Act IA prepara o serviço de banco no Docker Compose. A criação em produção depende do deploy na VM.</span>
                                 </div>
                                 <div class="ops-infra-field">
                                     <label for="ops-db-select-mirror">Banco selecionado</label>
@@ -1862,7 +1881,7 @@ REGRA INQUEBRÁVEL: antes de executar qualquer task, valide REQ, DRI e Task List
                 <div class="gitide-notification-icon" id="confirm-icon"><i data-lucide="info"></i></div>
                 <div>
                     <h3 id="confirm-title">Confirmar Ação</h3>
-                    <p id="confirm-kicker">GitIDE</p>
+                    <p id="confirm-kicker">Act IA</p>
                 </div>
                 <button class="btn-icon confirm-close"><i class="fa-solid fa-xmark"></i></button>
             </div>
@@ -2134,7 +2153,7 @@ REGRA INQUEBRÁVEL: antes de executar qualquer task, valide REQ, DRI e Task List
                 </div>
                 <div class="workspace-new-file-hint">
                     <i class="fa-solid fa-shield-halved"></i>
-                    <span>O GitIDE bloqueia caminhos inválidos e não sobrescreve arquivos existentes por esta ação.</span>
+                    <span>o Act IA bloqueia caminhos inválidos e não sobrescreve arquivos existentes por esta ação.</span>
                 </div>
             </div>
             <div class="modal-footer">
@@ -2185,7 +2204,7 @@ REGRA INQUEBRÁVEL: antes de executar qualquer task, valide REQ, DRI e Task List
     </aside>
 
     <!-- Custom JavaScript -->
-    <script src="/static/app.js?v=58"></script>
+    <script src="/static/app.js?v=63"></script>
     <script src="/static/theme-toggle.js?v=1"></script>
 </body>
 </html>

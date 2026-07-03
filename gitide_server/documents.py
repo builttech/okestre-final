@@ -75,7 +75,7 @@ def generate_docx(project_path: str, title: str, sections: list, filename: str =
     
     # --- METADADOS ---
     meta_p = doc.add_paragraph()
-    meta_run = meta_p.add_run(f"Data de Geração: {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}\nGerado via: Agente GitIDE")
+    meta_run = meta_p.add_run(f"Data de Geração: {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}\nGerado via: Agente Act IA software engineer")
     format_run(meta_run, font_name="Calibri", size_pt=8.5, color=COLOR_SECONDARY, italic=True)
     meta_p.paragraph_format.space_after = Pt(20)
     

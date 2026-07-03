@@ -1,4 +1,4 @@
-# Diretrizes de Engenharia e Protocolo de Execução para Agente IA (GPT Action - GitIDE)
+# Diretrizes de Engenharia e Protocolo de Execução para Agente IA (GPT Action - Act IA)
 
 Este documento é de leitura obrigatória para o Agente IA (GPT Action) antes de iniciar qualquer tarefa no workspace deste projeto. Ele define o protocolo rígido de comportamento, análise e execução de alterações no código.
 
@@ -105,17 +105,17 @@ Após entender a aplicação, o agente deve documentar e propor um plano estrutu
 ### 4. Execução Cirúrgica (Item por Item)
 - **Modificações Parciais (PATCH):** **NUNCA** reescreva um arquivo grande inteiro se puder fazer uma substituição cirúrgica. Utilize o endpoint de PATCH (`/api/projects/{project_id}/files/patch`) para aplicar *search & replace* de trechos exatos de código. Isso economiza contexto e previne perda de comentários ou código adjacente.
 - **Passo a Passo Real:** Execute o plano item por item. Não tente editar múltiplos arquivos de uma vez. Faça a mudança em um arquivo, garanta que está correta e depois passe para o seguinte.
-- **Leitura Paginada:** Ao ler arquivos grandes, utilize os parâmetros de paginação (`start_line` e `end_line`) na API do GitIDE para carregar apenas os trechos que você realmente precisa analisar, evitando truncamento de contexto.
+- **Leitura Paginada:** Ao ler arquivos grandes, utilize os parâmetros de paginação (`start_line` e `end_line`) na API do Act IA para carregar apenas os trechos que você realmente precisa analisar, evitando truncamento de contexto.
 
 ### 5. Verificação e Validação
 Após cada implementação, o agente deve obrigatoriamente:
 - **Verificar Sintaxe:** Rodar comandos de validação rápidos (ex: check de compilação, `npm run build` ou lint se aplicável) para garantir que não introduziu erros de digitação.
 - **Rodar Testes:** Executar a suíte de testes unitários do projeto se existente.
-- **Status do Git:** Executar um `git status` no terminal local via API do GitIDE para auditar exatamente quais arquivos foram modificados e garantir que não há lixo ou arquivos temporários na área de trabalho.
+- **Status do Git:** Executar um `git status` no terminal local via API do Act IA para auditar exatamente quais arquivos foram modificados e garantir que não há lixo ou arquivos temporários na área de trabalho.
 
 ---
 
-## 🛠️ Boas Práticas ao Utilizar a API do GitIDE
+## 🛠️ Boas Práticas ao Utilizar a API do Act IA
 
 ### Harness Engineering / Especificações Funcionais
 
@@ -158,7 +158,7 @@ O agente deve manter cada responsabilidade no arquivo correto:
 
 4. **Task List - Tarefas**
    - Preencher ou atualizar exclusivamente `.documents/task/task.md`.
-   - A etapa visual Task List do GitIDE lê somente `.documents/task/task.md`.
+   - A etapa visual Task List do Act IA lê somente `.documents/task/task.md`.
    - Sempre que uma solicitação gerar trabalho técnico, adicionar uma task rastreável nesse arquivo usando o formato obrigatório: `- [ ] TASK-REQ-3087-001: - Título curto`.
    - Para ajustes finos visuais/layout originados de QA que se enquadrem na exceção controlada, usar preferencialmente o formato: `- [ ] TASK-QA-<ID-DO-QA>-001: - Título curto`.
    - O arquivo `task.md` deve conter somente a lista objetiva de tarefas, sem plano detalhado, justificativas longas, código previsto, validação extensa ou mensagens de autorização.
@@ -214,7 +214,7 @@ Regra obrigatória: o GPT Action deve manter a separação entre **o que o siste
 *Copie e cole a instrução abaixo nas **Instructions** da sua Custom GPT Action no ChatGPT:*
 
 ```text
-Você é um Agente de Engenharia de Software conectado ao computador local do usuário via GitIDE. 
+Você é um Agente de Engenharia de Software conectado ao computador local do usuário via Act IA. 
 Antes de realizar qualquer tarefa de leitura, escrita ou execução de comandos, você DEVE verificar se existe o arquivo 'GPT_INSTRUCTIONS.md' na raiz do workspace do projeto atual (ou usar o endpoint correspondente para ler seu conteúdo).
 Leia e siga rigorosamente as diretrizes, fases de análise, regras de geração de documentos e o protocolo de execução contidos no arquivo 'GPT_INSTRUCTIONS.md'.
 Sempre que for solicitado a criar, atualizar ou editar qualquer documentação técnica, manual ou relatório, você DEVE utilizar o endpoint 'POST /api/projects/{project_id}/documents/word' para gerar o arquivo Word (.docx) real no projeto, nunca escrevendo a documentação em texto puro no chat.

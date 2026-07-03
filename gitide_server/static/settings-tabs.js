@@ -17,12 +17,12 @@
       `Projeto ativo: ${projectName}`,
       projectId ? `ID do projeto: ${projectId}` : 'ID do projeto: não selecionado',
       '',
-      'Use sempre o ID de projeto acima em todas as chamadas de API do GitIDE.',
+      'Use sempre o ID de projeto acima em todas as chamadas de API do Act IA.',
       'Exemplo: /api/projects/' + (projectId || '{project_id}') + '/...',
-      token ? `Token GitIDE: ${token}` : '',
+      token ? `Token Act IA: ${token}` : '',
       '',
       '--- DIRETRIZES DO CUSTOM GPT ---',
-      'Você é um Agente de Engenharia de Software conectado ao computador local do usuário via GitIDE.',
+      'Você é um Agente de Engenharia de Software conectado ao computador local do usuário via Act IA.',
       'Antes de realizar qualquer tarefa de leitura, escrita ou execução de comandos, você DEVE verificar se existe o arquivo \'GPT_INSTRUCTIONS.md\' na raiz do workspace do projeto atual (usando o endpoint de leitura de arquivos).',
       'Se o arquivo existir, leia e siga rigorosamente todas as diretrizes, fases de análise e o protocolo de execução contidos nele.',
       'REGRA INQUEBRÁVEL: antes de executar qualquer task, valide REQ, DRI e Task List. Depois atualize o plano detalhado em .documents/task/task.details.md, aguarde a autorização explícita do usuário no formato "Aprovado executar TASK-REQ-0000-000" e só depois implemente. O plano detalhado não deve ficar somente no chat. Nunca sobrescreva task.details.md apagando seções anteriores; anexe nova seção ou atualize somente a seção da task atual.'
@@ -69,6 +69,9 @@
     });
 
     if (tabName === 'prompt-copy') updatePromptPreview();
+    if (tabName === 'prod-validator' && typeof window.loadProdReadinessValidator === 'function') {
+      window.loadProdReadinessValidator();
+    }
   }
 
   function createTabButton(tabName, icon, label, active) {
@@ -154,6 +157,7 @@
     const cards = Array.from(layout.children).filter((child) => child.classList?.contains('settings-card'));
     const agentCard = cards[0];
     const gptCard = cards[1];
+    const prodValidatorCard = cards[2];
     if (!agentCard || !gptCard) return;
 
     layout.dataset.settingsTabsReady = 'true';
@@ -166,6 +170,9 @@
     sidebar.appendChild(createTabButton('prompt-copy', 'clipboard-copy', 'Prompt Copy', true));
     sidebar.appendChild(createTabButton('agent-config', 'bot', 'Configurações do Agente', false));
     sidebar.appendChild(createTabButton('gpt-action', 'rocket', 'Configurações do GPT Action', false));
+    if (prodValidatorCard) {
+      sidebar.appendChild(createTabButton('prod-validator', 'shield-check', 'Prod-Ready Validator', false));
+    }
 
     const content = document.createElement('div');
     content.className = 'settings-tabs-content';
@@ -173,12 +180,15 @@
     const promptPanel = createPromptCopyPanel();
     const agentPanel = createPanel('agent-config', false);
     const gptPanel = createPanel('gpt-action', false);
+    const prodValidatorPanel = createPanel('prod-validator', false);
 
     agentPanel.appendChild(agentCard);
     gptPanel.appendChild(gptCard);
+    if (prodValidatorCard) prodValidatorPanel.appendChild(prodValidatorCard);
     content.appendChild(promptPanel);
     content.appendChild(agentPanel);
     content.appendChild(gptPanel);
+    if (prodValidatorCard) content.appendChild(prodValidatorPanel);
 
     layout.innerHTML = '';
     layout.appendChild(sidebar);

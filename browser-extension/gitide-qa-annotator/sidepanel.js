@@ -37,7 +37,7 @@ function validateConnectionConfig(config) {
   return true;
 }
 
-async function requestGitIde(config, path, options = {}) {
+async function requestGitide(config, path, options = {}) {
   const response = await fetch(`${config.apiBase}${path}`, {
     mode: 'cors',
     cache: 'no-store',
@@ -73,7 +73,7 @@ async function testConnection() {
   if (!validateConnectionConfig(config)) return;
   setStatus('Testando conexão...');
   try {
-    const { response, data } = await requestGitIde(config, `/api/projects/${config.projectId}/qa/annotations`, {
+    const { response, data } = await requestGitide(config, `/api/projects/${config.projectId}/qa/annotations`, {
       method: 'GET'
     });
     if (!response.ok) {
@@ -96,7 +96,7 @@ async function polishQaText(mode, text, context = '') {
   if (!validateConnectionConfig(config)) {
     return mode === 'title' ? buildShortTitle(applyLocalTextPolish(text)) : applyLocalTextPolish(text);
   }
-  const { response, data } = await requestGitIde(config, `/api/projects/${config.projectId}/qa/text/polish`, {
+  const { response, data } = await requestGitide(config, `/api/projects/${config.projectId}/qa/text/polish`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
@@ -105,7 +105,7 @@ async function polishQaText(mode, text, context = '') {
   });
   if (!response.ok || data.status !== 'success' || !data.text) {
     if (response.status === 404) {
-      throw new Error('O servidor GitIDE ainda não tem o endpoint de revisão QA. Faça o deploy/pull da versão atual do backend e recarregue a extensão.');
+      throw new Error('O servidor Act IA ainda não tem o endpoint de revisão QA. Faça o deploy/pull da versão atual do backend e recarregue a extensão.');
     }
     throw new Error(data.detail || `IA respondeu HTTP ${response.status}`);
   }
@@ -385,7 +385,7 @@ async function sendAnnotation() {
 
   setStatus('Enviando...');
   try {
-    const { response, data } = await requestGitIde(config, `/api/projects/${config.projectId}/qa/annotations`, {
+    const { response, data } = await requestGitide(config, `/api/projects/${config.projectId}/qa/annotations`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -406,7 +406,7 @@ async function sendAnnotation() {
       setStatus('Falha no envio com print. Tentando enviar sem screenshot...');
       try {
         payload.screenshot = null;
-        const { response, data } = await requestGitIde(config, `/api/projects/${config.projectId}/qa/annotations`, {
+        const { response, data } = await requestGitide(config, `/api/projects/${config.projectId}/qa/annotations`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'

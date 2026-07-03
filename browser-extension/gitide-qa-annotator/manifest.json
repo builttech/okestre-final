@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "GitIDE QA Annotator",
+  "name": "Act IA QA Annotator",
   "version": "0.1.0",
-  "description": "Captura anotações de QA no navegador e envia para a Central QA do GitIDE.",
+  "description": "Captura anotações de QA no navegador e envia para a Central QA do Act IA.",
   "permissions": ["activeTab", "scripting", "storage", "tabs", "sidePanel"],
   "host_permissions": [
     "http://127.0.0.1/*",
@@ -11,7 +11,7 @@
     "<all_urls>"
   ],
   "action": {
-    "default_title": "GitIDE QA"
+    "default_title": "Act IA QA"
   },
   "background": {
     "service_worker": "background.js"
