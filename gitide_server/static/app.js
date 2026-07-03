@@ -401,6 +401,7 @@ function switchTab(tabId) {
             loadQaAnnotations();
         } else if (tabId === 'tab-engineering-metrics') {
             loadEngineeringMetrics();
+            loadEngineeringReports();
         } else if (tabId === 'tab-agent') {
             loadAgentConfig();
         } else if (tabId === 'tab-database') {
@@ -3477,6 +3478,87 @@ async function loadEngineeringMetrics() {
     }
 }
 
+function setEngineeringPanel(panelName) {
+    const nextPanel = panelName || 'dora';
+    document.querySelectorAll('.engineering-tab').forEach(button => {
+        const isActive = button.dataset.engineeringPanel === nextPanel;
+        button.classList.toggle('active', isActive);
+        button.setAttribute('aria-selected', isActive ? 'true' : 'false');
+    });
+    document.querySelectorAll('.engineering-panel-view').forEach(panel => {
+        panel.classList.toggle('active', panel.dataset.engineeringPanelView === nextPanel);
+    });
+    if (nextPanel === 'prod-readiness' || nextPanel === 'security') {
+        loadEngineeringReport(nextPanel);
+    }
+    if (window.lucide) lucide.createIcons();
+}
+
+async function loadEngineeringReports() {
+    await Promise.all([
+        loadEngineeringReport('prod-readiness'),
+        loadEngineeringReport('security')
+    ]);
+}
+
+function renderEngineeringReportMarkdown(markdown) {
+    const lines = String(markdown || '').split('\n');
+    if (!lines.some(line => line.trim())) return '<div class="engineering-empty">Relatório vazio.</div>';
+    return lines.map((line) => {
+        const trimmed = line.trim();
+        if (!trimmed) return '<br>';
+        if (/^#{1,6}\s+/.test(trimmed)) {
+            const level = Math.min(4, (trimmed.match(/^#+/)?.[0]?.length || 2) + 1);
+            return `<h${level}>${escapeHtml(trimmed.replace(/^#{1,6}\s+/, ''))}</h${level}>`;
+        }
+        if (/^[-*]\s+/.test(trimmed)) {
+            return `<p class="engineering-report-list-item">${escapeHtml(trimmed.replace(/^[-*]\s+/, ''))}</p>`;
+        }
+        if (/^\|.+\|$/.test(trimmed)) {
+            return `<pre class="engineering-report-table-line">${escapeHtml(trimmed)}</pre>`;
+        }
+        if (/^```/.test(trimmed)) {
+            return '';
+        }
+        return `<p>${escapeHtml(trimmed)}</p>`;
+    }).join('');
+}
+
+async function loadEngineeringReport(reportType) {
+    if (!state.activeProjectId) return;
+    const contentId = reportType === 'security' ? 'security-report-content' : 'prod-readiness-report-content';
+    const metaId = reportType === 'security' ? 'security-report-meta' : 'prod-readiness-report-meta';
+    const contentEl = document.getElementById(contentId);
+    const metaEl = document.getElementById(metaId);
+    if (!contentEl || !metaEl) return;
+
+    contentEl.innerHTML = '<div class="engineering-empty">Carregando relatório...</div>';
+    metaEl.textContent = 'Carregando...';
+    try {
+        const res = await fetch(`/api/projects/${state.activeProjectId}/engineering-metrics/reports/${encodeURIComponent(reportType)}`, {
+            headers: getHeaders()
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || 'Erro ao carregar relatório');
+        const updated = data.updated_at ? new Date(data.updated_at).toLocaleString('pt-BR') : 'Ainda não gerado';
+        metaEl.innerHTML = `<span>${escapeHtml(data.filepath || '')}</span><strong>${escapeHtml(updated)}</strong>`;
+        if (data.status === 'empty') {
+            contentEl.innerHTML = `<div class="engineering-empty">${escapeHtml(data.message || 'Relatório não encontrado.')}</div>`;
+            return;
+        }
+        contentEl.innerHTML = renderEngineeringReportMarkdown(data.content || '');
+    } catch (err) {
+        metaEl.textContent = 'Erro ao carregar relatório.';
+        contentEl.innerHTML = `<div class="engineering-empty danger">${escapeHtml(err.message || String(err))}</div>`;
+    }
+}
+
+function openEngineeringReportFile(filepath) {
+    if (!state.activeProjectId || !filepath) return;
+    switchTab('tab-files');
+    openFile(filepath, 0, new Date().toISOString());
+}
+
 function setMetricText(id, value) {
     const el = document.getElementById(id);
     if (el) el.textContent = value;
@@ -4676,6 +4758,15 @@ function setupEventListeners() {
     document.getElementById('btn-qa-export-xlsx')?.addEventListener('click', () => exportQaAnnotations('xlsx'));
     document.getElementById('btn-engineering-metrics-refresh')?.addEventListener('click', loadEngineeringMetrics);
     document.getElementById('engineering-metrics-period')?.addEventListener('change', loadEngineeringMetrics);
+    document.querySelectorAll('.engineering-tab').forEach(btn => {
+        btn.addEventListener('click', () => setEngineeringPanel(btn.dataset.engineeringPanel));
+    });
+    document.querySelectorAll('[data-engineering-report-refresh]').forEach(btn => {
+        btn.addEventListener('click', () => loadEngineeringReport(btn.dataset.engineeringReportRefresh));
+    });
+    document.querySelectorAll('[data-engineering-report-open]').forEach(btn => {
+        btn.addEventListener('click', () => openEngineeringReportFile(btn.dataset.engineeringReportOpen));
+    });
     document.getElementById('btn-ui-canvas-refresh')?.addEventListener('click', loadUiCanvasFiles);
     document.getElementById('btn-ui-canvas-new')?.addEventListener('click', newUiCanvasDocument);
     document.getElementById('btn-ui-canvas-save')?.addEventListener('click', saveUiCanvasDocument);

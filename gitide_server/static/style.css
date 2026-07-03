@@ -2464,12 +2464,65 @@ textarea:focus {
 
 
 /* Engineering Metrics / DORA */
+.engineering-intelligence-shell {
+    height: 100%;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.engineering-tabs {
+    display: inline-flex;
+    gap: 6px;
+    align-items: center;
+    align-self: flex-start;
+    margin: 22px 22px 0;
+    padding: 4px;
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.engineering-tab {
+    border: 0;
+    background: transparent;
+    color: var(--text-muted);
+    border-radius: 10px;
+    padding: 9px 13px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.18s ease, color 0.18s ease;
+}
+
+.engineering-tab:hover,
+.engineering-tab.active {
+    color: var(--text-light);
+    background: rgba(255, 255, 255, 0.07);
+}
+
+.engineering-panel-view {
+    display: none;
+    flex: 1;
+    min-height: 0;
+}
+
+.engineering-panel-view.active {
+    display: block;
+    height: 100%;
+    min-height: 0;
+}
+
 .engineering-metrics-layout {
     display: grid;
     grid-template-columns: minmax(0, 1fr) 340px;
     gap: 16px;
     height: 100%;
-    padding: 22px;
+    padding: 16px 22px 22px;
     box-sizing: border-box;
     overflow: hidden;
 }
@@ -2719,6 +2772,120 @@ textarea:focus {
     color: var(--text-muted);
 }
 
+.engineering-report-card {
+    height: calc(100% - 16px);
+    margin: 16px 22px 22px;
+    padding: 22px !important;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.engineering-report-header {
+    display: flex;
+    justify-content: space-between;
+    gap: 18px;
+    align-items: flex-start;
+    padding-bottom: 18px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.engineering-report-header h4 {
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.engineering-report-header p {
+    color: var(--text-muted);
+    margin: 8px 0 0;
+    line-height: 1.45;
+}
+
+.engineering-report-actions {
+    display: flex;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.engineering-report-meta {
+    margin-top: 14px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+    background: rgba(255, 255, 255, 0.025);
+    color: var(--text-muted);
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    font-size: 12px;
+}
+
+.engineering-report-meta strong {
+    color: var(--text-light);
+    font-weight: 600;
+}
+
+.engineering-report-content {
+    margin-top: 14px;
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    padding: 22px 24px;
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    background: rgba(0, 0, 0, 0.16);
+    color: var(--text-light);
+}
+
+.engineering-report-content h2,
+.engineering-report-content h3,
+.engineering-report-content h4 {
+    margin: 22px 0 10px;
+    color: var(--text-light);
+    line-height: 1.25;
+}
+
+.engineering-report-content h2:first-child,
+.engineering-report-content h3:first-child,
+.engineering-report-content h4:first-child {
+    margin-top: 0;
+}
+
+.engineering-report-content p {
+    color: var(--text-muted);
+    line-height: 1.6;
+    margin: 8px 0;
+}
+
+.engineering-report-list-item {
+    padding-left: 14px;
+    position: relative;
+}
+
+.engineering-report-list-item::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0.78em;
+    width: 4px;
+    height: 4px;
+    border-radius: 999px;
+    background: var(--color-primary);
+}
+
+.engineering-report-table-line {
+    margin: 6px 0;
+    padding: 10px 12px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.035);
+    color: var(--text-light);
+    white-space: pre-wrap;
+    line-height: 1.45;
+}
+
 @media (max-width: 1180px) {
     .engineering-metrics-layout {
         grid-template-columns: 1fr;
@@ -2734,13 +2901,24 @@ textarea:focus {
     .engineering-metrics-panels {
         grid-template-columns: 1fr 1fr;
     }
+
+    .engineering-report-header {
+        flex-direction: column;
+    }
 }
 
 @media (max-width: 760px) {
     .engineering-metrics-header,
-    .engineering-metrics-actions {
+    .engineering-metrics-actions,
+    .engineering-report-actions,
+    .engineering-report-meta {
         flex-direction: column;
         align-items: stretch;
+    }
+
+    .engineering-tabs {
+        width: calc(100% - 44px);
+        overflow-x: auto;
     }
 
     .engineering-dora-grid,

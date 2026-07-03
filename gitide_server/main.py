@@ -3526,6 +3526,53 @@ def get_engineering_metrics_dora(
         ],
     }
 
+
+@app.get("/api/projects/{project_id}/engineering-metrics/reports/{report_type}", tags=["Engineering Metrics"])
+def get_engineering_metrics_report(
+    report_type: str,
+    project: Project = Depends(get_project_or_404)
+):
+    """Retorna relatórios Markdown de auditoria usados pela página Engineering Metrics."""
+    report_map = {
+        "prod-readiness": {
+            "title": "Prod-Ready Validator",
+            "filepath": os.path.join(".documents", "prod-readiness", "prod-readiness-report.md"),
+            "message": "Nenhum relatório Production-Ready encontrado. Execute o GPT Action Prod-Ready Validator para gerar este arquivo.",
+        },
+        "security": {
+            "title": "Security Rules",
+            "filepath": os.path.join(".documents", "security", "security-review-report.md"),
+            "message": "Nenhum relatório de Security Review encontrado. Execute o GPT Action Security Rules para gerar este arquivo.",
+        },
+    }
+    config = report_map.get(report_type)
+    if not config:
+        raise HTTPException(status_code=404, detail="Tipo de relatório não suportado.")
+
+    sync_project_system_files(project.path)
+    full_path = vcs.get_safe_path(project.path, config["filepath"])
+    if not os.path.exists(full_path):
+        return {
+            "status": "empty",
+            "title": config["title"],
+            "filepath": config["filepath"].replace("\\", "/"),
+            "content": "",
+            "message": config["message"],
+            "updated_at": None,
+        }
+
+    with open(full_path, "r", encoding="utf-8") as f:
+        content = f.read()
+
+    return {
+        "status": "success",
+        "title": config["title"],
+        "filepath": config["filepath"].replace("\\", "/"),
+        "content": content,
+        "message": "",
+        "updated_at": datetime.fromtimestamp(os.path.getmtime(full_path)).isoformat(),
+    }
+
 def _sdd_charter_path(project: Project) -> str:
     return os.path.join(_sdd_documents_dir(project), "project-charter.md")
 
