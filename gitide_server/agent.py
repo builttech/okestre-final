@@ -374,7 +374,7 @@ def run_agent_loop(db: Session, project: Project, config: dict, user_prompt: str
         {"role": "user", "content": user_prompt}
     ]
     
-    max_steps = 10
+    max_steps = 50
     step = 0
     
     yield f"data: {json.dumps({'type': 'start', 'prompt': user_prompt})}\n\n"
@@ -413,6 +413,7 @@ def run_agent_loop(db: Session, project: Project, config: dict, user_prompt: str
             else:
                 yield f"data: {json.dumps({'type': 'tool_call', 'tool': tool, 'args': args})}\n\n"
                 tool_result = execute_agent_tool(db, project, tool, args)
+
                 
             # Log de tool result
             yield f"data: {json.dumps({'type': 'tool_result', 'tool': tool, 'result': tool_result})}\n\n"
@@ -425,4 +426,4 @@ def run_agent_loop(db: Session, project: Project, config: dict, user_prompt: str
             messages.append({"role": "assistant", "content": raw_response})
             messages.append({"role": "user", "content": "Erro: Você deve escolher uma ferramenta ou fornecer uma final_answer."})
             
-    yield f"data: {json.dumps({'type': 'error', 'content': 'Limite máximo de 10 passos do agente atingido.'})}\n\n"
+    yield f"data: {json.dumps({'type': 'error', 'content': 'Limite máximo de 50 passos do agente atingido.'})}\n\n"
