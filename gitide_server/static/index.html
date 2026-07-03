@@ -17,7 +17,7 @@
     <link rel="stylesheet" href="/static/workspace-switcher-refactor.css?v=2">
     <link rel="stylesheet" href="/static/workspace-native-fallback.css?v=1">
     <link rel="stylesheet" href="/static/settings-tabs.css?v=1">
-    <link rel="stylesheet" href="/static/rebrand.css?v=40">
+    <link rel="stylesheet" href="/static/rebrand.css?v=42">
     <script src="/static/lucide-bootstrap.js"></script>
     <script defer src="/static/ui/workspace-switcher.js?v=3"></script>
     <script defer src="/static/settings-tabs.js?v=6"></script>
@@ -1673,7 +1673,24 @@ REGRA INQUEBRÁVEL: antes de executar qualquer task, valide REQ, DRI e Task List
                                 </div>
                                 <div class="ops-infra-field">
                                     <label for="ops-vm-path">Diretório do app na VM</label>
-                                    <input type="text" id="ops-vm-path" class="text-input" placeholder="/opt/apps/meu-app">
+                                    <div class="ops-path-control">
+                                        <input type="text" id="ops-vm-path" class="text-input" placeholder="/opt/apps/meu-app">
+                                        <button class="btn btn-secondary" type="button" id="btn-ops-vm-browse"><i data-lucide="folder-search"></i> Procurar</button>
+                                    </div>
+                                    <div class="ops-vm-browser" id="ops-vm-browser" hidden>
+                                        <div class="ops-vm-browser-header">
+                                            <button class="btn btn-secondary btn-sm" type="button" id="btn-ops-vm-parent"><i data-lucide="arrow-up"></i></button>
+                                            <code id="ops-vm-browser-path">/</code>
+                                            <button class="btn btn-secondary btn-sm" type="button" id="btn-ops-vm-use-path"><i data-lucide="check"></i> Usar</button>
+                                        </div>
+                                        <div class="ops-vm-create-row">
+                                            <input type="text" id="ops-vm-new-dir" class="text-input" placeholder="nova-pasta ou /opt/apps/meu-app">
+                                            <button class="btn btn-secondary btn-sm" type="button" id="btn-ops-vm-create-dir"><i data-lucide="folder-plus"></i> Criar</button>
+                                        </div>
+                                        <div class="ops-vm-dir-list" id="ops-vm-dir-list">
+                                            <span class="ops-muted">Clique em Procurar para carregar diretórios da VM.</span>
+                                        </div>
+                                    </div>
                                 </div>
                                 <div class="ops-infra-field">
                                     <label for="ops-vm-auth-method">Autenticação SSH</label>
@@ -1687,6 +1704,11 @@ REGRA INQUEBRÁVEL: antes de executar qualquer task, valide REQ, DRI e Task List
                                     <label for="ops-vm-private-key">Chave privada SSH</label>
                                     <textarea id="ops-vm-private-key" class="text-input" rows="5" placeholder="Cole aqui a chave privada. Ela será salva criptografada."></textarea>
                                     <span class="ops-muted" id="ops-vm-private-key-status"></span>
+                                    <div class="ops-infra-actions">
+                                        <button class="btn btn-secondary" type="button" id="btn-ops-vm-generate-key"><i data-lucide="key-round"></i> Gerar chave pública</button>
+                                        <button class="btn btn-secondary" type="button" id="btn-ops-vm-copy-public-key"><i data-lucide="copy"></i> Copiar pública</button>
+                                    </div>
+                                    <textarea id="ops-vm-public-key" class="text-input" rows="3" readonly placeholder="A chave pública gerada aparecerá aqui. Cadastre esta chave no painel da VPS."></textarea>
                                 </div>
                                 <div class="ops-infra-field" id="ops-vm-password-field">
                                     <label for="ops-vm-password">Senha SSH</label>
@@ -1695,6 +1717,7 @@ REGRA INQUEBRÁVEL: antes de executar qualquer task, valide REQ, DRI e Task List
                                 </div>
                                 <div class="ops-infra-actions">
                                     <button class="btn btn-primary" type="button" id="btn-ops-vm-test"><i data-lucide="plug-zap"></i> Salvar e testar SSH</button>
+                                    <button class="btn btn-secondary" type="button" id="btn-ops-bootstrap"><i data-lucide="wrench"></i> Preparar VM</button>
                                 </div>
                             </div>
 
@@ -1757,6 +1780,7 @@ REGRA INQUEBRÁVEL: antes de executar qualquer task, valide REQ, DRI e Task List
                                     </div>
                                     <div class="ops-caddy-actions">
                                         <button class="btn btn-secondary" id="btn-ops-caddy-preview"><i data-lucide="eye"></i> Prévia</button>
+                                        <button class="btn btn-secondary" id="btn-ops-dns-check"><i data-lucide="radar"></i> Validar DNS</button>
                                         <button class="btn btn-primary" id="btn-ops-caddy-apply"><i data-lucide="check"></i> Aplicar Caddyfile</button>
                                     </div>
                                 </div>
@@ -1774,6 +1798,9 @@ REGRA INQUEBRÁVEL: antes de executar qualquer task, valide REQ, DRI e Task List
                                     <label for="ops-db-select-mirror">Banco selecionado</label>
                                     <input type="text" id="ops-db-select-mirror" class="text-input" value="Use o campo Banco na aba Ambiente" readonly>
                                 </div>
+                                <div class="ops-infra-actions">
+                                    <button class="btn btn-secondary" id="btn-ops-db-check"><i data-lucide="database-zap"></i> Validar banco na VM</button>
+                                </div>
                             </div>
 
                             <div class="ops-flow-panel" data-ops-flow-panel="deploy">
@@ -1783,6 +1810,8 @@ REGRA INQUEBRÁVEL: antes de executar qualquer task, valide REQ, DRI e Task List
                                 </div>
                                 <div class="ops-infra-actions">
                                     <button class="btn btn-primary" id="btn-ops-artifacts-deploy"><i data-lucide="file-plus-2"></i> Gerar arquivos de deploy</button>
+                                    <button class="btn btn-secondary" id="btn-ops-sync"><i data-lucide="git-pull-request-arrow"></i> Sincronizar projeto na VM</button>
+                                    <button class="btn btn-secondary" id="btn-ops-health"><i data-lucide="heart-pulse"></i> Health check</button>
                                 </div>
                             </div>
 
@@ -1806,6 +1835,21 @@ REGRA INQUEBRÁVEL: antes de executar qualquer task, valide REQ, DRI e Task List
                                 <button class="btn btn-secondary git-danger-action" data-ops-command="down">Down</button>
                             </div>
                             <pre class="ops-infra-console" id="ops-console-output">Aguardando ação...</pre>
+                            <div class="ops-ai-card">
+                                <div class="ops-ai-header">
+                                    <div>
+                                        <span>GPT Action</span>
+                                        <h5><i data-lucide="bot"></i> Operador IA da VM</h5>
+                                    </div>
+                                </div>
+                                <p>Use um Custom GPT focado em operar VM, ambiente, domínio, banco e deploy via endpoints seguros do Ops Infra.</p>
+                                <div class="ops-infra-actions">
+                                    <a href="/api/ops-infra-operator" target="_blank" class="btn btn-secondary btn-sm"><i data-lucide="file-text"></i> Diretrizes</a>
+                                    <a href="/api/ops-infra-openapi.json" target="_blank" class="btn btn-secondary btn-sm"><i data-lucide="braces"></i> OpenAPI</a>
+                                    <button class="btn btn-primary btn-sm" type="button" id="btn-ops-copy-gpt-action"><i data-lucide="copy"></i> Copiar prompt</button>
+                                </div>
+                                <pre class="ops-ai-prompt" id="ops-gpt-action-prompt">Selecione um projeto para gerar o prompt operacional.</pre>
+                            </div>
                         </aside>
                     </div>
                 </div>
@@ -2326,7 +2370,7 @@ REGRA INQUEBRÁVEL: antes de executar qualquer task, valide REQ, DRI e Task List
     </aside>
 
     <!-- Custom JavaScript -->
-    <script src="/static/app.js?v=70"></script>
+    <script src="/static/app.js?v=74"></script>
     <script src="/static/theme-toggle.js?v=1"></script>
 </body>
 </html>

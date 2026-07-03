@@ -4681,6 +4681,77 @@ input[type="checkbox"]:focus-visible{
     font-weight:700;
 }
 
+.ops-path-control{
+    display:grid;
+    grid-template-columns:minmax(0, 1fr) auto;
+    gap:8px;
+    align-items:center;
+}
+
+.ops-vm-browser{
+    margin-top:10px;
+    border:1px solid var(--flat-border);
+    border-radius:14px;
+    background:rgba(255,255,255,.025);
+    overflow:hidden;
+}
+
+.ops-vm-browser-header,
+.ops-vm-create-row{
+    display:grid;
+    grid-template-columns:auto minmax(0, 1fr) auto;
+    gap:8px;
+    align-items:center;
+    padding:10px;
+    border-bottom:1px solid var(--flat-border);
+}
+
+.ops-vm-create-row{
+    grid-template-columns:minmax(0, 1fr) auto;
+}
+
+.ops-vm-browser-header code{
+    color:var(--text-main);
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+}
+
+.ops-vm-dir-list{
+    display:grid;
+    gap:6px;
+    max-height:240px;
+    padding:10px;
+    overflow:auto;
+}
+
+.ops-vm-dir-item{
+    display:grid;
+    grid-template-columns:18px minmax(120px, .45fr) minmax(0, 1fr);
+    gap:8px;
+    align-items:center;
+    width:100%;
+    padding:9px 10px;
+    border:1px solid transparent;
+    border-radius:10px;
+    background:rgba(255,255,255,.03);
+    color:var(--text-main);
+    text-align:left;
+    cursor:pointer;
+}
+
+.ops-vm-dir-item:hover{
+    border-color:var(--flat-border);
+    background:rgba(255,255,255,.06);
+}
+
+.ops-vm-dir-item small{
+    color:var(--text-muted);
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+}
+
 .ops-infra-actions{
     display:flex;
     flex-wrap:wrap;
@@ -4918,6 +4989,59 @@ input[type="checkbox"]:focus-visible{
     border:1px solid var(--flat-border);
     border-radius:14px;
     background:rgba(0,0,0,.26);
+    color:var(--text-main);
+    white-space:pre-wrap;
+    overflow:auto;
+}
+
+.ops-ai-card{
+    margin:0 16px 16px;
+    padding:14px;
+    border:1px solid var(--flat-border);
+    border-radius:14px;
+    background:rgba(255,255,255,.025);
+}
+
+.ops-ai-header{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:12px;
+    margin-bottom:8px;
+}
+
+.ops-ai-header span{
+    display:block;
+    color:var(--text-muted);
+    font-size:11px;
+    font-weight:700;
+    letter-spacing:.06em;
+    text-transform:uppercase;
+}
+
+.ops-ai-header h5{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    margin:3px 0 0;
+    color:var(--text-main);
+    font-size:14px;
+}
+
+.ops-ai-card p{
+    margin:0 0 12px;
+    color:var(--text-muted);
+    font-size:13px;
+    line-height:1.45;
+}
+
+.ops-ai-prompt{
+    max-height:220px;
+    margin:12px 0 0;
+    padding:12px;
+    border:1px solid var(--flat-border);
+    border-radius:12px;
+    background:rgba(0,0,0,.24);
     color:var(--text-main);
     white-space:pre-wrap;
     overflow:auto;

@@ -35,6 +35,7 @@ const state = {
     // Ops Infra
     opsEnvVariables: [],
     opsVmAccess: null,
+    opsVmBrowserPath: '/',
 
     // QA
     qaAnnotations: [],
@@ -148,6 +149,52 @@ No chat, responda somente com:
 - documentos Harness atualizados;
 - tasks criadas;
 - próximos passos mínimos de mitigação.`;
+}
+
+function buildOpsInfraGptActionPrompt() {
+    const projectName = state.activeProject?.name || 'Projeto ativo não selecionado';
+    const projectId = state.activeProjectId || 'NÃO INFORMADO';
+    return `Execute a gestao e operacao Ops Infra deste projeto no Act IA.
+
+Project ID: ${projectId}
+Projeto: ${projectName}
+
+Antes de iniciar, leia e siga rigorosamente o arquivo OPS_INFRA_OPERATOR.md na raiz do workspace.
+
+Use o OpenAPI dedicado do Ops Infra:
+/api/ops-infra-openapi.json
+
+Objetivo:
+- validar acesso SSH da VM;
+- preparar a VM instalando Docker, Docker Compose, Git e portas basicas;
+- sincronizar o projeto na VM via Git;
+- detectar stack;
+- validar ambiente e secrets;
+- gerar/revisar artefatos de deploy;
+- configurar dominio/Caddy quando solicitado;
+- validar DNS apontando para a VM;
+- operar Docker Compose na VM com build, up, status, logs, restart ou down.
+- validar banco e health check HTTP/HTTPS depois do deploy.
+
+Regras:
+- Nunca peça senha, chave privada ou token no chat.
+- Nunca exponha secrets.
+- Nao execute down ou acao destrutiva sem confirmacao explicita.
+- Use sempre o Project ID acima em todas as chamadas.
+- Ao falhar, diagnostique com status/logs antes de tentar novamente.
+
+No chat, responda somente com:
+- estado atual da VM/app;
+- acoes executadas;
+- evidencias relevantes;
+- riscos ou pendencias;
+- proximo passo recomendado.`;
+}
+
+function refreshOpsInfraGptActionPrompt() {
+    const target = document.getElementById('ops-gpt-action-prompt');
+    if (!target) return;
+    target.textContent = buildOpsInfraGptActionPrompt();
 }
 
 // --- CUSTOM SELECT COMPONENT ---
@@ -428,6 +475,7 @@ function switchTab(tabId) {
             opsInfraDetect();
             opsInfraLoadEnv();
             opsInfraLoadVmAccess();
+            refreshOpsInfraGptActionPrompt();
         }
     }
 }
@@ -3902,6 +3950,7 @@ function setOpsVmAccessFields(data = {}) {
     const authMethod = document.getElementById('ops-vm-auth-method');
     const privateKey = document.getElementById('ops-vm-private-key');
     const password = document.getElementById('ops-vm-password');
+    const publicKey = document.getElementById('ops-vm-public-key');
     const privateKeyStatus = document.getElementById('ops-vm-private-key-status');
     const passwordStatus = document.getElementById('ops-vm-password-status');
     if (host) host.value = data.host || '';
@@ -3911,6 +3960,7 @@ function setOpsVmAccessFields(data = {}) {
     if (authMethod) authMethod.value = data.auth_method || 'key';
     if (privateKey) privateKey.value = '';
     if (password) password.value = '';
+    if (publicKey) publicKey.value = data.public_key || '';
     if (privateKeyStatus) privateKeyStatus.textContent = data.has_private_key ? 'Chave privada já cadastrada. Preencha apenas se quiser substituir.' : '';
     if (passwordStatus) passwordStatus.textContent = data.has_password ? 'Senha já cadastrada. Preencha apenas se quiser substituir.' : '';
     state.opsVmAccess = data;
@@ -3925,6 +3975,38 @@ function syncOpsVmAuthFields() {
     if (passwordField) passwordField.style.display = method === 'password' ? '' : 'none';
 }
 
+async function opsInfraGenerateVmKey() {
+    if (!state.activeProjectId) return;
+    const consoleEl = document.getElementById('ops-console-output');
+    if (consoleEl) consoleEl.textContent = 'Gerando par de chaves SSH...';
+    try {
+        const res = await fetch(`/api/projects/${state.activeProjectId}/ops-infra/vm-access/generate-key`, {
+            method: 'POST',
+            headers: getHeaders()
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || 'Erro ao gerar chave SSH.');
+        setOpsVmAccessFields(data);
+        if (consoleEl) {
+            consoleEl.textContent = `Chave pública gerada.\n\nCadastre esta chave no painel da VPS e depois clique em Salvar e testar SSH:\n\n${data.public_key || ''}`;
+        }
+        gitideNotify({ title: 'Chave pública gerada', message: 'Cadastre a chave pública na VPS antes de testar o SSH.', variant: 'success' });
+    } catch (err) {
+        if (consoleEl) consoleEl.textContent = `Erro: ${err.message}`;
+        gitideNotify({ title: 'Erro ao gerar chave', message: err.message, variant: 'error' });
+    }
+}
+
+async function opsInfraCopyPublicKey() {
+    const value = document.getElementById('ops-vm-public-key')?.value?.trim();
+    if (!value) {
+        gitideNotify({ title: 'Sem chave pública', message: 'Gere uma chave pública primeiro.', variant: 'warning' });
+        return;
+    }
+    await navigator.clipboard.writeText(value);
+    gitideNotify({ title: 'Chave pública copiada', message: 'Cole esta chave no painel SSH da VPS.', variant: 'success' });
+}
+
 async function opsInfraLoadVmAccess() {
     if (!state.activeProjectId) return;
     try {
@@ -3935,6 +4017,96 @@ async function opsInfraLoadVmAccess() {
     } catch (err) {
         setOpsVmAccessFields({ host: '', user: '', port: 22, app_path: '' });
         gitideNotify({ title: 'Erro ao carregar VM', message: err.message, variant: 'error' });
+    }
+}
+
+function opsVmNormalizePath(path) {
+    const value = (path || '/').trim();
+    if (!value) return '/';
+    return value.startsWith('/') ? value.replace(/\/+/g, '/') : `/${value}`.replace(/\/+/g, '/');
+}
+
+function renderOpsVmDirectories(data) {
+    const browser = document.getElementById('ops-vm-browser');
+    const pathEl = document.getElementById('ops-vm-browser-path');
+    const list = document.getElementById('ops-vm-dir-list');
+    if (browser) browser.hidden = false;
+    state.opsVmBrowserPath = data.path || state.opsVmBrowserPath || '/';
+    state.opsVmBrowserParent = data.parent || '/';
+    if (pathEl) pathEl.textContent = state.opsVmBrowserPath;
+    if (!list) return;
+    const dirs = data.directories || [];
+    if (!dirs.length) {
+        list.innerHTML = '<span class="ops-muted">Nenhum subdiretório encontrado.</span>';
+        return;
+    }
+    list.innerHTML = dirs.map(dir => `
+        <button type="button" class="ops-vm-dir-item" data-ops-vm-path="${escapeHtml(dir.path)}">
+            <i data-lucide="folder"></i>
+            <span>${escapeHtml(dir.name)}</span>
+            <small>${escapeHtml(dir.path)}</small>
+        </button>
+    `).join('');
+    list.querySelectorAll('.ops-vm-dir-item').forEach(item => {
+        item.addEventListener('click', () => opsInfraBrowseVmPath(item.dataset.opsVmPath));
+    });
+    if (window.lucide) lucide.createIcons();
+}
+
+async function opsInfraBrowseVmPath(path) {
+    if (!state.activeProjectId) return;
+    const targetPath = opsVmNormalizePath(path || document.getElementById('ops-vm-path')?.value || state.opsVmBrowserPath || '/');
+    const list = document.getElementById('ops-vm-dir-list');
+    if (list) list.innerHTML = '<span class="ops-muted">Carregando diretórios da VM...</span>';
+    try {
+        const res = await fetch(`/api/projects/${state.activeProjectId}/ops-infra/vm/directories`, {
+            method: 'POST',
+            headers: { ...getHeaders(), 'Content-Type': 'application/json' },
+            body: JSON.stringify({ path: targetPath })
+        });
+        const data = await res.json();
+        if (!res.ok || data.status === 'error') throw new Error(data.stderr || data.detail || 'Erro ao listar diretórios.');
+        renderOpsVmDirectories(data);
+    } catch (err) {
+        if (list) list.innerHTML = `<span class="ops-error">${escapeHtml(err.message)}</span>`;
+        gitideNotify({ title: 'Erro ao listar VM', message: err.message, variant: 'error' });
+    }
+}
+
+function opsInfraUseVmBrowserPath() {
+    const input = document.getElementById('ops-vm-path');
+    if (input) input.value = state.opsVmBrowserPath || '/';
+    gitideNotify({ title: 'Diretório selecionado', message: `${state.opsVmBrowserPath} aplicado no campo da VM.`, variant: 'success' });
+}
+
+async function opsInfraCreateVmDirectory() {
+    if (!state.activeProjectId) return;
+    const input = document.getElementById('ops-vm-new-dir');
+    const raw = input?.value?.trim();
+    if (!raw) {
+        gitideNotify({ title: 'Informe a pasta', message: 'Digite o nome ou caminho absoluto da pasta a criar.', variant: 'warning' });
+        return;
+    }
+    const base = state.opsVmBrowserPath || '/';
+    const path = raw.startsWith('/') ? raw : `${base.replace(/\/$/, '')}/${raw}`;
+    const list = document.getElementById('ops-vm-dir-list');
+    if (list) list.innerHTML = '<span class="ops-muted">Criando diretório na VM...</span>';
+    try {
+        const res = await fetch(`/api/projects/${state.activeProjectId}/ops-infra/vm/directories/create`, {
+            method: 'POST',
+            headers: { ...getHeaders(), 'Content-Type': 'application/json' },
+            body: JSON.stringify({ path: opsVmNormalizePath(path) })
+        });
+        const data = await res.json();
+        if (!res.ok || data.status === 'error') throw new Error(data.stderr || data.detail || 'Erro ao criar diretório.');
+        if (input) input.value = '';
+        renderOpsVmDirectories(data);
+        const pathInput = document.getElementById('ops-vm-path');
+        if (pathInput) pathInput.value = data.created || data.path || path;
+        gitideNotify({ title: 'Diretório criado', message: data.created || path, variant: 'success' });
+    } catch (err) {
+        if (list) list.innerHTML = `<span class="ops-error">${escapeHtml(err.message)}</span>`;
+        gitideNotify({ title: 'Erro ao criar diretório', message: err.message, variant: 'error' });
     }
 }
 
@@ -4208,6 +4380,78 @@ async function opsInfraTestVmAccess() {
     } finally {
         if (button) button.disabled = false;
     }
+}
+
+function opsInfraWriteConsole(data, fallbackCommand = '') {
+    const consoleEl = document.getElementById('ops-console-output');
+    if (!consoleEl) return;
+    const stdout = data.stdout || data.body_preview || '';
+    const stderr = data.stderr || data.detail || '';
+    const command = data.command || data.url || fallbackCommand;
+    const exitCode = data.exit_code ?? data.status_code ?? '-';
+    consoleEl.textContent = `$ ${command}\n\n[exit ${exitCode}]\n\n${stdout}${stderr ? `\n[stderr]\n${stderr}` : ''}`;
+}
+
+async function opsInfraRunOperation(label, endpoint, payload = {}) {
+    if (!state.activeProjectId) return;
+    const consoleEl = document.getElementById('ops-console-output');
+    if (consoleEl) consoleEl.textContent = `${label}...`;
+    try {
+        const res = await fetch(`/api/projects/${state.activeProjectId}/ops-infra/${endpoint}`, {
+            method: 'POST',
+            headers: { ...getHeaders(), 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        opsInfraWriteConsole(data, endpoint);
+        if (!res.ok || data.status === 'error') throw new Error(data.stderr || data.detail || 'Operação falhou.');
+        gitideNotify({ title: 'Ops Infra', message: `${label} concluído.`, variant: 'success' });
+        return data;
+    } catch (err) {
+        if (consoleEl) consoleEl.textContent += `\n\nErro: ${err.message}`;
+        gitideNotify({ title: 'Erro no Ops Infra', message: err.message, variant: 'error' });
+        return null;
+    }
+}
+
+async function opsInfraBootstrapVm() {
+    return opsInfraRunOperation('Preparando VM', 'bootstrap');
+}
+
+async function opsInfraSyncProject() {
+    return opsInfraRunOperation('Sincronizando projeto na VM', 'sync');
+}
+
+async function opsInfraCheckDns() {
+    const domain = document.getElementById('ops-domain-input')?.value?.trim();
+    if (!domain) {
+        gitideNotify({ title: 'Domínio obrigatório', message: 'Informe o domínio antes de validar DNS.', variant: 'warning' });
+        return;
+    }
+    const data = await opsInfraRunOperation('Validando DNS', 'dns/check', { domain });
+    if (data) {
+        const target = document.getElementById('ops-caddy-output');
+        if (target) {
+            target.innerHTML = `
+                <div class="ops-caddy-domain"><span>Domínio</span><strong>${escapeHtml(data.domain || domain)}</strong></div>
+                <h5>Resultado DNS</h5>
+                <ul>
+                    <li>Esperado: ${escapeHtml(data.expected || '-')}</li>
+                    <li>Encontrado: ${escapeHtml((data.records || []).join(', ') || '-')}</li>
+                    <li>Status: ${data.matches ? '<span class="ops-valid">apontando para a VM</span>' : '<span class="ops-error">não aponta para a VM</span>'}</li>
+                </ul>
+            `;
+        }
+    }
+}
+
+async function opsInfraHealthCheck() {
+    const domain = document.getElementById('ops-domain-input')?.value?.trim();
+    return opsInfraRunOperation('Executando health check', 'health', { domain });
+}
+
+async function opsInfraCheckDatabase() {
+    return opsInfraRunOperation('Validando banco na VM', 'database/check');
 }
 
 async function opsInfraRunCommand(action) {
@@ -5332,7 +5576,25 @@ function setupEventListeners() {
     document.getElementById('btn-ops-env-validate')?.addEventListener('click', opsInfraValidateEnv);
     document.getElementById('ops-env-select')?.addEventListener('change', opsInfraLoadEnv);
     document.getElementById('ops-vm-auth-method')?.addEventListener('change', syncOpsVmAuthFields);
+    document.getElementById('btn-ops-vm-generate-key')?.addEventListener('click', opsInfraGenerateVmKey);
+    document.getElementById('btn-ops-vm-copy-public-key')?.addEventListener('click', opsInfraCopyPublicKey);
+    document.getElementById('btn-ops-vm-browse')?.addEventListener('click', () => opsInfraBrowseVmPath());
+    document.getElementById('btn-ops-vm-parent')?.addEventListener('click', () => opsInfraBrowseVmPath(state.opsVmBrowserParent || '/'));
+    document.getElementById('btn-ops-vm-use-path')?.addEventListener('click', opsInfraUseVmBrowserPath);
+    document.getElementById('btn-ops-vm-create-dir')?.addEventListener('click', opsInfraCreateVmDirectory);
     document.getElementById('btn-ops-vm-test')?.addEventListener('click', opsInfraTestVmAccess);
+    document.getElementById('btn-ops-bootstrap')?.addEventListener('click', opsInfraBootstrapVm);
+    document.getElementById('btn-ops-sync')?.addEventListener('click', opsInfraSyncProject);
+    document.getElementById('btn-ops-dns-check')?.addEventListener('click', opsInfraCheckDns);
+    document.getElementById('btn-ops-health')?.addEventListener('click', opsInfraHealthCheck);
+    document.getElementById('btn-ops-db-check')?.addEventListener('click', opsInfraCheckDatabase);
+    document.getElementById('btn-ops-copy-gpt-action')?.addEventListener('click', async () => {
+        const text = buildOpsInfraGptActionPrompt();
+        await navigator.clipboard.writeText(text);
+        const target = document.getElementById('ops-gpt-action-prompt');
+        if (target) target.textContent = text;
+        gitideNotify({ title: 'Prompt Ops copiado', message: 'Cole no GPT Action operador da VM/aplicação.', variant: 'success' });
+    });
     document.getElementById('btn-ops-caddy-preview')?.addEventListener('click', opsInfraCaddyPreview);
     document.getElementById('btn-ops-caddy-apply')?.addEventListener('click', opsInfraCaddyApply);
     document.querySelectorAll('.ops-flow-tab').forEach(btn => {

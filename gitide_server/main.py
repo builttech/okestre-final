@@ -6,6 +6,7 @@ import base64
 import hashlib
 import hmac
 import io
+import socket
 import secrets
 import subprocess
 import sqlite3
@@ -394,6 +395,16 @@ class OpsInfraArtifactRequest(BaseModel):
 class OpsInfraCommandRequest(BaseModel):
     action: str = Field(..., description="Ação: build, up, down, restart, logs ou ps")
 
+class OpsInfraHealthRequest(BaseModel):
+    url: Optional[str] = Field(None, description="URL para health check. Se vazio, usa o domínio informado ou host/porta.")
+    domain: Optional[str] = Field(None, description="Domínio esperado")
+
+class OpsInfraDnsRequest(BaseModel):
+    domain: str = Field(..., description="Domínio a validar")
+
+class OpsInfraVmDirectoryRequest(BaseModel):
+    path: str = Field("/", description="Diretório remoto a listar ou criar")
+
 class OpsInfraVmAccessRequest(BaseModel):
     host: str = Field("", description="IP ou host da VM")
     user: str = Field("", description="Usuário SSH")
@@ -584,6 +595,17 @@ def get_security_rules():
         return Response(content=f.read(), media_type="text/markdown; charset=utf-8")
 
 
+@app.get("/api/ops-infra-operator", tags=["Configuração"])
+def get_ops_infra_operator():
+    """Retorna o System Prompt do operador Ops Infra."""
+    repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+    prompt_path = os.path.join(repo_root, "OPS_INFRA_OPERATOR.md")
+    if not os.path.exists(prompt_path):
+        raise HTTPException(status_code=404, detail="OPS_INFRA_OPERATOR.md não encontrado.")
+    with open(prompt_path, "r", encoding="utf-8") as f:
+        return Response(content=f.read(), media_type="text/markdown; charset=utf-8")
+
+
 def sync_project_system_files(project_path: str) -> list[str]:
     """Garante os prompts de sistema necessários na raiz do workspace do projeto."""
     server_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -591,6 +613,7 @@ def sync_project_system_files(project_path: str) -> list[str]:
         ("GPT_INSTRUCTIONS.md", False),
         ("PROD_READINESS_VALIDATOR.md", True),
         ("SECURITY_RULES.md", True),
+        ("OPS_INFRA_OPERATOR.md", True),
     ]
     synced = []
     if not os.path.isdir(project_path):
@@ -599,6 +622,7 @@ def sync_project_system_files(project_path: str) -> list[str]:
     for rel_dir in (
         os.path.join(".documents", "prod-readiness"),
         os.path.join(".documents", "security"),
+        os.path.join(".documents", "ops-infra"),
     ):
         try:
             os.makedirs(os.path.join(project_path, rel_dir), exist_ok=True)
@@ -793,7 +817,7 @@ def read_file(filepath: str = Query(..., description="Caminho relativo do arquiv
     Suporta paginação por intervalo de linhas para evitar erros de limite de resposta.
     """
     try:
-        if filepath in {"GPT_INSTRUCTIONS.md", "PROD_READINESS_VALIDATOR.md", "SECURITY_RULES.md"}:
+        if filepath in {"GPT_INSTRUCTIONS.md", "PROD_READINESS_VALIDATOR.md", "SECURITY_RULES.md", "OPS_INFRA_OPERATOR.md"}:
             sync_project_system_files(project.path)
         content = vcs.read_project_file(project.path, filepath)
         lines = content.split('\n')
@@ -2755,6 +2779,7 @@ def _ops_read_vm_access(project_path: str, public: bool = True) -> dict:
             "auth_method": data.get("auth_method", "key"),
             "private_key": "" if public else data.get("private_key", ""),
             "password": "" if public else data.get("password", ""),
+            "public_key": data.get("public_key", ""),
             "has_private_key": has_private_key,
             "has_password": has_password,
         }
@@ -2782,6 +2807,49 @@ def _ops_write_vm_access(project_path: str, req: OpsInfraVmAccessRequest) -> dic
     with open(_ops_vm_access_path(project_path), "w", encoding="utf-8") as f:
         json.dump(payload, f, indent=2)
     return _ops_read_vm_access(project_path, public=False)
+
+def _ops_generate_keypair(project_path: str, comment: str = "act-ia-ops-infra") -> dict:
+    if not shutil.which("ssh-keygen"):
+        raise HTTPException(status_code=500, detail="ssh-keygen não encontrado no servidor do Act IA.")
+    key_path = None
+    public_path = None
+    try:
+        with tempfile.NamedTemporaryFile(delete=True) as marker:
+            key_path = marker.name
+        public_path = f"{key_path}.pub"
+        result = subprocess.run(
+            ["ssh-keygen", "-t", "ed25519", "-N", "", "-C", comment, "-f", key_path],
+            text=True,
+            capture_output=True,
+            timeout=20,
+        )
+        if result.returncode != 0:
+            raise HTTPException(status_code=500, detail=result.stderr or "Falha ao gerar chave SSH.")
+        with open(key_path, "r", encoding="utf-8") as f:
+            private_key = f.read().strip()
+        with open(public_path, "r", encoding="utf-8") as f:
+            public_key = f.read().strip()
+        existing = _ops_read_vm_access(project_path, public=False)
+        payload = {
+            "host": existing.get("host", ""),
+            "user": existing.get("user", ""),
+            "port": existing.get("port", 22),
+            "app_path": existing.get("app_path", ""),
+            "auth_method": "key",
+            "private_key": _ops_encrypt_secret(private_key),
+            "password": existing.get("password", ""),
+            "public_key": public_key,
+        }
+        with open(_ops_vm_access_path(project_path), "w", encoding="utf-8") as f:
+            json.dump(payload, f, indent=2)
+        return {"public_key": public_key, **_ops_read_vm_access(project_path, public=True)}
+    finally:
+        for path in [key_path, public_path]:
+            if path and os.path.exists(path):
+                try:
+                    os.remove(path)
+                except Exception:
+                    pass
 
 def _ops_shell_quote(value: str) -> str:
     return "'" + value.replace("'", "'\"'\"'") + "'"
@@ -2869,6 +2937,125 @@ def _ops_run_ssh(access: dict, remote_command: str, timeout: int = 120) -> dict:
             except Exception:
                 pass
 
+def _ops_require_vm_access(project_path: str) -> dict:
+    access = _ops_read_vm_access(project_path, public=False)
+    if not access.get("host") or not access.get("user"):
+        raise HTTPException(status_code=400, detail="Configure VM / Acesso antes de executar esta operação.")
+    return access
+
+def _ops_require_app_path(access: dict) -> str:
+    app_path = access.get("app_path", "")
+    if not app_path:
+        raise HTTPException(status_code=400, detail="Informe o diretório do app na VM.")
+    return app_path
+
+def _ops_bootstrap_script() -> str:
+    return r"""set -e
+echo "ACTIA_BOOTSTRAP_START"
+if command -v apt-get >/dev/null 2>&1; then
+  apt-get update -y
+  DEBIAN_FRONTEND=noninteractive apt-get install -y ca-certificates curl gnupg git ufw
+  install -m 0755 -d /etc/apt/keyrings
+  if [ ! -f /etc/apt/keyrings/docker.gpg ]; then
+    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg || true
+    chmod a+r /etc/apt/keyrings/docker.gpg || true
+  fi
+  if [ ! -f /etc/apt/sources.list.d/docker.list ]; then
+    . /etc/os-release
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu ${VERSION_CODENAME:-jammy} stable" > /etc/apt/sources.list.d/docker.list
+  fi
+  apt-get update -y
+  DEBIAN_FRONTEND=noninteractive apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+elif command -v dnf >/dev/null 2>&1; then
+  dnf install -y dnf-plugins-core git curl
+  dnf config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo || true
+  dnf install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+elif command -v yum >/dev/null 2>&1; then
+  yum install -y yum-utils git curl
+  yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo || true
+  yum install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+else
+  echo "Gerenciador de pacotes nao suportado. Instale Docker, Compose e Git manualmente."
+  exit 2
+fi
+systemctl enable docker || true
+systemctl start docker || true
+if command -v ufw >/dev/null 2>&1; then
+  ufw allow OpenSSH || true
+  ufw allow 80/tcp || true
+  ufw allow 443/tcp || true
+fi
+docker --version
+docker compose version || docker-compose version
+git --version
+echo "ACTIA_BOOTSTRAP_OK"
+"""
+
+def _ops_sync_script(app_path: str, git_remote: Optional[str]) -> str:
+    if not git_remote:
+        raise HTTPException(status_code=400, detail="O projeto precisa ter um repositório Git remoto configurado para sincronizar na VM.")
+    remote = _ops_shell_quote(git_remote)
+    path = _ops_shell_quote(app_path)
+    return (
+        "set -e\n"
+        f"mkdir -p {path}\n"
+        f"if [ -d {path}/.git ]; then\n"
+        f"  cd {path} && git fetch --all --prune && git pull --ff-only || git pull --rebase;\n"
+        "else\n"
+        f"  git clone {remote} {path};\n"
+        "fi\n"
+        f"cd {path} && git rev-parse --abbrev-ref HEAD && git log -1 --oneline\n"
+    )
+
+def _ops_health_url(project_path: str, access: dict, req: OpsInfraHealthRequest) -> str:
+    detected = _ops_detect_stack(project_path)
+    if req.url:
+        return req.url.strip()
+    domain = (req.domain or "").strip()
+    if domain:
+        return f"https://{domain}"
+    return f"http://{access.get('host')}:{detected.get('port', 8080)}"
+
+def _ops_normalize_remote_path(path: str) -> str:
+    value = (path or "/").strip() or "/"
+    if not value.startswith("/"):
+        raise HTTPException(status_code=400, detail="O caminho remoto deve ser absoluto.")
+    if "\n" in value or "\r" in value or "\x00" in value:
+        raise HTTPException(status_code=400, detail="Caminho remoto inválido.")
+    return os.path.normpath(value).replace("\\", "/") or "/"
+
+def _ops_list_remote_directories(access: dict, path: str) -> dict:
+    target = _ops_normalize_remote_path(path)
+    quoted = _ops_shell_quote(target)
+    command = (
+        f"target={quoted}; "
+        "if [ ! -d \"$target\" ]; then echo ACTIA_PATH_NOT_FOUND; exit 4; fi; "
+        "printf 'ACTIA_PATH\\t%s\\n' \"$target\"; "
+        "parent=$(dirname \"$target\"); printf 'ACTIA_PARENT\\t%s\\n' \"$parent\"; "
+        "for d in \"$target\"/* \"$target\"/.[!.]* \"$target\"/..?*; do "
+        "[ -d \"$d\" ] || continue; "
+        "base=$(basename \"$d\"); "
+        "case \"$base\" in .|..) continue;; esac; "
+        "printf 'DIR\\t%s\\t%s\\n' \"$base\" \"$d\"; "
+        "done"
+    )
+    result = _ops_run_ssh(access, command, timeout=45)
+    directories = []
+    current = target
+    parent = os.path.dirname(target.rstrip("/")) or "/"
+    for line in (result.get("stdout") or "").splitlines():
+        parts = line.split("\t")
+        if not parts:
+            continue
+        if parts[0] == "ACTIA_PATH" and len(parts) > 1:
+            current = parts[1]
+        elif parts[0] == "ACTIA_PARENT" and len(parts) > 1:
+            parent = parts[1] or "/"
+        elif parts[0] == "DIR" and len(parts) > 2:
+            directories.append({"name": parts[1], "path": parts[2]})
+    directories.sort(key=lambda item: item["name"].lower())
+    return {**result, "path": current, "parent": parent, "directories": directories}
+
 def _ops_read_env(project_path: str, environment: str, reveal: bool = False) -> dict:
     path = _ops_env_path(project_path, environment)
     if not os.path.exists(path):
@@ -2928,6 +3115,15 @@ def ops_infra_save_vm_access(req: OpsInfraVmAccessRequest,
     db.commit()
     return {"status": "success", **_ops_read_vm_access(project.path, public=True)}
 
+@app.post("/api/projects/{project_id}/ops-infra/vm-access/generate-key", tags=["Ops Infra"])
+def ops_infra_generate_vm_key(project: Project = Depends(get_project_or_404),
+                              db: Session = Depends(get_db),
+                              _ = Depends(get_api_key)):
+    result = _ops_generate_keypair(project.path, f"act-ia-{project.name or project.id}")
+    db.add(ActivityLog(project_id=project.id, action_type="OPS_INFRA_SSH_KEY", details="Par de chaves SSH gerado para Ops Infra."))
+    db.commit()
+    return {"status": "success", **result}
+
 @app.post("/api/projects/{project_id}/ops-infra/vm-access/test", tags=["Ops Infra"])
 def ops_infra_test_vm_access(req: OpsInfraVmAccessRequest,
                              project: Project = Depends(get_project_or_404),
@@ -2941,6 +3137,29 @@ def ops_infra_test_vm_access(req: OpsInfraVmAccessRequest,
     db.add(ActivityLog(project_id=project.id, action_type="OPS_INFRA_SSH_TEST", details=f"SSH testado em {access['user']}@{access['host']}:{access['port']} | Exit: {result['exit_code']}"))
     db.commit()
     return {"status": result["status"], **_ops_read_vm_access(project.path, public=True), "test": result}
+
+@app.post("/api/projects/{project_id}/ops-infra/vm/directories", tags=["Ops Infra"])
+def ops_infra_list_vm_directories(req: OpsInfraVmDirectoryRequest,
+                                  project: Project = Depends(get_project_or_404),
+                                  _ = Depends(get_api_key)):
+    access = _ops_require_vm_access(project.path)
+    result = _ops_list_remote_directories(access, req.path)
+    return {"status": result.get("status"), "path": result.get("path"), "parent": result.get("parent"), "directories": result.get("directories", []), "stderr": result.get("stderr", "")}
+
+@app.post("/api/projects/{project_id}/ops-infra/vm/directories/create", tags=["Ops Infra"])
+def ops_infra_create_vm_directory(req: OpsInfraVmDirectoryRequest,
+                                  project: Project = Depends(get_project_or_404),
+                                  db: Session = Depends(get_db),
+                                  _ = Depends(get_api_key)):
+    access = _ops_require_vm_access(project.path)
+    target = _ops_normalize_remote_path(req.path)
+    result = _ops_run_ssh(access, f"mkdir -p {_ops_shell_quote(target)} && test -d {_ops_shell_quote(target)} && printf ACTIA_DIR_CREATED", timeout=45)
+    db.add(ActivityLog(project_id=project.id, action_type="OPS_INFRA_VM_DIR", details=f"Diretório VM criado/validado: {target} | Exit: {result.get('exit_code')}"))
+    db.commit()
+    if result.get("status") == "error":
+        return result
+    listing = _ops_list_remote_directories(access, target)
+    return {"status": "success", "created": target, "path": listing.get("path"), "parent": listing.get("parent"), "directories": listing.get("directories", [])}
 
 @app.post("/api/projects/{project_id}/ops-infra/plan", tags=["Ops Infra"])
 def ops_infra_plan(req: OpsInfraPlanRequest, project: Project = Depends(get_project_or_404), _ = Depends(get_api_key)):
@@ -2990,6 +3209,80 @@ def ops_infra_artifacts(req: OpsInfraArtifactRequest,
     db.add(ActivityLog(project_id=project.id, action_type="OPS_INFRA_ARTIFACTS", details=f"Arquivos gerados: {', '.join(written)}"))
     db.commit()
     return {"status": "success", "written": written, "skipped": skipped, **artifacts}
+
+@app.post("/api/projects/{project_id}/ops-infra/bootstrap", tags=["Ops Infra"])
+def ops_infra_bootstrap(project: Project = Depends(get_project_or_404),
+                        db: Session = Depends(get_db),
+                        _ = Depends(get_api_key)):
+    access = _ops_require_vm_access(project.path)
+    result = _ops_run_ssh(access, _ops_bootstrap_script(), timeout=600)
+    db.add(ActivityLog(project_id=project.id, action_type="OPS_INFRA_BOOTSTRAP", details=f"Bootstrap VM {access.get('host')} | Exit: {result.get('exit_code')}"))
+    db.commit()
+    return result
+
+@app.post("/api/projects/{project_id}/ops-infra/sync", tags=["Ops Infra"])
+def ops_infra_sync_project(project: Project = Depends(get_project_or_404),
+                           db: Session = Depends(get_db),
+                           _ = Depends(get_api_key)):
+    access = _ops_require_vm_access(project.path)
+    app_path = _ops_require_app_path(access)
+    result = _ops_run_ssh(access, _ops_sync_script(app_path, project.git_remote), timeout=240)
+    db.add(ActivityLog(project_id=project.id, action_type="OPS_INFRA_SYNC", details=f"Sync {project.git_remote or '-'} -> {access.get('host')}:{app_path} | Exit: {result.get('exit_code')}"))
+    db.commit()
+    return result
+
+@app.post("/api/projects/{project_id}/ops-infra/dns/check", tags=["Ops Infra"])
+def ops_infra_dns_check(req: OpsInfraDnsRequest,
+                        project: Project = Depends(get_project_or_404),
+                        _ = Depends(get_api_key)):
+    access = _ops_require_vm_access(project.path)
+    domain = req.domain.strip().lower()
+    if not domain:
+        raise HTTPException(status_code=400, detail="Informe o domínio.")
+    try:
+        records = sorted({item[4][0] for item in socket.getaddrinfo(domain, None, type=socket.SOCK_STREAM)})
+    except Exception as e:
+        return {"status": "error", "domain": domain, "expected": access.get("host"), "records": [], "matches": False, "detail": str(e)}
+    expected = access.get("host")
+    return {"status": "success", "domain": domain, "expected": expected, "records": records, "matches": expected in records}
+
+@app.post("/api/projects/{project_id}/ops-infra/health", tags=["Ops Infra"])
+def ops_infra_health(req: OpsInfraHealthRequest,
+                     project: Project = Depends(get_project_or_404),
+                     _ = Depends(get_api_key)):
+    access = _ops_require_vm_access(project.path)
+    url = _ops_health_url(project.path, access, req)
+    try:
+        response = requests.get(url, timeout=15, allow_redirects=True)
+        return {
+            "status": "success" if response.status_code < 500 else "error",
+            "url": url,
+            "status_code": response.status_code,
+            "final_url": response.url,
+            "ok": response.ok,
+            "elapsed_ms": int(response.elapsed.total_seconds() * 1000),
+            "content_type": response.headers.get("content-type", ""),
+            "body_preview": response.text[:500],
+        }
+    except Exception as e:
+        return {"status": "error", "url": url, "ok": False, "detail": str(e)}
+
+@app.post("/api/projects/{project_id}/ops-infra/database/check", tags=["Ops Infra"])
+def ops_infra_database_check(project: Project = Depends(get_project_or_404),
+                             db: Session = Depends(get_db),
+                             _ = Depends(get_api_key)):
+    access = _ops_require_vm_access(project.path)
+    app_path = _ops_require_app_path(access)
+    command = (
+        f"cd {_ops_shell_quote(app_path)} && "
+        "if docker compose config --services | grep -qx postgres; then "
+        "docker compose exec -T postgres pg_isready -U ${POSTGRES_USER:-app} -d ${POSTGRES_DB:-app}; "
+        "else echo 'Nenhum serviço postgres encontrado no docker-compose.yml'; exit 3; fi"
+    )
+    result = _ops_run_ssh(access, command, timeout=60)
+    db.add(ActivityLog(project_id=project.id, action_type="OPS_INFRA_DB_CHECK", details=f"Database check em {access.get('host')}:{app_path} | Exit: {result.get('exit_code')}"))
+    db.commit()
+    return result
 
 @app.post("/api/projects/{project_id}/ops-infra/domain/preview", tags=["Ops Infra"])
 def ops_infra_domain_preview(req: OpsInfraDomainRequest,
@@ -4983,4 +5276,53 @@ def custom_openapi():
     return app.openapi_schema
 
 app.openapi = custom_openapi
+
+
+@app.get("/api/ops-infra-openapi.json", include_in_schema=False)
+def ops_infra_openapi():
+    """OpenAPI enxuto para GPT Action focado em gestao e operacao de VM/App."""
+    allowed_operations = {
+        ("GET", "/api/info"),
+        ("GET", "/api/projects"),
+        ("GET", "/api/projects/{project_id}/ops-infra/detect"),
+        ("GET", "/api/projects/{project_id}/ops-infra/vm-access"),
+        ("POST", "/api/projects/{project_id}/ops-infra/vm-access"),
+        ("POST", "/api/projects/{project_id}/ops-infra/vm-access/test"),
+        ("POST", "/api/projects/{project_id}/ops-infra/vm-access/generate-key"),
+        ("POST", "/api/projects/{project_id}/ops-infra/vm/directories"),
+        ("POST", "/api/projects/{project_id}/ops-infra/vm/directories/create"),
+        ("POST", "/api/projects/{project_id}/ops-infra/plan"),
+        ("POST", "/api/projects/{project_id}/ops-infra/artifacts"),
+        ("POST", "/api/projects/{project_id}/ops-infra/bootstrap"),
+        ("POST", "/api/projects/{project_id}/ops-infra/sync"),
+        ("POST", "/api/projects/{project_id}/ops-infra/dns/check"),
+        ("POST", "/api/projects/{project_id}/ops-infra/health"),
+        ("POST", "/api/projects/{project_id}/ops-infra/database/check"),
+        ("GET", "/api/projects/{project_id}/ops-infra/env/{environment}"),
+        ("POST", "/api/projects/{project_id}/ops-infra/env"),
+        ("POST", "/api/projects/{project_id}/ops-infra/env/validate"),
+        ("POST", "/api/projects/{project_id}/ops-infra/domain/preview"),
+        ("POST", "/api/projects/{project_id}/ops-infra/domain/apply"),
+        ("POST", "/api/projects/{project_id}/ops-infra/remote-command"),
+    }
+    filtered_routes = []
+    for route in app.routes:
+        path = getattr(route, "path", "")
+        methods = getattr(route, "methods", None) or set()
+        for method in methods:
+            if (method.upper(), path) in allowed_operations:
+                filtered_routes.append(route)
+                break
+    schema = get_openapi(
+        title="Act IA Ops Infra API",
+        version="1.0.0",
+        description="API dedicada para GPT Action operar VM, ambiente, dominio, banco e deploy via Ops Infra.",
+        routes=filtered_routes,
+    )
+    schema["servers"] = [{"url": "https://ide.builtt.com.br", "description": "Servidor Act IA"}]
+    for path_data in schema.get("paths", {}).values():
+        for method_data in path_data.values():
+            if isinstance(method_data, dict):
+                method_data["x-openai-isConsequential"] = False
+    return schema
 
