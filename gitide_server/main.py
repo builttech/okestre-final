@@ -394,6 +394,15 @@ class OpsInfraArtifactRequest(BaseModel):
 class OpsInfraCommandRequest(BaseModel):
     action: str = Field(..., description="Ação: build, up, down, restart, logs ou ps")
 
+class OpsInfraVmAccessRequest(BaseModel):
+    host: str = Field("", description="IP ou host da VM")
+    user: str = Field("", description="Usuário SSH")
+    port: int = Field(22, description="Porta SSH")
+    app_path: str = Field("", description="Diretório do app na VM")
+    auth_method: str = Field("key", description="Método de autenticação: agent, key ou password")
+    private_key: str = Field("", description="Chave privada SSH")
+    password: str = Field("", description="Senha SSH")
+
 class OpsInfraDomainRequest(BaseModel):
     domain: str = Field(..., description="Domínio que apontará para a aplicação")
     environment: str = Field("prod", description="Ambiente alvo")
@@ -2690,6 +2699,176 @@ def _ops_env_path(project_path: str, environment: str) -> str:
     safe_env = re.sub(r"[^a-zA-Z0-9_-]", "", environment or "prod") or "prod"
     return os.path.join(_ops_env_dir(project_path), f"{safe_env}.json")
 
+def _ops_vm_access_path(project_path: str) -> str:
+    return os.path.join(_ops_env_dir(project_path), "vm-access.json")
+
+def _ops_normalize_vm_access(req: OpsInfraVmAccessRequest) -> dict:
+    host = (req.host or "").strip()
+    user = (req.user or "").strip()
+    app_path = (req.app_path or "").strip()
+    auth_method = (req.auth_method or "key").strip().lower()
+    port = req.port or 22
+    if not host:
+        raise HTTPException(status_code=400, detail="Informe o IP ou host da VM.")
+    if not re.match(r"^[a-zA-Z0-9._:-]+$", host):
+        raise HTTPException(status_code=400, detail="Host da VM contém caracteres inválidos.")
+    if not user:
+        raise HTTPException(status_code=400, detail="Informe o usuário SSH.")
+    if not re.match(r"^[a-zA-Z0-9._-]+$", user):
+        raise HTTPException(status_code=400, detail="Usuário SSH contém caracteres inválidos.")
+    if port < 1 or port > 65535:
+        raise HTTPException(status_code=400, detail="Porta SSH inválida.")
+    if app_path and not app_path.startswith("/"):
+        raise HTTPException(status_code=400, detail="Diretório do app deve ser um caminho absoluto na VM.")
+    if auth_method not in ["agent", "key", "password"]:
+        raise HTTPException(status_code=400, detail="Método de autenticação SSH inválido.")
+    private_key = (req.private_key or "").strip()
+    if auth_method == "key" and private_key:
+        if private_key.startswith(("ssh-rsa ", "ssh-ed25519 ", "ecdsa-sha2-")):
+            raise HTTPException(status_code=400, detail="Você colou uma chave pública. Cole a chave privada SSH completa, iniciando com -----BEGIN OPENSSH PRIVATE KEY-----.")
+        if "PRIVATE KEY" not in private_key:
+            raise HTTPException(status_code=400, detail="Chave privada SSH inválida. Cole o conteúdo completo da chave privada.")
+    return {
+        "host": host,
+        "user": user,
+        "port": port,
+        "app_path": app_path,
+        "auth_method": auth_method,
+        "private_key": private_key,
+        "password": req.password or "",
+    }
+
+def _ops_read_vm_access(project_path: str, public: bool = True) -> dict:
+    path = _ops_vm_access_path(project_path)
+    if not os.path.exists(path):
+        return {"host": "", "user": "", "port": 22, "app_path": "", "auth_method": "key", "private_key": "", "password": "", "has_private_key": False, "has_password": False}
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        has_private_key = bool(data.get("private_key"))
+        has_password = bool(data.get("password"))
+        return {
+            "host": data.get("host", ""),
+            "user": data.get("user", ""),
+            "port": int(data.get("port", 22) or 22),
+            "app_path": data.get("app_path", ""),
+            "auth_method": data.get("auth_method", "key"),
+            "private_key": "" if public else data.get("private_key", ""),
+            "password": "" if public else data.get("password", ""),
+            "has_private_key": has_private_key,
+            "has_password": has_password,
+        }
+    except Exception:
+        return {"host": "", "user": "", "port": 22, "app_path": "", "auth_method": "key", "private_key": "", "password": "", "has_private_key": False, "has_password": False}
+
+def _ops_write_vm_access(project_path: str, req: OpsInfraVmAccessRequest) -> dict:
+    payload = _ops_normalize_vm_access(req)
+    existing = {}
+    path = _ops_vm_access_path(project_path)
+    if os.path.exists(path):
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                existing = json.load(f)
+        except Exception:
+            existing = {}
+    if payload["private_key"]:
+        payload["private_key"] = _ops_encrypt_secret(payload["private_key"])
+    else:
+        payload["private_key"] = existing.get("private_key", "")
+    if payload["password"]:
+        payload["password"] = _ops_encrypt_secret(payload["password"])
+    else:
+        payload["password"] = existing.get("password", "")
+    with open(_ops_vm_access_path(project_path), "w", encoding="utf-8") as f:
+        json.dump(payload, f, indent=2)
+    return _ops_read_vm_access(project_path, public=False)
+
+def _ops_shell_quote(value: str) -> str:
+    return "'" + value.replace("'", "'\"'\"'") + "'"
+
+def _ops_lock_private_key_file(path: str) -> None:
+    if os.name == "nt":
+        try:
+            current_user = os.environ.get("USERNAME") or os.environ.get("USER") or "Administrators"
+            subprocess.run(["icacls", path, "/inheritance:r"], text=True, capture_output=True, timeout=10)
+            for principal in ["Users", "Authenticated Users", "Everyone", "CodexSandboxUsers"]:
+                subprocess.run(["icacls", path, "/remove:g", principal], text=True, capture_output=True, timeout=10)
+            subprocess.run(["icacls", path, "/grant:r", f"{current_user}:R"], text=True, capture_output=True, timeout=10)
+        except Exception:
+            pass
+        return
+    try:
+        os.chmod(path, 0o600)
+    except Exception:
+        pass
+
+def _ops_ssh_base_args(access: dict, batch_mode: bool = True) -> List[str]:
+    args = [
+        "-o", "ConnectTimeout=12",
+        "-o", "StrictHostKeyChecking=accept-new",
+        "-p", str(access.get("port") or 22),
+        f"{access.get('user')}@{access.get('host')}",
+    ]
+    if batch_mode:
+        args = ["-o", "BatchMode=yes"] + args
+    return args
+
+def _ops_run_ssh(access: dict, remote_command: str, timeout: int = 120) -> dict:
+    auth_method = access.get("auth_method", "key")
+    temp_key_path = None
+    prefix = []
+    ssh_args = _ops_ssh_base_args(access)
+    stored_key = access.get("private_key", "")
+    stored_password = access.get("password", "")
+    try:
+        if auth_method == "key":
+            private_key = _ops_decrypt_secret(stored_key) if stored_key else ""
+            if private_key:
+                key_file = tempfile.NamedTemporaryFile("w", delete=False, encoding="utf-8", newline="\n")
+                key_file.write(private_key.replace("\r\n", "\n").strip() + "\n")
+                key_file.close()
+                temp_key_path = key_file.name
+                _ops_lock_private_key_file(temp_key_path)
+                ssh_args = ["-i", temp_key_path] + ssh_args
+        elif auth_method == "password":
+            password = _ops_decrypt_secret(stored_password) if stored_password else ""
+            if not password:
+                raise HTTPException(status_code=400, detail="Informe a senha SSH ou troque o método de autenticação.")
+            if not shutil.which("sshpass"):
+                raise HTTPException(status_code=400, detail="Autenticação por senha requer sshpass instalado no servidor do Act IA. Use chave privada SSH ou configure chave pública na VM.")
+            prefix = ["sshpass", "-p", password]
+            ssh_args = ["-o", "PreferredAuthentications=password"] + _ops_ssh_base_args(access, batch_mode=False)
+        cmd = prefix + ["ssh"] + ssh_args + [remote_command]
+        safe_cmd = cmd.copy()
+        if prefix:
+            safe_cmd[2] = "********"
+        if temp_key_path:
+            safe_cmd = ["[ssh-key-file] " + item if item == temp_key_path else item for item in safe_cmd]
+        result = subprocess.run(cmd, text=True, capture_output=True, timeout=timeout)
+        return {
+            "status": "success" if result.returncode == 0 else "error",
+            "command": " ".join(safe_cmd[:-1] + [remote_command]),
+            "exit_code": result.returncode,
+            "stdout": result.stdout,
+            "stderr": result.stderr,
+        }
+    except FileNotFoundError:
+        raise HTTPException(status_code=500, detail="Cliente SSH não encontrado no servidor do Act IA.")
+    except subprocess.TimeoutExpired:
+        return {
+            "status": "error",
+            "command": "ssh",
+            "exit_code": 124,
+            "stdout": "",
+            "stderr": "Timeout ao conectar/executar comando via SSH.",
+        }
+    finally:
+        if temp_key_path:
+            try:
+                os.remove(temp_key_path)
+            except Exception:
+                pass
+
 def _ops_read_env(project_path: str, environment: str, reveal: bool = False) -> dict:
     path = _ops_env_path(project_path, environment)
     if not os.path.exists(path):
@@ -2734,6 +2913,34 @@ def _ops_write_env(project_path: str, req: OpsInfraEnvRequest) -> dict:
 @app.get("/api/projects/{project_id}/ops-infra/detect", tags=["Ops Infra"])
 def ops_infra_detect(project: Project = Depends(get_project_or_404), _ = Depends(get_api_key)):
     return {"status": "success", **_ops_detect_stack(project.path)}
+
+@app.get("/api/projects/{project_id}/ops-infra/vm-access", tags=["Ops Infra"])
+def ops_infra_get_vm_access(project: Project = Depends(get_project_or_404), _ = Depends(get_api_key)):
+    return {"status": "success", **_ops_read_vm_access(project.path, public=True)}
+
+@app.post("/api/projects/{project_id}/ops-infra/vm-access", tags=["Ops Infra"])
+def ops_infra_save_vm_access(req: OpsInfraVmAccessRequest,
+                             project: Project = Depends(get_project_or_404),
+                             db: Session = Depends(get_db),
+                             _ = Depends(get_api_key)):
+    result = _ops_write_vm_access(project.path, req)
+    db.add(ActivityLog(project_id=project.id, action_type="OPS_INFRA_VM_ACCESS", details=f"VM configurada: {result['user']}@{result['host']}:{result['port']}"))
+    db.commit()
+    return {"status": "success", **_ops_read_vm_access(project.path, public=True)}
+
+@app.post("/api/projects/{project_id}/ops-infra/vm-access/test", tags=["Ops Infra"])
+def ops_infra_test_vm_access(req: OpsInfraVmAccessRequest,
+                             project: Project = Depends(get_project_or_404),
+                             db: Session = Depends(get_db),
+                             _ = Depends(get_api_key)):
+    access = _ops_write_vm_access(project.path, req)
+    remote_parts = ["printf ACTIA_SSH_OK", "pwd", "command -v docker || true", "docker compose version || docker-compose version || true"]
+    if access.get("app_path"):
+        remote_parts.insert(1, f"test -d {_ops_shell_quote(access['app_path'])} && printf '\\nAPP_PATH_OK\\n' || printf '\\nAPP_PATH_NOT_FOUND\\n'")
+    result = _ops_run_ssh(access, " && ".join(remote_parts), timeout=30)
+    db.add(ActivityLog(project_id=project.id, action_type="OPS_INFRA_SSH_TEST", details=f"SSH testado em {access['user']}@{access['host']}:{access['port']} | Exit: {result['exit_code']}"))
+    db.commit()
+    return {"status": result["status"], **_ops_read_vm_access(project.path, public=True), "test": result}
 
 @app.post("/api/projects/{project_id}/ops-infra/plan", tags=["Ops Infra"])
 def ops_infra_plan(req: OpsInfraPlanRequest, project: Project = Depends(get_project_or_404), _ = Depends(get_api_key)):
@@ -2872,6 +3079,30 @@ def ops_infra_command(req: OpsInfraCommandRequest,
     db.add(ActivityLog(project_id=project.id, action_type="OPS_INFRA_COMMAND", details=f"{commands[req.action]}\nExit: {result.returncode}"))
     db.commit()
     return {"status": "success" if result.returncode == 0 else "error", "command": commands[req.action], "exit_code": result.returncode, "stdout": result.stdout, "stderr": result.stderr}
+
+@app.post("/api/projects/{project_id}/ops-infra/remote-command", tags=["Ops Infra"])
+def ops_infra_remote_command(req: OpsInfraCommandRequest,
+                             project: Project = Depends(get_project_or_404),
+                             db: Session = Depends(get_db),
+                             _ = Depends(get_api_key)):
+    commands = {
+        "build": "docker compose build",
+        "up": "docker compose up -d",
+        "down": "docker compose down",
+        "restart": "docker compose restart",
+        "logs": "docker compose logs --tail=120",
+        "ps": "docker compose ps",
+    }
+    if req.action not in commands:
+        raise HTTPException(status_code=400, detail="Ação inválida para Ops Infra.")
+    access = _ops_read_vm_access(project.path, public=False)
+    if not access.get("host") or not access.get("user") or not access.get("app_path"):
+        raise HTTPException(status_code=400, detail="Configure VM / Acesso antes de executar comandos remotos.")
+    remote_command = f"cd {_ops_shell_quote(access['app_path'])} && {commands[req.action]}"
+    result = _ops_run_ssh(access, remote_command, timeout=180 if req.action in ["build", "up"] else 90)
+    db.add(ActivityLog(project_id=project.id, action_type="OPS_INFRA_REMOTE_COMMAND", details=f"{commands[req.action]} em {access['host']}:{access['app_path']}\nExit: {result['exit_code']}"))
+    db.commit()
+    return result
 
 # --- ENDPOINTS DO SPEC-DRIVEN DEVELOPMENT (SDD) ---
 

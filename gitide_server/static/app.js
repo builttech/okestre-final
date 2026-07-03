@@ -34,6 +34,7 @@ const state = {
 
     // Ops Infra
     opsEnvVariables: [],
+    opsVmAccess: null,
 
     // QA
     qaAnnotations: [],
@@ -426,6 +427,7 @@ function switchTab(tabId) {
         } else if (tabId === 'tab-ops-infra') {
             opsInfraDetect();
             opsInfraLoadEnv();
+            opsInfraLoadVmAccess();
         }
     }
 }
@@ -3880,6 +3882,62 @@ function getOpsInfraPayload() {
     };
 }
 
+function getOpsVmAccessPayload() {
+    return {
+        host: document.getElementById('ops-vm-host')?.value?.trim() || '',
+        user: document.getElementById('ops-vm-user')?.value?.trim() || '',
+        port: Number(document.getElementById('ops-vm-port')?.value || 22),
+        app_path: document.getElementById('ops-vm-path')?.value?.trim() || '',
+        auth_method: document.getElementById('ops-vm-auth-method')?.value || 'key',
+        private_key: document.getElementById('ops-vm-private-key')?.value || '',
+        password: document.getElementById('ops-vm-password')?.value || ''
+    };
+}
+
+function setOpsVmAccessFields(data = {}) {
+    const host = document.getElementById('ops-vm-host');
+    const user = document.getElementById('ops-vm-user');
+    const port = document.getElementById('ops-vm-port');
+    const appPath = document.getElementById('ops-vm-path');
+    const authMethod = document.getElementById('ops-vm-auth-method');
+    const privateKey = document.getElementById('ops-vm-private-key');
+    const password = document.getElementById('ops-vm-password');
+    const privateKeyStatus = document.getElementById('ops-vm-private-key-status');
+    const passwordStatus = document.getElementById('ops-vm-password-status');
+    if (host) host.value = data.host || '';
+    if (user) user.value = data.user || '';
+    if (port) port.value = data.port || 22;
+    if (appPath) appPath.value = data.app_path || '';
+    if (authMethod) authMethod.value = data.auth_method || 'key';
+    if (privateKey) privateKey.value = '';
+    if (password) password.value = '';
+    if (privateKeyStatus) privateKeyStatus.textContent = data.has_private_key ? 'Chave privada já cadastrada. Preencha apenas se quiser substituir.' : '';
+    if (passwordStatus) passwordStatus.textContent = data.has_password ? 'Senha já cadastrada. Preencha apenas se quiser substituir.' : '';
+    state.opsVmAccess = data;
+    syncOpsVmAuthFields();
+}
+
+function syncOpsVmAuthFields() {
+    const method = document.getElementById('ops-vm-auth-method')?.value || 'key';
+    const keyField = document.getElementById('ops-vm-private-key-field');
+    const passwordField = document.getElementById('ops-vm-password-field');
+    if (keyField) keyField.style.display = method === 'key' ? '' : 'none';
+    if (passwordField) passwordField.style.display = method === 'password' ? '' : 'none';
+}
+
+async function opsInfraLoadVmAccess() {
+    if (!state.activeProjectId) return;
+    try {
+        const res = await fetch(`/api/projects/${state.activeProjectId}/ops-infra/vm-access`, { headers: getHeaders() });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || 'Erro ao carregar acesso da VM.');
+        setOpsVmAccessFields(data);
+    } catch (err) {
+        setOpsVmAccessFields({ host: '', user: '', port: 22, app_path: '' });
+        gitideNotify({ title: 'Erro ao carregar VM', message: err.message, variant: 'error' });
+    }
+}
+
 function opsInfraSwitchFlowTab(tabName) {
     document.querySelectorAll('.ops-flow-tab').forEach(tab => {
         tab.classList.toggle('active', tab.dataset.opsFlowTab === tabName);
@@ -4123,12 +4181,41 @@ async function opsInfraCaddyApply() {
     }
 }
 
+async function opsInfraTestVmAccess() {
+    if (!state.activeProjectId) return;
+    const consoleEl = document.getElementById('ops-console-output');
+    const button = document.getElementById('btn-ops-vm-test');
+    const payload = getOpsVmAccessPayload();
+    if (consoleEl) consoleEl.textContent = `Testando SSH em ${payload.user || '?'}@${payload.host || '?'}:${payload.port || 22}...`;
+    if (button) button.disabled = true;
+    try {
+        const res = await fetch(`/api/projects/${state.activeProjectId}/ops-infra/vm-access/test`, {
+            method: 'POST',
+            headers: { ...getHeaders(), 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        const test = data.test || {};
+        state.opsVmAccess = data;
+        if (consoleEl) {
+            consoleEl.textContent = `$ ${test.command || 'ssh'}\n\n[exit ${test.exit_code ?? '-'}]\n\n${test.stdout || ''}${test.stderr ? `\n[stderr]\n${test.stderr}` : ''}`;
+        }
+        if (!res.ok || data.status === 'error') throw new Error(test.stderr || data.detail || 'Falha ao testar SSH.');
+        gitideNotify({ title: 'SSH validado', message: `Conexão OK com ${data.user}@${data.host}.`, variant: 'success' });
+    } catch (err) {
+        if (consoleEl) consoleEl.textContent += `\n\nErro: ${err.message}`;
+        gitideNotify({ title: 'Falha no SSH', message: err.message, variant: 'error' });
+    } finally {
+        if (button) button.disabled = false;
+    }
+}
+
 async function opsInfraRunCommand(action) {
     if (!state.activeProjectId) return;
     const consoleEl = document.getElementById('ops-console-output');
-    if (consoleEl) consoleEl.textContent = `Executando ${action}...`;
+    if (consoleEl) consoleEl.textContent = `Executando ${action} na VM...`;
     try {
-        const res = await fetch(`/api/projects/${state.activeProjectId}/ops-infra/command`, {
+        const res = await fetch(`/api/projects/${state.activeProjectId}/ops-infra/remote-command`, {
             method: 'POST',
             headers: { ...getHeaders(), 'Content-Type': 'application/json' },
             body: JSON.stringify({ action })
@@ -5244,6 +5331,8 @@ function setupEventListeners() {
     document.getElementById('btn-ops-env-save')?.addEventListener('click', opsInfraSaveEnv);
     document.getElementById('btn-ops-env-validate')?.addEventListener('click', opsInfraValidateEnv);
     document.getElementById('ops-env-select')?.addEventListener('change', opsInfraLoadEnv);
+    document.getElementById('ops-vm-auth-method')?.addEventListener('change', syncOpsVmAuthFields);
+    document.getElementById('btn-ops-vm-test')?.addEventListener('click', opsInfraTestVmAccess);
     document.getElementById('btn-ops-caddy-preview')?.addEventListener('click', opsInfraCaddyPreview);
     document.getElementById('btn-ops-caddy-apply')?.addEventListener('click', opsInfraCaddyApply);
     document.querySelectorAll('.ops-flow-tab').forEach(btn => {

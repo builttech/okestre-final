@@ -1675,8 +1675,26 @@ REGRA INQUEBRÁVEL: antes de executar qualquer task, valide REQ, DRI e Task List
                                     <label for="ops-vm-path">Diretório do app na VM</label>
                                     <input type="text" id="ops-vm-path" class="text-input" placeholder="/opt/apps/meu-app">
                                 </div>
+                                <div class="ops-infra-field">
+                                    <label for="ops-vm-auth-method">Autenticação SSH</label>
+                                    <select id="ops-vm-auth-method" class="select-input">
+                                        <option value="key">Chave privada</option>
+                                        <option value="agent">Chave já instalada no servidor</option>
+                                        <option value="password">Senha</option>
+                                    </select>
+                                </div>
+                                <div class="ops-infra-field" id="ops-vm-private-key-field">
+                                    <label for="ops-vm-private-key">Chave privada SSH</label>
+                                    <textarea id="ops-vm-private-key" class="text-input" rows="5" placeholder="Cole aqui a chave privada. Ela será salva criptografada."></textarea>
+                                    <span class="ops-muted" id="ops-vm-private-key-status"></span>
+                                </div>
+                                <div class="ops-infra-field" id="ops-vm-password-field">
+                                    <label for="ops-vm-password">Senha SSH</label>
+                                    <input type="password" id="ops-vm-password" class="text-input" placeholder="Senha da VM">
+                                    <span class="ops-muted" id="ops-vm-password-status"></span>
+                                </div>
                                 <div class="ops-infra-actions">
-                                    <button class="btn btn-secondary" type="button" disabled><i data-lucide="plug-zap"></i> Testar SSH em breve</button>
+                                    <button class="btn btn-primary" type="button" id="btn-ops-vm-test"><i data-lucide="plug-zap"></i> Salvar e testar SSH</button>
                                 </div>
                             </div>
 
@@ -1777,7 +1795,7 @@ REGRA INQUEBRÁVEL: antes de executar qualquer task, valide REQ, DRI e Task List
                         </section>
                         <aside class="ops-infra-side card">
                             <div class="card-header">
-                                <h4><i data-lucide="terminal"></i> Deploy local</h4>
+                                <h4><i data-lucide="terminal"></i> Deploy na VM</h4>
                             </div>
                             <div class="ops-command-grid">
                                 <button class="btn btn-secondary" data-ops-command="build">Build</button>
@@ -2308,7 +2326,7 @@ REGRA INQUEBRÁVEL: antes de executar qualquer task, valide REQ, DRI e Task List
     </aside>
 
     <!-- Custom JavaScript -->
-    <script src="/static/app.js?v=68"></script>
+    <script src="/static/app.js?v=70"></script>
     <script src="/static/theme-toggle.js?v=1"></script>
 </body>
 </html>
