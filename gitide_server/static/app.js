@@ -10514,7 +10514,7 @@ function selectMentionFile(input, lastAtIndex, filepath) {
 function hideMentionDropdown() {
     const dropdown = document.getElementById('agent-mention-dropdown');
     if (dropdown) {
-        dropdown.style.display = 'none';
+        dropdown.style.setProperty('display', 'none', 'important');
     }
     selectedMentionIndex = -1;
     filteredMentionFiles = [];
@@ -10551,25 +10551,27 @@ async function handleMentionInput(e) {
 function renderMentionDropdown(input, lastAtIndex, query) {
     let dropdown = document.getElementById('agent-mention-dropdown');
     if (!dropdown) {
-        dropdown = document.createElement('div');
+        dropdown = document.createElement('ul');
         dropdown.id = 'agent-mention-dropdown';
         dropdown.style.cssText = `
-            display: none;
-            position: absolute;
-            bottom: 60px;
-            left: 20px;
-            right: 20px;
-            background: rgba(30, 30, 30, 0.98);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 12px;
-            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.7);
-            max-height: 240px;
-            overflow-y: auto;
-            z-index: 1000;
-            padding: 8px 0;
-            scrollbar-width: thin;
+            display: none !important;
+            position: absolute !important;
+            bottom: 75px !important;
+            left: 20px !important;
+            right: 20px !important;
+            background: rgba(22, 22, 22, 0.98) !important;
+            backdrop-filter: blur(12px) !important;
+            -webkit-backdrop-filter: blur(12px) !important;
+            border: 1px solid rgba(255, 255, 255, 0.1) !important;
+            border-radius: 12px !important;
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.75) !important;
+            max-height: 240px !important;
+            overflow-y: auto !important;
+            z-index: 1000 !important;
+            padding: 8px 0 !important;
+            margin: 0 !important;
+            list-style: none !important;
+            scrollbar-width: thin !important;
         `;
         
         const form = document.getElementById('agent-chat-form');
@@ -10580,7 +10582,7 @@ function renderMentionDropdown(input, lastAtIndex, query) {
     }
     
     if (filteredMentionFiles.length === 0) {
-        dropdown.style.display = 'none';
+        dropdown.style.setProperty('display', 'none', 'important');
         return;
     }
     
@@ -10597,51 +10599,54 @@ function renderMentionDropdown(input, lastAtIndex, query) {
         const filename = parts.pop();
         const folder = parts.join('/');
         
-        const item = document.createElement('div');
+        const item = document.createElement('li');
         item.style.cssText = `
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 8px 16px;
-            cursor: pointer;
-            transition: background 0.15s ease;
-            font-size: 13px;
-            color: rgba(255, 255, 255, 0.9);
-            background: ${index === selectedMentionIndex ? 'rgba(255, 255, 255, 0.08)' : 'transparent'};
+            display: flex !important;
+            align-items: center !important;
+            gap: 10px !important;
+            padding: 8px 16px !important;
+            cursor: pointer !important;
+            transition: background 0.15s ease !important;
+            font-size: 13px !important;
+            color: rgba(255, 255, 255, 0.9) !important;
+            background: ${index === selectedMentionIndex ? 'rgba(255, 255, 255, 0.08) !important' : 'transparent !important'};
+            border-radius: 0 !important;
+            border: none !important;
         `;
         
         item.addEventListener('mouseenter', () => {
             selectedMentionIndex = index;
             Array.from(dropdown.children).forEach((child, cIdx) => {
-                child.style.background = cIdx === selectedMentionIndex ? 'rgba(255, 255, 255, 0.08)' : 'transparent';
+                child.style.setProperty('background', cIdx === selectedMentionIndex ? 'rgba(255, 255, 255, 0.08)' : 'transparent', 'important');
             });
         });
         
         const icon = document.createElement('i');
         icon.className = 'fa-solid fa-file-code';
-        icon.style.color = 'var(--color-primary)';
-        icon.style.opacity = '0.8';
+        icon.style.cssText = 'color: var(--color-primary) !important; opacity: 0.8 !important; display: inline-block !important;';
         
         const textWrapper = document.createElement('div');
         textWrapper.style.cssText = `
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
+            display: flex !important;
+            flex-direction: column !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+            white-space: nowrap !important;
+            background: transparent !important;
+            border: none !important;
         `;
         
         const nameSpan = document.createElement('span');
-        nameSpan.style.fontWeight = '500';
+        nameSpan.style.cssText = 'font-weight: 500 !important; color: rgba(255, 255, 255, 0.95) !important;';
         nameSpan.textContent = filename;
         
         const pathSpan = document.createElement('span');
         pathSpan.style.cssText = `
-            font-size: 11px;
-            color: var(--text-dark);
-            opacity: 0.8;
-            overflow: hidden;
-            text-overflow: ellipsis;
+            font-size: 11px !important;
+            color: var(--text-dark) !important;
+            opacity: 0.8 !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
         `;
         pathSpan.textContent = folder ? folder : './';
         
@@ -10660,7 +10665,7 @@ function renderMentionDropdown(input, lastAtIndex, query) {
         dropdown.appendChild(item);
     });
     
-    dropdown.style.display = 'block';
+    dropdown.style.setProperty('display', 'block', 'important');
     
     const activeItem = dropdown.children[selectedMentionIndex];
     if (activeItem) {
