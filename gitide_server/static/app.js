@@ -10556,7 +10556,7 @@ function renderMentionDropdown(input, lastAtIndex, query) {
         dropdown.style.cssText = `
             display: none !important;
             position: absolute !important;
-            bottom: 75px !important;
+            bottom: 95px !important;
             left: 20px !important;
             right: 20px !important;
             background: rgba(22, 22, 22, 0.98) !important;
