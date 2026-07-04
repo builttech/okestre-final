@@ -340,6 +340,11 @@ class AgentConfigInput(BaseModel):
 
 class AgentChatRequest(BaseModel):
     prompt: str
+    history: Optional[List[dict]] = Field(default_factory=list, description="Histórico recente do chat do agente")
+
+class AgentHistorySaveRequest(BaseModel):
+    messages: List[dict] = Field(default_factory=list, description="Mensagens visíveis do chat")
+    workflow: List[dict] = Field(default_factory=list, description="Eventos recentes do workflow do agente")
 
 class DocumentSection(BaseModel):
     heading: Optional[str] = Field("", description="Título da seção")
@@ -4201,6 +4206,162 @@ SDD_PROJECT_DOCUMENTS = {
     },
 }
 
+def _sdd_req_template(req_id: str = "REQ-0000", title: str = "Título do Requisito") -> str:
+    return (
+        f"# {req_id} — {title}\n\n"
+        "## 1. Specify - Especificação Funcional\n\n"
+        "### 1.1 Identificação e Metadados Básicos\n\n"
+        f"**ID Único:** {req_id}\n\n"
+        f"**Título / Resumo:** {title}\n"
+        "**Tipo:** Requisito funcional\n"
+        "**Módulo:** A definir\n"
+        "**Prioridade:** A definir\n"
+        "**Status:** Especificado\n"
+        "**Solicitante:** A definir\n"
+        "**Responsável atual:** Equipe técnica\n"
+        "**Release / Iteração:** A definir\n"
+        "**Esforço estimado:** A definir\n\n"
+        "---\n\n"
+        "### 1.2 Contexto\n\n"
+        "Descreva o problema, oportunidade, origem da demanda e contexto operacional.\n\n"
+        "---\n\n"
+        "### 1.3 Objetivo Funcional\n\n"
+        "Descreva o resultado funcional esperado para o usuário ou negócio.\n\n"
+        "---\n\n"
+        "### 1.4 Descrição do Requisito\n\n"
+        "O sistema deve...\n\n"
+        "---\n\n"
+        "### 1.5 História de Usuário\n\n"
+        "Como [tipo de usuário], eu quero [ação/funcionalidade], para que [valor/benefício].\n\n"
+        "---\n\n"
+        "### 1.6 Regras de Negócio\n\n"
+        "- **RN-001:** Descrever regra de negócio.\n\n"
+        "---\n\n"
+        "### 1.7 Restrições e Premissas\n\n"
+        "- **Restrição:** A definir.\n"
+        "- **Premissa:** A definir.\n\n"
+        "---\n\n"
+        "### 1.8 Fora do Escopo\n\n"
+        "- A definir.\n\n"
+        "---\n\n"
+        "### 1.9 Critérios de Aceite\n\n"
+        "- [ ] Dado que [contexto], quando [ação], então [resultado esperado].\n"
+        "- [ ] Dado que [contexto], quando [ação], então [resultado esperado].\n\n"
+        "---\n\n"
+        "### 1.10 Rastreabilidade Funcional\n\n"
+        "**Origem / Link ascendente:** A definir.\n\n"
+        "**Design relacionado:** `.documents/design/design.md`\n\n"
+        "**DRI relacionado:** `.documents/dri/dri.md`\n\n"
+        "**Tasks relacionadas:** `.documents/task/task.md`\n\n"
+        "**Casos de teste relacionados:** A definir.\n\n"
+        "**Commits / PRs / Deploys:** A definir após implementação.\n"
+    )
+
+def _dri_template() -> str:
+    return (
+        "## RI-XX - Nome da Interface\n\n"
+        "### 1. Identificação da Interface\n\n"
+        "| Campo | Valor |\n"
+        "| --- | --- |\n"
+        "| Código | RI-XX |\n"
+        "| Nome da interface | [Ex.: Página Meu Perfil] |\n"
+        "| Módulo | [Ex.: Profissionais / Conta] |\n"
+        "| RF relacionado | [Ex.: REQ-0000] |\n"
+        "| SubRFs relacionados | [Ex.: SubRF-01.01] |\n"
+        "| Tipo de interface | Página / Modal / Drawer / Formulário / Grid / Dashboard / Detalhe |\n"
+        "| Perfil de usuário | [Perfil principal de usuário] |\n"
+        "| Dispositivo prioritário | Desktop / Mobile / Responsivo |\n"
+        "| Objetivo da tela | [Resultado operacional esperado] |\n\n"
+        "### 2. Objetivo da Interface\n\n"
+        "[Descreva o propósito da tela, quais dados ou decisões ela sustenta e como se conecta ao REQ relacionado.]\n\n"
+        "### 3. Contexto de Uso\n\n"
+        "| Item | Descrição |\n"
+        "| --- | --- |\n"
+        "| Quem usa | [Perfil principal de usuário] |\n"
+        "| Quando usa | [Momento do fluxo ou rotina operacional] |\n"
+        "| Por que usa | [Motivação e necessidade do usuário] |\n"
+        "| Gatilho de acesso | [Menu, onboarding, notificação, link, workflow, ação anterior] |\n"
+        "| Resultado esperado | [Estado desejado após uso da interface] |\n\n"
+        "### 4. Arquitetura da Informação\n\n"
+        "| Ordem | Seção | Objetivo | Tipo de componente |\n"
+        "| --- | --- | --- | --- |\n"
+        "| 1 | [Nome da seção] | [Objetivo funcional da seção] | [Header, formulário, lista, tabela, card, painel] |\n\n"
+        "### 5. Mapa de Componentes\n\n"
+        "| Componente | Tipo | Obrigatório | Editável | Comportamento esperado |\n"
+        "| --- | --- | --- | --- | --- |\n"
+        "| [Nome do campo/ação] | [Input, select, badge, button] | Sim/Não | Sim/Não | [Validação, máscara, permissão, estado ou regra de interação] |\n\n"
+        "### 6. Regras de Exibição\n\n"
+        "| Código | Regra | Comportamento |\n"
+        "| --- | --- | --- |\n"
+        "| RI-RG-01 | [Nome da regra visual ou condicional] | [Comportamento esperado na interface] |\n\n"
+        "### 7. Estados da Interface\n\n"
+        "| Estado | Descrição | Comportamento visual |\n"
+        "| --- | --- | --- |\n"
+        "| Loading | Dados sendo carregados. | Skeleton, spinner ou placeholder consistente. |\n"
+        "| Empty | Não há dados ou configuração iniciada. | Mensagem orientativa e CTA pertinente. |\n"
+        "| View | Dados exibidos para leitura. | Campos organizados e ações secundárias discretas. |\n"
+        "| Edit | Usuário editando informações. | Campos habilitados e botões de ação visíveis. |\n"
+        "| Saving | Salvamento em andamento. | Ação principal desabilitada com feedback. |\n"
+        "| Success | Operação concluída. | Toast ou mensagem de confirmação. |\n"
+        "| Error | Falha ao carregar, validar ou salvar. | Mensagem clara e ação de nova tentativa. |\n"
+        "| Read-only | Usuário sem permissão de edição. | Campos bloqueados e aviso de restrição. |\n\n"
+        "### 8. Fluxo de Interação\n\n"
+        "| Ação do usuário | Resposta da interface | Resultado esperado |\n"
+        "| --- | --- | --- |\n"
+        "| [Acessar interface] | [Sistema carrega dados e estados] | [Tela exibe informações atuais] |\n\n"
+        "### 9. Mapeamento de Dados\n\n"
+        "| Campo na tela | Nome técnico | Origem | Editável | Obrigatório |\n"
+        "| --- | --- | --- | --- | --- |\n"
+        "| [Campo] | [snake_case] | [Collection, API, sistema, usuário] | Sim/Não | Sim/Não |\n\n"
+        "### 10. Hierarquia Visual\n\n"
+        "**Prioridade Alta:** [Informações críticas, status, ação principal, alertas e pendências.]\n\n"
+        "**Prioridade Média:** [Dados de apoio, seções recorrentes, filtros, grupos secundários.]\n\n"
+        "**Prioridade Baixa:** [Informações auxiliares, histórico, textos explicativos e suporte.]\n\n"
+        "### 11. Microcopy da Interface\n\n"
+        "| Elemento | Texto sugerido | Observação |\n"
+        "| --- | --- | --- |\n"
+        "| Título da tela | [Texto objetivo e operacional] | [Evitar promessa genérica] |\n"
+        "| Descrição curta | [Explicar a finalidade da tela] | [Uma ou duas frases no máximo] |\n"
+        "| CTA principal | [Salvar alterações / Enviar para análise] | [Verbo de ação claro] |\n"
+        "| Erro de validação | [Informe o ajuste necessário] | [Mensagem contextual] |\n"
+        "| Toast de sucesso | [Alterações salvas com sucesso] | [Confirmação curta] |\n\n"
+        "### 12. Responsividade\n\n"
+        "| Contexto | Requisito |\n"
+        "| --- | --- |\n"
+        "| Desktop | [Layout, colunas, largura, painéis laterais, tabela ou formulário completo] |\n"
+        "| Tablet | [Reorganização de colunas, navegação e ações] |\n"
+        "| Mobile | [Ordem das seções, ações fixas, campos em uma coluna, estados críticos] |\n\n"
+        "### 13. Acessibilidade\n\n"
+        "| Aspecto | Requisito |\n"
+        "| --- | --- |\n"
+        "| Labels | [Todos os campos possuem label persistente e claro] |\n"
+        "| Contraste | [Cores atendem leitura confortável e função semântica] |\n"
+        "| Navegação por teclado | [Foco visível e ordem lógica] |\n"
+        "| Mensagens de erro | [Erro próximo ao campo e linguagem acionável] |\n"
+        "| Leitores de tela | [Nomes acessíveis, estados e regiões relevantes] |\n\n"
+        "### 14. Critérios de Aceite da Interface\n\n"
+        "| Código | Critério |\n"
+        "| --- | --- |\n"
+        "| CA-RI-01 | A interface deve exibir os dados necessários ao usuário autenticado conforme permissão. |\n"
+        "| CA-RI-02 | A interface deve permitir edição apenas dos campos autorizados. |\n"
+        "| CA-RI-03 | Campos obrigatórios devem exibir validação quando não preenchidos. |\n"
+        "| CA-RI-04 | A ação principal deve responder aos estados de alteração, validação e salvamento. |\n"
+        "| CA-RI-05 | Após sucesso, a interface deve confirmar a operação ao usuário. |\n"
+        "| CA-RI-06 | Em caso de erro, a interface deve informar a falha e permitir nova tentativa. |\n"
+        "| CA-RI-07 | A interface deve exibir status, pendências ou bloqueios relevantes. |\n"
+        "| CA-RI-08 | A interface deve ser responsiva para desktop, tablet e mobile quando aplicável. |\n\n"
+        "### 15. Lacunas e Premissas\n\n"
+        "| Item | Tipo | Descrição |\n"
+        "| --- | --- | --- |\n"
+        "| 1 | Lacuna | [Informação ausente que impede decisão completa] |\n"
+        "| 2 | Premissa | [Suposição usada para avançar o RI] |\n"
+        "| 3 | Risco | [Risco de regra, dado, permissão ou experiência] |\n\n"
+        "### 16. Fora do Escopo\n\n"
+        "- [Item, comportamento, regra ou integração que não faz parte deste RI.]\n\n"
+        "### 17. Possíveis Evoluções Futuras\n\n"
+        "- [Melhoria futura, automação, componente avançado ou integração adicional.]\n"
+    )
+
 def _sdd_spec_dir(project: Project, create: bool = False) -> str:
     spec_dir = os.path.join(_sdd_documents_dir(project), "spec")
     if create:
@@ -4212,16 +4373,17 @@ def _sdd_strip_forbidden_req_sections(markdown: str) -> str:
     lines = (markdown or "").splitlines()
     kept = []
     skip = False
-    forbidden = ("design", "planejamento", "dri", "documento de requisito de interface", "task", "tasks", "tarefas", "execute", "implementação", "implementacao")
+    forbidden = ("design", "planejamento", "dri", "documento de requisito de interface", "task list", "tasks", "tarefas", "execute", "implementação", "implementacao")
 
     for line in lines:
         heading = re.match(r"^(#{2,6})\s*(?:\d+\.?\s*)?(.+)$", line.strip())
         if heading:
+            level = len(heading.group(1))
             normalized = heading.group(2).strip().lower()
-            if any(term in normalized for term in forbidden):
+            if level <= 2 and any(term in normalized for term in forbidden):
                 skip = True
                 continue
-            if skip and heading.group(1) == "##":
+            if skip and level <= 2:
                 skip = False
         if not skip:
             kept.append(line)
@@ -4248,22 +4410,27 @@ def _default_sdd_project_document(project: Project, kind: str) -> str:
             f"# {config['title']}\n\n"
             f"## Projeto\n\n{project_name}\n\n"
             "## 1. Arquitetura Proposta\n\n"
-            "Descreva as decisões técnicas, componentes impactados, dados, integrações e riscos do projeto.\n\n"
+            "Descreva as decisões técnicas, componentes impactados, dados, integrações, permissões, riscos e restrições do projeto.\n\n"
             "## 2. Fluxos Técnicos\n\n"
             "- \n\n"
-            "## 3. Estratégia de Validação\n\n"
+            "## 3. APIs, Eventos e Contratos\n\n"
+            "| Item | Contrato | Observação |\n"
+            "| --- | --- | --- |\n"
+            "| [Endpoint/evento] | [Entrada/saída] | [Risco ou dependência] |\n\n"
+            "## 4. Dados e Persistência\n\n"
+            "| Entidade | Origem | Persistência | Observação |\n"
+            "| --- | --- | --- | --- |\n"
+            "| [Entidade] | [UI/API/serviço] | [Banco/arquivo/cache] | [Regra] |\n\n"
+            "## 5. Segurança e Permissões\n\n"
+            "- \n\n"
+            "## 6. Estratégia de Validação\n\n"
             "- \n"
         )
     if kind == "dri":
         return (
             f"# {config['title']}\n\n"
             f"## Projeto\n\n{project_name}\n\n"
-            "## 1. Interfaces Mapeadas\n\n"
-            "Documente telas, estados, componentes, microcopy, responsividade e acessibilidade.\n\n"
-            "## 2. Regras de Interface\n\n"
-            "- \n\n"
-            "## 3. Critérios de Aceite da Interface\n\n"
-            "- [ ] \n"
+            f"{_dri_template()}\n"
         )
     if kind == "task":
         return (
@@ -4724,19 +4891,8 @@ def generate_sdd_spec(
         "3. \"markdown\": o arquivo Markdown do REQ.\n\n"
         "REGRA INQUEBRÁVEL: o Markdown deve conter APENAS Specify. É proibido gerar qualquer seção Design, Planejamento, DRI, Task List, Tasks, Tarefas, Execute ou Implementação.\n"
         "Design fica em .documents/design/design.md. DRI fica em .documents/dri/dri.md. Tasks ficam exclusivamente em .documents/task/task.md. O plano detalhado da task atual fica exclusivamente em .documents/task/task.details.md.\n\n"
-        "Use obrigatoriamente esta estrutura, sem adicionar outras seções de etapa:\n"
-        "- # [Título da Funcionalidade]\n"
-        "- ## 1. Specify - Especificação\n"
-        "- ### 1.1 Identificação e Metadados Básicos\n"
-        "- ### 1.2 Contexto\n"
-        "- ### 1.3 Objetivo Funcional\n"
-        "- ### 1.4 Descrição do Requisito\n"
-        "- ### 1.5 História de Usuário\n"
-        "- ### 1.6 Escopo Funcional\n"
-        "- ### 1.7 Regras de Negócio\n"
-        "- ### 1.8 Fluxos Funcionais\n"
-        "- ### 1.9 Critérios de Aceite\n"
-        "- ### 1.10 Rastreabilidade Funcional\n\n"
+        "Use obrigatoriamente o template completo abaixo como estrutura mínima. Não resuma, não remova seções e não troque nomes de seções:\n\n"
+        f"{_sdd_req_template('REQ-0000', '[Título / Resumo]')}\n\n"
         "Em Critérios de Aceite, use checklist Markdown '- [ ]'. Esses itens são critérios funcionais, NÃO tarefas técnicas.\n"
         "Em Rastreabilidade, informe que tarefas técnicas devem ser registradas separadamente em .documents/task/task.md, sem listar tarefas neste REQ.\n"
         "Não use termos genéricos como 'atualizar schema' ou 'usar biblioteca de popup' sem evidência no prompt; mantenha o requisito funcional e verificável.\n\n"
@@ -4762,6 +4918,21 @@ def generate_sdd_spec(
         markdown_content = _sdd_strip_forbidden_req_sections(parsed.get("markdown", ""))
         if not markdown_content:
             raise HTTPException(status_code=500, detail="A IA não retornou um Specify válido para o REQ.")
+        required_sections = [
+            "### 1.1 Identificação e Metadados Básicos",
+            "### 1.2 Contexto",
+            "### 1.3 Objetivo Funcional",
+            "### 1.4 Descrição do Requisito",
+            "### 1.5 História de Usuário",
+            "### 1.6 Regras de Negócio",
+            "### 1.7 Restrições e Premissas",
+            "### 1.8 Fora do Escopo",
+            "### 1.9 Critérios de Aceite",
+            "### 1.10 Rastreabilidade Funcional",
+        ]
+        missing_sections = [section for section in required_sections if section not in markdown_content]
+        if missing_sections:
+            raise HTTPException(status_code=500, detail=f"A IA retornou um REQ fora do template oficial. Seções ausentes: {', '.join(missing_sections)}")
         
         specs_dir = _sdd_spec_dir(project, create=True)
         spec_path = os.path.join(specs_dir, filename)
@@ -5085,11 +5256,153 @@ def _native_agent_ops_context(project: Project) -> str:
         f"Ops Infra VM: {access_summary}\n"
         "A IA nativa tem acesso operacional ao Ops Infra por ferramentas internas ops_infra_*.\n"
         "Sempre use essas ferramentas para VM/deploy/domínio/banco/Docker/Caddy/health check.\n"
+        "IDs no formato QA-XXXXXXXX pertencem à Central QA. Sempre use qa_get_annotation antes de inferir comando, teste ou arquivo.\n"
         "Operações destrutivas como down devem ser explicitamente confirmadas pelo usuário no pedido atual.\n"
     )
 
+def _read_project_text(project: Project, rel_path: str, max_chars: int = 6000) -> str:
+    safe_rel = rel_path.replace("\\", "/").lstrip("/")
+    target = os.path.abspath(os.path.join(project.path, safe_rel))
+    root = os.path.abspath(project.path)
+    if not target.startswith(root) or not os.path.exists(target) or not os.path.isfile(target):
+        return ""
+    try:
+        with open(target, "r", encoding="utf-8", errors="replace") as f:
+            return f.read(max_chars)
+    except Exception:
+        return ""
+
+def _find_req_document(project: Project, req_id: str) -> dict:
+    req_id = req_id.upper()
+    spec_dir = _sdd_spec_dir(project, create=False)
+    if not os.path.isdir(spec_dir):
+        return {}
+    for filename in sorted(os.listdir(spec_dir)):
+        if not filename.lower().endswith(".md"):
+            continue
+        path = os.path.join(spec_dir, filename)
+        try:
+            with open(path, "r", encoding="utf-8", errors="replace") as f:
+                content = f.read(12000)
+            if req_id in content.upper() or req_id.lower() in filename.lower():
+                return {
+                    "id": req_id,
+                    "filepath": os.path.relpath(path, project.path).replace("\\", "/"),
+                    "content": content,
+                }
+        except Exception:
+            continue
+    return {}
+
+def _find_task_context(project: Project, task_id: str) -> dict:
+    task_id = task_id.upper()
+    task_path = _sdd_project_document_path(project, "task")
+    details_path = _sdd_project_document_path(project, "task_details")
+    task_content = _read_project_text(project, os.path.relpath(task_path, project.path), 16000)
+    details_content = _read_project_text(project, os.path.relpath(details_path, project.path), 20000)
+    task_line = ""
+    for line in task_content.splitlines():
+        if task_id in line.upper():
+            task_line = line.strip()
+            break
+    details_section = ""
+    if details_content:
+        escaped = re.escape(task_id)
+        match = re.search(rf"(^##\s+Plano\s+[—-]\s+{escaped}[\s\S]*?)(?=^##\s+Plano\s+[—-]\s+TASK-|\Z)", details_content, re.IGNORECASE | re.MULTILINE)
+        if match:
+            details_section = match.group(1).strip()
+    return {
+        "id": task_id,
+        "task_file": ".documents/task/task.md",
+        "task_line": task_line,
+        "details_file": ".documents/task/task.details.md",
+        "details": details_section,
+    }
+
+def _native_agent_intent_context(project: Project, prompt: str) -> str:
+    """Cria contexto determinístico para IDs do Act IA antes da LLM decidir ferramentas."""
+    prompt_text = prompt or ""
+    parts = []
+    template_rules = (
+        "TEMPLATES OFICIAIS OBRIGATÓRIOS DO HARNESS:\n"
+        "- Esta regra vale para todos os documentos gerados ou revisados pelo agente, sem exceção.\n"
+        "- É proibido criar documento resumido, simplificado ou fora do template oficial.\n"
+        "- Um REQ com apenas Título, Descrição, Detalhes Técnicos e Prioridade/Severidade é inválido e deve ser refeito.\n"
+        "- REQ individual deve ficar em `.documents/spec/*.md` e conter obrigatoriamente: `## 1. Specify - Especificação Funcional`, `### 1.1 Identificação e Metadados Básicos`, `### 1.2 Contexto`, `### 1.3 Objetivo Funcional`, `### 1.4 Descrição do Requisito`, `### 1.5 História de Usuário`, `### 1.6 Regras de Negócio`, `### 1.7 Restrições e Premissas`, `### 1.8 Fora do Escopo`, `### 1.9 Critérios de Aceite` e `### 1.10 Rastreabilidade Funcional`.\n"
+        "- Design deve ficar em `.documents/design/design.md` e conter arquitetura proposta, fluxos técnicos, APIs/eventos/contratos, dados/persistência, segurança/permissões e estratégia de validação.\n"
+        "- DRI deve ficar em `.documents/dri/dri.md` e seguir o RI oficial completo com as seções 1 a 17, incluindo critérios de aceite da interface, lacunas/premissas, fora do escopo e evoluções futuras.\n"
+        "- Task List deve ficar em `.documents/task/task.md` e conter somente itens no formato `- [ ] TASK-REQ-0000-001: - Título curto` ou `- [ ] TASK-QA-XXXXXXXX-001: - Título curto`.\n"
+        "- Task Details deve ficar em `.documents/task/task.details.md`, ser acumulativo, nunca apagar seções anteriores e usar seções `## Plano — TASK-...` com objetivo, arquivos afetados, fora da task, validação prevista e frase de autorização.\n"
+        "- Para QA visual/layout enquadrado na exceção controlada, não crie REQ resumido: crie somente TASK-QA no task.md e detalhe completo no task.details.md.\n"
+        "- Se um documento existente estiver fora do formato oficial, primeiro corrija o documento para o template completo antes de avançar no fluxo.\n"
+    )
+
+    qa_ids = sorted(set(re.findall(r"\bQA-[A-Z0-9]{6,12}\b", prompt_text, flags=re.IGNORECASE)))
+    if qa_ids:
+        annotations = _read_qa_annotations(project)
+        for qa_id in qa_ids[:3]:
+            qa_upper = qa_id.upper()
+            item = next((entry for entry in annotations if str(entry.get("id", "")).upper() == qa_upper), None)
+            if item:
+                public = _qa_public_annotation(project, item)
+                public.pop("screenshot_data", None)
+                if isinstance(public.get("screenshot"), str) and public["screenshot"].startswith("data:"):
+                    public["screenshot"] = "[evidencia base64 omitida]"
+                parts.append(
+                    "INTENÇÃO DETECTADA: QA\n"
+                    f"QA ID: {qa_upper}\n"
+                    "Regra: este ID é uma anotação da Central QA, não um comando de terminal.\n"
+                    "Primeira ação obrigatória: use qa_get_annotation se precisar confirmar dados; não use git_status ou package.json como primeira ação.\n"
+                    "Fluxo esperado: entender a anotação, classificar se é ajuste visual/layout ou mudança funcional, criar/atualizar os documentos Harness no template oficial completo, executar mediante solicitação/validação e atualizar status QA quando concluído.\n"
+                    "Se for ajuste fino visual/layout sem impacto funcional/arquitetural, use a exceção controlada: crie TASK-QA em `.documents/task/task.md` e detalhe completo em `.documents/task/task.details.md`; não crie REQ resumido.\n"
+                    "Se for mudança funcional, crie/atualize REQ completo com seções 1.1 a 1.10, revise Design, revise DRI quando houver interface, crie Task List e Task Details antes de executar.\n"
+                    f"Anotação carregada: {json.dumps(public, ensure_ascii=False)[:5000]}"
+                )
+            else:
+                parts.append(
+                    "INTENÇÃO DETECTADA: QA\n"
+                    f"QA ID: {qa_upper}\n"
+                    "Regra: buscar com qa_get_annotation antes de qualquer outra ação. Se não encontrar, responda solicitando confirmar o ID. Nunca crie documento resumido para este QA."
+                )
+
+    task_ids = sorted(set(re.findall(r"\bTASK-(?:REQ-\d{2,6}|QA-[A-Z0-9-]+)-\d{3}\b", prompt_text, flags=re.IGNORECASE)))
+    for task_id in task_ids[:3]:
+        context = _find_task_context(project, task_id)
+        parts.append(
+            "INTENÇÃO DETECTADA: TASK\n"
+            f"Task ID: {context['id']}\n"
+            "Regra: este ID é uma tarefa Harness. Antes de executar, leia task.md e task.details.md; se detalhes estiverem ausentes ou resumidos, crie/atualize o plano detalhado no template oficial e aguarde aprovação.\n"
+            f"Linha em task.md: {context.get('task_line') or '[não encontrada]'}\n"
+            f"Detalhes em task.details.md: {(context.get('details') or '[não encontrado]')[:5000]}"
+        )
+
+    req_ids = sorted(set(re.findall(r"\bREQ-\d{2,6}\b", prompt_text, flags=re.IGNORECASE)))
+    for req_id in req_ids[:3]:
+        context = _find_req_document(project, req_id)
+        if context:
+            parts.append(
+                "INTENÇÃO DETECTADA: REQ\n"
+                f"REQ ID: {context['id']}\n"
+                "Regra: este ID é um requisito funcional. Leia/revise o REQ antes de Design/DRI/Task/Execute. Se o conteúdo estiver resumido ou sem as seções 1.1 a 1.10, corrija o REQ para o template oficial completo antes de avançar.\n"
+                f"Arquivo: {context['filepath']}\n"
+                f"Conteúdo: {context['content'][:5000]}"
+            )
+        else:
+            parts.append(
+                "INTENÇÃO DETECTADA: REQ\n"
+                f"REQ ID: {req_id.upper()}\n"
+                "Regra: tente localizar em .documents/spec. Se não existir, crie o REQ antes de qualquer execução técnica usando obrigatoriamente o template oficial completo com seções 1.1 a 1.10."
+            )
+
+    if not parts:
+        return template_rules
+    return template_rules + "\n\n---\n\n" + "\n\n---\n\n".join(parts)
+
 def _native_agent_ops_tool_descriptions() -> list:
     return [
+        "- `qa_get_annotation(annotation_id: str)`: Busca uma anotação QA por ID (ex: QA-D3F8D1C8) em .documents/qa/annotations.json antes de qualquer tentativa de executar comando.",
+        "- `qa_list_annotations(status: Optional[str])`: Lista anotações QA resumidas, opcionalmente filtradas por status.",
+        "- `qa_update_annotation_status(annotation_id: str, status: str)`: Atualiza status de uma anotação QA para aberta, em_revisao ou resolvida.",
         "- `ops_infra_status()`: Mostra stack detectada, VM cadastrada e capacidades de Ops Infra disponíveis.",
         "- `ops_infra_generate_public_key()`: Gera par de chaves SSH do Act IA e retorna somente a chave pública para instalar na VM.",
         "- `ops_infra_test_ssh()`: Testa conexão SSH cadastrada e valida Docker/Compose quando possível.",
@@ -5114,6 +5427,73 @@ def _native_agent_json(payload: dict) -> str:
 def _native_agent_ops_tool(tool_name: str):
     def _handler(db: Session, project: Project, args: dict) -> str:
         try:
+            if tool_name == "qa_get_annotation":
+                annotation_id = (args.get("annotation_id") or args.get("id") or "").strip().upper()
+                if not annotation_id:
+                    raise HTTPException(status_code=400, detail="Informe annotation_id.")
+                annotations = _read_qa_annotations(project)
+                item = next((entry for entry in annotations if str(entry.get("id", "")).upper() == annotation_id), None)
+                if not item:
+                    return _native_agent_json({
+                        "status": "not_found",
+                        "annotation_id": annotation_id,
+                        "message": f"Anotação QA não encontrada: {annotation_id}",
+                        "available_ids": [entry.get("id") for entry in annotations[:20]],
+                    })
+                public = _qa_public_annotation(project, item)
+                public.pop("screenshot_data", None)
+                if isinstance(public.get("screenshot"), str) and public["screenshot"].startswith("data:"):
+                    public["screenshot"] = "[evidencia base64 omitida; use a tela QA para visualizar]"
+                return _native_agent_json({"status": "success", "annotation": public})
+
+            if tool_name == "qa_list_annotations":
+                status_filter = (args.get("status") or "").strip() or None
+                annotations = _qa_filtered_annotations(project, status_filter)
+                rows = []
+                for item in annotations[:50]:
+                    rows.append({
+                        "id": item.get("id"),
+                        "title": item.get("title"),
+                        "status": item.get("status"),
+                        "severity": item.get("severity"),
+                        "category": item.get("category"),
+                        "url": item.get("url"),
+                        "created_at": item.get("created_at"),
+                        "description": str(item.get("description") or "")[:240],
+                    })
+                return _native_agent_json({"status": "success", "total": len(annotations), "annotations": rows})
+
+            if tool_name == "qa_update_annotation_status":
+                annotation_id = (args.get("annotation_id") or args.get("id") or "").strip().upper()
+                new_status = (args.get("status") or "").strip().lower()
+                aliases = {
+                    "aberta": "aberta",
+                    "open": "aberta",
+                    "em revisão": "em_revisao",
+                    "em_revisao": "em_revisao",
+                    "review": "em_revisao",
+                    "resolvida": "resolvida",
+                    "resolvido": "resolvida",
+                    "resolved": "resolvida",
+                }
+                normalized_status = aliases.get(new_status)
+                if not annotation_id or not normalized_status:
+                    raise HTTPException(status_code=400, detail="Informe annotation_id e status válido: aberta, em_revisao ou resolvida.")
+                annotations = _read_qa_annotations(project)
+                changed = False
+                for item in annotations:
+                    if str(item.get("id", "")).upper() == annotation_id:
+                        item["status"] = normalized_status
+                        item["updated_at"] = datetime.utcnow().isoformat() + "Z"
+                        changed = True
+                        break
+                if not changed:
+                    return _native_agent_json({"status": "not_found", "annotation_id": annotation_id})
+                _write_qa_annotations(project, annotations)
+                db.add(ActivityLog(project_id=project.id, action_type="QA_STATUS_UPDATED", details=f"[Agente] {annotation_id} -> {normalized_status}"))
+                db.commit()
+                return _native_agent_json({"status": "success", "annotation_id": annotation_id, "new_status": normalized_status})
+
             if tool_name == "ops_infra_status":
                 return _native_agent_json({
                     "status": "success",
@@ -5300,6 +5680,9 @@ def _native_agent_ops_tool(tool_name: str):
 
 def _native_agent_ops_tools() -> dict:
     names = [
+        "qa_get_annotation",
+        "qa_list_annotations",
+        "qa_update_annotation_status",
         "ops_infra_status",
         "ops_infra_generate_public_key",
         "ops_infra_test_ssh",
@@ -5355,6 +5738,78 @@ def list_ollama_models(base_url: str = Query("http://127.0.0.1:11434", descripti
     except Exception as e:
         return {"status": "error", "base_url": clean_url, "models": [], "message": str(e)}
 
+def _agent_history_path(project: Project) -> str:
+    agent_dir = os.path.join(project.path, ".documents", "agent")
+    os.makedirs(agent_dir, exist_ok=True)
+    return os.path.join(agent_dir, "history.json")
+
+def _sanitize_agent_history_payload(payload: dict) -> dict:
+    messages = payload.get("messages") if isinstance(payload, dict) else []
+    workflow = payload.get("workflow") if isinstance(payload, dict) else []
+    clean_messages = []
+    clean_workflow = []
+    for item in messages[-80:] if isinstance(messages, list) else []:
+        if not isinstance(item, dict):
+            continue
+        role = item.get("role")
+        content = str(item.get("content") or "")[:12000]
+        if role in {"user", "assistant"} and content:
+            clean_messages.append({
+                "role": role,
+                "content": content,
+                "created_at": item.get("created_at") or datetime.utcnow().isoformat() + "Z",
+            })
+    for item in workflow[-120:] if isinstance(workflow, list) else []:
+        if not isinstance(item, dict):
+            continue
+        event_type = str(item.get("type") or "status")[:40]
+        title = str(item.get("title") or "")[:160]
+        body = str(item.get("body") or "")[:2000]
+        if body or title:
+            clean_workflow.append({
+                "type": event_type,
+                "title": title,
+                "body": body,
+                "created_at": item.get("created_at") or datetime.utcnow().isoformat() + "Z",
+            })
+    return {
+        "version": 1,
+        "updated_at": datetime.utcnow().isoformat() + "Z",
+        "messages": clean_messages,
+        "workflow": clean_workflow,
+    }
+
+@app.get("/api/projects/{project_id}/agent/history", tags=["Agente IA"])
+def get_agent_history(project: Project = Depends(get_project_or_404)):
+    """Carrega o histórico persistido do Agente IA no projeto ativo."""
+    filepath = _agent_history_path(project)
+    if not os.path.exists(filepath):
+        return {"status": "success", "messages": [], "workflow": [], "updated_at": None}
+    try:
+        with open(filepath, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        clean = _sanitize_agent_history_payload(data)
+        return {"status": "success", **clean}
+    except Exception as e:
+        return {"status": "error", "messages": [], "workflow": [], "message": str(e)}
+
+@app.put("/api/projects/{project_id}/agent/history", tags=["Agente IA"])
+def save_agent_history(req: AgentHistorySaveRequest, project: Project = Depends(get_project_or_404)):
+    """Persiste o histórico visual e operacional do Agente IA no projeto ativo."""
+    filepath = _agent_history_path(project)
+    payload = _sanitize_agent_history_payload(req.model_dump())
+    with open(filepath, "w", encoding="utf-8") as f:
+        json.dump(payload, f, ensure_ascii=False, indent=2)
+    return {"status": "success", "filepath": ".documents/agent/history.json", "updated_at": payload["updated_at"]}
+
+@app.delete("/api/projects/{project_id}/agent/history", tags=["Agente IA"])
+def clear_agent_history(project: Project = Depends(get_project_or_404)):
+    """Limpa o histórico persistido do Agente IA no projeto ativo."""
+    filepath = _agent_history_path(project)
+    if os.path.exists(filepath):
+        os.remove(filepath)
+    return {"status": "success", "message": "Histórico do agente limpo."}
+
 @app.post("/api/projects/{project_id}/agent/run", tags=["Agente IA"])
 def run_agent(project_id: int, 
               req: AgentChatRequest, 
@@ -5365,15 +5820,20 @@ def run_agent(project_id: int,
     Retorna Server-Sent Events (SSE).
     """
     config = agent.load_agent_config()
+    runtime_context = _native_agent_ops_context(project)
+    intent_context = _native_agent_intent_context(project, req.prompt)
+    if intent_context:
+        runtime_context += "\n\nROTEAMENTO DETERMINÍSTICO DO PEDIDO:\n" + intent_context
     return StreamingResponse(
         agent.run_agent_loop(
             db,
             project,
             config,
             req.prompt,
+            conversation_history=req.history or [],
             extra_tools=_native_agent_ops_tools(),
             extra_tool_descriptions=_native_agent_ops_tool_descriptions(),
-            system_context=_native_agent_ops_context(project),
+            system_context=runtime_context,
         ),
         media_type="text/event-stream"
     )

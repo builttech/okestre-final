@@ -44,6 +44,13 @@ REGRAS CRÍTICAS:
 6. Para operações de VM, deploy, domínio, banco, Docker, Caddy, health check ou comandos remotos, use exclusivamente as ferramentas ops_infra_* disponíveis. Nunca responda que não tem acesso ao Ops Infra se essas ferramentas estiverem listadas.
 7. Não pule etapas: analise, gere/atualize documentação quando aplicável, aguarde validação quando o fluxo exigir, execute uma tarefa por vez e verifique o resultado.
 8. Não exponha secrets, senhas, chaves privadas ou tokens em respostas finais, pensamentos ou argumentos.
+9. `final_answer` NÃO é ferramenta. Nunca use `"tool": "final_answer"`. Para concluir, use somente o campo `"final_answer"`.
+10. Nunca chame ferramenta sem preencher todos os argumentos obrigatórios.
+11. IDs no formato `QA-XXXXXXXX` são anotações da Central QA. Para qualquer pedido envolvendo um QA ID, use primeiro `qa_get_annotation(annotation_id)`.
+12. Se o contrato operacional já trouxe conteúdo de REQ, QA ou TASK, use esse conteúdo como fonte inicial. Não tente reler arquivos aleatórios antes de aplicar o roteamento informado.
+13. Ao criar ou revisar documentos Harness, use sempre os templates oficiais completos. É proibido gerar REQ, Design, DRI, Task List ou Task Details em formato resumido.
+14. Um REQ com apenas Título, Descrição, Detalhes Técnicos e Prioridade/Severidade é inválido. Todo REQ deve conter as seções 1.1 a 1.10 do template oficial.
+15. Para QA visual/layout enquadrado na exceção controlada, não crie REQ resumido. Crie somente TASK-QA em `.documents/task/task.md` e plano completo em `.documents/task/task.details.md`.
 """
 
 def load_agent_config():
@@ -81,6 +88,23 @@ def _safe_read_instruction(project_path: str, filename: str, max_chars: int = 12
     except Exception:
         return ""
 
+
+def _safe_read_instruction(project_path: str, filename: str, max_chars: int = 12000) -> str:
+    if not re.match(r"^[A-Z0-9_./-]+\.md$", filename, re.IGNORECASE):
+        return ""
+    path = os.path.abspath(os.path.join(project_path, filename))
+    root = os.path.abspath(project_path)
+    if not path.startswith(root):
+        return ""
+    if not os.path.exists(path):
+        return ""
+    try:
+        with open(path, "r", encoding="utf-8", errors="replace") as f:
+            content = f.read(max_chars)
+        return content
+    except Exception:
+        return ""
+
 def save_agent_config(config_data):
     os.makedirs(CONFIG_DIR, exist_ok=True)
     with open(AGENT_CONFIG_PATH, 'w') as f:
@@ -88,7 +112,10 @@ def save_agent_config(config_data):
 
 def extract_json(response_text: str) -> dict:
     # Remove marcações de bloco de código markdown
-    clean_text = response_text.strip()
+    clean_text = (response_text or "").strip()
+    if not clean_text:
+        raise ValueError("O modelo não retornou nenhuma resposta (string vazia). Verifique a conexão com a API ou se o provedor está sobrecarregado.")
+        
     match = re.search(r'```(?:json)?\s*(\{.*?\})\s*```', clean_text, re.DOTALL)
     if match:
         try:
@@ -103,7 +130,12 @@ def extract_json(response_text: str) -> dict:
         except Exception:
             pass
             
-    return json.loads(clean_text)
+    try:
+        return json.loads(clean_text)
+    except Exception as e:
+        # Pega as primeiras 100 caracteres para depuração
+        snippet = clean_text[:100].replace('\n', ' ')
+        raise ValueError(f"O modelo retornou texto que não é um JSON válido: '{snippet}...'. Detalhes: {e}")
 
 def _compact_tool_result_for_local_model(tool_result: str, max_chars: int = 2200) -> str:
     try:
@@ -357,7 +389,7 @@ def execute_agent_tool(db: Session, project: Project, tool_name: str, args: dict
     except Exception as e:
         return json.dumps({"status": "error", "message": str(e)})
 
-def run_agent_loop(db: Session, project: Project, config: dict, user_prompt: str, extra_tools: dict = None, extra_tool_descriptions: list = None, system_context: str = ""):
+def run_agent_loop(db: Session, project: Project, config: dict, user_prompt: str, conversation_history: list = None, extra_tools: dict = None, extra_tool_descriptions: list = None, system_context: str = ""):
     """
     Roda a thread do agente em loop.
     Yields chunks de JSON contendo progresso, pensamentos e ações.
@@ -437,18 +469,30 @@ def run_agent_loop(db: Session, project: Project, config: dict, user_prompt: str
             "- Use pensamento com no máximo 1 frase.\n"
             "- Só chame ferramenta quando necessário.\n"
             "- Se a resposta puder ser direta, use final_answer sem consultar ferramentas.\n"
+            "- final_answer é um campo JSON, não uma ferramenta.\n"
+            "- Não use tool sem args obrigatórios; se faltar informação, pergunte usando final_answer.\n"
             "- Não resuma resultados longos; diga o essencial e próximo passo.\n"
         )
     
-    messages = [
-        {"role": "user", "content": user_prompt}
-    ]
+    messages = []
+    for item in (conversation_history or [])[-12:]:
+        if not isinstance(item, dict):
+            continue
+        role = item.get("role")
+        content = str(item.get("content") or "").strip()
+        if role in {"user", "assistant"} and content:
+            messages.append({"role": role, "content": content[:4000]})
+    messages.append({"role": "user", "content": user_prompt})
     
     max_steps = 12 if is_ollama else 50
     step = 0
     
     yield f"data: {json.dumps({'type': 'start', 'prompt': user_prompt})}\n\n"
     
+    last_thought = ""
+    last_tool = ""
+    last_tool_result = ""
+
     while step < max_steps:
         step += 1
         yield f"data: {json.dumps({'type': 'status', 'content': f'Raciocinando (Passo {step})...'})}\n\n"
@@ -477,7 +521,19 @@ def run_agent_loop(db: Session, project: Project, config: dict, user_prompt: str
         tool = parsed.get("tool")
         args = parsed.get("args", {})
         final_answer = parsed.get("final_answer")
-        
+        last_thought = str(thought or "")
+
+        if tool == "final_answer":
+            final_answer = (
+                parsed.get("final_answer")
+                or (args.get("content") if isinstance(args, dict) else None)
+                or (args.get("message") if isinstance(args, dict) else None)
+                or (args.get("answer") if isinstance(args, dict) else None)
+                or parsed.get("content")
+                or thought
+            )
+            tool = None
+
         # Envia pensamento
         yield f"data: {json.dumps({'type': 'thought', 'content': thought})}\n\n"
         
@@ -502,6 +558,8 @@ def run_agent_loop(db: Session, project: Project, config: dict, user_prompt: str
 
             # Log de tool result
             yield f"data: {json.dumps({'type': 'tool_result', 'tool': tool, 'result': model_tool_result})}\n\n"
+            last_tool = str(tool or "")
+            last_tool_result = str(model_tool_result or "")
             
             # Adiciona ao histórico do chat
             messages.append({"role": "assistant", "content": json.dumps(parsed)})
@@ -509,6 +567,15 @@ def run_agent_loop(db: Session, project: Project, config: dict, user_prompt: str
         else:
             # Caso não tenha nem resposta final e nem ferramenta (erro de formatação da LLM)
             messages.append({"role": "assistant", "content": raw_response})
-            messages.append({"role": "user", "content": "Erro: Você deve escolher uma ferramenta ou fornecer uma final_answer."})
-            
-    yield f"data: {json.dumps({'type': 'error', 'content': 'Limite máximo de 50 passos do agente atingido.'})}\n\n"
+            messages.append({"role": "user", "content": "Erro de contrato: responda com uma ferramenta válida ou com o campo final_answer. Se não houver próxima ação objetiva, finalize com final_answer."})
+
+    summary = (
+        f"Interrompi a execução após atingir o limite operacional de {max_steps} passos para evitar loop.\n\n"
+        f"**Último pensamento registrado:** {last_thought or 'Não informado.'}\n\n"
+        f"**Última ferramenta usada:** {last_tool or 'Nenhuma.'}\n\n"
+        "Para continuar com segurança, confirme a próxima ação objetiva ou informe a task/QA/REQ que devo executar. "
+        "Se a intenção era executar um QA, envie o ID no formato `QA-XXXXXXXX` para eu buscar a anotação antes de qualquer comando."
+    )
+    if last_tool_result:
+        summary += f"\n\n**Último resultado resumido:** `{last_tool_result[:900]}`"
+    yield f"data: {json.dumps({'type': 'final', 'content': summary})}\n\n"

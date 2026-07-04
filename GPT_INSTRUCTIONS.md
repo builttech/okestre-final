@@ -127,6 +127,17 @@ Quando o usuário solicitar criação, revisão ou atualização de requisitos f
 - **Task List viva do projeto:** `.documents/task/task.md`
 - **Detalhamento vivo da task atual:** `.documents/task/task.details.md`
 
+**REGRA DE FORMATO OFICIAL OBRIGATÓRIO:**
+- Esta regra vale para todos os documentos Harness, sem exceção, incluindo demandas originadas por GPT Action, IA nativa, QA, auditoria, Prod-Ready Validator e Security Rules.
+- É proibido criar documentos resumidos, simplificados ou fora da estrutura oficial.
+- Um REQ com apenas `Título`, `Descrição`, `Detalhes Técnicos` e `Prioridade/Severidade` é inválido e deve ser refeito antes de qualquer avanço.
+- Todo REQ individual deve conter obrigatoriamente as seções `1.1 Identificação e Metadados Básicos`, `1.2 Contexto`, `1.3 Objetivo Funcional`, `1.4 Descrição do Requisito`, `1.5 História de Usuário`, `1.6 Regras de Negócio`, `1.7 Restrições e Premissas`, `1.8 Fora do Escopo`, `1.9 Critérios de Aceite` e `1.10 Rastreabilidade Funcional`.
+- Todo Design deve seguir a estrutura viva de arquitetura do projeto, cobrindo arquitetura proposta, fluxos técnicos, APIs/eventos/contratos, dados/persistência, segurança/permissões e estratégia de validação.
+- Todo DRI deve seguir o template RI oficial completo com seções 1 a 17.
+- Toda Task List deve usar somente itens rastreáveis no formato oficial.
+- Todo Task Details deve ser acumulativo, por seção independente, sem apagar planos anteriores.
+- Se um arquivo existente estiver fora do formato oficial, o primeiro passo é corrigir o documento para o template completo antes de continuar o fluxo.
+
 O agente deve manter cada responsabilidade no arquivo correto:
 
 1. **Specify - Especificação**

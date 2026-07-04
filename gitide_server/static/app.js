@@ -37,6 +37,11 @@ const state = {
     opsVmAccess: null,
     opsVmBrowserPath: '/',
 
+    // Native Agent
+    agentChatMessages: [],
+    agentWorkflowEvents: [],
+    agentHistoryLoadedProjectId: null,
+
     // QA
     qaAnnotations: [],
     qaView: 'list',
@@ -5794,33 +5799,19 @@ function setupEventListeners() {
     // Novo Cabeçalho do Chat & Ações
     const btnAgentHistory = document.getElementById('btn-agent-history');
     if (btnAgentHistory) {
-        btnAgentHistory.addEventListener('click', () => {
-            alert('Histórico de conversas do Agente IA (Em breve)');
+        btnAgentHistory.addEventListener('click', async () => {
+            await loadAgentHistory(true);
+            gitideNotify({
+                title: 'Histórico carregado',
+                message: `${state.agentChatMessages.length} mensagem(ns) em .documents/agent/history.json.`,
+                variant: 'info'
+            });
         });
     }
     
     const btnClearAgentChat = document.getElementById('btn-clear-agent-chat');
     if (btnClearAgentChat) {
-        btnClearAgentChat.addEventListener('click', () => {
-            const chatHistory = document.getElementById('agent-chat-history');
-            if (chatHistory) {
-                chatHistory.innerHTML = `
-                    <div class="agent-chat-welcome" style="text-align: center; color: var(--text-muted); margin: auto; max-width: 480px; padding: 20px;">
-                        <i class="fa-solid fa-robot" style="font-size: 48px; color: var(--color-primary); margin-bottom: 14px;"></i>
-                        <h3>Olá! Eu sou o Agente IA Local do Act IA</h3>
-                        <p style="font-size: 13px; margin-top: 8px;">Dê-me um objetivo e eu usarei as ferramentas locais (Arquivos, Git, Terminal, SQL) para resolver de forma autônoma. Configure sua chave API nas <a href="#" id="link-welcome-settings" style="color: var(--color-primary); text-decoration: underline;">Configurações</a> para começar.</p>
-                    </div>
-                `;
-                // Re-bind click event since we replaced the HTML
-                const newLink = document.getElementById('link-welcome-settings');
-                if (newLink) {
-                    newLink.addEventListener('click', (ev) => {
-                        ev.preventDefault();
-                        switchTab('tab-settings');
-                    });
-                }
-            }
-        });
+        btnClearAgentChat.addEventListener('click', clearAgentHistory);
     }
     
     // Ações Rápidas (Explain, Bugs, Tests, Refactor)
@@ -7628,10 +7619,15 @@ async function loadAgentConfig() {
             promptInput.disabled = false;
             sendBtn.disabled = false;
             promptInput.placeholder = "O que deseja que o agente faça? (ex: 'Crie um teste unitário para vcs.py' ou 'Corrija o gitignore')";
+            await loadAgentHistory();
         } else {
             promptInput.disabled = true;
             sendBtn.disabled = true;
             promptInput.placeholder = "Selecione um projeto ativo para iniciar o agente.";
+            state.agentChatMessages = [];
+            state.agentWorkflowEvents = [];
+            state.agentHistoryLoadedProjectId = null;
+            renderAgentChatHistory();
         }
         
         // Configura ferramentas
@@ -7687,6 +7683,158 @@ async function saveAgentConfigToServer() {
         loadAgentConfig();
     } catch (err) {
         alert('Erro ao salvar configuração: ' + err.message);
+    }
+}
+
+function getAgentWelcomeHtml() {
+    return `
+        <div class="agent-chat-welcome">
+            <i data-lucide="bot"></i>
+            <h3>Olá! Eu sou o Agente IA Local do Act IA</h3>
+            <p>Dê-me um objetivo e eu usarei as ferramentas locais, Git, Terminal, SQL e Ops Infra seguindo o fluxo Harness. Configure o modelo nas <a href="#" id="link-welcome-settings">Configurações</a> para começar.</p>
+        </div>
+    `;
+}
+
+function bindAgentWelcomeSettingsLink() {
+    const link = document.getElementById('link-welcome-settings');
+    if (link) {
+        link.addEventListener('click', (e) => {
+            e.preventDefault();
+            switchTab('tab-settings');
+        });
+    }
+}
+
+function renderAgentUserMessage(content) {
+    const userMsg = document.createElement('div');
+    userMsg.className = 'user-message-wrapper';
+    userMsg.style.cssText = 'display: flex; justify-content: flex-end; align-self: flex-end; max-width: 85%; margin-bottom: 14px; margin-left: auto;';
+    userMsg.innerHTML = `
+        <div style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color); border-radius: 12px; padding: 12px 16px; color: var(--text-light); font-size: 13px; line-height: 1.5; font-family: inherit;">
+            ${escapeHtml(content)}
+        </div>
+    `;
+    return userMsg;
+}
+
+function renderAgentAssistantMessage(content) {
+    const agentMsg = document.createElement('div');
+    agentMsg.className = 'agent-message-wrapper agent-assistant-message';
+    agentMsg.innerHTML = `
+        <div class="agent-message-avatar">
+            <i data-lucide="bot"></i>
+        </div>
+        <div class="agent-message-text">
+            ${formatAgentMessage(content)}
+        </div>
+    `;
+    return agentMsg;
+}
+
+function renderAgentChatHistory() {
+    const chatHistory = document.getElementById('agent-chat-history');
+    if (!chatHistory) return;
+    chatHistory.innerHTML = '';
+    if (!state.agentChatMessages.length) {
+        chatHistory.innerHTML = getAgentWelcomeHtml();
+        bindAgentWelcomeSettingsLink();
+    } else {
+        state.agentChatMessages.forEach(message => {
+            const node = message.role === 'user'
+                ? renderAgentUserMessage(message.content)
+                : renderAgentAssistantMessage(message.content);
+            chatHistory.appendChild(node);
+        });
+    }
+    if (window.lucide) lucide.createIcons();
+    chatHistory.scrollTop = chatHistory.scrollHeight;
+}
+
+function renderAgentWorkflowHistory() {
+    const monitor = document.getElementById('agent-monitor');
+    const monitorLogs = document.getElementById('agent-monitor-logs');
+    if (!monitor || !monitorLogs) return;
+    monitorLogs.innerHTML = '';
+    if (!state.agentWorkflowEvents.length) {
+        monitor.style.display = 'none';
+        return;
+    }
+    monitor.style.display = 'block';
+    state.agentWorkflowEvents.slice(-12).forEach(event => {
+        appendAgentMonitorEvent(monitorLogs, monitor, {
+            type: event.type || 'status',
+            content: event.body || event.title || '',
+            result: event.body || '',
+            tool: event.title || ''
+        }, false);
+    });
+}
+
+function getRecentAgentContext() {
+    return state.agentChatMessages
+        .filter(message => ['user', 'assistant'].includes(message.role) && message.content)
+        .slice(-12)
+        .map(message => ({ role: message.role, content: message.content }));
+}
+
+async function persistAgentHistory() {
+    if (!state.activeProjectId) return;
+    try {
+        await fetch(`/api/projects/${state.activeProjectId}/agent/history`, {
+            method: 'PUT',
+            headers: {
+                ...getHeaders(),
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                messages: state.agentChatMessages,
+                workflow: state.agentWorkflowEvents
+            })
+        });
+    } catch (err) {
+        console.warn('Falha ao salvar histórico do agente:', err);
+    }
+}
+
+async function loadAgentHistory(force = false) {
+    if (!state.activeProjectId) return;
+    if (!force && state.agentHistoryLoadedProjectId === state.activeProjectId) {
+        renderAgentChatHistory();
+        return;
+    }
+    try {
+        const res = await fetch(`/api/projects/${state.activeProjectId}/agent/history`, { headers: getHeaders() });
+        const data = await res.json();
+        state.agentChatMessages = Array.isArray(data.messages) ? data.messages : [];
+        state.agentWorkflowEvents = Array.isArray(data.workflow) ? data.workflow : [];
+        state.agentHistoryLoadedProjectId = state.activeProjectId;
+        renderAgentChatHistory();
+        renderAgentWorkflowHistory();
+    } catch (err) {
+        console.warn('Falha ao carregar histórico do agente:', err);
+        renderAgentChatHistory();
+        renderAgentWorkflowHistory();
+    }
+}
+
+async function clearAgentHistory() {
+    state.agentChatMessages = [];
+    state.agentWorkflowEvents = [];
+    renderAgentChatHistory();
+    const monitor = document.getElementById('agent-monitor');
+    const monitorLogs = document.getElementById('agent-monitor-logs');
+    if (monitorLogs) monitorLogs.innerHTML = '';
+    if (monitor) monitor.style.display = 'none';
+    if (!state.activeProjectId) return;
+    try {
+        await fetch(`/api/projects/${state.activeProjectId}/agent/history`, {
+            method: 'DELETE',
+            headers: getHeaders()
+        });
+        gitideNotify({ title: 'Histórico limpo', message: 'A conversa do agente foi removida deste projeto.', variant: 'success' });
+    } catch (err) {
+        gitideNotify({ title: 'Erro ao limpar', message: err.message, variant: 'danger' });
     }
 }
 
@@ -7772,7 +7920,7 @@ function formatToolArgs(args) {
         .join(' | ');
 }
 
-function appendAgentMonitorEvent(monitorLogs, monitor, event) {
+function appendAgentMonitorEvent(monitorLogs, monitor, event, shouldStore = true) {
     const meta = getAgentMonitorMeta(event);
     const div = document.createElement('div');
     div.className = `agent-workflow-item ${event.type || 'status'}`;
@@ -7784,6 +7932,15 @@ function appendAgentMonitorEvent(monitorLogs, monitor, event) {
         </span>
     `;
     monitorLogs.appendChild(div);
+    if (shouldStore) {
+        state.agentWorkflowEvents.push({
+            type: event.type || 'status',
+            title: meta.title,
+            body: meta.body,
+            created_at: new Date().toISOString()
+        });
+        state.agentWorkflowEvents = state.agentWorkflowEvents.slice(-120);
+    }
     if (window.lucide) lucide.createIcons();
     monitor.scrollTop = monitor.scrollHeight;
 }
@@ -7809,20 +7966,14 @@ async function sendPromptToAgent(e) {
     const monitor = document.getElementById('agent-monitor');
     const monitorLogs = document.getElementById('agent-monitor-logs');
     
-    // Remove welcome msg se existir
-    const welcome = chatHistory.querySelector('.agent-chat-welcome');
-    if (welcome) welcome.remove();
-    
-    // Adiciona balão do usuário
-    const userMsg = document.createElement('div');
-    userMsg.className = 'user-message-wrapper';
-    userMsg.style.cssText = 'display: flex; justify-content: flex-end; align-self: flex-end; max-width: 85%; margin-bottom: 14px; margin-left: auto;';
-    userMsg.innerHTML = `
-        <div style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color); border-radius: 12px; padding: 12px 16px; color: var(--text-light); font-size: 13px; line-height: 1.5; font-family: inherit;">
-            ${escapeHtml(prompt)}
-        </div>
-    `;
-    chatHistory.appendChild(userMsg);
+    const historyContext = getRecentAgentContext();
+    state.agentChatMessages.push({
+        role: 'user',
+        content: prompt,
+        created_at: new Date().toISOString()
+    });
+    state.agentChatMessages = state.agentChatMessages.slice(-80);
+    renderAgentChatHistory();
     chatHistory.scrollTop = chatHistory.scrollHeight;
     
     // Exibe monitor e limpa logs
@@ -7837,7 +7988,7 @@ async function sendPromptToAgent(e) {
                 ...getHeaders(),
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ prompt })
+            body: JSON.stringify({ prompt, history: historyContext })
         });
         
         if (!response.ok) {
@@ -7866,19 +8017,13 @@ async function sendPromptToAgent(e) {
                             appendAgentMonitorEvent(monitorLogs, monitor, event);
                         }
                         else if (event.type === 'final') {
-                            // Cria balão do agente com a resposta final
-                            const agentMsg = document.createElement('div');
-                            agentMsg.className = 'agent-message-wrapper agent-assistant-message';
-                            agentMsg.innerHTML = `
-                                <div class="agent-message-avatar">
-                                    <i data-lucide="bot"></i>
-                                </div>
-                                <div class="agent-message-text">
-                                    ${formatAgentMessage(event.content)}
-                                </div>
-                            `;
-                            chatHistory.appendChild(agentMsg);
-                            if (window.lucide) lucide.createIcons();
+                            state.agentChatMessages.push({
+                                role: 'assistant',
+                                content: event.content,
+                                created_at: new Date().toISOString()
+                            });
+                            state.agentChatMessages = state.agentChatMessages.slice(-80);
+                            renderAgentChatHistory();
                             chatHistory.scrollTop = chatHistory.scrollHeight;
                         } 
                         else if (event.type === 'error') {
@@ -7894,6 +8039,7 @@ async function sendPromptToAgent(e) {
     } catch (err) {
         appendAgentMonitorEvent(monitorLogs, monitor, { type: 'error', content: `Falha na conexão: ${err.message}` });
     } finally {
+        await persistAgentHistory();
         promptInput.disabled = false;
         document.getElementById('btn-send-agent-prompt').disabled = false;
         promptInput.focus();
@@ -10724,7 +10870,8 @@ function renderMentionDropdown(input, lastAtIndex, query) {
         dropdown.style.cssText = `
             display: none !important;
             position: absolute !important;
-            bottom: 95px !important;
+            bottom: 100% !important;
+            margin-bottom: 8px !important;
             left: 20px !important;
             right: 20px !important;
             background: rgba(22, 22, 22, 0.98) !important;
