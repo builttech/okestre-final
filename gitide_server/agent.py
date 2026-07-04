@@ -1,6 +1,7 @@
 import os
 import json
 import re
+import ast
 import subprocess
 import requests
 from datetime import datetime
@@ -110,29 +111,96 @@ def save_agent_config(config_data):
     with open(AGENT_CONFIG_PATH, 'w') as f:
         json.dump(config_data, f, indent=4)
 
+def _balanced_json_candidates(text: str) -> list:
+    candidates = []
+    stack = 0
+    start = None
+    in_string = False
+    quote = ""
+    escaped = False
+    for idx, char in enumerate(text or ""):
+        if in_string:
+            if escaped:
+                escaped = False
+            elif char == "\\":
+                escaped = True
+            elif char == quote:
+                in_string = False
+            continue
+        if char in {'"', "'"}:
+            in_string = True
+            quote = char
+            continue
+        if char == "{":
+            if stack == 0:
+                start = idx
+            stack += 1
+        elif char == "}" and stack:
+            stack -= 1
+            if stack == 0 and start is not None:
+                candidates.append(text[start:idx + 1])
+                start = None
+    return candidates
+
+def _loads_json_lenient(candidate: str) -> dict:
+    clean = (candidate or "").strip()
+    clean = re.sub(r"^\s*json\s*", "", clean, flags=re.IGNORECASE)
+    try:
+        data = json.loads(clean)
+    except Exception:
+        try:
+            data = ast.literal_eval(clean)
+        except Exception:
+            data = json.loads(
+                clean
+                .replace("“", '"')
+                .replace("”", '"')
+                .replace("‘", "'")
+                .replace("’", "'")
+            )
+    if not isinstance(data, dict):
+        raise ValueError("O JSON retornado precisa ser um objeto.")
+    return data
+
+def _fallback_final_from_invalid_model_response(response_text: str, error: Exception) -> dict:
+    clean = (response_text or "").strip()
+    if clean and not clean.startswith("{"):
+        final = clean[:3000]
+    else:
+        final = (
+            "Tive uma falha de formatação do modelo local ao tentar responder. "
+            "A conexão com o Ollama respondeu, mas o texto veio fora do contrato JSON esperado. "
+            "Tente novamente com uma solicitação objetiva ou troque para um modelo local mais instruído para tool calling."
+        )
+    return {
+        "thought": f"Resposta local inválida normalizada para final_answer. Erro: {str(error)[:160]}",
+        "final_answer": final,
+    }
+
 def extract_json(response_text: str) -> dict:
     # Remove marcações de bloco de código markdown
     clean_text = (response_text or "").strip()
     if not clean_text:
         raise ValueError("O modelo não retornou nenhuma resposta (string vazia). Verifique a conexão com a API ou se o provedor está sobrecarregado.")
-        
-    match = re.search(r'```(?:json)?\s*(\{.*?\})\s*```', clean_text, re.DOTALL)
-    if match:
+
+    fenced_blocks = re.findall(r"```(?:json)?\s*([\s\S]*?)\s*```", clean_text, flags=re.IGNORECASE)
+    for block in fenced_blocks:
         try:
-            return json.loads(match.group(1))
+            return _loads_json_lenient(block)
         except Exception:
             pass
-            
-    match = re.search(r'(\{.*?\})', clean_text, re.DOTALL)
-    if match:
+
+    for candidate in _balanced_json_candidates(clean_text):
         try:
-            return json.loads(match.group(1))
+            return _loads_json_lenient(candidate)
         except Exception:
             pass
-            
+
     try:
-        return json.loads(clean_text)
+        return _loads_json_lenient(clean_text)
     except Exception as e:
+        if len(clean_text) > 20 and not re.match(r"^\s*[\[{]", clean_text):
+            return _fallback_final_from_invalid_model_response(clean_text, e)
         # Pega as primeiras 100 caracteres para depuração
         snippet = clean_text[:100].replace('\n', ' ')
         raise ValueError(f"O modelo retornou texto que não é um JSON válido: '{snippet}...'. Detalhes: {e}")
@@ -229,6 +297,34 @@ def call_llm(provider: str, model: str, api_key: str, messages: list, system_pro
         
     else:
         raise ValueError(f"Provedor de LLM inválido: {provider}")
+
+def call_ollama_plain(model: str, user_prompt: str, system_context: str, ollama_base_url: str = "http://127.0.0.1:11434", ollama_options: dict = None) -> str:
+    """Fallback sem tool-calling para quando o modelo local quebra o JSON."""
+    base_url = (ollama_base_url or "http://127.0.0.1:11434").rstrip("/")
+    if not model:
+        raise ValueError("Modelo Ollama não configurado.")
+    prompt = (
+        "Você é o Agente IA Nativo do Act IA. Responda em português, direto e útil.\n"
+        "Não use JSON. Não use ferramentas. Se faltar contexto, diga o próximo passo objetivo.\n\n"
+        f"Contexto resumido:\n{(system_context or '')[:1600]}\n\n"
+        f"Pedido do usuário:\n{user_prompt}\n"
+    )
+    payload = {
+        "model": model,
+        "prompt": prompt,
+        "stream": False,
+        "options": {
+            "temperature": 0.2,
+            "num_predict": 700,
+            "num_ctx": min(int((ollama_options or {}).get("num_ctx") or 4096), 4096),
+            "repeat_penalty": 1.05,
+        },
+        "keep_alive": "10m",
+    }
+    res = requests.post(f"{base_url}/api/generate", json=payload, timeout=120)
+    res.raise_for_status()
+    data = res.json()
+    return (data.get("response") or "").strip()
 
 def execute_agent_tool(db: Session, project: Project, tool_name: str, args: dict) -> str:
     """Executa a ferramenta local correspondente e retorna uma string com o resultado."""
@@ -438,8 +534,8 @@ def run_agent_loop(db: Session, project: Project, config: dict, user_prompt: str
     tool_desc.extend(extra_tool_descriptions)
 
     is_ollama = provider == "ollama"
-    instruction_chars = 2500 if is_ollama else 12000
-    audit_chars = 1200 if is_ollama else 8000
+    instruction_chars = 1600 if is_ollama else 12000
+    audit_chars = 500 if is_ollama else 8000
     harness_rules = _safe_read_instruction(project.path, "GPT_INSTRUCTIONS.md", max_chars=instruction_chars)
     ops_rules = _safe_read_instruction(project.path, "OPS_INFRA_OPERATOR.md", max_chars=instruction_chars)
     prod_rules = _safe_read_instruction(project.path, "PROD_READINESS_VALIDATOR.md", max_chars=audit_chars)
@@ -455,20 +551,25 @@ def run_agent_loop(db: Session, project: Project, config: dict, user_prompt: str
         + (system_context or "Sem contexto operacional extra.")
         + "\n\nGPT_INSTRUCTIONS.md:\n"
         + (harness_rules or "Arquivo não encontrado. Se a tarefa for técnica, leia/crie o documento antes de avançar.")
-        + "\n\nOPS_INFRA_OPERATOR.md:\n"
-        + (ops_rules or "Arquivo não encontrado. Para Ops Infra, use as ferramentas nativas ops_infra_* e preserve validações.")
-        + "\n\nPROD_READINESS_VALIDATOR.md:\n"
-        + (prod_rules or "Arquivo não encontrado.")
-        + "\n\nSECURITY_RULES.md:\n"
-        + (security_rules or "Arquivo não encontrado.")
     )
+    if not is_ollama:
+        system_prompt += (
+            "\n\nOPS_INFRA_OPERATOR.md:\n"
+            + (ops_rules or "Arquivo não encontrado. Para Ops Infra, use as ferramentas nativas ops_infra_* e preserve validações.")
+            + "\n\nPROD_READINESS_VALIDATOR.md:\n"
+            + (prod_rules or "Arquivo não encontrado.")
+            + "\n\nSECURITY_RULES.md:\n"
+            + (security_rules or "Arquivo não encontrado.")
+        )
     if is_ollama:
         system_prompt += (
             "\n\nMODO OLLAMA PERFORMANCE:\n"
             "- Responda JSON curto e válido.\n"
+            "- Use obrigatoriamente aspas duplas em todas as chaves e strings JSON.\n"
+            "- Nunca quebre linhas dentro de strings JSON; use frases curtas em uma linha.\n"
             "- Use pensamento com no máximo 1 frase.\n"
             "- Só chame ferramenta quando necessário.\n"
-            "- Se a resposta puder ser direta, use final_answer sem consultar ferramentas.\n"
+            "- Se a resposta puder ser direta, especialmente perguntas de status como 'você está funcionando?', use final_answer sem consultar ferramentas.\n"
             "- final_answer é um campo JSON, não uma ferramenta.\n"
             "- Não use tool sem args obrigatórios; se faltar informação, pergunte usando final_answer.\n"
             "- Não resuma resultados longos; diga o essencial e próximo passo.\n"
@@ -483,7 +584,24 @@ def run_agent_loop(db: Session, project: Project, config: dict, user_prompt: str
         if role in {"user", "assistant"} and content:
             messages.append({"role": role, "content": content[:4000]})
     messages.append({"role": "user", "content": user_prompt})
-    
+
+    normalized_prompt = (user_prompt or "").strip().lower()
+    simple_status_request = (
+        is_ollama
+        and len(normalized_prompt) <= 120
+        and any(term in normalized_prompt for term in ["funcionando", "online", "ativo", "status"])
+        and not any(term in normalized_prompt for term in ["implementar", "criar", "alterar", "corrigir", "executar"])
+    )
+    if simple_status_request:
+        yield f"data: {json.dumps({'type': 'thought', 'content': 'Pergunta de status respondida sem acionar tool-calling do modelo local.'})}\n\n"
+        answer = (
+            "Sim, estou online. O agente local está carregado e pronto para operar no projeto. "
+            "Para tarefas simples eu respondo direto; para execução técnica eu sigo o fluxo do Act IA: "
+            "documentar, planejar, criar tarefas, executar e validar."
+        )
+        yield f"data: {json.dumps({'type': 'final', 'content': answer})}\n\n"
+        return
+
     max_steps = 12 if is_ollama else 50
     step = 0
     
@@ -492,6 +610,7 @@ def run_agent_loop(db: Session, project: Project, config: dict, user_prompt: str
     last_thought = ""
     last_tool = ""
     last_tool_result = ""
+    json_repair_attempts = 0
 
     while step < max_steps:
         step += 1
@@ -514,8 +633,45 @@ def run_agent_loop(db: Session, project: Project, config: dict, user_prompt: str
             )
             parsed = extract_json(raw_response)
         except Exception as le:
-            yield f"data: {json.dumps({'type': 'error', 'content': f'Erro na chamada do cérebro (LLM): {str(le)}'})}\n\n"
-            return
+            if is_ollama and json_repair_attempts < 2:
+                json_repair_attempts += 1
+                raw_preview = (raw_response if "raw_response" in locals() else "")[:1200]
+                yield f"data: {json.dumps({'type': 'status', 'content': 'Ajustando formato da resposta do modelo local...'})}\n\n"
+                messages.append({
+                    "role": "assistant",
+                    "content": raw_preview or "[resposta inválida vazia]"
+                })
+                messages.append({
+                    "role": "user",
+                    "content": (
+                        "Sua resposta anterior não era JSON válido. Reenvie a MESMA intenção usando somente um objeto JSON válido, "
+                        "sem markdown, sem aspas simples, sem texto antes ou depois. Formatos aceitos: "
+                        "{\"thought\":\"...\",\"final_answer\":\"...\"} ou "
+                        "{\"thought\":\"...\",\"tool\":\"nome_da_ferramenta\",\"args\":{...}}."
+                    )
+                })
+                continue
+            if is_ollama:
+                yield f"data: {json.dumps({'type': 'status', 'content': 'Usando resposta textual de fallback do modelo local...'})}\n\n"
+                try:
+                    plain_answer = call_ollama_plain(
+                        model,
+                        user_prompt,
+                        system_context,
+                        ollama_base_url=ollama_base_url,
+                        ollama_options={"num_ctx": ollama_num_ctx},
+                    )
+                    parsed = {
+                        "thought": "Fallback textual acionado após resposta JSON inválida do Ollama.",
+                        "final_answer": plain_answer or "Estou online, mas o modelo local retornou uma resposta vazia no fallback textual.",
+                    }
+                except Exception as fallback_error:
+                    parsed = _fallback_final_from_invalid_model_response(raw_response if "raw_response" in locals() else "", fallback_error)
+            else:
+                yield f"data: {json.dumps({'type': 'error', 'content': f'Erro na chamada do cérebro (LLM): {str(le)}'})}\n\n"
+                return
+
+        json_repair_attempts = 0
             
         thought = parsed.get("thought", "Analisando...")
         tool = parsed.get("tool")

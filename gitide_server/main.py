@@ -291,6 +291,9 @@ class GitDeployRequest(BaseModel):
     commit_message: str = Field(..., description="Mensagem de commit para descrever as alterações")
     branch: Optional[str] = Field(None, description="Branch Git de destino (caso omitido, usa a branch atual)")
 
+class GitInitRequest(BaseModel):
+    remote_url: Optional[str] = Field(None, description="URL do repositório remoto para configurar como origin")
+
 class GitCommitMessageSuggestion(BaseModel):
     message: str = Field(..., description="Mensagem de commit sugerida")
 
@@ -1597,18 +1600,28 @@ def git_suggest_commit_message(project: Project = Depends(get_project_or_404),
         return {"status": "fallback", "message": fallback_message(), "detail": str(e)}
 
 @app.post("/api/projects/{project_id}/git/init", tags=["Git Bridge"])
-def git_init(project: Project = Depends(get_project_or_404), db: Session = Depends(get_db), _ = Depends(get_api_key)):
-    """Inicializa um repositório Git ou vincula a URL remota configurada."""
+def git_init(req: Optional[GitInitRequest] = None,
+             project: Project = Depends(get_project_or_404),
+             db: Session = Depends(get_db),
+             _ = Depends(get_api_key)):
+    """Inicializa um repositório Git local e opcionalmente configura/persiste o origin remoto."""
     try:
-        result = git_bridge.init_git(project.path, project.git_remote)
+        remote_url = (req.remote_url.strip() if req and req.remote_url else "") or project.git_remote
+        result = git_bridge.init_git(project.path, remote_url)
+        if remote_url and project.git_remote != remote_url:
+            project.git_remote = remote_url
+            db.add(project)
         
         log = ActivityLog(
             project_id=project.id,
             action_type="GIT_INIT",
-            details=f"Git inicializado com remoto: {project.git_remote}"
+            details=f"Git inicializado/configurado com remoto: {remote_url or '-'}"
         )
         db.add(log)
         db.commit()
+        db.refresh(project)
+
+        result["remote_url"] = project.git_remote or remote_url or ""
         
         return result
     except Exception as e:

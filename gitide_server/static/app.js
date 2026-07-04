@@ -2221,11 +2221,17 @@ async function loadGitStatus(forceFetch = false) {
             return;
         }
         
-        initPanel.style.display = 'none';
-        deployPanel.style.display = 'block';
-        
         setGitCurrentBranchLabel(status.current_branch);
         state.activeProjectRemoteUrl = status.remote_url || '';
+        if (state.activeProject && status.remote_url) {
+            state.activeProject.git_remote = status.remote_url;
+        }
+        const remoteInput = document.getElementById('git-remote-url-input');
+        if (remoteInput && status.remote_url) {
+            remoteInput.value = status.remote_url;
+        }
+        initPanel.style.display = status.remote_url ? 'none' : 'block';
+        deployPanel.style.display = 'block';
         updateGitGeneratedCommand();
         
         let html = `
@@ -2543,22 +2549,26 @@ function getGitDeployBranchValue() {
 
 async function initGitRepo() {
     const remoteUrl = document.getElementById('git-remote-url-input').value.trim();
-    appendGitConsole('Iniciando git init...');
+    appendGitConsole(remoteUrl ? `Configurando publicação Git em ${remoteUrl}...` : 'Inicializando repositório Git local...');
     
     try {
         const res = await fetch(`/api/projects/${state.activeProjectId}/git/init`, {
             method: 'POST',
-            headers: getHeaders()
+            headers: getHeaders(),
+            body: JSON.stringify({ remote_url: remoteUrl || null })
         });
         
         const data = await res.json();
         
         if (res.status === 200) {
-            appendGitConsole(`Repositório Git inicializado! Remotos configurados: ${data.remotes.join(', ')}`);
-            // Se informou URL de remoto, atualiza no DB do Act IA
+            appendGitConsole(`Repositório Git pronto. Remotos configurados: ${(data.remotes || []).join(', ') || 'nenhum'}`);
             if (remoteUrl) {
-                // Atualização lógica rápida
                 state.activeProject.git_remote = remoteUrl;
+                state.activeProjectRemoteUrl = remoteUrl;
+                appendGitConsole('Origin configurado e salvo no projeto. Agora use "Commitar e Fazer Deploy (Push)" para enviar os arquivos.');
+                gitideNotify({ title: 'Projeto pronto para Git', message: 'Remote origin configurado. Faça commit/push para publicar.', variant: 'success' });
+            } else {
+                gitideNotify({ title: 'Git inicializado', message: 'Informe uma URL remota para publicar o projeto.', variant: 'warning' });
             }
             loadGitStatus();
         } else {
