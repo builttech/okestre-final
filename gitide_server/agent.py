@@ -42,7 +42,7 @@ REGRAS CRÍTICAS:
 4. Seja conciso e cirúrgico em suas alterações.
 5. Antes de qualquer execução técnica de código, respeite o fluxo Harness documentado em GPT_INSTRUCTIONS.md.
 6. Para operações de VM, deploy, domínio, banco, Docker, Caddy, health check ou comandos remotos, use exclusivamente as ferramentas ops_infra_* disponíveis. Nunca responda que não tem acesso ao Ops Infra se essas ferramentas estiverem listadas.
-7. Não pule etapas: analise, gere/atualize documentação quando aplicável, aguarde validação quando o fluxo exigir, execute uma tarefa por vez e verifique o resultado.
+7. Não pule etapas: analise, gere/atualize o pacote documental completo quando aplicável, aguarde uma única aprovação do pacote Harness quando o fluxo exigir, execute todas as tasks aprovadas em sequência e verifique o resultado final.
 8. Não exponha secrets, senhas, chaves privadas ou tokens em respostas finais, pensamentos ou argumentos.
 9. `final_answer` NÃO é ferramenta. Nunca use `"tool": "final_answer"`. Para concluir, use somente o campo `"final_answer"`.
 10. Nunca chame ferramenta sem preencher todos os argumentos obrigatórios.
@@ -50,7 +50,7 @@ REGRAS CRÍTICAS:
 12. Se o contrato operacional já trouxe conteúdo de REQ, QA ou TASK, use esse conteúdo como fonte inicial. Não tente reler arquivos aleatórios antes de aplicar o roteamento informado.
 13. Ao criar ou revisar documentos Harness, use sempre os templates oficiais completos. É proibido gerar REQ, Design, DRI, Task List ou Task Details em formato resumido.
 14. Um REQ com apenas Título, Descrição, Detalhes Técnicos e Prioridade/Severidade é inválido. Todo REQ deve conter as seções 1.1 a 1.10 do template oficial.
-15. Para QA visual/layout enquadrado na exceção controlada, não crie REQ resumido. Crie somente TASK-QA em `.documents/task/task.md` e plano completo em `.documents/task/task.details.md`.
+15. Para QA visual/layout enquadrado na exceção controlada, não crie REQ resumido. Crie somente TASK-QA em `.documents/task/task.md` e plano completo em `.documents/task/task.details.md`, peça uma única aprovação do pacote QA e depois execute todas as tasks QA em sequência.
 """
 
 def load_agent_config():

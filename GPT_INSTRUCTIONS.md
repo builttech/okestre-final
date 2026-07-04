@@ -7,32 +7,32 @@ Este documento é de leitura obrigatória para o Agente IA (GPT Action) antes de
 ## 📌 Regra de Ouro (Core Rule)
 > [!IMPORTANT]
 > **NÃO escreva código e NÃO execute comandos de modificação antes de concluir a fase de análise.**
-> O Agente IA deve SEMPRE seguir o ciclo **Percepção -> Planejamento -> Aprovação -> Execução -> Verificação**. Qualquer tentativa de pular etapas ou fazer edições massivas sem plano prévio viola este protocolo e pode corromper a aplicação.
+> O Agente IA deve SEMPRE seguir o ciclo **Percepção -> Planejamento Documental -> Aprovação Única -> Execução Sequencial -> Verificação Final**. Qualquer tentativa de pular a análise, criar documentação fora do padrão ou fazer edições massivas sem plano prévio viola este protocolo e pode corromper a aplicação.
 >
 > **REGRA BLOQUEANTE DE REQUISITO (NÃO PODE SER IGNORADA):**
 > Antes de qualquer execução técnica, o GPT Action deve seguir obrigatoriamente o fluxo Harness:
 > 1. **Ler, criar, atualizar ou revisar o REQ** em `.documents/spec/*.md`.
-> 2. **Aguardar validação do usuário sobre o REQ.**
-> 3. Se aprovado, **ler e revisar obrigatoriamente o Design vivo** em `.documents/design/design.md`; se a arquitetura do projeto precisar refletir a nova solicitação, atualizar, adicionar ou revisar o conteúdo. Se não houver necessidade real de mudança, registrar no plano que o Design foi revisado e pular a edição.
-> 4. Se aprovado, **criar ou revisar o DRI** em `.documents/dri/dri.md`.
-> 5. **Aguardar validação do usuário sobre o DRI.**
-> 6. Se aprovado, **criar ou revisar a Task List** em `.documents/task/task.md`.
-> 7. **Aguardar validação do usuário sobre a Task List.**
-> 8. Se aprovado, antes de executar cada task, **criar ou atualizar o plano detalhado da task atual** em `.documents/task/task.details.md`.
-> 9. **Aguardar autorização explícita do usuário para executar a task detalhada.**
-> 10. Se aprovado, **executar as tasks em ordem**, uma por vez, e marcar o checkbox final de cada tarefa concluída em `task.md`.
-> Se qualquer etapa não estiver correta, o GPT Action deve ajustar a etapa correspondente e repetir o ciclo de validação.
-> O GPT Action **não pode implementar código, rodar comandos de modificação, criar arquivos técnicos fora do fluxo ou executar tasks** antes da validação do REQ, revisão obrigatória do Design vivo, validação do DRI, validação da Task List, preenchimento do `task.details.md` e autorização explícita da task detalhada.
+> 2. **Ler e revisar obrigatoriamente o Design vivo** em `.documents/design/design.md`; se a arquitetura do projeto precisar refletir a nova solicitação, atualizar, adicionar ou revisar o conteúdo. Se não houver necessidade real de mudança, registrar no pacote documental que o Design foi revisado e pular a edição.
+> 3. **Criar ou revisar o DRI** em `.documents/dri/dri.md` quando houver impacto de interface.
+> 4. **Criar ou revisar a Task List** em `.documents/task/task.md`.
+> 5. **Criar ou atualizar o detalhamento de todas as tasks planejadas** em `.documents/task/task.details.md`, preservando seções anteriores.
+> 6. **Solicitar uma única aprovação do pacote completo**: REQ, Design, DRI quando aplicável, Task List e Task Details.
+> 7. Se o usuário solicitar ajustes, revisar os documentos necessários e apresentar novamente o pacote completo para aprovação única.
+> 8. Se o usuário aprovar o pacote, **executar todas as tasks em ordem**, uma por vez, sem solicitar nova aprovação entre tasks, marcando cada checkbox final em `task.md` após executar e verificar a task.
+> 9. Após executar todas as tasks, **realizar a verificação final consolidada** e solicitar validação final do usuário sobre o resultado completo.
+> O GPT Action **não pode implementar código, rodar comandos de modificação, criar arquivos técnicos fora do fluxo ou executar tasks** antes da aprovação única do pacote documental completo. Depois da aprovação do pacote, ele deve executar a sequência completa de tasks sem travas intermediárias, mantendo verificação técnica por task e validação final consolidada.
 >
 > **EXCEÇÃO CONTROLADA PARA AJUSTES FINOS VISUAIS / LAYOUT ORIUNDOS DE QA:**
 > Quando a solicitação for claramente um ajuste fino visual, refinamento de layout, espaçamento, alinhamento, proporção, responsividade, cor, tipografia, microcopy visual ou correção estética capturada por anotação QA, e **não** alterar regra de negócio, fluxo funcional, contrato de API, modelo de dados, permissão, arquitetura ou comportamento sistêmico, o GPT Action **não precisa executar o fluxo completo de REQ -> Design -> DRI**.
 > Nesse caso, o fluxo mínimo obrigatório é:
 > 1. Ler a anotação QA de referência e entender o problema visual.
 > 2. Criar ou atualizar uma task em `.documents/task/task.md` com base no QA, preferencialmente no formato `- [ ] TASK-QA-<ID-DO-QA>-001: - Título curto`.
-> 3. Criar ou atualizar o plano detalhado em `.documents/task/task.details.md`, preservando as seções anteriores.
-> 4. Executar somente o ajuste fino descrito na task.
-> 5. Verificar visualmente/tecnicamente a alteração quando possível.
-> 6. Marcar a task como concluída em `task.md` apenas após validar o ajuste.
+> 3. Criar ou atualizar o plano detalhado de todas as tasks QA em `.documents/task/task.details.md`, preservando as seções anteriores.
+> 4. Solicitar uma única aprovação do pacote QA: anotação entendida, task(s) e task.details.
+> 5. Após aprovação, executar todas as tasks QA em ordem sem nova aprovação intermediária.
+> 6. Verificar visualmente/tecnicamente a alteração quando possível.
+> 7. Marcar cada task como concluída em `task.md` apenas após executar e verificar.
+> 8. Solicitar validação final do usuário somente ao final da sequência.
 > Se durante a análise o ajuste visual revelar mudança funcional, arquitetural ou de regra de negócio, a exceção deve ser cancelada e o fluxo completo Harness deve ser retomado.
 
 ---
@@ -44,31 +44,25 @@ graph TD
     A["1. Reconhecimento e Análise"] --> B{"REQ informado?"}
     B -->|"Sim"| C["Ler, revisar ou atualizar REQ existente"]
     B -->|"Não"| D["Criar novo REQ"]
-    C --> E{"Usuário validou o REQ?"}
+    C --> E["Revisar Design vivo em .documents/design/design.md"]
     D --> E
-    E -->|"Não, ajustar REQ"| C
-    E -->|"Sim"| F["Revisar Design vivo em .documents/design/design.md"]
-    F --> G{"Arquitetura precisa atualizar?"}
-    G -->|"Sim"| H["Atualizar design.md"]
-    G -->|"Não"| I["Registrar que Design foi revisado sem edição"]
-    H --> J["Criar ou revisar DRI em .documents/dri/dri.md"]
-    I --> J
-    J --> K{"Usuário validou o DRI?"}
-    K -->|"Não, ajustar DRI"| J
-    K -->|"Sim"| L["Criar ou revisar Task List em .documents/task/task.md"]
-    L --> M{"Usuário validou a Task List?"}
-    M -->|"Não, ajustar tasks"| L
-    M -->|"Sim"| N["Selecionar próxima task"]
-    N --> O["Criar ou atualizar .documents/task/task.details.md"]
-    O --> P{"Usuário autorizou executar a task detalhada?"}
-    P -->|"Não, ajustar plano"| O
-    P -->|"Sim"| Q["Execução cirúrgica da task atual"]
-    Q --> R["Verificação e testes"]
-    R -->|"Falhou"| Q
-    R -->|"Sucesso"| S["Marcar checkbox da task em task.md"]
-    S --> T{"Há próxima task?"}
-    T -->|"Sim"| N
-    T -->|"Não"| U["Conclusão"]
+    E --> F{"Arquitetura precisa atualizar?"}
+    F -->|"Sim"| G["Atualizar design.md"]
+    F -->|"Não"| H["Registrar Design revisado sem edição"]
+    G --> I["Criar ou revisar DRI quando aplicável"]
+    H --> I
+    I --> J["Criar ou revisar Task List em .documents/task/task.md"]
+    J --> K["Criar ou atualizar task.details.md para todas as tasks"]
+    K --> L{"Usuário aprovou o pacote documental completo?"}
+    L -->|"Não, ajustar pacote"| C
+    L -->|"Sim"| M["Executar tasks em ordem sem aprovação intermediária"]
+    M --> N["Verificação técnica por task"]
+    N -->|"Falhou"| M
+    N -->|"Sucesso"| O["Marcar checkbox da task em task.md"]
+    O --> P{"Há próxima task?"}
+    P -->|"Sim"| M
+    P -->|"Não"| Q["Verificação final consolidada"]
+    Q --> R["Solicitar validação final do usuário"]
 ```
 
 ### 1. Reconhecimento e Análise do Contexto
@@ -76,13 +70,14 @@ Antes de propor ou fazer qualquer alteração, o agente deve:
 - **Verificar o REQ de referência:** Identificar se a solicitação do usuário informa um requisito existente (`REQ-xxxx`). Se informar, ler primeiro a especificação correspondente antes de planejar qualquer implementação.
 - **Criar REQ quando não existir:** Se a solicitação não informar um `REQ-xxxx`, o primeiro passo obrigatório é criar e documentar um novo requisito funcional em `.documents/spec/*.md`, preenchendo somente `Specify - Especificação`.
 - **Atualizar REQ existente antes de implementar:** Se a solicitação for uma nova funcionalidade, ajuste ou extensão de um requisito já existente, atualizar o REQ com a nova solicitação antes de qualquer alteração de código.
-- **Aguardar validação do REQ:** Após ler, criar, atualizar ou revisar o REQ, o agente deve parar e aguardar o usuário validar o requisito. Se o usuário pedir ajustes, o agente deve atualizar o REQ e repetir este ciclo.
-- **Revisar Design vivo após REQ aprovado:** Depois do REQ aprovado e antes do DRI, o agente deve ler `.documents/design/design.md` e verificar se a arquitetura viva do projeto continua correta. Se a solicitação alterar componentes, fluxos técnicos, APIs, dados, integrações, permissões, riscos ou estratégia de validação, atualizar o Design. Se não houver alteração arquitetural necessária, pular a edição, mas deixar explícito no plano que o Design foi revisado.
-- **Atualizar DRI após REQ aprovado:** Somente depois do REQ aprovado, criar ou revisar o DRI em `.documents/dri/dri.md` e aguardar validação do usuário.
-- **Atualizar Task List após DRI aprovado:** Somente depois do DRI aprovado, criar ou revisar `.documents/task/task.md` e aguardar validação do usuário.
-- **Detalhar task antes de executar:** Depois da Task List aprovada e antes de executar qualquer tarefa, o agente deve criar ou atualizar `.documents/task/task.details.md` com o plano detalhado da task atual e aguardar autorização explícita do usuário.
-- **Executar tasks somente após Task List e detalhe aprovados:** A implementação só pode começar depois da validação da Task List e da autorização da task detalhada em `task.details.md`. O agente deve executar as tasks em ordem, uma por vez, e marcar o checkbox final em `task.md` apenas após concluir e validar a task.
-- **Atalho para QA visual:** Quando a demanda vier de anotação QA e for apenas ajuste fino visual/layout sem impacto funcional ou arquitetural, o agente pode pular REQ, Design e DRI. Ainda assim deve criar task em `.documents/task/task.md`, detalhar em `.documents/task/task.details.md`, executar apenas o ajuste descrito e marcar a task como concluída somente após validação.
+- **Montar pacote documental completo antes de executar:** Após ler, criar, atualizar ou revisar o REQ, o agente deve seguir diretamente para Design, DRI quando aplicável, Task List e Task Details, sem pedir aprovação separada por etapa.
+- **Revisar Design vivo após REQ:** Depois do REQ, o agente deve ler `.documents/design/design.md` e verificar se a arquitetura viva do projeto continua correta. Se a solicitação alterar componentes, fluxos técnicos, APIs, dados, integrações, permissões, riscos ou estratégia de validação, atualizar o Design. Se não houver alteração arquitetural necessária, pular a edição, mas deixar explícito no pacote documental que o Design foi revisado.
+- **Atualizar DRI quando aplicável:** Se houver impacto de interface, criar ou revisar o DRI em `.documents/dri/dri.md` antes de montar a Task List.
+- **Atualizar Task List após DRI/Design:** Criar ou revisar `.documents/task/task.md` depois de REQ, Design e DRI quando aplicável.
+- **Detalhar todas as tasks antes da aprovação única:** Antes de pedir autorização de execução, o agente deve criar ou atualizar `.documents/task/task.details.md` com o plano detalhado de todas as tasks planejadas.
+- **Solicitar aprovação única do pacote completo:** O agente deve apresentar o conjunto REQ, Design, DRI quando aplicável, Task List e Task Details, pedindo uma única aprovação para execução.
+- **Executar todas as tasks após aprovação única:** A implementação só pode começar depois da aprovação do pacote completo. Aprovado o pacote, o agente deve executar todas as tasks em ordem, uma por vez, sem pedir nova aprovação intermediária, e marcar o checkbox final em `task.md` após concluir e verificar cada task.
+- **Atalho para QA visual:** Quando a demanda vier de anotação QA e for apenas ajuste fino visual/layout sem impacto funcional ou arquitetural, o agente pode pular REQ, Design e DRI. Ainda assim deve criar task em `.documents/task/task.md`, detalhar todas as tasks QA em `.documents/task/task.details.md`, pedir uma aprovação única do pacote QA, executar todas as tasks QA aprovadas e marcar cada uma como concluída somente após verificação.
 - **Investigar a Árvore de Diretórios:** Listar os arquivos do projeto para entender a estrutura de pastas.
 - **Identificar Arquivos de Configuração e Arquitetura:** Ler os arquivos principais (ex: `package.json`, `requirements.txt`, `main.py`, `index.html`, etc.) para entender as dependências e o ecossistema.
 - **Entender Regras de Conexão e Banco de Dados:** Verificar se há arquivos como `db_credentials.json` para compreender como o banco de dados local ou remoto se comunica com o projeto.
@@ -98,9 +93,11 @@ Após entender a aplicação, o agente deve documentar e propor um plano estrutu
 - **Riscos e Impactos:** Quais outros módulos, rotas ou tabelas de banco podem ser afetados pela mudança.
 - **Passo a Passo da Execução:** A ordem lógica na qual os arquivos serão criados ou editados (sempre crie dependências primeiro).
 
-### 3. Alinhamento e Aprovação
-- O plano deve ser apresentado de forma clara ao usuário no chat do ChatGPT.
-- O agente deve parar e aguardar a validação do usuário ou, caso esteja rodando sob autonomia autorizada, prosseguir com extrema cautela seguindo a priorização estabelecida.
+### 3. Aprovação Única do Pacote Documental
+- O agente deve apresentar de forma clara o pacote completo criado ou revisado: REQ, Design, DRI quando aplicável, Task List e Task Details.
+- O agente deve parar apenas neste ponto e aguardar a aprovação única do usuário para executar.
+- Se o usuário pedir ajustes, o agente deve atualizar os documentos necessários e reapresentar o pacote completo.
+- Após aprovação, o agente deve executar todas as tasks planejadas em sequência, sem novas aprovações intermediárias.
 
 ### 4. Execução Cirúrgica (Item por Item)
 - **Modificações Parciais (PATCH):** **NUNCA** reescreva um arquivo grande inteiro se puder fazer uma substituição cirúrgica. Utilize o endpoint de PATCH (`/api/projects/{project_id}/files/patch`) para aplicar *search & replace* de trechos exatos de código. Isso economiza contexto e previne perda de comentários ou código adjacente.
@@ -148,11 +145,11 @@ O agente deve manter cada responsabilidade no arquivo correto:
    - **Não incluir** Design, DRI, Task List ou Execute dentro do arquivo do REQ.
 
 2. **Design - Planejamento**
-   - Ler e revisar obrigatoriamente `.documents/design/design.md` após a validação do REQ e antes da criação/revisão do DRI.
+   - Ler e revisar obrigatoriamente `.documents/design/design.md` após o REQ e antes da criação/revisão do DRI.
    - Preencher ou atualizar `.documents/design/design.md` sempre que a solicitação impactar ou revelar mudanças na arquitetura do projeto.
    - O Design é um documento vivo único do projeto, podendo referenciar um ou mais REQs.
    - Incluir componentes impactados, fluxo técnico, APIs/endpoints, dados, banco, integrações, bibliotecas, eventos, permissões, riscos técnicos e estratégia de validação.
-   - O Design deve sempre se basear no conteúdo do Specify/REQ validado e não inventar escopo fora do requisito.
+   - O Design deve sempre se basear no conteúdo do Specify/REQ criado ou revisado e não inventar escopo fora do requisito.
    - O arquivo deve permanecer sempre atualizado e refletir corretamente a arquitetura real do projeto. Se, após revisão, não houver necessidade de mudança, o GPT Action pode pular a edição do arquivo, mas deve registrar no plano que o Design foi revisado e considerado aderente.
    - Quando o usuário solicitar explicitamente o fluxo com DRI direto após o REQ, o Design continua sendo uma etapa obrigatória de revisão. Ele pode permanecer sem edição somente quando não houver impacto arquitetural real.
 
@@ -163,9 +160,9 @@ O agente deve manter cada responsabilidade no arquivo correto:
    - Usar o template RI oficial com seções numeradas 1 a 17.
    - Preservar tabelas Markdown para Identificação da Interface, Contexto de Uso, Arquitetura da Informação, Mapa de Componentes, Regras de Exibição, Estados, Fluxo de Interação, Mapeamento de Dados, Microcopy, Responsividade, Acessibilidade, Critérios de Aceite da Interface e Lacunas/Premissas.
    - As seções `14. Critérios de Aceite da Interface`, `15. Lacunas e Premissas`, `16. Fora do Escopo` e `17. Possíveis Evoluções Futuras` são obrigatórias e não devem ser omitidas.
-   - O DRI deve sempre se basear no Specify/REQ validado e no Design vivo.
+   - O DRI deve sempre se basear no Specify/REQ criado ou revisado e no Design vivo.
    - Não colocar tarefas técnicas dentro do DRI.
-   - O GPT Action deve aguardar validação explícita do usuário após criar ou revisar o DRI antes de criar ou revisar a Task List.
+   - O GPT Action deve criar ou revisar o DRI e seguir diretamente para a Task List, sem pedir aprovação isolada do DRI.
 
 4. **Task List - Tarefas**
    - Preencher ou atualizar exclusivamente `.documents/task/task.md`.
@@ -175,16 +172,17 @@ O agente deve manter cada responsabilidade no arquivo correto:
    - O arquivo `task.md` deve conter somente a lista objetiva de tarefas, sem plano detalhado, justificativas longas, código previsto, validação extensa ou mensagens de autorização.
    - Não colocar tarefas técnicas dentro de Critérios de Aceite, Rastreabilidade, Design ou DRI.
    - Nunca misturar critérios de aceite com tarefas de implementação.
-   - O GPT Action deve aguardar validação explícita do usuário após criar ou revisar a Task List antes de iniciar execução.
+   - O GPT Action deve criar ou revisar a Task List e seguir diretamente para o detalhamento das tasks, sem pedir aprovação isolada da Task List.
    - Após executar e validar uma tarefa, o GPT Action deve marcar o checkbox correspondente em `task.md` como concluído (`- [x]`).
 
 5. **Execute - Implementação**
    - Não preencher antecipadamente.
-   - Esta etapa deve ser usada somente após REQ, DRI e Task List terem sido validados pelo usuário.
-   - Antes de executar a task atual, o GPT Action deve acrescentar ou atualizar a seção da task selecionada em `.documents/task/task.details.md`.
+   - Esta etapa deve ser usada somente após o pacote documental completo ter sido criado/revisado e aprovado pelo usuário uma única vez.
+   - Antes de solicitar aprovação única para execução, o GPT Action deve acrescentar ou atualizar as seções de todas as tasks planejadas em `.documents/task/task.details.md`.
    - O plano detalhado da task não deve ficar somente no chat. O chat pode resumir a ação, mas o conteúdo completo deve estar em `task.details.md`.
-   - O GPT Action deve aguardar autorização explícita do usuário após atualizar `task.details.md`, usando a frase de autorização: `Aprovado executar TASK-REQ-0000-000`.
-   - O GPT Action deve executar as tarefas em ordem, uma por vez, com execução cirúrgica, verificação/testes e atualização do checkbox final em `task.md`.
+   - O GPT Action deve pedir uma única autorização para executar o pacote completo, usando frase objetiva como: `Aprovado executar o pacote Harness`.
+   - Depois dessa aprovação única, o GPT Action deve executar todas as tarefas em ordem, uma por vez, com execução cirúrgica, verificação/testes e atualização do checkbox final em `task.md`, sem pedir autorização task a task.
+   - A validação do usuário deve ser solicitada somente após a execução e verificação de todas as tasks planejadas.
 
 6. **Task Details - Plano detalhado da task atual**
    - Preencher ou atualizar exclusivamente `.documents/task/task.details.md`.
@@ -197,8 +195,8 @@ O agente deve manter cada responsabilidade no arquivo correto:
    - Incluir, quando aplicável: `Objetivo`, `Arquivo afetado`, `Formato previsto da chamada`, `Fallback previsto`, `Fora desta task` e `Validação prevista`.
    - Listar arquivos afetados com marcação clara: `[NOVO]`, `[MODIFICAR]` ou `[DELETAR]`.
    - Delimitar explicitamente o que está fora da task para impedir escopo acidental.
-   - Encerrar o plano com a frase: `Para autorizar, responda: **"Aprovado executar TASK-REQ-0000-000"**.`
-   - Nunca marcar a task como concluída em `task.md` enquanto o plano em `task.details.md` não tiver sido autorizado, executado e validado.
+   - Encerrar o conjunto de planos com a frase: `Para autorizar a execução de todas as tasks planejadas, responda: **"Aprovado executar o pacote Harness"**.`
+   - Nunca marcar a task como concluída em `task.md` enquanto a task não tiver sido executada e verificada tecnicamente.
 
 Regra obrigatória: o GPT Action deve manter a separação entre **o que o sistema deve fazer** (Specify em `.documents/spec/*.md`), **como será planejado tecnicamente** (Design em `.documents/design/design.md`), **como a interface deve se comportar** (DRI em `.documents/dri/dri.md`), **quais tarefas serão executadas** (Task List em `.documents/task/task.md`), **como a task atual será executada** (Task Details em `.documents/task/task.details.md`) e **a implementação de uma tarefa selecionada** (Execute).
 
@@ -229,5 +227,5 @@ Você é um Agente de Engenharia de Software conectado ao computador local do us
 Antes de realizar qualquer tarefa de leitura, escrita ou execução de comandos, você DEVE verificar se existe o arquivo 'GPT_INSTRUCTIONS.md' na raiz do workspace do projeto atual (ou usar o endpoint correspondente para ler seu conteúdo).
 Leia e siga rigorosamente as diretrizes, fases de análise, regras de geração de documentos e o protocolo de execução contidos no arquivo 'GPT_INSTRUCTIONS.md'.
 Sempre que for solicitado a criar, atualizar ou editar qualquer documentação técnica, manual ou relatório, você DEVE utilizar o endpoint 'POST /api/projects/{project_id}/documents/word' para gerar o arquivo Word (.docx) real no projeto, nunca escrevendo a documentação em texto puro no chat.
-Antes de executar qualquer task, crie ou atualize o plano detalhado em `.documents/task/task.details.md`, preservando as seções de tasks anteriores, aguarde autorização explícita do usuário no formato `Aprovado executar TASK-REQ-0000-000` e só depois modifique código ou rode comandos de alteração.
+Antes de executar qualquer task, crie ou atualize o pacote documental completo: REQ, Design, DRI quando aplicável, Task List e Task Details. Depois, solicite uma única autorização no formato `Aprovado executar o pacote Harness`. Após essa aprovação única, execute todas as tasks em ordem, sem novas aprovações intermediárias, e solicite validação final somente após concluir e verificar toda a sequência.
 ```

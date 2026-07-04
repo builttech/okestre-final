@@ -4457,7 +4457,7 @@ def _default_sdd_project_document(project: Project, kind: str) -> str:
         "- Não implementar escopo fora da task selecionada.\n\n"
         "### Validação prevista\n\n"
         "- Validar por leitura, teste ou comando aplicável.\n\n"
-        "Para autorizar, responda: **\"Aprovado executar TASK-REQ-0000-001\"**.\n"
+        "Para autorizar a execução de todas as tasks planejadas, responda: **\"Aprovado executar o pacote Harness\"**.\n"
     )
 
 def _sdd_project_structure_status(project: Project) -> dict:
@@ -5332,8 +5332,10 @@ def _native_agent_intent_context(project: Project, prompt: str) -> str:
         "- Design deve ficar em `.documents/design/design.md` e conter arquitetura proposta, fluxos técnicos, APIs/eventos/contratos, dados/persistência, segurança/permissões e estratégia de validação.\n"
         "- DRI deve ficar em `.documents/dri/dri.md` e seguir o RI oficial completo com as seções 1 a 17, incluindo critérios de aceite da interface, lacunas/premissas, fora do escopo e evoluções futuras.\n"
         "- Task List deve ficar em `.documents/task/task.md` e conter somente itens no formato `- [ ] TASK-REQ-0000-001: - Título curto` ou `- [ ] TASK-QA-XXXXXXXX-001: - Título curto`.\n"
-        "- Task Details deve ficar em `.documents/task/task.details.md`, ser acumulativo, nunca apagar seções anteriores e usar seções `## Plano — TASK-...` com objetivo, arquivos afetados, fora da task, validação prevista e frase de autorização.\n"
-        "- Para QA visual/layout enquadrado na exceção controlada, não crie REQ resumido: crie somente TASK-QA no task.md e detalhe completo no task.details.md.\n"
+        "- Task Details deve ficar em `.documents/task/task.details.md`, ser acumulativo, nunca apagar seções anteriores e usar seções `## Plano — TASK-...` com objetivo, arquivos afetados, fora da task, validação prevista e autorização única do pacote Harness.\n"
+        "- O agente deve criar/revisar REQ, Design, DRI quando aplicável, Task List e Task Details em sequência, sem pedir aprovação por documento.\n"
+        "- Depois de montar todos os documentos, solicite uma única aprovação do pacote completo. Se aprovado, execute todas as tasks em ordem, sem aprovação intermediária por task. Solicite validação final somente após executar e verificar todas as tasks.\n"
+        "- Para QA visual/layout enquadrado na exceção controlada, não crie REQ resumido: crie somente TASK-QA no task.md e detalhe completo no task.details.md, peça uma única aprovação do pacote QA e depois execute todas as tasks QA em sequência.\n"
         "- Se um documento existente estiver fora do formato oficial, primeiro corrija o documento para o template completo antes de avançar no fluxo.\n"
     )
 
@@ -5353,9 +5355,9 @@ def _native_agent_intent_context(project: Project, prompt: str) -> str:
                     f"QA ID: {qa_upper}\n"
                     "Regra: este ID é uma anotação da Central QA, não um comando de terminal.\n"
                     "Primeira ação obrigatória: use qa_get_annotation se precisar confirmar dados; não use git_status ou package.json como primeira ação.\n"
-                    "Fluxo esperado: entender a anotação, classificar se é ajuste visual/layout ou mudança funcional, criar/atualizar os documentos Harness no template oficial completo, executar mediante solicitação/validação e atualizar status QA quando concluído.\n"
-                    "Se for ajuste fino visual/layout sem impacto funcional/arquitetural, use a exceção controlada: crie TASK-QA em `.documents/task/task.md` e detalhe completo em `.documents/task/task.details.md`; não crie REQ resumido.\n"
-                    "Se for mudança funcional, crie/atualize REQ completo com seções 1.1 a 1.10, revise Design, revise DRI quando houver interface, crie Task List e Task Details antes de executar.\n"
+                    "Fluxo esperado: entender a anotação, classificar se é ajuste visual/layout ou mudança funcional, criar/atualizar os documentos Harness no template oficial completo, solicitar uma única aprovação do pacote, executar todas as tasks aprovadas em sequência e atualizar status QA quando concluído.\n"
+                    "Se for ajuste fino visual/layout sem impacto funcional/arquitetural, use a exceção controlada: crie TASK-QA em `.documents/task/task.md` e detalhe completo em `.documents/task/task.details.md`; não crie REQ resumido; peça uma única aprovação do pacote QA e execute todas as tasks QA após aprovação.\n"
+                    "Se for mudança funcional, crie/atualize REQ completo com seções 1.1 a 1.10, revise Design, revise DRI quando houver interface, crie Task List e Task Details; depois peça uma única aprovação do pacote completo antes de executar.\n"
                     f"Anotação carregada: {json.dumps(public, ensure_ascii=False)[:5000]}"
                 )
             else:
@@ -5371,7 +5373,7 @@ def _native_agent_intent_context(project: Project, prompt: str) -> str:
         parts.append(
             "INTENÇÃO DETECTADA: TASK\n"
             f"Task ID: {context['id']}\n"
-            "Regra: este ID é uma tarefa Harness. Antes de executar, leia task.md e task.details.md; se detalhes estiverem ausentes ou resumidos, crie/atualize o plano detalhado no template oficial e aguarde aprovação.\n"
+            "Regra: este ID é uma tarefa Harness. Antes de executar, leia task.md e task.details.md; se detalhes estiverem ausentes ou resumidos, crie/atualize o plano detalhado no template oficial. A execução deve respeitar a aprovação única do pacote Harness, sem aprovações intermediárias task a task.\n"
             f"Linha em task.md: {context.get('task_line') or '[não encontrada]'}\n"
             f"Detalhes em task.details.md: {(context.get('details') or '[não encontrado]')[:5000]}"
         )
