@@ -40,7 +40,7 @@ git-ide
 | Shell | Fundo quase preto, sem tema claro |
 | Topbar | Barra compacta escura com borda inferior fina |
 | Sidebar | Painel escuro com borda, labels em caixa alta e navegação técnica |
-| Cards/Painéis | Superfícies pretas/cinza muito escuras, bordas finas, cantos retos e corner brackets nos quatro cantos |
+| Cards/Painéis | Superfícies pretas/cinza muito escuras, bordas finas, cantos retos e corner brackets nos quatro cantos; em Settings, `settings-card.card` usa padding global de 8px e o header fica colado no topo e laterais |
 | Botões primários | Botões retangulares, sem gradiente, texto mono em caixa alta |
 | Inputs | Fundo preto, borda fina, prompt/placeholder técnico |
 | Código/Terminal | Superfície preta, texto mono, acento verde para prompt/live |
@@ -53,7 +53,7 @@ git-ide
 | Tema base | A experiência padrão deve ser dark |
 | Paleta | Preto, cinzas frios, branco, azul acinzentado, verde status e vermelho live/error |
 | Cantos | Usar 0–2px como padrão visual |
-| Espaçamento | Compacto e modular, preservando múltiplos coerentes de 8/16px |
+| Espaçamento | Compacto e modular, preservando múltiplos coerentes de 8/16px; cards de Settings devem usar padding externo interno de 8px com header encostado no topo/laterais |
 | Tipografia | Monospace/sistema técnico para navegação, labels, botões, tabelas e metadados |
 | Ornamentos | Evitar glassmorphism, gradientes coloridos, sombras pesadas e saturação desnecessária |
 

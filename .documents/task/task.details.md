@@ -351,3 +351,58 @@ Corrigir a anotação `QA-12681E16`, aplicando espaçamento interno adequado ao 
 - Executar `git status` para auditar alterações.
 
 Para autorizar a execução de todas as tasks planejadas, responda: **"Aprovado executar o pacote Harness"**.
+
+## Plano — TASK-REQ-3091-005
+
+**Tarefa:** Padronizar padding e header dos cards de Settings.
+
+### Objetivo
+
+Padronizar todos os cards de Settings para manter consistência visual no rebrand dark technical console: `settings-card.card` deve usar `padding: 8px` em todos os lados, e o `card-header`/headers equivalentes devem ficar colados ao topo e às laterais do card, sem espaço entre o header e a borda externa.
+
+### Arquivo afetado
+
+`[MODIFICAR] .documents/dri/dri.md`
+
+`[MODIFICAR] .documents/task/task.md`
+
+`[MODIFICAR] .documents/task/task.details.md`
+
+`[MODIFICAR] gitide_server/static/rebrand.css`
+
+`[MODIFICAR] gitide_server/static/index.html`
+
+### Formato previsto da chamada
+
+1. Registrar a task na Task List.
+2. Anexar este plano detalhado preservando seções anteriores.
+3. Atualizar o DRI com a regra global de padding/header dos cards de Settings.
+4. Substituir o ajuste pontual de `QA-12681E16` por uma regra global em `rebrand.css`.
+5. Definir `settings-card.card` com `padding: 8px`.
+6. Definir headers diretos do card com margem negativa horizontal/top para encostar no topo e laterais.
+7. Atualizar `index.html` para bust de cache do CSS.
+8. Validar por leitura dos trechos alterados e `git status`.
+9. Marcar a task como concluída em `task.md` somente após execução e verificação.
+
+### Fallback previsto
+
+- Se algum card de Settings usar header equivalente fora de `.card-header`, manter cobertura para `.panel-header` e `.panel-header-simple`.
+- Se algum conteúdo interno ficar excessivamente colado abaixo do header, ajustar apenas seletor de conteúdo interno em etapa posterior, sem reabrir padding global do card.
+
+### Fora desta task
+
+- Não alterar JavaScript.
+- Não alterar estrutura HTML.
+- Não alterar backend, banco de dados, endpoints, permissões ou autenticação.
+- Não alterar corner brackets.
+- Não fazer deploy.
+
+### Validação prevista
+
+- Confirmar que `settings-card.card` usa `padding: 8px`.
+- Confirmar que headers diretos dos cards de Settings usam margem negativa `-8px -8px 0` para encostar no topo e laterais.
+- Confirmar que o ajuste pontual `padding: 32px` do card Security Rules foi substituído.
+- Confirmar que `index.html` aponta para a nova versão de `rebrand.css`.
+- Executar `git status` para auditar alterações.
+
+Para autorizar a execução de todas as tasks planejadas, responda: **"Aprovado executar o pacote Harness"**.

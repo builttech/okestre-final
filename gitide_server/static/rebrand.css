@@ -9357,9 +9357,20 @@ table td {
     stroke-width: 0.75px !important;
 }
 
-/* Settings Security Rules internal spacing — QA-12681E16 */
-.settings-tabs-content > .settings-tab-panel:nth-of-type(5) > .settings-card.card,
-.settings-tabs-content > .settings-tab-panel.is-active:nth-of-type(5) > .settings-card.card {
-    padding: 32px !important;
+/* Settings card spacing standard — TASK-REQ-3091-005 */
+.settings-tabs-content > .settings-tab-panel > .settings-card.card,
+.settings-tabs-content > .settings-tab-panel.is-active > .settings-card.card,
+.settings-card.card {
+    padding: 8px !important;
+}
+
+.settings-card.card > .card-header,
+.settings-card.card > .panel-header,
+.settings-card.card > .panel-header-simple {
+    margin: -8px -8px 0 !important;
+    padding: 16px 20px !important;
+    border-top: 0 !important;
+    border-left: 0 !important;
+    border-right: 0 !important;
 }
 
