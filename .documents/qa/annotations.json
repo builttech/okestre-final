@@ -186,7 +186,7 @@
     "url": "http://127.0.0.1:8000/",
     "category": "visual",
     "severity": "low",
-    "status": "open",
+    "status": "resolved",
     "selector": "body > div.app-container.sidebar-collapsed:nth-of-type(2) > div.main-layout > aside.sidebar > nav.sidebar-nav",
     "viewport": {
       "width": 1920,
@@ -207,6 +207,36 @@
       "selectedText": "Arquivos do Workspace\n                    \n                    \n                         Terminal Console\n                    \n                    \n                         Banco de Dados (SQL)\n                    \n                    \n    "
     },
     "created_at": "2026-07-07T17:35:17.763537Z",
-    "updated_at": "2026-07-07T17:35:17.763537Z"
+    "updated_at": "2026-07-07T17:50:35.821575Z"
+  },
+  {
+    "id": "QA-58BC3AAC",
+    "title": "Ajustar o card que ainda não está no padrao visual",
+    "description": "Ajustar o card que ainda não está no padrao visual",
+    "url": "http://127.0.0.1:8000/",
+    "category": "functional",
+    "severity": "medium",
+    "status": "open",
+    "selector": "div.main-layout > main.content-area > div.tab-pane.active:nth-of-type(5) > div.git-layout > aside.git-side-panel.card",
+    "viewport": {
+      "width": 1920,
+      "height": 1080
+    },
+    "browser": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36",
+    "screenshot": null,
+    "screenshot_file": "QA-58BC3AAC.jpg",
+    "screenshot_mime": "image/jpeg",
+    "metadata": {
+      "tabTitle": "Dayact IA Workspace",
+      "elementRect": {
+        "x": 776,
+        "y": 96,
+        "width": 704,
+        "height": 807
+      },
+      "selectedText": "PAINEL GIT\nConsole e histórico\nCONSOLE\nGIT GRAPH\nARQUIVOS\n.GITIGNORE\nArquivos que não devem subir para o Git\nAdicione arquivos, pastas ou padrões. Cada item vira uma linha no .gitignore do projeto.\nADICIONAR\n.ENV\nNODE_MODULES/\nDIST/\nBUILD/\n"
+    },
+    "created_at": "2026-07-07T17:55:56.484258Z",
+    "updated_at": "2026-07-07T17:55:56.484258Z"
   }
 ]

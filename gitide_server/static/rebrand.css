@@ -9357,3 +9357,9 @@ table td {
     stroke-width: 0.75px !important;
 }
 
+/* Settings Security Rules internal spacing — QA-12681E16 */
+.settings-tabs-content > .settings-tab-panel:nth-of-type(5) > .settings-card.card,
+.settings-tabs-content > .settings-tab-panel.is-active:nth-of-type(5) > .settings-card.card {
+    padding: 32px !important;
+}
+

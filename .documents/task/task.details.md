@@ -303,3 +303,51 @@ Corrigir a anotação `QA-B9983968`, restaurando a exibição dos ícones Lucide
 - Executar `git status` para auditar alterações.
 
 Para autorizar a execução de todas as tasks planejadas, responda: **"Aprovado executar o pacote Harness"**.
+
+## Plano — TASK-QA-12681E16-001
+
+**Tarefa:** Aplicar espaçamento interno no card Security Rules.
+
+### Objetivo
+
+Corrigir a anotação `QA-12681E16`, aplicando espaçamento interno adequado ao card da aba Security Rules em Settings, mantendo o rebrand dark technical console, os corner brackets e a estrutura funcional existente.
+
+### Arquivo afetado
+
+`[MODIFICAR] .documents/task/task.md`
+
+`[MODIFICAR] .documents/task/task.details.md`
+
+`[MODIFICAR] gitide_server/static/rebrand.css`
+
+`[MODIFICAR] gitide_server/static/index.html`
+
+### Formato previsto da chamada
+
+1. Registrar a task QA na Task List.
+2. Anexar este plano detalhado preservando seções anteriores.
+3. Adicionar override final em `rebrand.css` para o quinto painel de Settings, correspondente ao card Security Rules.
+4. Aplicar padding interno consistente com o rebrand dark.
+5. Atualizar `index.html` para bust de cache do CSS.
+6. Validar por leitura dos trechos alterados e `git status`.
+7. Marcar a task como concluída em `task.md` somente após execução e verificação.
+
+### Fallback previsto
+
+- Se o seletor com `nth-of-type(5)` não cobrir o estado ativo em todos os cenários, adicionar seletor complementar para `.settings-tab-panel:nth-of-type(5) > .settings-card.card`.
+
+### Fora desta task
+
+- Não alterar JavaScript.
+- Não alterar estrutura HTML.
+- Não alterar backend, banco de dados, endpoints, permissões ou autenticação.
+- Não alterar corner brackets.
+- Não fazer deploy.
+
+### Validação prevista
+
+- Confirmar que o card Security Rules recebe padding interno.
+- Confirmar que `index.html` aponta para a nova versão de `rebrand.css`.
+- Executar `git status` para auditar alterações.
+
+Para autorizar a execução de todas as tasks planejadas, responda: **"Aprovado executar o pacote Harness"**.

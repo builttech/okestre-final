@@ -26,5 +26,5 @@ env/
 .documents/task/task.md
 *.log
 *.documents/qa/annotations.json
-annotations.json
-task.details.md
+*.annotations.json
+*.task.details.md

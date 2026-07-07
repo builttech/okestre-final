@@ -15,3 +15,4 @@ git-ide
 - [x] TASK-REQ-3091-003: - Aplicar corner brackets nos quatro cantos de todos os cards.
 - [x] TASK-REQ-3091-004: - Reduzir opacidade das bordas comuns sem alterar corner brackets.
 - [x] TASK-QA-B9983968-001: - Restaurar ícones Lucide da sidebar com stroke 0.75px.
+- [x] TASK-QA-12681E16-001: - Aplicar espaçamento interno no card Security Rules.
