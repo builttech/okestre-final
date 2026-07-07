@@ -22,3 +22,4 @@ git-ide
 - [x] TASK-QA-B9CD0F01-001: - Rebrand do sidebar interno de Settings.
 - [x] TASK-QA-B9CD0F01-002: - Adicionar corner brackets ao sidebar interno de Settings.
 - [x] TASK-QA-6D40FE91-001: - Rebrand do popover de workspace/conta.
+- [x] TASK-QA-0CD44BEE-001: - Encurtar labels do menu principal da sidebar.

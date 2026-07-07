@@ -36,7 +36,7 @@
     "url": "http://127.0.0.1:8000/",
     "category": "visual",
     "severity": "low",
-    "status": "open",
+    "status": "resolved",
     "selector": "div.tab-pane.active:nth-of-type(7) > div.settings-dashboard-layout.gitide-settings-tabs-ready > div.settings-tabs-content > div.settings-tab-panel.is-active:nth-of-type(1) > div.settings-card.card",
     "viewport": {
       "width": 1920,
@@ -57,7 +57,7 @@
       "selectedText": "PROMPT COPY\n\nCopie rapidamente o contexto do workspace/projeto ativo para usar em conversas ou automações.\n\nCOPIAR PROMPT\nCOPIAR CONTEXTO\nATUALIZAR\nDELETAR PROJETO"
     },
     "created_at": "2026-07-07T17:25:21.780904Z",
-    "updated_at": "2026-07-07T17:25:21.780904Z"
+    "updated_at": "2026-07-07T19:14:00.730738Z"
   },
   {
     "id": "QA-2C61A5EC",
@@ -66,7 +66,7 @@
     "url": "http://127.0.0.1:8000/",
     "category": "visual",
     "severity": "low",
-    "status": "open",
+    "status": "resolved",
     "selector": "div.tab-pane.active:nth-of-type(7) > div.settings-dashboard-layout.gitide-settings-tabs-ready > div.settings-tabs-content > div.settings-tab-panel.is-active:nth-of-type(2) > div.settings-card.card",
     "viewport": {
       "width": 1920,
@@ -87,7 +87,7 @@
       "selectedText": "CONFIGURAÇÕES DO AGENTE IA NATIVO\nProvedor de LLM:\nGoogle Gemini\nOpenAI\nOllama (Modelo local)\nModelo local:\ngpt-oss:120b - 60.9 GB\ngemma4:latest - 8.9 GB\ngemma3:latest - 3.1 GB\ncodellama:latest - 3.6 GB\ngpt-oss:latest - 12.8 GB\nqwen2.5-code"
     },
     "created_at": "2026-07-07T17:26:08.443965Z",
-    "updated_at": "2026-07-07T17:26:08.443965Z"
+    "updated_at": "2026-07-07T19:13:54.251875Z"
   },
   {
     "id": "QA-66584752",
@@ -96,7 +96,7 @@
     "url": "http://127.0.0.1:8000/",
     "category": "visual",
     "severity": "low",
-    "status": "open",
+    "status": "resolved",
     "selector": "div.tab-pane.active:nth-of-type(7) > div.settings-dashboard-layout.gitide-settings-tabs-ready > div.settings-tabs-content > div.settings-tab-panel.is-active:nth-of-type(3) > div.settings-card.card",
     "viewport": {
       "width": 1920,
@@ -117,7 +117,7 @@
       "selectedText": "CONFIGURANDO O GPT ACTION (CHATGPT)\n\nPara conectar o ChatGPT com seu computador usando esta ferramenta de forma segura, siga estes passos:\n\nExponha seu servidor local:\n\nAbra um terminal no seu computador e execute um utilitário de túnel com"
     },
     "created_at": "2026-07-07T17:26:31.975487Z",
-    "updated_at": "2026-07-07T17:26:31.975487Z"
+    "updated_at": "2026-07-07T19:13:50.276014Z"
   },
   {
     "id": "QA-E223FCE7",
@@ -126,7 +126,7 @@
     "url": "http://127.0.0.1:8000/",
     "category": "visual",
     "severity": "low",
-    "status": "open",
+    "status": "resolved",
     "selector": "div.tab-pane.active:nth-of-type(7) > div.settings-dashboard-layout.gitide-settings-tabs-ready > div.settings-tabs-content > div.settings-tab-panel.is-active:nth-of-type(4) > div.settings-card.card",
     "viewport": {
       "width": 1920,
@@ -147,7 +147,7 @@
       "selectedText": "PROD-READY VALIDATOR\n\nCopie um comando curto para o GPT Action executar a auditoria. O GPT deve ler o PROD_READINESS_VALIDATOR.md completo antes de iniciar e salvar o relatório em .documents/prod-readiness/.\n\nABRIR MARKDOWN\nCOPIAR PROMPT\nEx"
     },
     "created_at": "2026-07-07T17:27:12.264022Z",
-    "updated_at": "2026-07-07T17:27:12.264022Z"
+    "updated_at": "2026-07-07T19:13:48.738836Z"
   },
   {
     "id": "QA-12681E16",
@@ -156,7 +156,7 @@
     "url": "http://127.0.0.1:8000/",
     "category": "visual",
     "severity": "low",
-    "status": "open",
+    "status": "resolved",
     "selector": "div.tab-pane.active:nth-of-type(7) > div.settings-dashboard-layout.gitide-settings-tabs-ready > div.settings-tabs-content > div.settings-tab-panel.is-active:nth-of-type(5) > div.settings-card.card",
     "viewport": {
       "width": 1920,
@@ -177,7 +177,7 @@
       "selectedText": "SECURITY RULES\n\nCopie um comando curto para o GPT Action executar o Security Review. O GPT deve ler o SECURITY_RULES.md completo antes de iniciar e salvar o relatório em .documents/security/.\n\nABRIR MARKDOWN\nCOPIAR PROMPT\nExecute o Security"
     },
     "created_at": "2026-07-07T17:27:53.361450Z",
-    "updated_at": "2026-07-07T17:27:53.361450Z"
+    "updated_at": "2026-07-07T19:13:46.631452Z"
   },
   {
     "id": "QA-B9983968",
@@ -246,7 +246,7 @@
     "url": "http://127.0.0.1:8000/",
     "category": "functional",
     "severity": "medium",
-    "status": "open",
+    "status": "resolved",
     "selector": "div.status-panel:nth-of-type(2) > div.sidebar-section.topbar-workspace-section:nth-of-type(1) > div.project-selector-wrapper:nth-of-type(2) > div.workspace-switcher.workspace-account-menu > div.workspace-switcher-menu.workspace-account-popover",
     "viewport": {
       "width": 1920,
@@ -267,6 +267,126 @@
       "selectedText": "TP\nTOPTUS-PORTAL-BUILDING\nCONFIGURAÇÕES\n \nPERFIL\nCOPY PROJECT CONTEXT\n \nDEVELOPER DOCS\n \nTERMS & POLICIES\n \nHELP\nLOG OUT"
     },
     "created_at": "2026-07-07T19:01:23.733585Z",
-    "updated_at": "2026-07-07T19:01:23.733585Z"
+    "updated_at": "2026-07-07T19:13:25.878025Z"
+  },
+  {
+    "id": "QA-0CD44BEE",
+    "title": "Diminuir os textos dos menus",
+    "description": "Diminuir os textos dos menus para:\n\n\"Arquivos do Workspace\" para \"Arquivos\"\n\"Terminal Console\" > \"Terminal\"\n\"Banco de Dados (SQL)\" > \"Banco\"\n\"Controle de Versão (Git)\" > \"Git\"\n\"Histórico & Rollbacks\" > \"Histórico\"\n\"Design System (Tokens)\" > \"Tokens\"\n\"UI Canvas\" > \"UI\"\n\"Engineering Metrics\" > \"Metrics\"\n\"Agente IA Nativo\" > \"Agente\"\n\"Documentos (Word)\" > \"Documentos\"\n\"Harness Engineering\" > \"Harness\"\n\"Ops Infra\" > \"Computer\"",
+    "url": "http://127.0.0.1:8000/",
+    "category": "content",
+    "severity": "low",
+    "status": "open",
+    "selector": "body > div.app-container:nth-of-type(2) > div.main-layout > aside.sidebar > nav.sidebar-nav",
+    "viewport": {
+      "width": 1920,
+      "height": 1080
+    },
+    "browser": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36",
+    "screenshot": null,
+    "screenshot_file": "QA-0CD44BEE.jpg",
+    "screenshot_mime": "image/jpeg",
+    "metadata": {
+      "tabTitle": "Dayact IA Workspace",
+      "elementRect": {
+        "x": 24,
+        "y": 147,
+        "width": 243,
+        "height": 673
+      },
+      "selectedText": "ARQUIVOS DO WORKSPACE\nTERMINAL CONSOLE\nBANCO DE DADOS (SQL)\nCONTROLE DE VERSÃO (GIT)\nHISTÓRICO & ROLLBACKS\nDESIGN SYSTEM (TOKENS)\nUI CANVAS\nQA\nENGINEERING METRICS\nAGENTE IA NATIVO\nDOCUMENTOS (WORD)\nHARNESS ENGINEERING\nOPS INFRA"
+    },
+    "created_at": "2026-07-07T19:19:55.506662Z",
+    "updated_at": "2026-07-07T19:19:55.506662Z"
+  },
+  {
+    "id": "QA-32A74437",
+    "title": "Quality AssuranceCentral de Anotações QAReceba evidências, bugs e observações",
+    "description": "remover pedding",
+    "url": "http://127.0.0.1:8000/",
+    "category": "content",
+    "severity": "low",
+    "status": "open",
+    "selector": "div.app-container.sidebar-collapsed:nth-of-type(2) > div.main-layout > main.content-area > div.tab-pane.active:nth-of-type(10) > div.qa-layout:nth-of-type(1)",
+    "viewport": {
+      "width": 1920,
+      "height": 1080
+    },
+    "browser": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36",
+    "screenshot": null,
+    "screenshot_file": "QA-32A74437.jpg",
+    "screenshot_mime": "image/jpeg",
+    "metadata": {
+      "tabTitle": "Dayact IA Workspace",
+      "elementRect": {
+        "x": 92,
+        "y": 72,
+        "width": 1326,
+        "height": 807
+      },
+      "selectedText": "Quality Assurance\nCentral de Anotações QA\n\nReceba evidências, bugs e observações capturadas pela extensão do navegador durante a validação da aplicação.\n\nAbertas\n0\nEm revisão\n0\nResolvidas\n0\nLISTA\nKANBAN\nTodos os status\nAbertas\nEm revisão\nRe"
+    },
+    "created_at": "2026-07-07T19:22:36.707819Z",
+    "updated_at": "2026-07-07T19:22:36.707819Z"
+  },
+  {
+    "id": "QA-2DE11363",
+    "title": "Abertas0Em revisão0Resolvidas0",
+    "description": "atualizar para o novo visual",
+    "url": "http://127.0.0.1:8000/",
+    "category": "visual",
+    "severity": "low",
+    "status": "open",
+    "selector": "main.content-area > div.tab-pane.active:nth-of-type(10) > div.qa-layout:nth-of-type(1) > section.qa-main.card > div.qa-summary:nth-of-type(2)",
+    "viewport": {
+      "width": 1920,
+      "height": 1080
+    },
+    "browser": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36",
+    "screenshot": null,
+    "screenshot_file": "QA-2DE11363.jpg",
+    "screenshot_mime": "image/jpeg",
+    "metadata": {
+      "tabTitle": "Dayact IA Workspace",
+      "elementRect": {
+        "x": 117,
+        "y": 203,
+        "width": 912,
+        "height": 110
+      },
+      "selectedText": "Abertas\n0\nEm revisão\n0\nResolvidas\n0"
+    },
+    "created_at": "2026-07-07T19:23:17.162906Z",
+    "updated_at": "2026-07-07T19:23:17.162906Z"
+  },
+  {
+    "id": "QA-C753F722",
+    "title": "Aplicar espaçamento interno",
+    "description": "aplicar espaçamento interno",
+    "url": "http://127.0.0.1:8000/",
+    "category": "visual",
+    "severity": "low",
+    "status": "open",
+    "selector": "div.main-layout > main.content-area > div.tab-pane.active:nth-of-type(10) > div.qa-layout:nth-of-type(1) > aside.qa-side.card",
+    "viewport": {
+      "width": 1920,
+      "height": 1080
+    },
+    "browser": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36",
+    "screenshot": null,
+    "screenshot_file": "QA-C753F722.jpg",
+    "screenshot_mime": "image/jpeg",
+    "metadata": {
+      "tabTitle": "Dayact IA Workspace",
+      "elementRect": {
+        "x": 1054,
+        "y": 96,
+        "width": 340,
+        "height": 399
+      },
+      "selectedText": "Extensão do navegador\n\nA extensão captura URL, seletor aproximado, viewport, descrição e severidade. As notas são salvas em .documents/qa/annotations.json.\n\nAPI BASE\nhttp://127.0.0.1:8000\nPROJECT ID\n1\nTOKEN\n10ab952b...\n\nCarregue a pasta bro"
+    },
+    "created_at": "2026-07-07T19:23:46.088249Z",
+    "updated_at": "2026-07-07T19:23:46.088249Z"
   }
 ]

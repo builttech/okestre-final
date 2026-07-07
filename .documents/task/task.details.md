@@ -667,3 +667,50 @@ Corrigir a anotação `QA-6D40FE91`, refinando o popover de workspace/conta para
 - Executar `git status` para auditar alterações.
 
 Para autorizar a execução de todas as tasks planejadas, responda: **"Aprovado executar o pacote Harness"**.
+
+## Plano — TASK-QA-0CD44BEE-001
+
+**Tarefa:** Encurtar labels do menu principal da sidebar.
+
+### Objetivo
+
+Corrigir a anotação `QA-0CD44BEE`, reduzindo os textos visíveis dos itens do menu principal da sidebar para labels mais curtos, preservando tooltips completos, ícones, `data-tab` e comportamento de navegação atual.
+
+### Arquivo afetado
+
+`[MODIFICAR] .documents/task/task.md`
+
+`[MODIFICAR] .documents/task/task.details.md`
+
+`[MODIFICAR] gitide_server/static/index.html`
+
+### Formato previsto da chamada
+
+1. Registrar a task QA na Task List.
+2. Anexar este plano detalhado preservando seções anteriores.
+3. Alterar apenas o conteúdo textual de `.nav-label` nos botões da sidebar principal.
+4. Manter atributos `title` originais para tooltip/acessibilidade.
+5. Manter `data-tab`, ícones Lucide, classes e estrutura HTML existentes.
+6. Validar por leitura do trecho alterado e `git status`.
+7. Marcar a task como concluída em `task.md` somente após execução e verificação.
+
+### Fallback previsto
+
+- Se algum label for renderizado por JavaScript em etapa posterior, ajustar apenas a fonte responsável pelo texto, preservando o mesmo mapeamento aprovado.
+
+### Fora desta task
+
+- Não alterar CSS.
+- Não alterar JavaScript.
+- Não alterar backend, banco de dados, endpoints, permissões ou autenticação.
+- Não alterar ícones.
+- Não alterar `data-tab`.
+- Não fazer deploy.
+
+### Validação prevista
+
+- Confirmar que os labels visíveis da sidebar foram encurtados conforme `QA-0CD44BEE`.
+- Confirmar que os atributos `title` completos foram preservados.
+- Executar `git status` para auditar alterações.
+
+Para autorizar a execução de todas as tasks planejadas, responda: **"Aprovado executar o pacote Harness"**.
