@@ -9374,3 +9374,175 @@ table td {
     border-right: 0 !important;
 }
 
+/* Global button hierarchy — TASK-REQ-3091-006 */
+.btn,
+button,
+.btn-primary,
+.btn-secondary,
+.btn-tertiary,
+.btn-ghost,
+.btn-icon,
+.btn-icon-sm,
+.quick-action-btn,
+.modal-tab-btn,
+.github-connect-btn,
+.btn-select-folder,
+.collapsible-trigger,
+.action-pill-btn,
+#btn-send-agent-prompt {
+    min-height: 32px !important;
+    padding: 0 14px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 8px !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    font-family: var(--console-font-mono) !important;
+    font-size: 10px !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.08em !important;
+    line-height: 1 !important;
+    text-transform: uppercase !important;
+    transition: color 140ms ease, background 140ms ease, border-color 140ms ease, opacity 140ms ease !important;
+}
+
+.btn-primary,
+button.btn-primary,
+#btn-send-agent-prompt,
+.action-pill-btn.btn-apply,
+.quick-action-btn.is-primary,
+.github-connect-btn.is-primary {
+    color: var(--console-text) !important;
+    background: rgba(0, 208, 132, 0.08) !important;
+    border: 1px solid rgba(0, 208, 132, 0.72) !important;
+}
+
+.btn-primary:hover,
+button.btn-primary:hover,
+#btn-send-agent-prompt:hover,
+.action-pill-btn.btn-apply:hover,
+.quick-action-btn.is-primary:hover,
+.github-connect-btn.is-primary:hover {
+    color: var(--console-green) !important;
+    background: rgba(0, 208, 132, 0.13) !important;
+    border-color: var(--console-green) !important;
+}
+
+.btn-secondary,
+button.btn-secondary,
+.quick-action-btn,
+.github-connect-btn,
+.btn-select-folder,
+.modal-tab-btn.is-active,
+.action-pill-btn.is-secondary {
+    color: var(--console-text-soft) !important;
+    background: transparent !important;
+    border: 1px solid var(--console-line-strong) !important;
+}
+
+.btn-secondary:hover,
+button.btn-secondary:hover,
+.quick-action-btn:hover,
+.github-connect-btn:hover,
+.btn-select-folder:hover,
+.modal-tab-btn.is-active:hover,
+.action-pill-btn.is-secondary:hover {
+    color: var(--console-text) !important;
+    background: rgba(255, 255, 255, 0.035) !important;
+    border-color: rgba(255, 255, 255, 0.22) !important;
+}
+
+.btn-tertiary,
+.btn-ghost,
+button.btn-tertiary,
+button.btn-ghost,
+.btn-icon,
+.btn-icon-sm,
+.modal-tab-btn,
+.collapsible-trigger,
+.action-pill-btn:not(.btn-apply):not(.is-secondary) {
+    color: var(--console-muted) !important;
+    background: transparent !important;
+    border: 1px solid transparent !important;
+}
+
+.btn-tertiary:hover,
+.btn-ghost:hover,
+button.btn-tertiary:hover,
+button.btn-ghost:hover,
+.btn-icon:hover,
+.btn-icon-sm:hover,
+.modal-tab-btn:hover,
+.collapsible-trigger:hover,
+.action-pill-btn:not(.btn-apply):not(.is-secondary):hover {
+    color: var(--console-text-soft) !important;
+    background: rgba(255, 255, 255, 0.026) !important;
+    border-color: var(--console-line) !important;
+}
+
+.btn:focus-visible,
+button:focus-visible,
+.btn-primary:focus-visible,
+.btn-secondary:focus-visible,
+.btn-tertiary:focus-visible,
+.btn-ghost:focus-visible,
+.btn-icon:focus-visible,
+.btn-icon-sm:focus-visible,
+.quick-action-btn:focus-visible,
+.modal-tab-btn:focus-visible,
+.github-connect-btn:focus-visible,
+.btn-select-folder:focus-visible,
+.collapsible-trigger:focus-visible,
+.action-pill-btn:focus-visible,
+#btn-send-agent-prompt:focus-visible {
+    outline: none !important;
+    box-shadow: var(--console-focus) !important;
+}
+
+.btn:disabled,
+button:disabled,
+.btn-primary:disabled,
+.btn-secondary:disabled,
+.btn-tertiary:disabled,
+.btn-ghost:disabled,
+.btn-icon:disabled,
+.btn-icon-sm:disabled,
+.quick-action-btn:disabled,
+.modal-tab-btn:disabled,
+.github-connect-btn:disabled,
+.btn-select-folder:disabled,
+.collapsible-trigger:disabled,
+.action-pill-btn:disabled,
+#btn-send-agent-prompt:disabled {
+    opacity: 0.42 !important;
+    cursor: not-allowed !important;
+}
+
+.btn-danger,
+button.btn-danger {
+    color: var(--console-red) !important;
+    background: transparent !important;
+    border: 1px solid rgba(255, 51, 71, 0.68) !important;
+}
+
+.btn-danger:hover,
+button.btn-danger:hover {
+    color: var(--console-red) !important;
+    background: rgba(255, 51, 71, 0.11) !important;
+    border-color: var(--console-red) !important;
+}
+
+.btn-icon,
+.btn-icon-sm {
+    width: 32px !important;
+    min-width: 32px !important;
+    padding: 0 !important;
+}
+
+.btn-icon-sm {
+    width: 28px !important;
+    min-width: 28px !important;
+    min-height: 28px !important;
+}
+

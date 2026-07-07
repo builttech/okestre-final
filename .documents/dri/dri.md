@@ -41,7 +41,9 @@ git-ide
 | Topbar | Barra compacta escura com borda inferior fina |
 | Sidebar | Painel escuro com borda, labels em caixa alta e navegação técnica |
 | Cards/Painéis | Superfícies pretas/cinza muito escuras, bordas finas, cantos retos e corner brackets nos quatro cantos; em Settings, `settings-card.card` usa padding global de 8px e o header fica colado no topo e laterais |
-| Botões primários | Botões retangulares, sem gradiente, texto mono em caixa alta |
+| Botões primários | Ação principal global: retangular, mono uppercase, borda/acento verde, texto claro, hover com acento operacional |
+| Botões secundários | Ação comum global: retangular, mono uppercase, borda discreta, texto cinza claro e hover com borda mais visível |
+| Botões terciários | Ação contextual/ícone/baixo peso: retangular, mono uppercase, sem preenchimento forte, texto muted e hover discreto |
 | Inputs | Fundo preto, borda fina, prompt/placeholder técnico |
 | Código/Terminal | Superfície preta, texto mono, acento verde para prompt/live |
 | Tabelas | Linhas discretas, cabeçalhos pequenos, metadados compactos |
@@ -56,6 +58,7 @@ git-ide
 | Espaçamento | Compacto e modular, preservando múltiplos coerentes de 8/16px; cards de Settings devem usar padding externo interno de 8px com header encostado no topo/laterais |
 | Tipografia | Monospace/sistema técnico para navegação, labels, botões, tabelas e metadados |
 | Ornamentos | Evitar glassmorphism, gradientes coloridos, sombras pesadas e saturação desnecessária |
+| Hierarquia de botões | Primário, secundário e terciário devem usar tokens e estados consistentes em todos os módulos do workspace |
 
 ## 6. Estados
 
@@ -144,6 +147,7 @@ git-ide
 
 - [ ] A interface geral passa a ser dark e coerente com a referência visual enviada.
 - [ ] Topbar, sidebar, cards, inputs, botões, tabelas e modais seguem a paleta dark alvo.
+- [ ] Botões primário, secundário e terciário ficam uniformes em todos os módulos e preservam estados hover/focus/disabled coerentes.
 - [ ] Cantos arredondados grandes são reduzidos para estética técnica/retangular.
 - [ ] Cards, painéis e modais principais exibem corner brackets nos quatro cantos.
 - [ ] Acentos coloridos antigos são substituídos por verde/vermelho pontual e cinzas técnicos.

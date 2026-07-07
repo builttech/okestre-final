@@ -406,3 +406,61 @@ Padronizar todos os cards de Settings para manter consistência visual no rebran
 - Executar `git status` para auditar alterações.
 
 Para autorizar a execução de todas as tasks planejadas, responda: **"Aprovado executar o pacote Harness"**.
+
+## Plano — TASK-REQ-3091-006
+
+**Tarefa:** Uniformizar botões primário, secundário e terciário em todas as páginas.
+
+### Objetivo
+
+Padronizar a hierarquia visual dos botões primário, secundário e terciário em todos os módulos do workspace, mantendo o rebrand dark technical console, tipografia mono, uppercase, cantos retos, estados consistentes e acentos operacionais discretos.
+
+### Arquivo afetado
+
+`[MODIFICAR] .documents/spec/req-3091_rebrand_visual_dayact_ia.md`
+
+`[MODIFICAR] .documents/dri/dri.md`
+
+`[MODIFICAR] .documents/task/task.md`
+
+`[MODIFICAR] .documents/task/task.details.md`
+
+`[MODIFICAR] tokens.json`
+
+`[MODIFICAR] gitide_server/static/rebrand.css`
+
+`[MODIFICAR] gitide_server/static/index.html`
+
+### Formato previsto da chamada
+
+1. Atualizar REQ e DRI com a regra global de botões.
+2. Registrar a task na Task List.
+3. Anexar este plano detalhado preservando seções anteriores.
+4. Atualizar tokens de botão primário, secundário e terciário em `tokens.json`.
+5. Aplicar override final em `rebrand.css` cobrindo classes globais e variações usadas nos módulos.
+6. Preservar `.btn-danger` como semântico de perigo.
+7. Atualizar `index.html` para bust de cache do CSS.
+8. Validar por leitura dos trechos alterados e `git status`.
+9. Marcar a task como concluída em `task.md` somente após execução e verificação.
+
+### Fallback previsto
+
+- Se algum módulo usar classe específica de botão não coberta, reportar para ajuste posterior ou incluir seletor complementar mantendo o padrão aprovado.
+- Se um botão de ação crítica usar `.btn-danger`, preservar a semântica visual vermelha.
+
+### Fora desta task
+
+- Não alterar JavaScript.
+- Não alterar estrutura HTML.
+- Não alterar backend, banco de dados, endpoints, permissões ou autenticação.
+- Não fazer deploy.
+- Não alterar corner brackets.
+
+### Validação prevista
+
+- Confirmar tokens de primário, secundário e terciário.
+- Confirmar o bloco CSS final de hierarquia global de botões.
+- Confirmar que `index.html` aponta para a nova versão de `rebrand.css`.
+- Executar `git status` para auditar alterações.
+
+Para autorizar a execução de todas as tasks planejadas, responda: **"Aprovado executar o pacote Harness"**.

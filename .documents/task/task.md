@@ -17,3 +17,4 @@ git-ide
 - [x] TASK-QA-B9983968-001: - Restaurar ícones Lucide da sidebar com stroke 0.75px.
 - [x] TASK-QA-12681E16-001: - Aplicar espaçamento interno no card Security Rules.
 - [x] TASK-REQ-3091-005: - Padronizar padding e header dos cards de Settings.
+- [x] TASK-REQ-3091-006: - Uniformizar botões primário, secundário e terciário em todas as páginas.

@@ -39,6 +39,7 @@ Como usuário da ferramenta, quero que a interface reflita fielmente a referênc
 - A aparência padrão deve ser dark, não light.
 - A paleta deve priorizar fundo quase preto, painéis escuros, bordas claras sutis, texto branco/cinza, texto secundário azul acinzentado, verde para estados ativos e vermelho para estados live/erro.
 - A tipografia deve favorecer aparência técnica, compacta e monospace/condensada em navegação, labels, metadados, botões e tabelas.
+- Botões primário, secundário e terciário devem seguir uma hierarquia visual global consistente em todas as páginas e módulos.
 - Os cantos devem permanecer retos ou quase retos, entre 0 e 2px.
 - A implementação não deve criar estilos inline novos.
 - A lógica da aplicação não deve ser alterada.
@@ -66,6 +67,7 @@ Como usuário da ferramenta, quero que a interface reflita fielmente a referênc
 - [ ] A camada visual padrão passa a usar tema dark compatível com a referência visual enviada.
 - [ ] Tokens principais refletem a nova paleta dark, tipografia técnica e cantos retos.
 - [ ] Topbar, sidebar, cards, botões, inputs, modais, abas, painéis, tabelas e áreas de código recebem overrides compatíveis com o rebrand dark.
+- [ ] Botões primário, secundário e terciário ficam visualmente uniformes e consistentes em todos os módulos principais.
 - [ ] A interface deixa de usar o override claro aplicado anteriormente.
 - [ ] Não são introduzidos estilos inline novos.
 - [ ] A implementação preserva a lógica funcional existente.
@@ -79,5 +81,6 @@ Como usuário da ferramenta, quero que a interface reflita fielmente a referênc
 | Fonte visual | Imagem de referência enviada no chat |
 | Task técnica inicial | TASK-REQ-3091-001 |
 | Task técnica de correção | TASK-REQ-3091-002 |
+| Task técnica de botões | TASK-REQ-3091-006 |
 | Design | `.documents/design/design.md` |
 | DRI | `.documents/dri/dri.md` |
