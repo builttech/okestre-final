@@ -8510,9 +8510,9 @@ table td {
     --console-panel: #070707;
     --console-panel-2: #0b0b0b;
     --console-panel-3: #101114;
-    --console-line: rgba(255, 255, 255, 0.13);
-    --console-line-strong: rgba(255, 255, 255, 0.27);
-    --console-line-soft: rgba(255, 255, 255, 0.075);
+    --console-line: rgba(255, 255, 255, 0.07);
+    --console-line-strong: rgba(255, 255, 255, 0.14);
+    --console-line-soft: rgba(255, 255, 255, 0.04);
     --console-text: #f4f7fb;
     --console-text-soft: #a7b0c2;
     --console-muted: #6f7688;

@@ -204,3 +204,52 @@ Ajustar o detalhe visual de moldura técnica do rebrand dark para que o elemento
 - Reportar que a validação visual final depende de inspeção no navegador.
 
 Para autorizar a execução de todas as tasks planejadas, responda: **"Aprovado executar o pacote Harness"**.
+
+## Plano — TASK-REQ-3091-004
+
+**Tarefa:** Reduzir opacidade das bordas comuns sem alterar corner brackets.
+
+### Objetivo
+
+Diminuir a intensidade visual das bordas comuns do dark technical console para que fiquem menos brancas, preservando integralmente a cor, posição, tamanho e desenho dos corner brackets adicionados na task anterior.
+
+### Arquivo afetado
+
+`[MODIFICAR] .documents/task/task.md`
+
+`[MODIFICAR] .documents/task/task.details.md`
+
+`[MODIFICAR] gitide_server/static/rebrand.css`
+
+`[MODIFICAR] gitide_server/static/index.html`
+
+### Formato previsto da chamada
+
+1. Registrar a task na Task List.
+2. Anexar este plano detalhado preservando seções anteriores.
+3. Alterar somente as variáveis de borda comum no bloco dark console de `rebrand.css`.
+4. Não alterar a variável usada pelos corner brackets (`--console-text-soft`) nem o bloco `Four-corner technical brackets`.
+5. Atualizar `index.html` para bust de cache do CSS.
+6. Validar por leitura dos trechos alterados e `git status`.
+7. Marcar a task como concluída em `task.md` somente após execução e verificação.
+
+### Fallback previsto
+
+- Se alguma borda continuar muito clara por usar valor fixo fora das variáveis, reportar para ajuste posterior em seletor específico.
+
+### Fora desta task
+
+- Não alterar corner brackets.
+- Não alterar HTML estrutural.
+- Não alterar JavaScript.
+- Não alterar backend, banco de dados, endpoints, permissões ou autenticação.
+- Não fazer deploy.
+
+### Validação prevista
+
+- Confirmar que `--console-line`, `--console-line-strong` e `--console-line-soft` foram suavizadas.
+- Confirmar que o bloco `Four-corner technical brackets` continua usando `--console-text-soft`.
+- Confirmar que `index.html` aponta para a nova versão de `rebrand.css`.
+- Executar `git status` para auditar alterações.
+
+Para autorizar a execução de todas as tasks planejadas, responda: **"Aprovado executar o pacote Harness"**.
