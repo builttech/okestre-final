@@ -1,0 +1,60 @@
+{
+    "title": "Termo de Abertura do Projeto",
+    "sections": [
+        {
+            "heading": "Termo de Abertura do Projeto - git-ide",
+            "text": "",
+            "type": "paragraph"
+        },
+        {
+            "heading": "1. Contexto",
+            "text": "O projeto **git-ide** nasce da necessidade de oferecer um ambiente local integrado para desenvolvimento assistido por IA, com foco em produtividade, rastreabilidade e segurança operacional. O objetivo é centralizar em uma única interface recursos que normalmente ficam distribuídos entre editor de código, terminal, Git, banco de dados, documentação, agente de IA e gestão de especificações.\n\nAtualmente, fluxos de desenvolvimento com IA exigem múltiplas ferramentas e podem gerar riscos quando não há controle claro sobre arquivos modificados, comandos executados, credenciais, histórico de alterações e validação das entregas. O GitIDE busca resolver esse problema fornecendo uma ponte segura entre o usuário, o workspace local e agentes de IA, permitindo que tarefas técnicas sejam planejadas, executadas e auditadas com mais previsibilidade.\n\nO projeto também atende à necessidade de organizar o ciclo de desenvolvimento orientado por especificação, permitindo que requisitos, documentos técnicos, critérios de aceitação e testes sejam mantidos junto ao projeto, em arquivos versionáveis e acessíveis pela própria interface.",
+            "type": "paragraph"
+        },
+        {
+            "heading": "2. Objetivo do Projeto",
+            "text": "Construir e evoluir uma plataforma web local chamada **GitIDE**, capaz de atuar como um IDE assistido por IA para gerenciamento de projetos de software, integrando edição de arquivos, terminal, Git, banco de dados, documentação, especificações funcionais, agentes de IA e automações de desenvolvimento em uma experiência unificada, segura e rastreável.\n\nO resultado esperado é permitir que o usuário conduza atividades de engenharia de software com apoio de IA sem perder controle sobre decisões, alterações, comandos, branches, histórico e validações.",
+            "type": "paragraph"
+        },
+        {
+            "heading": "3. Escopo Inicial",
+            "text": "",
+            "type": "paragraph"
+        },
+        {
+            "heading": "Dentro do escopo",
+            "text": "- Interface web local para seleção e gerenciamento de projetos/workspaces.\n- Navegação, leitura, edição e versionamento de arquivos do projeto.\n- Integração com Git para status, branches, pull, merge, deploy, commit e push.\n- Terminal integrado para execução controlada de comandos aprovados.\n- Painel de banco de dados para consulta SQL, conexão e exploração de tabelas.\n- Configuração de credenciais e parâmetros do agente de IA.\n- Integração com provedores de LLM para apoio ao desenvolvimento.\n- Módulo de documentação Word para criação, listagem e download de documentos técnicos.\n- Módulo de Spec-Driven Development (SDD) para especificações Markdown, critérios de aceitação e geração de testes.\n- Registro de atividades, snapshots e rastreabilidade de alterações.\n- Padrão visual dark, moderno, premium e consistente com a identidade do GitIDE.\n- Fluxo de segurança baseado em planejamento, aprovação explícita, execução controlada e verificação.",
+            "type": "paragraph"
+        },
+        {
+            "heading": "Fora do escopo",
+            "text": "- Substituir completamente IDEs tradicionais como VS Code, JetBrains ou similares.\n- Hospedar aplicações de terceiros em produção diretamente pelo GitIDE.\n- Executar deploys sem aprovação explícita do usuário.\n- Manipular credenciais sem autorização ou fora dos arquivos/configurações definidos.\n- Automatizar decisões críticas sem revisão humana.\n- Garantir compatibilidade universal com todos os frameworks existentes sem adaptação específica.\n- Fornecer um sistema completo de CI/CD corporativo independente de ferramentas externas.",
+            "type": "paragraph"
+        },
+        {
+            "heading": "4. Stakeholders",
+            "text": "- **Solicitante:** Augusto Nascimento.\n- **Usuários impactados:** Desenvolvedores, operadores técnicos, usuários que trabalham com agentes de IA conectados ao workspace local e responsáveis por manter projetos de software no GitIDE.\n- **Responsável técnico:** Equipe/operador técnico responsável pela evolução do GitIDE e pela manutenção das integrações locais.\n- **Partes interessadas adicionais:** Usuários finais dos projetos gerenciados pelo GitIDE, mantenedores de repositórios Git, responsáveis por homologação e responsáveis por ambientes locais/remotos.",
+            "type": "paragraph"
+        },
+        {
+            "heading": "5. Premissas e Restrições",
+            "text": "- O GitIDE será executado em ambiente local ou controlado pelo usuário.\n- Cada workspace deve estar associado a um projeto identificado internamente pelo GitIDE.\n- Operações sensíveis, como escrita em arquivos, execução de comandos, merge, push e deploy, devem exigir aprovação explícita.\n- O projeto deve preservar URLs remotas e tokens já configurados pelo usuário.\n- Arquivos devem ser manipulados pelos endpoints próprios do GitIDE, evitando comandos de shell para leitura ou escrita direta.\n- Credenciais de banco de dados devem ser lidas de arquivos/configurações existentes quando disponíveis, sem suposições manuais.\n- A branch `dev` deve ser tratada como branch principal de desenvolvimento quando definida pelo fluxo do usuário.\n- A interface deve preservar a identidade visual existente, evitando estilos inline novos e mantendo consistência com os arquivos CSS do projeto.\n- O sistema deve ser portável entre ambientes Windows e Linux sempre que possível.\n- A integração com IA depende da configuração correta de provedor, modelo e API Key.",
+            "type": "paragraph"
+        },
+        {
+            "heading": "6. Riscos Iniciais",
+            "text": "- Execução indevida de comandos no terminal se não houver fluxo rígido de aprovação.\n- Sobrescrita acidental de arquivos caso alterações não sejam planejadas e verificadas.\n- Conflitos Git entre branches locais e remotas durante merges, pulls ou pushes.\n- Vazamento ou exposição acidental de tokens e credenciais em logs, mensagens ou commits.\n- Inconsistência visual caso novas telas não sigam o design system existente.\n- Dependência de provedores externos de IA para funcionalidades de geração de especificações, código e testes.\n- Falhas de compatibilidade em projetos com stacks muito diferentes.\n- Dificuldade de rastrear decisões se atividades não forem registradas corretamente.\n- Risco de comandos ou validações não estarem disponíveis no ambiente local, como ausência de Node.js, Python ou ferramentas específicas.",
+            "type": "paragraph"
+        },
+        {
+            "heading": "7. Critérios de Sucesso",
+            "text": "- [ ] O usuário consegue cadastrar, selecionar e alternar projetos/workspaces com clareza.\n- [ ] O usuário consegue navegar, ler e editar arquivos do projeto com rastreabilidade.\n- [ ] O GitIDE mostra status Git, branches, arquivos alterados e histórico de forma compreensível.\n- [ ] Operações Git críticas exigem aprovação e não são executadas automaticamente sem consentimento.\n- [ ] O terminal integrado executa comandos de forma controlada e auditável.\n- [ ] O módulo de banco de dados permite configurar conexão, listar tabelas e executar queries com feedback visual.\n- [ ] O agente de IA consegue usar ferramentas locais de forma segura, seguindo planejamento e aprovação.\n- [ ] O módulo de documentação gera documentos físicos no workspace.\n- [ ] O módulo SDD permite criar, editar, visualizar e acompanhar especificações versionáveis.\n- [ ] Critérios de aceitação e testes podem ser documentados a partir das especificações.\n- [ ] A interface mantém padrão visual consistente, dark-themed e premium.\n- [ ] O projeto mantém compatibilidade com o fluxo Git definido pelo usuário, especialmente branches `dev` e `homolog`.\n- [ ] As alterações podem ser validadas por status Git, testes, builds ou verificações manuais documentadas.",
+            "type": "paragraph"
+        },
+        {
+            "heading": "8. Próximo Passo",
+            "text": "A partir deste TAP, o projeto deve evoluir suas especificações funcionais no fluxo de Spec-Driven Development:\n\n1. **Specify:** detalhar requisitos funcionais e não funcionais por módulo, começando pelos módulos de Git, Documentação, Banco de Dados, Agente IA e SDD.\n2. **Design:** descrever arquitetura, componentes de UI, endpoints, modelos de dados e integrações necessárias.\n3. **Tasks:** quebrar cada especificação em tarefas técnicas pequenas, rastreáveis e aprováveis.\n4. **Execute:** implementar as tarefas com aprovação explícita, validação técnica e relatório final.\n\nO próximo documento recomendado é uma especificação funcional detalhada para o módulo SDD e outra para o fluxo Git/Deploy, por serem áreas críticas para rastreabilidade e segurança operacional do GitIDE.",
+            "type": "paragraph"
+        }
+    ]
+}

@@ -924,3 +924,53 @@ Corrigir a anotação `QA-24C4E55D`, refinando a navegação superior do módulo
 - Executar `git status` para auditar alterações.
 
 Para autorizar a execução de todas as tasks planejadas, responda: **"Aprovado executar o pacote Harness"**.
+
+## Plano — TASK-QA-2773B6E8-001
+
+**Tarefa:** Rebrand da lista de especificações do Harness.
+
+### Objetivo
+
+Corrigir a anotação `QA-2773B6E8`, refinando a lista lateral de especificações do Harness para o padrão dark technical console, removendo radius antigo e melhorando a hierarquia visual dos títulos e metadados.
+
+### Arquivo afetado
+
+`[MODIFICAR] .documents/task/task.md`
+
+`[MODIFICAR] .documents/task/task.details.md`
+
+`[MODIFICAR] gitide_server/static/rebrand.css`
+
+`[MODIFICAR] gitide_server/static/index.html`
+
+### Formato previsto da chamada
+
+1. Registrar a task QA na Task List.
+2. Anexar este plano detalhado preservando seções anteriores.
+3. Atualizar `index.html` para bust de cache do CSS.
+4. Adicionar override final em `rebrand.css` para `#sdd-specs-list`, `.specs-list`, `.spec-item`, estados hover/active, `.spec-item-title`, `.spec-item-meta` e `.specs-empty-state`.
+5. Aplicar itens retangulares, fundo técnico, borda fina, tipografia mono uppercase, metadados compactos e active com acento verde discreto.
+6. Preservar renderização JavaScript, clique, seleção e conteúdo textual.
+7. Validar por leitura dos trechos alterados e `git status`.
+8. Marcar a task como concluída em `task.md` somente após execução e verificação.
+
+### Fallback previsto
+
+- Se algum seletor legado prevalecer, reforçar o override final com escopo `.app-container #tab-sdd #sdd-specs-list`.
+
+### Fora desta task
+
+- Não alterar JavaScript.
+- Não alterar estrutura HTML.
+- Não alterar conteúdo textual das specs.
+- Não alterar backend, banco de dados, endpoints, permissões ou autenticação.
+- Não fazer deploy.
+
+### Validação prevista
+
+- Confirmar que `#sdd-specs-list` e `.spec-item` usam visual dark technical console.
+- Confirmar que hover/active foram padronizados com tabs retangulares e acento verde discreto.
+- Confirmar que `index.html` aponta para `rebrand.css?v=59`.
+- Executar `git status` para auditar alterações.
+
+Para autorizar a execução de todas as tasks planejadas, responda: **"Aprovado executar o pacote Harness"**.

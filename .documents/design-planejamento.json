@@ -1,0 +1,60 @@
+{
+    "title": "Design - Planejamento",
+    "sections": [
+        {
+            "heading": "Design — Planejamento Técnico do Projeto",
+            "text": "",
+            "type": "paragraph"
+        },
+        {
+            "heading": "Projeto",
+            "text": "git-ide",
+            "type": "paragraph"
+        },
+        {
+            "heading": "1. Arquitetura Proposta",
+            "text": "",
+            "type": "paragraph"
+        },
+        {
+            "heading": "Referência",
+            "text": "- REQ relacionado: `REQ-3091 — Rebrand visual dark technical console da ferramenta`.\n- Fonte visual prioritária da correção: imagem de referência enviada pelo usuário no chat.\n- Observação: a etapa anterior aplicou uma leitura light; a task atual corrige a direção para dark theme fiel à referência.",
+            "type": "paragraph"
+        },
+        {
+            "heading": "Decisão técnica",
+            "text": "O rebrand será implementado como uma evolução da camada visual já existente do produto, preservando a arquitetura estática atual:\n\n- `gitide_server/static/index.html` continua carregando a estrutura principal da aplicação.\n- `gitide_server/static/style.css` permanece como base histórica de estilos.\n- `gitide_server/static/rebrand.css` permanece como camada final de override visual e será a principal superfície de implementação.\n- `tokens.json` será atualizado para registrar tokens compatíveis com o novo sistema dark technical console.\n\nA correção será aplicada no final de `rebrand.css` para garantir precedência sobre a camada light adicionada anteriormente, sem reescrever a estrutura completa do arquivo. A abordagem evita reescrita de HTML/JS e centraliza a mudança em CSS e tokens, reduzindo risco funcional.",
+            "type": "paragraph"
+        },
+        {
+            "heading": "Componentes impactados",
+            "text": "- Shell da aplicação.\n- Topbar e marca.\n- Sidebar e navegação lateral.\n- Painéis principais dos módulos.\n- Cards, cabeçalhos e seções.\n- Botões, inputs, selects, textareas e estados de foco.\n- Modais, abas, listas e itens selecionados.\n- Tabelas, linhas, divisórias, áreas de terminal, editor, blocos de código e logs.",
+            "type": "paragraph"
+        },
+        {
+            "heading": "Dados, APIs e integrações",
+            "text": "Não há alteração prevista em banco de dados, APIs, endpoints, integrações, permissões ou contratos de backend. A mudança é visual.",
+            "type": "paragraph"
+        },
+        {
+            "heading": "Segurança e permissões",
+            "text": "Não há alteração de autenticação, tokens, permissões ou URLs de remoto. A regra de preservação de PATs continua aplicável.",
+            "type": "paragraph"
+        },
+        {
+            "heading": "Riscos técnicos",
+            "text": "- Como a aplicação possui estilos legados e muitas classes, alguns seletores podem exigir ajustes visuais posteriores por QA.\n- A fonte exata da referência pode não estar instalada/disponível no ambiente do usuário; a implementação deve usar fallback seguro.\n- A referência visual é mais compacta e orientada a dados do que a estrutura atual do GitIDE; a correção deve aproximar a estética sem quebrar layout ou funcionalidade existente.",
+            "type": "paragraph"
+        },
+        {
+            "heading": "2. Fluxos Técnicos",
+            "text": "1. Atualizar o REQ `REQ-3091` para registrar a correção dark technical console.\n2. Revisar e atualizar Design vivo, DRI, Task List e Task Details com `TASK-REQ-3091-002`.\n3. Atualizar `tokens.json` para voltar o tema ativo para dark e registrar a paleta dark da referência.\n4. Atualizar `index.html` apenas para versionar o CSS quando necessário.\n5. Aplicar uma camada final em `rebrand.css` para sobrescrever o tema claro anterior com dark technical console.\n6. Validar por leitura dos arquivos modificados, status Git e comando técnico aplicável quando liberado pelo Act IA.\n7. Marcar `TASK-REQ-3091-002` como concluída somente após verificação.",
+            "type": "paragraph"
+        },
+        {
+            "heading": "3. Estratégia de Validação",
+            "text": "- Revisar arquivos alterados via endpoint de leitura.\n- Executar `git status` para auditar alterações.\n- Executar teste/validação disponível do projeto quando o painel Act IA permitir.\n- Confirmar que não houve alteração intencional de lógica JavaScript, backend, banco de dados ou endpoints.\n- Registrar limitações visuais que dependam de inspeção manual no navegador.",
+            "type": "paragraph"
+        }
+    ]
+}

@@ -1,0 +1,100 @@
+{
+    "title": "DRI - Documento de Requisito de Interface",
+    "sections": [
+        {
+            "heading": "DRI — Documento de Requisito de Interface do Projeto",
+            "text": "",
+            "type": "paragraph"
+        },
+        {
+            "heading": "Projeto",
+            "text": "git-ide",
+            "type": "paragraph"
+        },
+        {
+            "heading": "1. Identificação da Interface",
+            "text": "| Campo | Valor |\n|---|---|\n| REQ | REQ-3091 |\n| Interface | Shell principal do GitIDE e módulos internos |\n| Tipo | Rebrand visual / Design System |\n| Fonte visual | Imagem de referência dark technical console enviada pelo usuário |\n| Status | Correção aprovada para execução |",
+            "type": "paragraph"
+        },
+        {
+            "heading": "2. Contexto de Uso",
+            "text": "| Item | Descrição |\n|---|---|\n| Usuários | Operadores e desenvolvedores usando o GitIDE |\n| Ambiente | Aplicação web local/servida pelo backend do projeto |\n| Objetivo da interface | Oferecer experiência dark, técnica, operacional e fiel à referência visual |",
+            "type": "paragraph"
+        },
+        {
+            "heading": "3. Arquitetura da Informação",
+            "text": "| Área | Papel na experiência |\n|---|---|\n| Topbar | Marca, status do servidor, token e ações globais em linha compacta |\n| Sidebar | Navegação entre módulos e seleção de projeto com aparência SYS_NAV |\n| Conteúdo principal | Painéis funcionais por módulo com moldura técnica |\n| Modais | Ações contextuais em superfície escura retangular |\n| Inputs e botões | Operações de edição, execução e navegação com aparência terminal |\n| Tabelas/Listas | Exibição de registros com divisórias finas e estados por pontos/acentos |",
+            "type": "paragraph"
+        },
+        {
+            "heading": "4. Mapa de Componentes",
+            "text": "| Componente | Diretriz visual |\n|---|---|\n| Shell | Fundo quase preto, sem tema claro |\n| Topbar | Barra compacta escura com borda inferior fina |\n| Sidebar | Painel escuro com borda, labels em caixa alta e navegação técnica |\n| Cards/Painéis | Superfícies pretas/cinza muito escuras, bordas finas, cantos retos e corner brackets nos quatro cantos; em Settings, `settings-card.card` usa padding global de 8px e o header fica colado no topo e laterais |\n| Botões primários | Ação principal global: retangular, mono uppercase, borda/acento verde, texto claro, hover com acento operacional |\n| Botões secundários | Ação comum global: retangular, mono uppercase, borda discreta, texto cinza claro e hover com borda mais visível |\n| Botões terciários | Ação contextual/ícone/baixo peso: retangular, mono uppercase, sem preenchimento forte, texto muted e hover discreto |\n| Inputs | Fundo preto, borda fina, prompt/placeholder técnico |\n| Código/Terminal | Superfície preta, texto mono, acento verde para prompt/live |\n| Tabelas | Linhas discretas, cabeçalhos pequenos, metadados compactos |",
+            "type": "paragraph"
+        },
+        {
+            "heading": "5. Regras de Exibição",
+            "text": "| Regra | Descrição |\n|---|---|\n| Tema base | A experiência padrão deve ser dark |\n| Paleta | Base Black 950 `#050505`, cinzas frios, branco, azul acinzentado, verde status e vermelho live/error |\n| Cantos | Usar 0–2px como padrão visual |\n| Espaçamento | Compacto e modular, preservando múltiplos coerentes de 8/16px; cards de Settings devem usar padding externo interno de 8px com header encostado no topo/laterais |\n| Tipografia | Monospace/sistema técnico para navegação, labels, botões, tabelas e metadados |\n| Ornamentos | Evitar glassmorphism, gradientes coloridos, sombras pesadas e saturação desnecessária |\n| Hierarquia de botões | Primário, secundário e terciário devem usar tokens e estados consistentes em todos os módulos do workspace |",
+            "type": "paragraph"
+        },
+        {
+            "heading": "6. Estados",
+            "text": "| Estado | Comportamento visual |\n|---|---|\n| Default | Escuro, técnico, com bordas finas |\n| Hover | Leve mudança de fundo/borda sem elevação exagerada |\n| Active/Selected | Texto branco e borda/acento verde ou cinza claro |\n| Focus | Outline discreto em verde/acinzentado |\n| Disabled | Texto escurecido e borda quase invisível |\n| Live/Error | Vermelho pontual, sem preencher grandes superfícies |\n| Success/Online | Verde pontual para status, prompt e indicadores |",
+            "type": "paragraph"
+        },
+        {
+            "heading": "7. Fluxo de Interação",
+            "text": "| Fluxo | Expectativa |\n|---|---|\n| Navegar entre abas | Mantém estrutura atual, muda apenas aparência |\n| Selecionar projeto | Mantém select e botões existentes com novo estilo dark terminal |\n| Editar arquivos | Editor e árvore recebem estilo escuro sem alterar comportamento |\n| Usar terminal/git/db/agente | Módulos preservam fluxos e recebem superfícies compatíveis |\n| Abrir modais | Modal escuro, geométrico e coerente com tokens |",
+            "type": "paragraph"
+        },
+        {
+            "heading": "8. Mapeamento de Dados",
+            "text": "| Dado | Origem | Exibição |\n|---|---|---|\n| Nome do projeto | Estado atual da aplicação | Select/sidebar |\n| Status do servidor | Backend/API existente | Badge/indicador na topbar |\n| Token | Backend/API existente | Badge copiável |\n| Conteúdos de módulos | APIs existentes | Painéis internos |\n| Estados de operação | APIs/estado local | Pontos verdes/vermelhos e labels técnicos |",
+            "type": "paragraph"
+        },
+        {
+            "heading": "9. Microcopy",
+            "text": "| Área | Diretriz |\n|---|---|\n| Marca | Manter identificação técnica sem copy promocional longa |\n| Subtítulos | Usar textos objetivos, compactos e operacionais |\n| Botões | Preferir caixa alta quando estilisticamente apropriado |\n| Estados vazios | Não criar mensagens novas fora do escopo |",
+            "type": "paragraph"
+        },
+        {
+            "heading": "10. Responsividade",
+            "text": "| Breakpoint | Regra |\n|---|---|\n| Mobile < 640px | Manter empilhamento quando já suportado e touch targets mínimos |\n| Tablet 640–1024px | Preservar estrutura e espaçamentos proporcionais |\n| Desktop 1024–1440px | Layout completo atual com novo rebrand dark |\n| Wide > 1440px | Manter contenção visual e legibilidade |",
+            "type": "paragraph"
+        },
+        {
+            "heading": "11. Acessibilidade",
+            "text": "| Critério | Diretriz |\n|---|---|\n| Contraste | Texto claro sobre superfícies quase pretas |\n| Foco | Estados de foco visíveis em inputs e botões |\n| Ícones | Preservar ícones existentes e labels quando disponíveis |\n| Tamanho alvo | Manter controles com altura adequada para clique |",
+            "type": "paragraph"
+        },
+        {
+            "heading": "12. Tokens e Estilo",
+            "text": "| Token | Valor alvo |\n|---|---|\n| Background | `#050505` |\n| Background token | Black 950 |\n| Surface | `#080808` / `#0b0b0b` |\n| Text | `#f4f7fb` |\n| Muted | `#6f7688` |\n| Subtle | `#343a46` |\n| Border | `rgba(255,255,255,0.14)` |\n| Strong Border | `rgba(255,255,255,0.28)` |\n| Green Accent | `#00d084` |\n| Red Accent | `#ff3347` |\n| Radius | `0px`, `1px`, `2px` |",
+            "type": "paragraph"
+        },
+        {
+            "heading": "13. Dependências Visuais",
+            "text": "| Dependência | Tratamento |\n|---|---|\n| Fonte técnica | Usar `Fira Code`, `SFMono-Regular`, `Consolas`, monospace como base técnica |\n| Lucide/FontAwesome | Preservar ícones já carregados |\n| `rebrand.css` | Camada final de override visual |\n| `tokens.json` | Registro dos tokens dark da referência |",
+            "type": "paragraph"
+        },
+        {
+            "heading": "14. Critérios de Aceite da Interface",
+            "text": "- [ ] A interface geral passa a ser dark e coerente com a referência visual enviada.\n- [ ] Topbar, sidebar, cards, inputs, botões, tabelas e modais seguem a paleta dark alvo.\n- [ ] Botões primário, secundário e terciário ficam uniformes em todos os módulos e preservam estados hover/focus/disabled coerentes.\n- [ ] Cantos arredondados grandes são reduzidos para estética técnica/retangular.\n- [ ] Cards, painéis e modais principais exibem corner brackets nos quatro cantos.\n- [ ] Acentos coloridos antigos são substituídos por verde/vermelho pontual e cinzas técnicos.\n- [ ] Foco, hover e active continuam perceptíveis.\n- [ ] A navegação e os módulos existentes permanecem operáveis.",
+            "type": "paragraph"
+        },
+        {
+            "heading": "15. Lacunas e Premissas",
+            "text": "- A fonte exata da referência não foi fornecida como asset local; a implementação usa fallback técnico/mono.\n- Alguns módulos profundos podem exigir QA visual posterior por conterem seletores específicos legados.\n- A validação automática não substitui inspeção visual completa no navegador.",
+            "type": "paragraph"
+        },
+        {
+            "heading": "16. Fora do Escopo",
+            "text": "- Redesenhar fluxos de navegação.\n- Alterar backend, APIs, banco de dados ou autenticação.\n- Adicionar nova biblioteca visual.\n- Criar assets binários de fonte.\n- Fazer deploy.",
+            "type": "paragraph"
+        },
+        {
+            "heading": "17. Possíveis Evoluções Futuras",
+            "text": "- Criar screenshots comparativos antes/depois para QA visual.\n- Consolidar tokens em pipeline automático entre `tokens.json` e CSS.\n- Remover estilos legados redundantes após estabilização do rebrand.\n- Adicionar fonte licenciada específica se a marca exigir fidelidade tipográfica absoluta.",
+            "type": "paragraph"
+        }
+    ]
+}

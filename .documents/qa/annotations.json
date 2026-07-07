@@ -210,36 +210,6 @@
     "updated_at": "2026-07-07T17:50:35.821575Z"
   },
   {
-    "id": "QA-58BC3AAC",
-    "title": "Ajustar o card que ainda não está no padrao visual",
-    "description": "Ajustar o card que ainda não está no padrao visual",
-    "url": "http://127.0.0.1:8000/",
-    "category": "functional",
-    "severity": "medium",
-    "status": "open",
-    "selector": "div.main-layout > main.content-area > div.tab-pane.active:nth-of-type(5) > div.git-layout > aside.git-side-panel.card",
-    "viewport": {
-      "width": 1920,
-      "height": 1080
-    },
-    "browser": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36",
-    "screenshot": null,
-    "screenshot_file": "QA-58BC3AAC.jpg",
-    "screenshot_mime": "image/jpeg",
-    "metadata": {
-      "tabTitle": "Dayact IA Workspace",
-      "elementRect": {
-        "x": 776,
-        "y": 96,
-        "width": 704,
-        "height": 807
-      },
-      "selectedText": "PAINEL GIT\nConsole e histórico\nCONSOLE\nGIT GRAPH\nARQUIVOS\n.GITIGNORE\nArquivos que não devem subir para o Git\nAdicione arquivos, pastas ou padrões. Cada item vira uma linha no .gitignore do projeto.\nADICIONAR\n.ENV\nNODE_MODULES/\nDIST/\nBUILD/\n"
-    },
-    "created_at": "2026-07-07T17:55:56.484258Z",
-    "updated_at": "2026-07-07T17:55:56.484258Z"
-  },
-  {
     "id": "QA-6D40FE91",
     "title": "Refinar e atualizar",
     "description": "Refinar e atualizar para o novo layout e visual da ferramenta",
@@ -268,126 +238,6 @@
     },
     "created_at": "2026-07-07T19:01:23.733585Z",
     "updated_at": "2026-07-07T19:13:25.878025Z"
-  },
-  {
-    "id": "QA-0CD44BEE",
-    "title": "Diminuir os textos dos menus",
-    "description": "Diminuir os textos dos menus para:\n\n\"Arquivos do Workspace\" para \"Arquivos\"\n\"Terminal Console\" > \"Terminal\"\n\"Banco de Dados (SQL)\" > \"Banco\"\n\"Controle de Versão (Git)\" > \"Git\"\n\"Histórico & Rollbacks\" > \"Histórico\"\n\"Design System (Tokens)\" > \"Tokens\"\n\"UI Canvas\" > \"UI\"\n\"Engineering Metrics\" > \"Metrics\"\n\"Agente IA Nativo\" > \"Agente\"\n\"Documentos (Word)\" > \"Documentos\"\n\"Harness Engineering\" > \"Harness\"\n\"Ops Infra\" > \"Computer\"",
-    "url": "http://127.0.0.1:8000/",
-    "category": "content",
-    "severity": "low",
-    "status": "open",
-    "selector": "body > div.app-container:nth-of-type(2) > div.main-layout > aside.sidebar > nav.sidebar-nav",
-    "viewport": {
-      "width": 1920,
-      "height": 1080
-    },
-    "browser": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36",
-    "screenshot": null,
-    "screenshot_file": "QA-0CD44BEE.jpg",
-    "screenshot_mime": "image/jpeg",
-    "metadata": {
-      "tabTitle": "Dayact IA Workspace",
-      "elementRect": {
-        "x": 24,
-        "y": 147,
-        "width": 243,
-        "height": 673
-      },
-      "selectedText": "ARQUIVOS DO WORKSPACE\nTERMINAL CONSOLE\nBANCO DE DADOS (SQL)\nCONTROLE DE VERSÃO (GIT)\nHISTÓRICO & ROLLBACKS\nDESIGN SYSTEM (TOKENS)\nUI CANVAS\nQA\nENGINEERING METRICS\nAGENTE IA NATIVO\nDOCUMENTOS (WORD)\nHARNESS ENGINEERING\nOPS INFRA"
-    },
-    "created_at": "2026-07-07T19:19:55.506662Z",
-    "updated_at": "2026-07-07T19:19:55.506662Z"
-  },
-  {
-    "id": "QA-32A74437",
-    "title": "Quality AssuranceCentral de Anotações QAReceba evidências, bugs e observações",
-    "description": "remover pedding",
-    "url": "http://127.0.0.1:8000/",
-    "category": "content",
-    "severity": "low",
-    "status": "open",
-    "selector": "div.app-container.sidebar-collapsed:nth-of-type(2) > div.main-layout > main.content-area > div.tab-pane.active:nth-of-type(10) > div.qa-layout:nth-of-type(1)",
-    "viewport": {
-      "width": 1920,
-      "height": 1080
-    },
-    "browser": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36",
-    "screenshot": null,
-    "screenshot_file": "QA-32A74437.jpg",
-    "screenshot_mime": "image/jpeg",
-    "metadata": {
-      "tabTitle": "Dayact IA Workspace",
-      "elementRect": {
-        "x": 92,
-        "y": 72,
-        "width": 1326,
-        "height": 807
-      },
-      "selectedText": "Quality Assurance\nCentral de Anotações QA\n\nReceba evidências, bugs e observações capturadas pela extensão do navegador durante a validação da aplicação.\n\nAbertas\n0\nEm revisão\n0\nResolvidas\n0\nLISTA\nKANBAN\nTodos os status\nAbertas\nEm revisão\nRe"
-    },
-    "created_at": "2026-07-07T19:22:36.707819Z",
-    "updated_at": "2026-07-07T19:22:36.707819Z"
-  },
-  {
-    "id": "QA-2DE11363",
-    "title": "Abertas0Em revisão0Resolvidas0",
-    "description": "atualizar para o novo visual",
-    "url": "http://127.0.0.1:8000/",
-    "category": "visual",
-    "severity": "low",
-    "status": "open",
-    "selector": "main.content-area > div.tab-pane.active:nth-of-type(10) > div.qa-layout:nth-of-type(1) > section.qa-main.card > div.qa-summary:nth-of-type(2)",
-    "viewport": {
-      "width": 1920,
-      "height": 1080
-    },
-    "browser": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36",
-    "screenshot": null,
-    "screenshot_file": "QA-2DE11363.jpg",
-    "screenshot_mime": "image/jpeg",
-    "metadata": {
-      "tabTitle": "Dayact IA Workspace",
-      "elementRect": {
-        "x": 117,
-        "y": 203,
-        "width": 912,
-        "height": 110
-      },
-      "selectedText": "Abertas\n0\nEm revisão\n0\nResolvidas\n0"
-    },
-    "created_at": "2026-07-07T19:23:17.162906Z",
-    "updated_at": "2026-07-07T19:23:17.162906Z"
-  },
-  {
-    "id": "QA-C753F722",
-    "title": "Aplicar espaçamento interno",
-    "description": "aplicar espaçamento interno",
-    "url": "http://127.0.0.1:8000/",
-    "category": "visual",
-    "severity": "low",
-    "status": "open",
-    "selector": "div.main-layout > main.content-area > div.tab-pane.active:nth-of-type(10) > div.qa-layout:nth-of-type(1) > aside.qa-side.card",
-    "viewport": {
-      "width": 1920,
-      "height": 1080
-    },
-    "browser": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36",
-    "screenshot": null,
-    "screenshot_file": "QA-C753F722.jpg",
-    "screenshot_mime": "image/jpeg",
-    "metadata": {
-      "tabTitle": "Dayact IA Workspace",
-      "elementRect": {
-        "x": 1054,
-        "y": 96,
-        "width": 340,
-        "height": 399
-      },
-      "selectedText": "Extensão do navegador\n\nA extensão captura URL, seletor aproximado, viewport, descrição e severidade. As notas são salvas em .documents/qa/annotations.json.\n\nAPI BASE\nhttp://127.0.0.1:8000\nPROJECT ID\n1\nTOKEN\n10ab952b...\n\nCarregue a pasta bro"
-    },
-    "created_at": "2026-07-07T19:23:46.088249Z",
-    "updated_at": "2026-07-07T19:23:46.088249Z"
   },
   {
     "id": "QA-67617C17",
@@ -420,43 +270,13 @@
     "updated_at": "2026-07-07T19:46:13.763346Z"
   },
   {
-    "id": "QA-02D8DF27",
-    "title": "Revisar os inputs e botões que ainda estão na versão antiga",
-    "description": "\"Revisar os inputs e botões que ainda estão na versão antiga.\"",
-    "url": "http://127.0.0.1:8000/",
-    "category": "functional",
-    "severity": "medium",
-    "status": "open",
-    "selector": "div.main-layout > main.content-area > div.tab-pane.active:nth-of-type(5) > div.git-layout > div.git-operations-card.card:nth-of-type(2)",
-    "viewport": {
-      "width": 1920,
-      "height": 1080
-    },
-    "browser": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36",
-    "screenshot": null,
-    "screenshot_file": "QA-02D8DF27.jpg",
-    "screenshot_mime": "image/jpeg",
-    "metadata": {
-      "tabTitle": "Dayact IA Workspace",
-      "elementRect": {
-        "x": 340,
-        "y": 195,
-        "width": 420,
-        "height": 481
-      },
-      "selectedText": "AÇÕES E DEPLOY AUTOMÁTICO\nMensagem de Deploy / Commit:\nBranch atual:\nmain\nPull, push e deploy usam a branch atual.\nCOMMITAR E FAZER DEPLOY (PUSH)\nSINCRONIZAR (PULL)\nGIT PUSH\nGIT MERGE\nPULL REQUEST\nABORT MERGE"
-    },
-    "created_at": "2026-07-07T19:47:22.798439Z",
-    "updated_at": "2026-07-07T19:47:22.798439Z"
-  },
-  {
     "id": "QA-24C4E55D",
     "title": "Refinar o visual",
     "description": "Refinar o visual para ficar no padrao e consistencia",
     "url": "http://127.0.0.1:8000/",
     "category": "visual",
     "severity": "medium",
-    "status": "open",
+    "status": "resolved",
     "selector": "main.content-area > div.tab-pane.active:nth-of-type(14) > div.harness-shell > div.harness-header:nth-of-type(1) > div.harness-top-nav:nth-of-type(2)",
     "viewport": {
       "width": 1920,
@@ -477,36 +297,246 @@
       "selectedText": "PROJECT CHARTER / TAP\nFUNCTIONAL SPECS\nTASK LIST"
     },
     "created_at": "2026-07-07T21:23:14.672527Z",
-    "updated_at": "2026-07-07T21:23:14.672527Z"
+    "updated_at": "2026-07-07T21:42:38.560594Z"
   },
   {
-    "id": "QA-AE5241A0",
-    "title": "Refinar o header",
-    "description": "Refinar o header para ficar consistente no padrão visual.",
-    "url": "https://ide.builtt.com.br/",
-    "category": "visual",
+    "id": "QA-3B1C5B52",
+    "title": "PROJECT CHARTER / TAPDOCUMENTO DE ABERTURA E ALINHAMENTO DO PROJETO",
+    "description": "refinar a aplicar o visual seguindo a consistencia",
+    "url": "http://127.0.0.1:8000/",
+    "category": "functional",
     "severity": "medium",
     "status": "open",
-    "selector": "html.brand-refresh > body > div.app-container:nth-of-type(2) > header.topbar",
+    "selector": "div.harness-panel.active:nth-of-type(2) > section.sdd-workspace.card > div.sdd-workspace-body:nth-of-type(2) > div.sdd-stage-grid.harness-charter-grid > section.sdd-stage-main",
     "viewport": {
       "width": 1920,
       "height": 1080
     },
     "browser": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36",
     "screenshot": null,
-    "screenshot_file": "QA-AE5241A0.jpg",
+    "screenshot_file": "QA-3B1C5B52.jpg",
     "screenshot_mime": "image/jpeg",
     "metadata": {
-      "tabTitle": "Act IA software engineer",
+      "tabTitle": "Dayact IA Workspace",
       "elementRect": {
-        "x": 0,
-        "y": 0,
-        "width": 1442,
+        "x": 337,
+        "y": 248,
+        "width": 722,
+        "height": 611
+      },
+      "selectedText": "PROJECT CHARTER / TAP\nDOCUMENTO DE ABERTURA E ALINHAMENTO DO PROJETO"
+    },
+    "created_at": "2026-07-07T21:44:23.195118Z",
+    "updated_at": "2026-07-07T21:44:23.195118Z"
+  },
+  {
+    "id": "QA-93D4E904",
+    "title": "Refinar a aplicar o visual seguindo a consistência",
+    "description": "refinar a aplicar o visual seguindo a consistência",
+    "url": "http://127.0.0.1:8000/",
+    "category": "visual",
+    "severity": "low",
+    "status": "open",
+    "selector": "section.sdd-workspace.card:nth-of-type(2) > div.sdd-workspace-body:nth-of-type(2) > div.sdd-tab-content.has-content:nth-of-type(1) > div.sdd-stage-grid > section.sdd-stage-main",
+    "viewport": {
+      "width": 1920,
+      "height": 1080
+    },
+    "browser": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36",
+    "screenshot": null,
+    "screenshot_file": "QA-93D4E904.jpg",
+    "screenshot_mime": "image/jpeg",
+    "metadata": {
+      "tabTitle": "Dayact IA Workspace",
+      "elementRect": {
+        "x": 481,
+        "y": 272,
+        "width": 680,
+        "height": 493
+      },
+      "selectedText": "SPECIFY - ESPECIFICAÇÃO\nREQ INDIVIDUAL EM .DOCUMENTS/SPEC\nSALVAR"
+    },
+    "created_at": "2026-07-07T21:46:13.556618Z",
+    "updated_at": "2026-07-07T21:46:13.556618Z"
+  },
+  {
+    "id": "QA-24437D0E",
+    "title": "Requisito Funcional (REQ) - Teste de Fluxo CompletoREQ_TESTE.MD",
+    "description": "refinar a aplicar o visual seguindo a consistência",
+    "url": "http://127.0.0.1:8000/",
+    "category": "visual",
+    "severity": "low",
+    "status": "open",
+    "selector": "div.harness-panel.active:nth-of-type(3) > div.sdd-layout > section.sdd-workspace.card:nth-of-type(2) > div.sdd-workspace-header:nth-of-type(1) > div.sdd-active-spec-info:nth-of-type(1)",
+    "viewport": {
+      "width": 1920,
+      "height": 1080
+    },
+    "browser": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36",
+    "screenshot": null,
+    "screenshot_file": "QA-24437D0E.jpg",
+    "screenshot_mime": "image/jpeg",
+    "metadata": {
+      "tabTitle": "Dayact IA Workspace",
+      "elementRect": {
+        "x": 481,
+        "y": 187,
+        "width": 350,
         "height": 48
       },
-      "selectedText": "DAYACT IA WORKSPACE\n-- Selecione um Projeto --\nDash-Gran\nTopsite\ncrm\ntoptus-portal-building\ngit-ide\ngit-ide-test-temp\napply-ai\nscan-local\nDG\nDASH-GRAN"
+      "selectedText": "Requisito Funcional (REQ) - Teste de Fluxo Completo\nREQ_TESTE.MD"
     },
-    "created_at": "2026-07-07T21:36:15.896568Z",
-    "updated_at": "2026-07-07T21:36:15.896568Z"
+    "created_at": "2026-07-07T21:46:31.237969Z",
+    "updated_at": "2026-07-07T21:46:31.237969Z"
+  },
+  {
+    "id": "QA-393C869F",
+    "title": "Refinar a aplicar o visual seguindo a consistência",
+    "description": "refinar a aplicar o visual seguindo a consistência",
+    "url": "http://127.0.0.1:8000/",
+    "category": "visual",
+    "severity": "low",
+    "status": "open",
+    "selector": "section.sdd-workspace.card:nth-of-type(2) > div.sdd-workspace-body:nth-of-type(2) > div.sdd-tab-content.has-content:nth-of-type(1) > div.sdd-stage-grid > aside.sdd-stage-aside",
+    "viewport": {
+      "width": 1920,
+      "height": 1080
+    },
+    "browser": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36",
+    "screenshot": null,
+    "screenshot_file": "QA-393C869F.jpg",
+    "screenshot_mime": "image/jpeg",
+    "metadata": {
+      "tabTitle": "Dayact IA Workspace",
+      "elementRect": {
+        "x": 1179,
+        "y": 272,
+        "width": 280,
+        "height": 493
+      },
+      "selectedText": "Assistente IA\n\nGere ou refine a documentação de negócio. Cada requisito deve ter código único, como REQ-001.\n\nGERAR SPECIFY COM IA"
+    },
+    "created_at": "2026-07-07T21:46:48.238550Z",
+    "updated_at": "2026-07-07T21:46:48.238550Z"
+  },
+  {
+    "id": "QA-2773B6E8",
+    "title": "Refinar a aplicar o visual seguindo a consistência",
+    "description": "refinar a aplicar o visual seguindo a consistência",
+    "url": "http://127.0.0.1:8000/",
+    "category": "visual",
+    "severity": "low",
+    "status": "open",
+    "selector": "#sdd-specs-list",
+    "viewport": {
+      "width": 1920,
+      "height": 1080
+    },
+    "browser": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36",
+    "screenshot": null,
+    "screenshot_file": "QA-2773B6E8.jpg",
+    "screenshot_mime": "image/jpeg",
+    "metadata": {
+      "tabTitle": "Dayact IA Workspace",
+      "elementRect": {
+        "x": 137,
+        "y": 256,
+        "width": 278,
+        "height": 118
+      },
+      "selectedText": "Requisito Funcional (REQ) - Teste de Fluxo Completo\n.documents/spec · .documents/spec/REQ_teste.md · 03/07/2026\nTítulo da Feature\nlegado · .documents/specs/nova_spec.md · 27/06/2026"
+    },
+    "created_at": "2026-07-07T21:47:01.095316Z",
+    "updated_at": "2026-07-07T21:47:01.095316Z"
+  },
+  {
+    "id": "QA-68D27BEC",
+    "title": "Refinar a aplicar o visual seguindo a consistência",
+    "description": "refinar a aplicar o visual seguindo a consistência",
+    "url": "http://127.0.0.1:8000/",
+    "category": "visual",
+    "severity": "low",
+    "status": "open",
+    "selector": "div.sdd-workspace-body:nth-of-type(2) > div.sdd-tab-content.active:nth-of-type(4) > div.sdd-checklist-wrapper > div.sdd-checklist-body:nth-of-type(2) > div.sdd-criteria-row",
+    "viewport": {
+      "width": 1920,
+      "height": 1080
+    },
+    "browser": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36",
+    "screenshot": null,
+    "screenshot_file": "QA-68D27BEC.jpg",
+    "screenshot_mime": "image/jpeg",
+    "metadata": {
+      "tabTitle": "Dayact IA Workspace",
+      "elementRect": {
+        "x": 481,
+        "y": 418,
+        "width": 892,
+        "height": 62
+      },
+      "selectedText": "TASK-REQ-0000-001: - Detalhar primeira tarefa do projeto.\ntodo\nexecutar"
+    },
+    "created_at": "2026-07-07T21:47:26.869036Z",
+    "updated_at": "2026-07-07T21:47:26.869036Z"
+  },
+  {
+    "id": "QA-2E2D3075",
+    "title": "EXECUTE - IMPLEMENTAÇÃOTAREFA PRONTA PARA AGENTE/PROGRAMADOR",
+    "description": "refinar a aplicar o visual seguindo a consistência",
+    "url": "http://127.0.0.1:8000/",
+    "category": "visual",
+    "severity": "low",
+    "status": "open",
+    "selector": "section.sdd-workspace.card:nth-of-type(2) > div.sdd-workspace-body:nth-of-type(2) > div.sdd-tab-content.active:nth-of-type(5) > div.sdd-execute-grid > section.sdd-stage-main",
+    "viewport": {
+      "width": 1920,
+      "height": 1080
+    },
+    "browser": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36",
+    "screenshot": null,
+    "screenshot_file": "QA-2E2D3075.jpg",
+    "screenshot_mime": "image/jpeg",
+    "metadata": {
+      "tabTitle": "Dayact IA Workspace",
+      "elementRect": {
+        "x": 481,
+        "y": 336,
+        "width": 680,
+        "height": 493
+      },
+      "selectedText": "EXECUTE - IMPLEMENTAÇÃO\nTAREFA PRONTA PARA AGENTE/PROGRAMADOR"
+    },
+    "created_at": "2026-07-07T21:48:03.595119Z",
+    "updated_at": "2026-07-07T21:48:03.595119Z"
+  },
+  {
+    "id": "QA-089BEB22",
+    "title": "ValidaçãoGere testes contra a especificação e a tarefa selecionada.Framework",
+    "description": "refinar a aplicar o visual seguindo a consistência",
+    "url": "http://127.0.0.1:8000/",
+    "category": "visual",
+    "severity": "low",
+    "status": "open",
+    "selector": "section.sdd-workspace.card:nth-of-type(2) > div.sdd-workspace-body:nth-of-type(2) > div.sdd-tab-content.active:nth-of-type(5) > div.sdd-execute-grid > aside.sdd-stage-aside",
+    "viewport": {
+      "width": 1920,
+      "height": 1080
+    },
+    "browser": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36",
+    "screenshot": null,
+    "screenshot_file": "QA-089BEB22.jpg",
+    "screenshot_mime": "image/jpeg",
+    "metadata": {
+      "tabTitle": "Dayact IA Workspace",
+      "elementRect": {
+        "x": 1179,
+        "y": 336,
+        "width": 280,
+        "height": 493
+      },
+      "selectedText": "Validação\n\nGere testes contra a especificação e a tarefa selecionada.\n\nFramework de Teste:\nPytest (Python)\nJest (JavaScript / TypeScript)\nPHPUnit (PHP)\nMocha / Chai (Node.js)\nGERAR TESTES COM IA"
+    },
+    "created_at": "2026-07-07T21:48:17.962437Z",
+    "updated_at": "2026-07-07T21:48:17.962437Z"
   }
 ]

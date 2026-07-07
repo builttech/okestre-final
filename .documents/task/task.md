@@ -27,3 +27,4 @@ git-ide
 - [x] TASK-QA-02D8DF27-001: - Rebrand dos inputs e botões do card de operações Git.
 - [x] TASK-REQ-3091-008: - Corrigir base do dark theme para Black 950 #050505.
 - [x] TASK-QA-24C4E55D-001: - Rebrand da navegação superior do Harness.
+- [x] TASK-QA-2773B6E8-001: - Rebrand da lista de especificações do Harness.

@@ -10554,3 +10554,120 @@ button.btn-danger:hover {
     stroke-width: 0.75px !important;
 }
 
+/* Harness specs list rebrand — QA-2773B6E8 */
+.app-container #tab-sdd #sdd-specs-list,
+.app-container #tab-sdd .specs-list {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 6px !important;
+}
+
+.app-container #tab-sdd #sdd-specs-list .spec-item,
+.app-container #tab-sdd .specs-list .spec-item {
+    width: 100% !important;
+    min-height: 48px !important;
+    padding: 9px 10px !important;
+    display: flex !important;
+    align-items: flex-start !important;
+    flex-direction: column !important;
+    justify-content: center !important;
+    gap: 4px !important;
+    color: var(--console-muted) !important;
+    background: transparent !important;
+    border: 1px solid transparent !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    cursor: pointer !important;
+    font-family: var(--console-font-mono) !important;
+    text-align: left !important;
+    transform: none !important;
+}
+
+.app-container #tab-sdd #sdd-specs-list .spec-item:hover,
+.app-container #tab-sdd .specs-list .spec-item:hover {
+    color: var(--console-text) !important;
+    background: rgba(255, 255, 255, 0.026) !important;
+    border-color: var(--console-line) !important;
+    transform: none !important;
+}
+
+.app-container #tab-sdd #sdd-specs-list .spec-item.active,
+.app-container #tab-sdd .specs-list .spec-item.active {
+    color: var(--console-green) !important;
+    background: rgba(0, 208, 132, 0.055) !important;
+    border-color: rgba(0, 208, 132, 0.42) !important;
+    box-shadow: none !important;
+}
+
+.app-container #tab-sdd #sdd-specs-list .spec-item-title,
+.app-container #tab-sdd .specs-list .spec-item-title {
+    width: 100% !important;
+    overflow: hidden !important;
+    color: currentColor !important;
+    font-family: var(--console-font-mono) !important;
+    font-size: 10px !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.075em !important;
+    line-height: 1.25 !important;
+    text-overflow: ellipsis !important;
+    text-transform: uppercase !important;
+    white-space: nowrap !important;
+}
+
+.app-container #tab-sdd #sdd-specs-list .spec-item-meta,
+.app-container #tab-sdd .specs-list .spec-item-meta {
+    width: 100% !important;
+    overflow: hidden !important;
+    color: var(--console-muted) !important;
+    font-family: var(--console-font-mono) !important;
+    font-size: 9px !important;
+    font-weight: 500 !important;
+    letter-spacing: 0.04em !important;
+    line-height: 1.25 !important;
+    text-overflow: ellipsis !important;
+    text-transform: uppercase !important;
+    white-space: nowrap !important;
+}
+
+.app-container #tab-sdd #sdd-specs-list .spec-item.active .spec-item-meta,
+.app-container #tab-sdd .specs-list .spec-item.active .spec-item-meta {
+    color: var(--console-text-soft) !important;
+}
+
+.app-container #tab-sdd #sdd-specs-list .specs-empty-state,
+.app-container #tab-sdd .specs-list .specs-empty-state {
+    min-height: 120px !important;
+    padding: 24px 16px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex-direction: column !important;
+    gap: 10px !important;
+    color: var(--console-muted) !important;
+    background: transparent !important;
+    border: 1px solid var(--console-line-soft) !important;
+    border-radius: 0 !important;
+    font-family: var(--console-font-mono) !important;
+    font-size: 10px !important;
+    letter-spacing: 0.055em !important;
+    line-height: 1.45 !important;
+    text-align: center !important;
+    text-transform: uppercase !important;
+}
+
+.app-container #tab-sdd #sdd-specs-list .specs-empty-state i,
+.app-container #tab-sdd #sdd-specs-list .specs-empty-state svg,
+.app-container #tab-sdd .specs-list .specs-empty-state i,
+.app-container #tab-sdd .specs-list .specs-empty-state svg {
+    width: 22px !important;
+    height: 22px !important;
+    color: var(--console-dim) !important;
+    stroke: currentColor !important;
+    stroke-width: 0.75px !important;
+}
+
+.app-container #tab-sdd #sdd-specs-list .specs-empty-state svg *,
+.app-container #tab-sdd .specs-list .specs-empty-state svg * {
+    stroke-width: 0.75px !important;
+}
+
