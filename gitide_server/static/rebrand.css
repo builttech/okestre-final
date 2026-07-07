@@ -9650,3 +9650,96 @@ button.btn-danger:hover {
     content: "" !important;
 }
 
+/* Settings internal sidebar rebrand — QA-B9CD0F01 */
+.app-container .settings-dashboard-layout.gitide-settings-tabs-ready {
+    grid-template-columns: 240px minmax(0, 1fr) !important;
+    gap: 18px !important;
+    align-items: start !important;
+    max-width: 1180px !important;
+}
+
+.app-container .settings-tabs-sidebar {
+    position: sticky !important;
+    top: 18px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0 !important;
+    padding: 8px !important;
+    color: var(--console-text) !important;
+    background: var(--console-panel) !important;
+    border: 1px solid var(--console-line-strong) !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+}
+
+.app-container .settings-tabs-title {
+    min-height: 40px !important;
+    padding: 12px 12px !important;
+    display: flex !important;
+    align-items: center !important;
+    color: var(--console-muted) !important;
+    border-bottom: 1px solid var(--console-line-soft) !important;
+    font-family: var(--console-font-mono) !important;
+    font-size: 10px !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.1em !important;
+    line-height: 1 !important;
+    text-transform: uppercase !important;
+}
+
+.app-container .settings-tab-button {
+    width: 100% !important;
+    min-height: 38px !important;
+    padding: 9px 10px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    gap: 10px !important;
+    color: var(--console-muted) !important;
+    background: transparent !important;
+    border: 1px solid transparent !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    cursor: pointer !important;
+    font-family: var(--console-font-mono) !important;
+    font-size: 10px !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.075em !important;
+    line-height: 1.15 !important;
+    text-align: left !important;
+    text-transform: uppercase !important;
+    transform: none !important;
+}
+
+.app-container .settings-tab-button:hover,
+.app-container .settings-tab-button.is-active {
+    color: var(--console-text) !important;
+    background: rgba(255, 255, 255, 0.025) !important;
+    border-color: var(--console-line) !important;
+    transform: none !important;
+}
+
+.app-container .settings-tab-button.is-active {
+    color: var(--console-green) !important;
+    border-color: rgba(0, 208, 132, 0.42) !important;
+    background: rgba(0, 208, 132, 0.055) !important;
+}
+
+.app-container .settings-tab-button .lucide,
+.app-container .settings-tab-button svg,
+.app-container .settings-tab-button i {
+    display: inline-flex !important;
+    flex: 0 0 15px !important;
+    width: 15px !important;
+    height: 15px !important;
+    min-width: 15px !important;
+    color: currentColor !important;
+    stroke: currentColor !important;
+    stroke-width: 0.75px !important;
+}
+
+.app-container .settings-tab-button svg * {
+    stroke-width: 0.75px !important;
+}
+

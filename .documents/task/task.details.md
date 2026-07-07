@@ -514,3 +514,53 @@ Corrigir a quebra visual da sidebar causada pela regra global de botões aplicad
 - Executar `git status` para auditar alterações.
 
 Para autorizar a execução de todas as tasks planejadas, responda: **"Aprovado executar o pacote Harness"**.
+
+## Plano — TASK-QA-B9CD0F01-001
+
+**Tarefa:** Rebrand do sidebar interno de Settings.
+
+### Objetivo
+
+Corrigir a anotação `QA-B9CD0F01`, substituindo o visual antigo do sidebar interno de Settings por uma aparência compatível com o rebrand dark technical console, removendo radius grande, glass/shadow antigo e botões arredondados.
+
+### Arquivo afetado
+
+`[MODIFICAR] .documents/task/task.md`
+
+`[MODIFICAR] .documents/task/task.details.md`
+
+`[MODIFICAR] gitide_server/static/rebrand.css`
+
+`[MODIFICAR] gitide_server/static/index.html`
+
+### Formato previsto da chamada
+
+1. Registrar a task QA na Task List.
+2. Anexar este plano detalhado preservando seções anteriores.
+3. Adicionar override final em `rebrand.css` para `.settings-dashboard-layout.gitide-settings-tabs-ready`, `.settings-tabs-sidebar`, `.settings-tabs-title` e `.settings-tab-button`.
+4. Remover visual antigo do sidebar interno: radius grande, background glass, sombras e botões arredondados.
+5. Aplicar layout dark technical console: borda fina, radius zero, tipografia mono uppercase, botões retangulares, hover/active discretos e ícones Lucide com stroke `0.75px`.
+6. Atualizar `index.html` para bust de cache do CSS.
+7. Validar por leitura dos trechos alterados e `git status`.
+8. Marcar a task como concluída em `task.md` somente após execução e verificação.
+
+### Fallback previsto
+
+- Se `settings-tabs.css` tiver especificidade superior em algum ponto, reforçar o escopo com `.app-container .settings-dashboard-layout.gitide-settings-tabs-ready` no override final.
+
+### Fora desta task
+
+- Não alterar JavaScript.
+- Não alterar estrutura HTML.
+- Não alterar backend, banco de dados, endpoints, permissões ou autenticação.
+- Não alterar a sidebar principal do app.
+- Não fazer deploy.
+
+### Validação prevista
+
+- Confirmar que o sidebar interno de Settings usa fundo/painel dark, radius zero e sem sombra antiga.
+- Confirmar que botões de Settings usam visual retangular dark console com estados hover/active.
+- Confirmar que `index.html` aponta para a nova versão de `rebrand.css`.
+- Executar `git status` para auditar alterações.
+
+Para autorizar a execução de todas as tasks planejadas, responda: **"Aprovado executar o pacote Harness"**.

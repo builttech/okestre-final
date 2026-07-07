@@ -19,3 +19,4 @@ git-ide
 - [x] TASK-REQ-3091-005: - Padronizar padding e header dos cards de Settings.
 - [x] TASK-REQ-3091-006: - Uniformizar botões primário, secundário e terciário em todas as páginas.
 - [x] TASK-REQ-3091-007: - Corrigir sidebar após padronização global de botões.
+- [x] TASK-QA-B9CD0F01-001: - Rebrand do sidebar interno de Settings.
