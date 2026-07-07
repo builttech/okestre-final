@@ -765,3 +765,54 @@ Corrigir a anotação `QA-67617C17`, atualizando o card de autenticação Git PA
 - Executar `git status` para auditar alterações.
 
 Para autorizar a execução de todas as tasks planejadas, responda: **"Aprovado executar o pacote Harness"**.
+
+## Plano — TASK-QA-02D8DF27-001
+
+**Tarefa:** Rebrand dos inputs e botões do card de operações Git.
+
+### Objetivo
+
+Corrigir a anotação `QA-02D8DF27`, atualizando inputs, botões e espaçamentos internos do card `Ações e Deploy Automático` para o padrão dark technical console, preservando IDs, estrutura HTML e comportamento JavaScript do fluxo Git.
+
+### Arquivo afetado
+
+`[MODIFICAR] .documents/task/task.md`
+
+`[MODIFICAR] .documents/task/task.details.md`
+
+`[MODIFICAR] gitide_server/static/rebrand.css`
+
+`[MODIFICAR] gitide_server/static/index.html`
+
+### Formato previsto da chamada
+
+1. Registrar a task QA na Task List.
+2. Anexar este plano detalhado preservando seções anteriores.
+3. Atualizar `index.html` para bust de cache do CSS.
+4. Adicionar override final em `rebrand.css` para `.git-operations-card.card`, header, body, campos, input de commit, botão IA, branch atual, ações principais e ações avançadas.
+5. Aplicar fundo dark técnico, borda fina, radius zero, header colado ao topo/laterais, espaçamento interno consistente, input técnico e botões retangulares.
+6. Preservar semântica de perigo para `Abort merge`.
+7. Validar por leitura dos trechos alterados e `git status`.
+8. Marcar a task como concluída em `task.md` somente após execução e verificação.
+
+### Fallback previsto
+
+- Se algum inline style ou seletor legado prevalecer, reforçar o override final com escopo `.app-container #tab-git .git-operations-card`.
+
+### Fora desta task
+
+- Não alterar JavaScript.
+- Não alterar estrutura HTML.
+- Não alterar IDs ligados às ações Git.
+- Não alterar backend, banco de dados, endpoints, permissões ou autenticação.
+- Não executar comandos Git.
+- Não fazer deploy.
+
+### Validação prevista
+
+- Confirmar que `.git-operations-card` usa visual dark technical console.
+- Confirmar que input, botão IA, branch atual e botões Git usam estilo técnico consistente.
+- Confirmar que `index.html` aponta para a nova versão de `rebrand.css`.
+- Executar `git status` para auditar alterações.
+
+Para autorizar a execução de todas as tasks planejadas, responda: **"Aprovado executar o pacote Harness"**.

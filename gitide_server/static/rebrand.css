@@ -10199,3 +10199,265 @@ button.btn-danger:hover {
     stroke-width: 0.75px !important;
 }
 
+/* Git operations card inputs/buttons rebrand — QA-02D8DF27 */
+.app-container #tab-git .git-operations-card.card {
+    padding: 8px !important;
+    color: var(--console-text) !important;
+    background: var(--console-panel) !important;
+    border: 1px solid var(--console-line-strong) !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    overflow: hidden !important;
+}
+
+.app-container #tab-git .git-operations-card.card > .card-header {
+    min-height: 50px !important;
+    margin: -8px -8px 0 !important;
+    padding: 16px 20px !important;
+    display: flex !important;
+    align-items: center !important;
+    border-top: 0 !important;
+    border-left: 0 !important;
+    border-right: 0 !important;
+    border-bottom: 1px solid var(--console-line-soft) !important;
+    background: #030303 !important;
+}
+
+.app-container #tab-git .git-operations-card.card > .card-header h4 {
+    margin: 0 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    color: var(--console-text) !important;
+    font-family: var(--console-font-mono) !important;
+    font-size: 10px !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.09em !important;
+    line-height: 1.2 !important;
+    text-transform: uppercase !important;
+}
+
+.app-container #tab-git .git-operations-card.card > .card-header h4 i,
+.app-container #tab-git .git-operations-card.card > .card-header h4 svg {
+    width: 15px !important;
+    height: 15px !important;
+    color: var(--console-green) !important;
+    stroke: currentColor !important;
+    stroke-width: 0.75px !important;
+}
+
+.app-container #tab-git .git-operations-card.card > .card-body {
+    padding: 18px 20px 20px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 16px !important;
+    background: transparent !important;
+}
+
+.app-container #tab-git .git-operations-card .git-deploy-section,
+.app-container #tab-git .git-operations-card .git-deploy-field,
+.app-container #tab-git .git-operations-card .git-deploy-branch-field {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 8px !important;
+}
+
+.app-container #tab-git .git-operations-card .git-init-section:not([style*="display: none"]) {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 8px !important;
+}
+
+.app-container #tab-git .git-operations-card label {
+    margin: 0 !important;
+    color: var(--console-muted) !important;
+    font-family: var(--console-font-mono) !important;
+    font-size: 10px !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.08em !important;
+    line-height: 1.2 !important;
+    text-transform: uppercase !important;
+}
+
+.app-container #tab-git .git-operations-card .git-dev-hint,
+.app-container #tab-git .git-operations-card .warning-text {
+    margin: 0 !important;
+    color: var(--console-muted) !important;
+    font-family: var(--console-font-mono) !important;
+    font-size: 10px !important;
+    font-weight: 500 !important;
+    letter-spacing: 0.045em !important;
+    line-height: 1.5 !important;
+    text-transform: uppercase !important;
+}
+
+.app-container #tab-git .git-operations-card .git-dev-hint i,
+.app-container #tab-git .git-operations-card .warning-text i {
+    color: var(--console-green) !important;
+}
+
+.app-container #tab-git .git-operations-card .git-commit-input-shell,
+.app-container #tab-git .git-operations-card .git-branch-select-action-row,
+.app-container #tab-git .git-operations-card .form-group.inline-form.git-publish-form {
+    min-height: 34px !important;
+    display: flex !important;
+    align-items: stretch !important;
+    gap: 8px !important;
+}
+
+.app-container #tab-git .git-operations-card #git-commit-msg,
+.app-container #tab-git .git-operations-card #git-remote-url-input,
+.app-container #tab-git .git-operations-card .text-input {
+    min-height: 34px !important;
+    width: 100% !important;
+    color: var(--console-text) !important;
+    background: #030303 !important;
+    border: 1px solid var(--console-line) !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    outline: none !important;
+    font-family: var(--console-font-mono) !important;
+    font-size: 10px !important;
+    font-weight: 500 !important;
+    letter-spacing: 0.04em !important;
+}
+
+.app-container #tab-git .git-operations-card #git-commit-msg:focus,
+.app-container #tab-git .git-operations-card #git-remote-url-input:focus,
+.app-container #tab-git .git-operations-card .text-input:focus {
+    border-color: rgba(0, 208, 132, 0.48) !important;
+    box-shadow: var(--console-focus) !important;
+}
+
+.app-container #tab-git .git-operations-card .git-commit-ai-btn,
+.app-container #tab-git .git-operations-card .git-branch-checkout-inline {
+    width: 34px !important;
+    min-width: 34px !important;
+    height: 34px !important;
+    min-height: 34px !important;
+    padding: 0 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    color: var(--console-muted) !important;
+    background: transparent !important;
+    border: 1px solid var(--console-line) !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+}
+
+.app-container #tab-git .git-operations-card .git-commit-ai-btn:hover,
+.app-container #tab-git .git-operations-card .git-branch-checkout-inline:hover {
+    color: var(--console-green) !important;
+    background: rgba(0, 208, 132, 0.055) !important;
+    border-color: rgba(0, 208, 132, 0.42) !important;
+}
+
+.app-container #tab-git .git-operations-card .git-current-branch-readonly {
+    min-height: 34px !important;
+    padding: 0 12px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    flex: 1 1 auto !important;
+    color: var(--console-text-soft) !important;
+    background: #030303 !important;
+    border: 1px solid var(--console-line) !important;
+    border-radius: 0 !important;
+    font-family: var(--console-font-mono) !important;
+    font-size: 10px !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.08em !important;
+    text-transform: uppercase !important;
+}
+
+.app-container #tab-git .git-operations-card .git-deploy-target-row {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 14px !important;
+}
+
+.app-container #tab-git .git-operations-card .git-deploy-buttons,
+.app-container #tab-git .git-operations-card .git-advanced-actions {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    align-items: center !important;
+    gap: 8px !important;
+}
+
+.app-container #tab-git .git-operations-card .git-deploy-buttons .btn,
+.app-container #tab-git .git-operations-card .git-advanced-actions .btn,
+.app-container #tab-git .git-operations-card #btn-git-init {
+    min-height: 32px !important;
+    padding: 0 12px !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    font-family: var(--console-font-mono) !important;
+    font-size: 10px !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.08em !important;
+    line-height: 1 !important;
+    text-transform: uppercase !important;
+}
+
+.app-container #tab-git .git-operations-card .git-deploy-buttons .btn-primary,
+.app-container #tab-git .git-operations-card #btn-git-init {
+    color: var(--console-text) !important;
+    background: rgba(0, 208, 132, 0.08) !important;
+    border: 1px solid rgba(0, 208, 132, 0.72) !important;
+}
+
+.app-container #tab-git .git-operations-card .git-deploy-buttons .btn-primary:hover,
+.app-container #tab-git .git-operations-card #btn-git-init:hover {
+    color: var(--console-green) !important;
+    background: rgba(0, 208, 132, 0.13) !important;
+    border-color: var(--console-green) !important;
+}
+
+.app-container #tab-git .git-operations-card .git-deploy-buttons .btn-secondary,
+.app-container #tab-git .git-operations-card .git-advanced-actions .btn-secondary {
+    color: var(--console-text-soft) !important;
+    background: transparent !important;
+    border: 1px solid var(--console-line-strong) !important;
+}
+
+.app-container #tab-git .git-operations-card .git-deploy-buttons .btn-secondary:hover,
+.app-container #tab-git .git-operations-card .git-advanced-actions .btn-secondary:hover {
+    color: var(--console-text) !important;
+    background: rgba(255, 255, 255, 0.035) !important;
+    border-color: rgba(255, 255, 255, 0.22) !important;
+}
+
+.app-container #tab-git .git-operations-card .git-danger-action,
+.app-container #tab-git .git-operations-card .git-danger-action.btn-secondary {
+    color: var(--console-red) !important;
+    background: transparent !important;
+    border: 1px solid rgba(255, 51, 71, 0.68) !important;
+}
+
+.app-container #tab-git .git-operations-card .git-danger-action:hover,
+.app-container #tab-git .git-operations-card .git-danger-action.btn-secondary:hover {
+    color: var(--console-red) !important;
+    background: rgba(255, 51, 71, 0.11) !important;
+    border-color: var(--console-red) !important;
+}
+
+.app-container #tab-git .git-operations-card .git-commit-ai-btn i,
+.app-container #tab-git .git-operations-card .git-commit-ai-btn svg,
+.app-container #tab-git .git-operations-card .git-branch-checkout-inline i,
+.app-container #tab-git .git-operations-card .git-branch-checkout-inline svg,
+.app-container #tab-git .git-operations-card .btn i,
+.app-container #tab-git .git-operations-card .btn svg {
+    width: 15px !important;
+    height: 15px !important;
+    color: currentColor !important;
+    stroke: currentColor !important;
+    stroke-width: 0.75px !important;
+}
+
+.app-container #tab-git .git-operations-card .git-commit-ai-btn svg *,
+.app-container #tab-git .git-operations-card .git-branch-checkout-inline svg *,
+.app-container #tab-git .git-operations-card .btn svg * {
+    stroke-width: 0.75px !important;
+}
+
