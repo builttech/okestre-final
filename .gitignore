@@ -24,3 +24,6 @@ env/
 .documents/dri/dri.md
 .documents/security/.gitkeep
 .documents/task/task.md
+*.log
+*.documents/qa/annotations.json
+annotations.json
