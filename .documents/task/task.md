@@ -10,3 +10,4 @@ git-ide
 > Não coloque plano detalhado aqui. Use `.documents/task/task.details.md` para o plano da task atual.
 
 - [ ] TASK-REQ-0000-001: - Detalhar primeira tarefa do projeto.
+- [x] TASK-REQ-3091-001: - Aplicar rebrand visual baseado em design_rebrand.md.

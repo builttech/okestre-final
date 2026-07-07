@@ -7868,3 +7868,635 @@ input[type="checkbox"]:focus-visible{
     background: rgba(255, 92, 122, 0.85);
 }
 
+/* Dayact IA Rebrand Layer — source: design_rebrand.md
+   Final override layer. Keep this block at the end of the file. */
+:root,
+:root[data-theme="dark"],
+:root[data-theme="light"] {
+    --dayact-bg: #f9f4ed;
+    --dayact-bg-secondary: #f4f4f5;
+    --dayact-bg-muted: #f7f1e7;
+    --dayact-surface: #ffffff;
+    --dayact-surface-alt: #f4f4f5;
+    --dayact-text: #000000;
+    --dayact-text-secondary: #52525b;
+    --dayact-text-muted: #8f8f8f;
+    --dayact-accent: #888888;
+    --dayact-accent-2: #aaaaaa;
+    --dayact-border: #050505;
+    --dayact-border-soft: rgba(5, 5, 5, 0.14);
+    --dayact-border-muted: rgba(5, 5, 5, 0.08);
+    --dayact-shadow-soft: rgba(113, 113, 122, 0.18) 0 0 6px 0;
+    --dayact-shadow-panel: rgba(113, 113, 122, 0.16) 0 0 12px 0;
+    --dayact-focus: 0 0 0 2px rgba(136, 136, 136, 0.28);
+    --dayact-radius: 0px;
+    --dayact-radius-soft: 2px;
+    --dayact-space: 16px;
+
+    --ds-bg: var(--dayact-bg);
+    --ds-surface: var(--dayact-bg-secondary);
+    --ds-surface-elevated: var(--dayact-surface);
+    --ds-surface-muted: var(--dayact-bg-muted);
+    --ds-text: var(--dayact-text);
+    --ds-text-secondary: var(--dayact-text-secondary);
+    --ds-text-muted: var(--dayact-text-muted);
+    --ds-border: var(--dayact-border);
+    --ds-border-strong: var(--dayact-border-soft);
+    --ds-primary: var(--dayact-accent);
+    --ds-primary-soft: rgba(136, 136, 136, 0.16);
+    --ds-secondary: var(--dayact-accent-2);
+    --ds-info: var(--dayact-accent);
+    --ds-purple: var(--dayact-accent);
+    --ds-success: #217a04;
+    --ds-warning: #ea7900;
+    --ds-danger: #d92d20;
+    --ds-font-heading: Switzer, Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --ds-font-body: Switzer, Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --ds-radius-button: var(--dayact-radius);
+    --ds-radius-lg: var(--dayact-radius-soft);
+    --ds-radius-card: var(--dayact-radius-soft);
+    --ds-shadow-low: var(--dayact-shadow-soft);
+    --ds-shadow-surface: rgba(255, 255, 255, 0.45) 0 0 8px 0;
+    --ds-shadow-focus: var(--dayact-focus);
+
+    --frame-bg: var(--dayact-bg);
+    --frame-canvas: var(--dayact-bg);
+    --frame-panel: var(--dayact-surface);
+    --frame-panel-solid: var(--dayact-surface);
+    --frame-panel-hover: rgba(5, 5, 5, 0.045);
+    --frame-border: var(--dayact-border-muted);
+    --frame-border-strong: var(--dayact-border-soft);
+    --frame-blue: var(--dayact-accent);
+    --frame-blue-soft: rgba(136, 136, 136, 0.14);
+    --frame-text: var(--dayact-text);
+    --frame-muted: var(--dayact-text-secondary);
+    --frame-subtle: var(--dayact-text-muted);
+    --frame-shadow: var(--dayact-shadow-panel);
+    --frame-radius: var(--dayact-radius);
+    --frame-radius-lg: var(--dayact-radius-soft);
+
+    --bg-base: var(--dayact-bg);
+    --bg-canvas: var(--dayact-bg);
+    --bg-surface: var(--dayact-bg-secondary);
+    --bg-surface-glass: var(--dayact-surface);
+    --bg-surface-hover: rgba(5, 5, 5, 0.045);
+    --bg-elevated: var(--dayact-surface);
+    --border-color: var(--dayact-border-muted);
+    --border-color-strong: var(--dayact-border-soft);
+    --border-color-glow: rgba(136, 136, 136, 0.28);
+    --color-primary: var(--dayact-accent);
+    --color-primary-glow: rgba(136, 136, 136, 0.16);
+    --color-secondary: var(--dayact-accent-2);
+    --color-success: #217a04;
+    --color-success-glow: rgba(33, 122, 4, 0.14);
+    --color-warning: #ea7900;
+    --color-danger: #d92d20;
+    --color-danger-glow: rgba(217, 45, 32, 0.12);
+    --text-main: var(--dayact-text);
+    --text-muted: var(--dayact-text-secondary);
+    --text-dark: var(--dayact-text-muted);
+    --text-light: var(--dayact-text);
+    --font-sans: var(--ds-font-body);
+    --font-mono: redditMono, 'Fira Code', 'SFMono-Regular', Consolas, monospace;
+    --sidebar-width: 270px;
+    --topbar-height: 48px;
+    --border-radius: var(--dayact-radius);
+    --radius-lg: var(--dayact-radius-soft);
+    --radius-xl: var(--dayact-radius-soft);
+    --shadow-panel: var(--dayact-shadow-panel);
+}
+
+html,
+body {
+    background: var(--dayact-bg) !important;
+    color: var(--dayact-text) !important;
+    font-family: var(--font-sans) !important;
+    font-weight: 300;
+    letter-spacing: 0 !important;
+}
+
+body::before {
+    display: none !important;
+}
+
+.app-container,
+.main-layout,
+.content-area,
+.tab-content,
+.files-layout,
+.database-layout,
+.logs-layout,
+.git-layout,
+.terminal-panel,
+.tokens-layout,
+.settings-dashboard-layout,
+.agent-layout,
+.sdd-layout,
+.qa-layout,
+.ops-infra-layout,
+.engineering-metrics-layout {
+    background: var(--dayact-bg) !important;
+    color: var(--dayact-text) !important;
+}
+
+.topbar {
+    height: 48px !important;
+    padding: 0 16px !important;
+    background: var(--dayact-bg) !important;
+    border-bottom: 1px solid var(--dayact-border-soft) !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+}
+
+.brand {
+    gap: 16px !important;
+}
+
+.logo-icon {
+    width: 32px !important;
+    height: 32px !important;
+    border-radius: var(--dayact-radius) !important;
+    color: var(--dayact-text) !important;
+    background: var(--dayact-bg-secondary) !important;
+    border: 1px solid var(--dayact-border) !important;
+    box-shadow: none !important;
+}
+
+.brand-text h1 {
+    color: var(--dayact-text) !important;
+    -webkit-text-fill-color: var(--dayact-text) !important;
+    font-family: var(--ds-font-heading) !important;
+    font-size: 16px !important;
+    font-weight: 300 !important;
+    line-height: 20px !important;
+    letter-spacing: -0.03em !important;
+}
+
+.brand-text h1::after {
+    content: "_" !important;
+    color: var(--dayact-accent) !important;
+    font-weight: 300 !important;
+}
+
+.brand-text span {
+    display: block !important;
+    color: var(--dayact-text-secondary) !important;
+    font-size: 10px !important;
+    font-weight: 300 !important;
+    line-height: 12px !important;
+}
+
+.status-panel,
+.status-item,
+.api-key-badge {
+    color: var(--dayact-text-secondary) !important;
+}
+
+.status-item,
+.api-key-badge,
+.user-chip,
+.branch-chip,
+.remote-chip {
+    min-height: 32px !important;
+    border-radius: var(--dayact-radius) !important;
+    background: var(--dayact-surface) !important;
+    border: 1px solid var(--dayact-border-muted) !important;
+    box-shadow: none !important;
+}
+
+.status-dot.online {
+    background: #217a04 !important;
+    box-shadow: none !important;
+}
+
+.sidebar {
+    width: 270px !important;
+    padding: 16px !important;
+    background: var(--dayact-bg-secondary) !important;
+    border-right: 1px solid var(--dayact-border-soft) !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+}
+
+.sidebar-section,
+.sidebar-footer,
+.sidebar-collapse-header {
+    border-color: var(--dayact-border-muted) !important;
+    background: transparent !important;
+}
+
+.section-header,
+.panel-header,
+.card-header,
+.modal-header,
+.modal-footer,
+.panel-header-simple {
+    min-height: 48px !important;
+    padding: 16px !important;
+    background: transparent !important;
+    border-color: var(--dayact-border-muted) !important;
+}
+
+.section-header h3,
+.panel-header h4,
+.card-header h4,
+.panel-header-simple h4,
+.panel-header-simple h5,
+.modal-header h3,
+.modal-header h4,
+.content-header h2,
+.tab-header h2,
+.agent-chat-header h3,
+.sdd-stage-title,
+.sdd-panel-title {
+    color: var(--dayact-text) !important;
+    font-family: var(--ds-font-heading) !important;
+    font-weight: 300 !important;
+    letter-spacing: -0.03em !important;
+    text-transform: none !important;
+}
+
+.sidebar-nav {
+    gap: 8px !important;
+}
+
+.nav-item {
+    min-height: 40px !important;
+    padding: 8px 12px !important;
+    border-radius: var(--dayact-radius) !important;
+    color: var(--dayact-text-secondary) !important;
+    background: transparent !important;
+    border: 1px solid transparent !important;
+    box-shadow: none !important;
+}
+
+.nav-item:hover,
+.nav-item.active {
+    color: var(--dayact-text) !important;
+    background: var(--dayact-surface) !important;
+    border-color: var(--dayact-border-soft) !important;
+    transform: none !important;
+}
+
+.nav-item i,
+.nav-item svg,
+.btn-icon i,
+.btn-icon svg,
+.btn-icon-sm i,
+.btn-icon-sm svg {
+    color: currentColor !important;
+    stroke: currentColor !important;
+}
+
+.nav-item.active::after {
+    width: 16px !important;
+    height: 1px !important;
+    border-radius: 0 !important;
+    background: var(--dayact-accent) !important;
+    box-shadow: none !important;
+}
+
+.files-layout,
+.database-layout,
+.logs-layout,
+.git-layout,
+.terminal-panel,
+.tokens-layout,
+.settings-dashboard-layout,
+.agent-layout,
+.sdd-layout,
+.qa-layout,
+.ops-infra-layout,
+.engineering-metrics-layout {
+    padding: 16px !important;
+    gap: 16px !important;
+}
+
+.file-tree-panel,
+.editor-panel,
+.db-explorer-sidebar,
+.db-editor-panel,
+.db-results-panel,
+.git-status-card,
+.git-operations-card,
+.git-console-card,
+.activity-logs-panel,
+.all-snapshots-panel,
+.tokens-sidebar-card,
+.tokens-content-panel,
+.settings-card,
+.agent-main-panel,
+.modal-card,
+.card,
+.panel,
+.sdd-panel,
+.qa-panel,
+.metric-card,
+.stat-card,
+.ops-card,
+.agent-chat-welcome,
+.agent-reasoning-monitor,
+.github-profile-bar,
+.token-container,
+.collapsible-content {
+    color: var(--dayact-text) !important;
+    background: var(--dayact-surface) !important;
+    border: 1px solid var(--dayact-border-muted) !important;
+    border-radius: var(--dayact-radius-soft) !important;
+    box-shadow: var(--dayact-shadow-panel) !important;
+    backdrop-filter: none !important;
+}
+
+.file-tree-panel,
+.editor-panel,
+.db-results-panel,
+.git-console-card,
+.terminal-panel,
+.agent-main-panel,
+.modal-card {
+    overflow: hidden;
+}
+
+.btn,
+.btn-primary,
+.btn-secondary,
+.btn-danger,
+.btn-icon,
+.btn-icon-sm,
+.quick-action-btn,
+.modal-tab-btn,
+.github-connect-btn,
+.btn-select-folder,
+.collapsible-trigger,
+.action-pill-btn,
+button {
+    border-radius: var(--dayact-radius) !important;
+    box-shadow: none !important;
+    font-family: var(--font-sans) !important;
+    font-weight: 400 !important;
+    letter-spacing: 0 !important;
+}
+
+.btn:hover,
+.btn-icon:hover,
+.btn-icon-sm:hover,
+.quick-action-btn:hover,
+.modal-tab-btn:hover,
+.github-connect-btn:hover,
+.btn-select-folder:hover,
+.collapsible-trigger:hover,
+.action-pill-btn:hover {
+    transform: none !important;
+}
+
+.btn-primary,
+#btn-send-agent-prompt,
+.action-pill-btn.btn-apply {
+    color: var(--dayact-text) !important;
+    background: var(--dayact-bg-secondary) !important;
+    border: 1px solid var(--dayact-border) !important;
+}
+
+.btn-primary:hover,
+#btn-send-agent-prompt:hover,
+.action-pill-btn.btn-apply:hover {
+    color: var(--dayact-text) !important;
+    background: #ffffff !important;
+    border-color: var(--dayact-border) !important;
+    box-shadow: var(--dayact-shadow-soft) !important;
+}
+
+.btn-secondary,
+.quick-action-btn,
+.modal-tab-btn,
+.github-connect-btn,
+.btn-select-folder,
+.collapsible-trigger,
+.btn-icon,
+.btn-icon-sm,
+.action-pill-btn {
+    color: var(--dayact-text-secondary) !important;
+    background: transparent !important;
+    border: 1px solid var(--dayact-border-muted) !important;
+}
+
+.btn-secondary:hover,
+.quick-action-btn:hover,
+.modal-tab-btn:hover,
+.github-connect-btn:hover,
+.btn-select-folder:hover,
+.collapsible-trigger:hover,
+.btn-icon:hover,
+.btn-icon-sm:hover,
+.action-pill-btn:hover {
+    color: var(--dayact-text) !important;
+    background: var(--dayact-bg-secondary) !important;
+    border-color: var(--dayact-border-soft) !important;
+}
+
+.btn-danger {
+    color: #ffffff !important;
+    background: #d92d20 !important;
+    border-color: #d92d20 !important;
+}
+
+.select-input,
+.text-input,
+.db-query-wrapper textarea,
+.terminal-input-wrapper,
+.editor-container,
+.db-results-container,
+#dir-browser-list,
+#file-editor-textarea,
+input,
+select,
+textarea {
+    color: var(--dayact-text) !important;
+    background: var(--dayact-surface) !important;
+    border: 1px solid var(--dayact-border-muted) !important;
+    border-radius: var(--dayact-radius) !important;
+    box-shadow: none !important;
+}
+
+.select-input:hover,
+.text-input:hover,
+.db-query-wrapper textarea:hover,
+#file-editor-textarea:hover,
+input:hover,
+select:hover,
+textarea:hover {
+    background: #ffffff !important;
+    border-color: var(--dayact-border-soft) !important;
+}
+
+.select-input:focus,
+.text-input:focus,
+.db-query-wrapper textarea:focus,
+#file-editor-textarea:focus,
+input:focus,
+select:focus,
+textarea:focus {
+    outline: none !important;
+    border-color: var(--dayact-accent) !important;
+    box-shadow: var(--dayact-focus) !important;
+}
+
+select.select-input,
+select.select-input option {
+    color: var(--dayact-text) !important;
+    background: var(--dayact-surface) !important;
+}
+
+.file-node,
+.db-table-item,
+.log-card,
+.snapshot-item,
+.git-file-item,
+.token-row,
+.token-category-header,
+.github-repo-item,
+.dir-item,
+.sdd-stage-card,
+.qa-annotation-card,
+.metric-row,
+.agent-message,
+.agent-tool-call,
+.agent-plan-step {
+    color: var(--dayact-text-secondary) !important;
+    background: transparent !important;
+    border-color: var(--dayact-border-muted) !important;
+    border-radius: var(--dayact-radius) !important;
+}
+
+.file-node:hover,
+.db-table-item:hover,
+.log-card:hover,
+.snapshot-item:hover,
+.git-file-item:hover,
+.token-row:hover,
+.github-repo-item:hover,
+.dir-item:hover,
+.sdd-stage-card:hover,
+.qa-annotation-card:hover {
+    color: var(--dayact-text) !important;
+    background: rgba(5, 5, 5, 0.045) !important;
+}
+
+.file-node.active,
+.db-table-item.active,
+.modal-tab-btn.active,
+.sdd-stage-card.active,
+.nav-tab.active,
+.tab-btn.active {
+    color: var(--dayact-text) !important;
+    background: rgba(136, 136, 136, 0.14) !important;
+    border-color: var(--dayact-accent) !important;
+}
+
+.editor-gutter,
+.line-numbers,
+.code-block-header,
+.terminal-output,
+#git-console-output,
+pre,
+.code-box,
+.agent-message-text pre {
+    color: var(--dayact-text-secondary) !important;
+    background: var(--dayact-bg-secondary) !important;
+    border-color: var(--dayact-border-muted) !important;
+    border-radius: var(--dayact-radius) !important;
+    box-shadow: none !important;
+}
+
+#file-editor-textarea,
+.terminal-output,
+#git-console-output,
+pre,
+code,
+.code-box,
+.agent-message-text code {
+    font-family: var(--font-mono) !important;
+}
+
+.agent-message-text code {
+    color: var(--dayact-text) !important;
+    background: var(--dayact-bg-secondary) !important;
+    border-color: var(--dayact-border-muted) !important;
+    border-radius: var(--dayact-radius) !important;
+}
+
+.db-table th,
+table th {
+    color: var(--dayact-text-secondary) !important;
+    background: var(--dayact-bg-secondary) !important;
+    border-color: var(--dayact-border-muted) !important;
+}
+
+.db-table td,
+table td {
+    color: var(--dayact-text) !important;
+    border-color: var(--dayact-border-muted) !important;
+}
+
+.modal-backdrop {
+    background: rgba(249, 244, 237, 0.78) !important;
+    backdrop-filter: blur(8px) !important;
+}
+
+.modal-card {
+    background: var(--dayact-surface) !important;
+    border: 1px solid var(--dayact-border-soft) !important;
+    border-radius: var(--dayact-radius-soft) !important;
+    box-shadow: var(--dayact-shadow-panel) !important;
+}
+
+.agent-chat-welcome {
+    background: var(--dayact-surface) !important;
+    border: 1px solid var(--dayact-border-muted) !important;
+    border-radius: var(--dayact-radius-soft) !important;
+}
+
+.agent-chat-welcome i,
+.state-icon i,
+.empty-state i,
+.agent-status-dot,
+.sdd-status-dot {
+    color: var(--dayact-accent) !important;
+}
+
+.agent-input-wrapper > div {
+    background: var(--dayact-surface) !important;
+    border: 1px solid var(--dayact-border-soft) !important;
+    border-radius: var(--dayact-radius) !important;
+    box-shadow: none !important;
+}
+
+#agent-user-prompt {
+    color: var(--dayact-text) !important;
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+}
+
+::placeholder {
+    color: var(--dayact-text-muted) !important;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--dayact-bg) !important;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--dayact-accent-2) !important;
+    border-radius: var(--dayact-radius) !important;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--dayact-accent) !important;
+}
+
+*::selection {
+    color: var(--dayact-text) !important;
+    background: rgba(136, 136, 136, 0.24) !important;
+}
+
