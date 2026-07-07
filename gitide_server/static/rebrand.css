@@ -9743,3 +9743,28 @@ button.btn-danger:hover {
     stroke-width: 0.75px !important;
 }
 
+/* Settings internal sidebar corner brackets — TASK-QA-B9CD0F01-002 */
+.app-container .settings-tabs-sidebar {
+    position: sticky !important;
+}
+
+.app-container .settings-tabs-sidebar::before {
+    content: "" !important;
+    position: absolute !important;
+    inset: 0 !important;
+    width: auto !important;
+    height: auto !important;
+    pointer-events: none !important;
+    z-index: 3 !important;
+    border: 0 !important;
+    background:
+        linear-gradient(var(--console-text-soft), var(--console-text-soft)) top left / 18px 1px no-repeat,
+        linear-gradient(var(--console-text-soft), var(--console-text-soft)) top left / 1px 18px no-repeat,
+        linear-gradient(var(--console-text-soft), var(--console-text-soft)) top right / 18px 1px no-repeat,
+        linear-gradient(var(--console-text-soft), var(--console-text-soft)) top right / 1px 18px no-repeat,
+        linear-gradient(var(--console-text-soft), var(--console-text-soft)) bottom left / 18px 1px no-repeat,
+        linear-gradient(var(--console-text-soft), var(--console-text-soft)) bottom left / 1px 18px no-repeat,
+        linear-gradient(var(--console-text-soft), var(--console-text-soft)) bottom right / 18px 1px no-repeat,
+        linear-gradient(var(--console-text-soft), var(--console-text-soft)) bottom right / 1px 18px no-repeat !important;
+}
+

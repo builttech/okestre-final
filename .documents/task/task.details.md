@@ -564,3 +564,53 @@ Corrigir a anotação `QA-B9CD0F01`, substituindo o visual antigo do sidebar int
 - Executar `git status` para auditar alterações.
 
 Para autorizar a execução de todas as tasks planejadas, responda: **"Aprovado executar o pacote Harness"**.
+
+## Plano — TASK-QA-B9CD0F01-002
+
+**Tarefa:** Adicionar corner brackets ao sidebar interno de Settings.
+
+### Objetivo
+
+Adicionar os corner brackets técnicos nos quatro cantos do sidebar interno de Settings, usando o mesmo padrão visual dos cards do rebrand dark technical console.
+
+### Arquivo afetado
+
+`[MODIFICAR] .documents/task/task.md`
+
+`[MODIFICAR] .documents/task/task.details.md`
+
+`[MODIFICAR] gitide_server/static/rebrand.css`
+
+`[MODIFICAR] gitide_server/static/index.html`
+
+### Formato previsto da chamada
+
+1. Registrar a task QA na Task List.
+2. Anexar este plano detalhado preservando seções anteriores.
+3. Adicionar `position: relative` no sidebar interno de Settings.
+4. Criar pseudo-elemento `::before` em `.settings-tabs-sidebar` desenhando os quatro corner brackets via backgrounds lineares.
+5. Usar `var(--console-text-soft)` para manter consistência com os cards.
+6. Atualizar `index.html` para bust de cache do CSS.
+7. Validar por leitura dos trechos alterados e `git status`.
+8. Marcar a task como concluída em `task.md` somente após execução e verificação.
+
+### Fallback previsto
+
+- Se o pseudo-elemento conflitar com outro estilo futuro, reforçar o seletor no final do CSS e manter `pointer-events: none`.
+
+### Fora desta task
+
+- Não alterar JavaScript.
+- Não alterar estrutura HTML.
+- Não alterar backend, banco de dados, endpoints, permissões ou autenticação.
+- Não alterar a sidebar principal do app.
+- Não alterar os corner brackets já existentes dos cards.
+- Não fazer deploy.
+
+### Validação prevista
+
+- Confirmar que `.settings-tabs-sidebar::before` desenha os quatro cantos.
+- Confirmar que `index.html` aponta para a nova versão de `rebrand.css`.
+- Executar `git status` para auditar alterações.
+
+Para autorizar a execução de todas as tasks planejadas, responda: **"Aprovado executar o pacote Harness"**.
