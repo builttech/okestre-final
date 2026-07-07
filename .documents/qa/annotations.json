@@ -448,5 +448,65 @@
     },
     "created_at": "2026-07-07T19:47:22.798439Z",
     "updated_at": "2026-07-07T19:47:22.798439Z"
+  },
+  {
+    "id": "QA-24C4E55D",
+    "title": "Refinar o visual",
+    "description": "Refinar o visual para ficar no padrao e consistencia",
+    "url": "http://127.0.0.1:8000/",
+    "category": "visual",
+    "severity": "medium",
+    "status": "open",
+    "selector": "main.content-area > div.tab-pane.active:nth-of-type(14) > div.harness-shell > div.harness-header:nth-of-type(1) > div.harness-top-nav:nth-of-type(2)",
+    "viewport": {
+      "width": 1920,
+      "height": 1080
+    },
+    "browser": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36",
+    "screenshot": null,
+    "screenshot_file": "QA-24C4E55D.jpg",
+    "screenshot_mime": "image/jpeg",
+    "metadata": {
+      "tabTitle": "Dayact IA Workspace",
+      "elementRect": {
+        "x": 917,
+        "y": 76,
+        "width": 497,
+        "height": 44
+      },
+      "selectedText": "PROJECT CHARTER / TAP\nFUNCTIONAL SPECS\nTASK LIST"
+    },
+    "created_at": "2026-07-07T21:23:14.672527Z",
+    "updated_at": "2026-07-07T21:23:14.672527Z"
+  },
+  {
+    "id": "QA-AE5241A0",
+    "title": "Refinar o header",
+    "description": "Refinar o header para ficar consistente no padrão visual.",
+    "url": "https://ide.builtt.com.br/",
+    "category": "visual",
+    "severity": "medium",
+    "status": "open",
+    "selector": "html.brand-refresh > body > div.app-container:nth-of-type(2) > header.topbar",
+    "viewport": {
+      "width": 1920,
+      "height": 1080
+    },
+    "browser": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36",
+    "screenshot": null,
+    "screenshot_file": "QA-AE5241A0.jpg",
+    "screenshot_mime": "image/jpeg",
+    "metadata": {
+      "tabTitle": "Act IA software engineer",
+      "elementRect": {
+        "x": 0,
+        "y": 0,
+        "width": 1442,
+        "height": 48
+      },
+      "selectedText": "DAYACT IA WORKSPACE\n-- Selecione um Projeto --\nDash-Gran\nTopsite\ncrm\ntoptus-portal-building\ngit-ide\ngit-ide-test-temp\napply-ai\nscan-local\nDG\nDASH-GRAN"
+    },
+    "created_at": "2026-07-07T21:36:15.896568Z",
+    "updated_at": "2026-07-07T21:36:15.896568Z"
   }
 ]

@@ -9,7 +9,7 @@ git-ide
 > Use itens rastreáveis no formato `- [ ] TASK-REQ-0000-001: - Título curto da tarefa.`
 > Não coloque plano detalhado aqui. Use `.documents/task/task.details.md` para o plano da task atual.
 
-- [ ] TASK-REQ-0000-001: - Detalhar primeira tarefa do projeto.
+- [x] TASK-REQ-0000-001: - Detalhar primeira tarefa do projeto.
 - [x] TASK-REQ-3091-001: - Aplicar rebrand visual baseado em design_rebrand.md.
 - [x] TASK-REQ-3091-002: - Ajustar rebrand para dark theme fiel à referência visual.
 - [x] TASK-REQ-3091-003: - Aplicar corner brackets nos quatro cantos de todos os cards.
@@ -26,3 +26,4 @@ git-ide
 - [x] TASK-QA-67617C17-001: - Rebrand do card de autenticação Git PAT.
 - [x] TASK-QA-02D8DF27-001: - Rebrand dos inputs e botões do card de operações Git.
 - [x] TASK-REQ-3091-008: - Corrigir base do dark theme para Black 950 #050505.
+- [x] TASK-QA-24C4E55D-001: - Rebrand da navegação superior do Harness.

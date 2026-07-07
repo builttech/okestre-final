@@ -874,3 +874,53 @@ Corrigir a base cromática do dark theme para usar o token Black 950 `#050505` c
 - Executar `git status` para auditar alterações.
 
 Para autorizar a execução de todas as tasks planejadas, responda: **"Aprovado executar o pacote Harness"**.
+
+## Plano — TASK-QA-24C4E55D-001
+
+**Tarefa:** Rebrand da navegação superior do Harness.
+
+### Objetivo
+
+Corrigir a anotação `QA-24C4E55D`, refinando a navegação superior do módulo Harness para o padrão dark technical console, removendo radius alto, background antigo e tabs arredondadas.
+
+### Arquivo afetado
+
+`[MODIFICAR] .documents/task/task.md`
+
+`[MODIFICAR] .documents/task/task.details.md`
+
+`[MODIFICAR] gitide_server/static/rebrand.css`
+
+`[MODIFICAR] gitide_server/static/index.html`
+
+### Formato previsto da chamada
+
+1. Registrar a task QA na Task List.
+2. Anexar este plano detalhado preservando seções anteriores.
+3. Atualizar `index.html` para bust de cache do CSS.
+4. Adicionar override final em `rebrand.css` para `.harness-header`, `.harness-top-nav`, `.harness-top-tab`, estados hover/active e ícones.
+5. Aplicar fundo Black 950, bordas finas, radius zero, botões retangulares, tipografia mono uppercase e active com acento verde discreto.
+6. Preservar estrutura HTML, `data-harness-panel` e comportamento JavaScript.
+7. Validar por leitura dos trechos alterados e `git status`.
+8. Marcar a task como concluída em `task.md` somente após execução e verificação.
+
+### Fallback previsto
+
+- Se algum seletor legado prevalecer, reforçar o override final com escopo `.app-container #tab-sdd .harness-shell`.
+
+### Fora desta task
+
+- Não alterar JavaScript.
+- Não alterar estrutura HTML.
+- Não alterar conteúdo textual dos tabs.
+- Não alterar backend, banco de dados, endpoints, permissões ou autenticação.
+- Não fazer deploy.
+
+### Validação prevista
+
+- Confirmar que `.harness-top-nav` usa visual dark technical console.
+- Confirmar que `.harness-top-tab` usa tabs retangulares e estados hover/active consistentes.
+- Confirmar que `index.html` aponta para `rebrand.css?v=58`.
+- Executar `git status` para auditar alterações.
+
+Para autorizar a execução de todas as tasks planejadas, responda: **"Aprovado executar o pacote Harness"**.
