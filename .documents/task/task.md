@@ -18,3 +18,4 @@ git-ide
 - [x] TASK-QA-12681E16-001: - Aplicar espaçamento interno no card Security Rules.
 - [x] TASK-REQ-3091-005: - Padronizar padding e header dos cards de Settings.
 - [x] TASK-REQ-3091-006: - Uniformizar botões primário, secundário e terciário em todas as páginas.
+- [x] TASK-REQ-3091-007: - Corrigir sidebar após padronização global de botões.

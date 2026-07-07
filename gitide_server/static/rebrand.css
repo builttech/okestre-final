@@ -9546,3 +9546,107 @@ button.btn-danger:hover {
     min-height: 28px !important;
 }
 
+/* Sidebar navigation reset after global button hierarchy — TASK-REQ-3091-007 */
+.app-container .sidebar .sidebar-nav {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 0 !important;
+}
+
+.app-container .sidebar .sidebar-nav .nav-item {
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 36px !important;
+    padding: 8px 12px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    gap: 10px !important;
+    color: var(--console-dim) !important;
+    background: transparent !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    font-family: var(--console-font-mono) !important;
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.06em !important;
+    line-height: 1.15 !important;
+    text-align: left !important;
+    text-transform: uppercase !important;
+    white-space: normal !important;
+}
+
+.app-container .sidebar .sidebar-nav .nav-item:hover,
+.app-container .sidebar .sidebar-nav .nav-item.active {
+    color: var(--console-text) !important;
+    background: transparent !important;
+    border-color: transparent !important;
+    transform: none !important;
+}
+
+.app-container .sidebar .sidebar-nav .nav-item::before {
+    content: "[" !important;
+    flex: 0 0 auto !important;
+    margin: 0 !important;
+    color: currentColor !important;
+    opacity: 0.75 !important;
+}
+
+.app-container .sidebar .sidebar-nav .nav-item::after {
+    content: "]" !important;
+    flex: 0 0 auto !important;
+    width: auto !important;
+    height: auto !important;
+    margin: 0 0 0 auto !important;
+    color: currentColor !important;
+    background: none !important;
+    box-shadow: none !important;
+    opacity: 0.75 !important;
+}
+
+.app-container .sidebar .sidebar-nav .nav-item i,
+.app-container .sidebar .sidebar-nav .nav-item svg {
+    display: inline-flex !important;
+    flex: 0 0 16px !important;
+    width: 16px !important;
+    height: 16px !important;
+    min-width: 16px !important;
+    color: currentColor !important;
+    stroke: currentColor !important;
+    stroke-width: 0.75px !important;
+}
+
+.app-container .sidebar .sidebar-nav .nav-item svg * {
+    stroke-width: 0.75px !important;
+}
+
+.app-container .sidebar .sidebar-nav .nav-label {
+    display: inline-block !important;
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    color: currentColor !important;
+    text-align: left !important;
+}
+
+.app-container.sidebar-collapsed .sidebar .sidebar-nav {
+    align-items: center !important;
+}
+
+.app-container.sidebar-collapsed .sidebar .sidebar-nav .nav-item {
+    width: 40px !important;
+    min-width: 40px !important;
+    padding: 8px 0 !important;
+    justify-content: center !important;
+    gap: 0 !important;
+    white-space: nowrap !important;
+}
+
+.app-container.sidebar-collapsed .sidebar .sidebar-nav .nav-item::before,
+.app-container.sidebar-collapsed .sidebar .sidebar-nav .nav-item::after,
+.app-container.sidebar-collapsed .sidebar .sidebar-nav .nav-label {
+    display: none !important;
+    content: "" !important;
+}
+

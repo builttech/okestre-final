@@ -464,3 +464,53 @@ Padronizar a hierarquia visual dos botões primário, secundário e terciário e
 - Executar `git status` para auditar alterações.
 
 Para autorizar a execução de todas as tasks planejadas, responda: **"Aprovado executar o pacote Harness"**.
+
+## Plano — TASK-REQ-3091-007
+
+**Tarefa:** Corrigir sidebar após padronização global de botões.
+
+### Objetivo
+
+Corrigir a quebra visual da sidebar causada pela regra global de botões aplicada sobre elementos `button.nav-item`, restaurando o comportamento de navegação lateral sem desfazer a hierarquia global de botões nas páginas.
+
+### Arquivo afetado
+
+`[MODIFICAR] .documents/task/task.md`
+
+`[MODIFICAR] .documents/task/task.details.md`
+
+`[MODIFICAR] gitide_server/static/rebrand.css`
+
+`[MODIFICAR] gitide_server/static/index.html`
+
+### Formato previsto da chamada
+
+1. Registrar a task na Task List.
+2. Anexar este plano detalhado preservando seções anteriores.
+3. Adicionar override final em `rebrand.css` para `.sidebar-nav .nav-item`, removendo a herança visual de botão global.
+4. Restaurar layout normal da navegação com alinhamento à esquerda, largura total, ícone, label e brackets estáveis.
+5. Preservar estado colapsado da sidebar com ícones visíveis e labels/brackets ocultos.
+6. Atualizar `index.html` para bust de cache do CSS.
+7. Validar por leitura dos trechos alterados e `git status`.
+8. Marcar a task como concluída em `task.md` somente após execução e verificação.
+
+### Fallback previsto
+
+- Se algum seletor legado ainda afetar a sidebar, reforçar escopo com `.app-container .sidebar .sidebar-nav .nav-item` no final do CSS.
+
+### Fora desta task
+
+- Não alterar JavaScript.
+- Não alterar estrutura HTML.
+- Não alterar backend, banco de dados, endpoints, permissões ou autenticação.
+- Não desfazer a padronização global de botões fora da sidebar.
+- Não fazer deploy.
+
+### Validação prevista
+
+- Confirmar que `.sidebar .nav-item` volta a usar layout de navegação, não layout de botão global.
+- Confirmar que o estado colapsado mantém apenas ícones visíveis.
+- Confirmar que `index.html` aponta para a nova versão de `rebrand.css`.
+- Executar `git status` para auditar alterações.
+
+Para autorizar a execução de todas as tasks planejadas, responda: **"Aprovado executar o pacote Harness"**.
