@@ -253,3 +253,53 @@ Diminuir a intensidade visual das bordas comuns do dark technical console para q
 - Executar `git status` para auditar alterações.
 
 Para autorizar a execução de todas as tasks planejadas, responda: **"Aprovado executar o pacote Harness"**.
+
+## Plano — TASK-QA-B9983968-001
+
+**Tarefa:** Restaurar ícones Lucide da sidebar com stroke 0.75px.
+
+### Objetivo
+
+Corrigir a anotação `QA-B9983968`, restaurando a exibição dos ícones Lucide na navegação da sidebar, inclusive no estado colapsado, mantendo o rebrand dark technical console e aplicando `stroke-width: 0.75px` aos SVGs.
+
+### Arquivo afetado
+
+`[MODIFICAR] .documents/task/task.md`
+
+`[MODIFICAR] .documents/task/task.details.md`
+
+`[MODIFICAR] gitide_server/static/rebrand.css`
+
+`[MODIFICAR] gitide_server/static/index.html`
+
+### Formato previsto da chamada
+
+1. Registrar a task QA na Task List.
+2. Anexar este plano detalhado preservando seções anteriores.
+3. Adicionar override final em `rebrand.css` para desfazer o `display: none` aplicado aos ícones da sidebar.
+4. Definir os ícones Lucide com tamanho compacto, `currentColor` e `stroke-width: 0.75px`.
+5. Atualizar `index.html` para bust de cache do CSS.
+6. Validar por leitura dos trechos alterados e `git status`.
+7. Marcar a task como concluída em `task.md` somente após execução e verificação.
+
+### Fallback previsto
+
+- Se algum ícone for renderizado como `<i data-lucide>` antes do bootstrap Lucide, manter também seletor para `i` sem interferir no SVG final.
+- Se o estado colapsado tiver regras específicas mais fortes, usar escopo `.sidebar-collapsed .sidebar .nav-item svg` no override final.
+
+### Fora desta task
+
+- Não alterar JavaScript.
+- Não alterar estrutura HTML.
+- Não alterar backend, banco de dados, endpoints, permissões ou autenticação.
+- Não alterar corner brackets.
+- Não fazer deploy.
+
+### Validação prevista
+
+- Confirmar que o bloco anterior que escondia `.nav-item i` e `.nav-item svg` foi sobrescrito no final do CSS.
+- Confirmar que os SVGs Lucide usam `stroke-width: 0.75px`.
+- Confirmar que `index.html` aponta para a nova versão de `rebrand.css`.
+- Executar `git status` para auditar alterações.
+
+Para autorizar a execução de todas as tasks planejadas, responda: **"Aprovado executar o pacote Harness"**.

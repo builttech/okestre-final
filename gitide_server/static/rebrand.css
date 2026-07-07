@@ -9337,3 +9337,23 @@ table td {
         linear-gradient(var(--console-text-soft), var(--console-text-soft)) bottom right / 1px 18px no-repeat !important;
 }
 
+/* Sidebar Lucide icon restore — QA-B9983968 */
+.sidebar .nav-item i,
+.sidebar .nav-item svg,
+.sidebar-collapsed .sidebar .nav-item i,
+.sidebar-collapsed .sidebar .nav-item svg {
+    display: inline-flex !important;
+    flex: 0 0 auto !important;
+    width: 16px !important;
+    height: 16px !important;
+    min-width: 16px !important;
+    color: currentColor !important;
+    stroke: currentColor !important;
+    stroke-width: 0.75px !important;
+}
+
+.sidebar .nav-item svg *,
+.sidebar-collapsed .sidebar .nav-item svg * {
+    stroke-width: 0.75px !important;
+}
+

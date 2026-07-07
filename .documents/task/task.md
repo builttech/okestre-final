@@ -14,3 +14,4 @@ git-ide
 - [x] TASK-REQ-3091-002: - Ajustar rebrand para dark theme fiel à referência visual.
 - [x] TASK-REQ-3091-003: - Aplicar corner brackets nos quatro cantos de todos os cards.
 - [x] TASK-REQ-3091-004: - Reduzir opacidade das bordas comuns sem alterar corner brackets.
+- [x] TASK-QA-B9983968-001: - Restaurar ícones Lucide da sidebar com stroke 0.75px.
