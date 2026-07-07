@@ -8505,7 +8505,7 @@ table td {
 :root,
 :root[data-theme="dark"],
 :root[data-theme="light"] {
-    --console-bg: #030303;
+    --console-bg: #050505;
     --console-bg-2: #050505;
     --console-panel: #070707;
     --console-panel-2: #0b0b0b;
@@ -9043,7 +9043,7 @@ input,
 select,
 textarea {
     color: var(--console-text) !important;
-    background: #030303 !important;
+    background: #050505 !important;
     border: 1px solid var(--console-line) !important;
     border-radius: 0 !important;
     box-shadow: none !important;
@@ -9076,7 +9076,7 @@ textarea:focus {
 select.select-input,
 select.select-input option {
     color: var(--console-text) !important;
-    background: #030303 !important;
+    background: #050505 !important;
 }
 
 .file-node,
@@ -9202,7 +9202,7 @@ table td {
 }
 
 .agent-input-wrapper > div {
-    background: #030303 !important;
+    background: #050505 !important;
     border: 1px solid var(--console-line-strong) !important;
     border-radius: 0 !important;
     box-shadow: none !important;
@@ -9243,7 +9243,7 @@ table td {
 }
 
 ::-webkit-scrollbar-track {
-    background: #030303 !important;
+    background: #050505 !important;
 }
 
 ::-webkit-scrollbar-thumb {
@@ -9810,7 +9810,7 @@ button.btn-danger:hover {
     align-items: center !important;
     justify-content: center !important;
     color: var(--console-green) !important;
-    background: #030303 !important;
+    background: #050505 !important;
     border: 1px solid var(--console-line-strong) !important;
     box-shadow: none !important;
     font-family: var(--console-font-mono) !important;
@@ -9880,7 +9880,7 @@ button.btn-danger:hover {
     display: grid !important;
     grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
     gap: 4px !important;
-    background: #030303 !important;
+    background: #050505 !important;
     border: 1px solid var(--console-line-soft) !important;
     border-radius: 0 !important;
 }
@@ -10063,7 +10063,7 @@ button.btn-danger:hover {
     border-left: 0 !important;
     border-right: 0 !important;
     border-bottom: 1px solid var(--console-line-soft) !important;
-    background: #030303 !important;
+    background: #050505 !important;
 }
 
 .app-container #tab-git .git-credentials-card.card > .card-header h4 {
@@ -10114,7 +10114,7 @@ button.btn-danger:hover {
     min-height: 34px !important;
     width: 100% !important;
     color: var(--console-text) !important;
-    background: #030303 !important;
+    background: #050505 !important;
     border: 1px solid var(--console-line) !important;
     border-radius: 0 !important;
     box-shadow: none !important;
@@ -10136,7 +10136,7 @@ button.btn-danger:hover {
     min-height: 48px !important;
     padding: 12px 44px 12px 12px !important;
     color: var(--console-text-soft) !important;
-    background: #030303 !important;
+    background: #050505 !important;
     border: 1px solid var(--console-line) !important;
     border-radius: 0 !important;
     box-shadow: none !important;
@@ -10221,7 +10221,7 @@ button.btn-danger:hover {
     border-left: 0 !important;
     border-right: 0 !important;
     border-bottom: 1px solid var(--console-line-soft) !important;
-    background: #030303 !important;
+    background: #050505 !important;
 }
 
 .app-container #tab-git .git-operations-card.card > .card-header h4 {
@@ -10312,7 +10312,7 @@ button.btn-danger:hover {
     min-height: 34px !important;
     width: 100% !important;
     color: var(--console-text) !important;
-    background: #030303 !important;
+    background: #050505 !important;
     border: 1px solid var(--console-line) !important;
     border-radius: 0 !important;
     box-shadow: none !important;
@@ -10361,7 +10361,7 @@ button.btn-danger:hover {
     align-items: center !important;
     flex: 1 1 auto !important;
     color: var(--console-text-soft) !important;
-    background: #030303 !important;
+    background: #050505 !important;
     border: 1px solid var(--console-line) !important;
     border-radius: 0 !important;
     font-family: var(--console-font-mono) !important;

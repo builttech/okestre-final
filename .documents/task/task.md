@@ -25,3 +25,4 @@ git-ide
 - [x] TASK-QA-0CD44BEE-001: - Encurtar labels do menu principal da sidebar.
 - [x] TASK-QA-67617C17-001: - Rebrand do card de autenticação Git PAT.
 - [x] TASK-QA-02D8DF27-001: - Rebrand dos inputs e botões do card de operações Git.
+- [x] TASK-REQ-3091-008: - Corrigir base do dark theme para Black 950 #050505.

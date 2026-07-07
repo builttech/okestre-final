@@ -816,3 +816,61 @@ Corrigir a anotação `QA-02D8DF27`, atualizando inputs, botões e espaçamentos
 - Executar `git status` para auditar alterações.
 
 Para autorizar a execução de todas as tasks planejadas, responda: **"Aprovado executar o pacote Harness"**.
+
+## Plano — TASK-REQ-3091-008
+
+**Tarefa:** Corrigir base do dark theme para Black 950 #050505.
+
+### Objetivo
+
+Corrigir a base cromática do dark theme para usar o token Black 950 `#050505` como fundo principal, removendo usos anteriores de `#030303` em canvas/base/input e alinhando `tokens.json` e `rebrand.css` ao feedback visual do usuário.
+
+### Arquivo afetado
+
+`[MODIFICAR] .documents/task/task.md`
+
+`[MODIFICAR] .documents/task/task.details.md`
+
+`[MODIFICAR] .documents/spec/req-3091_rebrand_visual_dayact_ia.md`
+
+`[MODIFICAR] .documents/dri/dri.md`
+
+`[MODIFICAR] tokens.json`
+
+`[MODIFICAR] gitide_server/static/rebrand.css`
+
+`[MODIFICAR] gitide_server/static/index.html`
+
+### Formato previsto da chamada
+
+1. Registrar a task REQ na Task List.
+2. Anexar este plano detalhado preservando seções anteriores.
+3. Atualizar o REQ-3091 para declarar Black 950 `#050505` como base obrigatória do dark theme.
+4. Atualizar o DRI para trocar `Background #030303 / #050505` por `Background #050505`.
+5. Atualizar `tokens.json` em `theme/dark.color.background` para `#050505`.
+6. Atualizar `rebrand.css` para `--console-bg: #050505` e substituir usos críticos de `#030303` por `#050505`.
+7. Atualizar `index.html` para bust de cache do CSS.
+8. Validar por leitura dos trechos alterados e `git status`.
+9. Marcar a task como concluída em `task.md` somente após execução e verificação.
+
+### Fallback previsto
+
+- Se alguma superfície ficar visualmente sem hierarquia após a correção do fundo base, preservar painéis em `--console-panel`/`--console-panel-2` e ajustar apenas os fundos de canvas/input/base, sem reabrir o escopo de layout.
+
+### Fora desta task
+
+- Não alterar JavaScript.
+- Não alterar estrutura HTML além do cache bust.
+- Não alterar backend, banco de dados, endpoints, permissões ou autenticação.
+- Não alterar acentos verdes/vermelhos.
+- Não alterar corner brackets.
+- Não fazer deploy.
+
+### Validação prevista
+
+- Confirmar que `tokens.json` usa `#050505` como background dark.
+- Confirmar que `rebrand.css` usa `--console-bg: #050505`.
+- Confirmar que `index.html` aponta para `rebrand.css?v=57`.
+- Executar `git status` para auditar alterações.
+
+Para autorizar a execução de todas as tasks planejadas, responda: **"Aprovado executar o pacote Harness"**.

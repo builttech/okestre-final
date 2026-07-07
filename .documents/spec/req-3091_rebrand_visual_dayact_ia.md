@@ -37,7 +37,7 @@ Como usuário da ferramenta, quero que a interface reflita fielmente a referênc
 
 - A interface deve usar a imagem de referência enviada pelo usuário como fonte visual prioritária para esta etapa.
 - A aparência padrão deve ser dark, não light.
-- A paleta deve priorizar fundo quase preto, painéis escuros, bordas claras sutis, texto branco/cinza, texto secundário azul acinzentado, verde para estados ativos e vermelho para estados live/erro.
+- A paleta deve priorizar fundo quase preto baseado no token Black 950 `#050505`, painéis escuros, bordas claras sutis, texto branco/cinza, texto secundário azul acinzentado, verde para estados ativos e vermelho para estados live/erro.
 - A tipografia deve favorecer aparência técnica, compacta e monospace/condensada em navegação, labels, metadados, botões e tabelas.
 - Botões primário, secundário e terciário devem seguir uma hierarquia visual global consistente em todas as páginas e módulos.
 - Os cantos devem permanecer retos ou quase retos, entre 0 e 2px.
@@ -79,8 +79,10 @@ Como usuário da ferramenta, quero que a interface reflita fielmente a referênc
 |---|---|
 | Solicitação do usuário | Corrigir rebrand para dark theme fiel à referência visual enviada |
 | Fonte visual | Imagem de referência enviada no chat |
+| Correção cromática | Black 950 `#050505` como base obrigatória do dark theme |
 | Task técnica inicial | TASK-REQ-3091-001 |
 | Task técnica de correção | TASK-REQ-3091-002 |
 | Task técnica de botões | TASK-REQ-3091-006 |
+| Task técnica de correção cromática | TASK-REQ-3091-008 |
 | Design | `.documents/design/design.md` |
 | DRI | `.documents/dri/dri.md` |

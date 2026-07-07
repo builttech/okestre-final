@@ -53,7 +53,7 @@ git-ide
 | Regra | Descrição |
 |---|---|
 | Tema base | A experiência padrão deve ser dark |
-| Paleta | Preto, cinzas frios, branco, azul acinzentado, verde status e vermelho live/error |
+| Paleta | Base Black 950 `#050505`, cinzas frios, branco, azul acinzentado, verde status e vermelho live/error |
 | Cantos | Usar 0–2px como padrão visual |
 | Espaçamento | Compacto e modular, preservando múltiplos coerentes de 8/16px; cards de Settings devem usar padding externo interno de 8px com header encostado no topo/laterais |
 | Tipografia | Monospace/sistema técnico para navegação, labels, botões, tabelas e metadados |
@@ -123,7 +123,8 @@ git-ide
 
 | Token | Valor alvo |
 |---|---|
-| Background | `#030303` / `#050505` |
+| Background | `#050505` |
+| Background token | Black 950 |
 | Surface | `#080808` / `#0b0b0b` |
 | Text | `#f4f7fb` |
 | Muted | `#6f7688` |
