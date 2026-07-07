@@ -6,7 +6,7 @@
     "url": "http://127.0.0.1:8000/",
     "category": "visual",
     "severity": "low",
-    "status": "open",
+    "status": "resolved",
     "selector": "div.main-layout > main.content-area > div.tab-pane.active:nth-of-type(7) > div.settings-dashboard-layout.gitide-settings-tabs-ready > nav.settings-tabs-sidebar",
     "viewport": {
       "width": 1920,
@@ -27,7 +27,7 @@
       "selectedText": "SETTINGS\nPROMPT COPY\nCONFIGURAÇÕES DO AGENTE\nCONFIGURAÇÕES DO GPT ACTION\nPROD-READY VALIDATOR\nSECURITY RULES"
     },
     "created_at": "2026-07-07T17:23:54.747841Z",
-    "updated_at": "2026-07-07T17:23:54.747841Z"
+    "updated_at": "2026-07-07T19:02:05.641885Z"
   },
   {
     "id": "QA-EAEA5D11",
@@ -238,5 +238,35 @@
     },
     "created_at": "2026-07-07T17:55:56.484258Z",
     "updated_at": "2026-07-07T17:55:56.484258Z"
+  },
+  {
+    "id": "QA-6D40FE91",
+    "title": "Refinar e atualizar",
+    "description": "Refinar e atualizar para o novo layout e visual da ferramenta",
+    "url": "http://127.0.0.1:8000/",
+    "category": "functional",
+    "severity": "medium",
+    "status": "open",
+    "selector": "div.status-panel:nth-of-type(2) > div.sidebar-section.topbar-workspace-section:nth-of-type(1) > div.project-selector-wrapper:nth-of-type(2) > div.workspace-switcher.workspace-account-menu > div.workspace-switcher-menu.workspace-account-popover",
+    "viewport": {
+      "width": 1920,
+      "height": 1080
+    },
+    "browser": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36",
+    "screenshot": null,
+    "screenshot_file": "QA-6D40FE91.jpg",
+    "screenshot_mime": "image/jpeg",
+    "metadata": {
+      "tabTitle": "Dayact IA Workspace",
+      "elementRect": {
+        "x": 1230,
+        "y": 41,
+        "width": 280,
+        "height": 378
+      },
+      "selectedText": "TP\nTOPTUS-PORTAL-BUILDING\nCONFIGURAÇÕES\n \nPERFIL\nCOPY PROJECT CONTEXT\n \nDEVELOPER DOCS\n \nTERMS & POLICIES\n \nHELP\nLOG OUT"
+    },
+    "created_at": "2026-07-07T19:01:23.733585Z",
+    "updated_at": "2026-07-07T19:01:23.733585Z"
   }
 ]

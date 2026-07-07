@@ -614,3 +614,56 @@ Adicionar os corner brackets técnicos nos quatro cantos do sidebar interno de S
 - Executar `git status` para auditar alterações.
 
 Para autorizar a execução de todas as tasks planejadas, responda: **"Aprovado executar o pacote Harness"**.
+
+## Plano — TASK-QA-6D40FE91-001
+
+**Tarefa:** Rebrand do popover de workspace/conta.
+
+### Objetivo
+
+Corrigir a anotação `QA-6D40FE91`, refinando o popover de workspace/conta para o novo layout dark technical console, removendo glassmorphism antigo, radius grande e sombra pesada, sem alterar o comportamento JavaScript existente.
+
+### Arquivo afetado
+
+`[MODIFICAR] .documents/task/task.md`
+
+`[MODIFICAR] .documents/task/task.details.md`
+
+`[MODIFICAR] gitide_server/static/rebrand.css`
+
+`[MODIFICAR] gitide_server/static/index.html`
+
+### Formato previsto da chamada
+
+1. Registrar a task QA na Task List.
+2. Anexar este plano detalhado preservando seções anteriores.
+3. Adicionar override final em `rebrand.css` para popover, trigger, itens, divisores, modo rápido, submenu e opções de workspace.
+4. Remover radius grande, blur/glass antigo e sombras pesadas.
+5. Aplicar fundo dark técnico, bordas finas, radius zero, tipografia mono uppercase, hover/active discreto e ícones Lucide com `stroke-width: 0.75px`.
+6. Adicionar corner brackets ao popover principal e ao submenu de organização.
+7. Atualizar `index.html` para bust de cache do CSS.
+8. Validar por leitura dos trechos alterados e `git status`.
+9. Marcar a task como concluída em `task.md` somente após execução e verificação.
+
+### Fallback previsto
+
+- Se algum estilo de `workspace-switcher-refactor.css` prevalecer, reforçar escopo com `.app-container .workspace-switcher.workspace-account-menu` no final do CSS.
+- Se o submenu lateral precisar de ajuste posterior, preservar esta task como rebrand base do popover e abrir QA específico.
+
+### Fora desta task
+
+- Não alterar JavaScript.
+- Não alterar estrutura HTML.
+- Não alterar backend, banco de dados, endpoints, permissões ou autenticação.
+- Não alterar a sidebar principal do app.
+- Não fazer deploy.
+
+### Validação prevista
+
+- Confirmar que o popover principal usa visual dark technical console.
+- Confirmar que popover e submenu têm corner brackets.
+- Confirmar que os itens internos usam botões retangulares e estados hover/active discretos.
+- Confirmar que `index.html` aponta para a nova versão de `rebrand.css`.
+- Executar `git status` para auditar alterações.
+
+Para autorizar a execução de todas as tasks planejadas, responda: **"Aprovado executar o pacote Harness"**.

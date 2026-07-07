@@ -21,3 +21,4 @@ git-ide
 - [x] TASK-REQ-3091-007: - Corrigir sidebar após padronização global de botões.
 - [x] TASK-QA-B9CD0F01-001: - Rebrand do sidebar interno de Settings.
 - [x] TASK-QA-B9CD0F01-002: - Adicionar corner brackets ao sidebar interno de Settings.
+- [x] TASK-QA-6D40FE91-001: - Rebrand do popover de workspace/conta.
