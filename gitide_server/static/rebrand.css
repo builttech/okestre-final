@@ -9260,3 +9260,80 @@ table td {
     background: var(--console-green) !important;
 }
 
+/* Four-corner technical brackets — TASK-REQ-3091-003 */
+.file-tree-panel,
+.editor-panel,
+.db-explorer-sidebar,
+.db-editor-panel,
+.db-results-panel,
+.git-status-card,
+.git-operations-card,
+.git-console-card,
+.activity-logs-panel,
+.all-snapshots-panel,
+.tokens-sidebar-card,
+.tokens-content-panel,
+.settings-card,
+.agent-main-panel,
+.modal-card,
+.card,
+.panel,
+.sdd-panel,
+.qa-panel,
+.metric-card,
+.stat-card,
+.ops-card,
+.agent-chat-welcome,
+.agent-reasoning-monitor,
+.github-profile-bar,
+.token-container,
+.collapsible-content {
+    position: relative !important;
+}
+
+.file-tree-panel::before,
+.editor-panel::before,
+.db-explorer-sidebar::before,
+.db-editor-panel::before,
+.db-results-panel::before,
+.git-status-card::before,
+.git-operations-card::before,
+.git-console-card::before,
+.activity-logs-panel::before,
+.all-snapshots-panel::before,
+.tokens-sidebar-card::before,
+.tokens-content-panel::before,
+.settings-card::before,
+.agent-main-panel::before,
+.modal-card::before,
+.card::before,
+.panel::before,
+.sdd-panel::before,
+.qa-panel::before,
+.metric-card::before,
+.stat-card::before,
+.ops-card::before,
+.agent-chat-welcome::before,
+.agent-reasoning-monitor::before,
+.github-profile-bar::before,
+.token-container::before,
+.collapsible-content::before {
+    content: "" !important;
+    position: absolute !important;
+    inset: 0 !important;
+    width: auto !important;
+    height: auto !important;
+    pointer-events: none !important;
+    z-index: 3 !important;
+    border: 0 !important;
+    background:
+        linear-gradient(var(--console-text-soft), var(--console-text-soft)) top left / 18px 1px no-repeat,
+        linear-gradient(var(--console-text-soft), var(--console-text-soft)) top left / 1px 18px no-repeat,
+        linear-gradient(var(--console-text-soft), var(--console-text-soft)) top right / 18px 1px no-repeat,
+        linear-gradient(var(--console-text-soft), var(--console-text-soft)) top right / 1px 18px no-repeat,
+        linear-gradient(var(--console-text-soft), var(--console-text-soft)) bottom left / 18px 1px no-repeat,
+        linear-gradient(var(--console-text-soft), var(--console-text-soft)) bottom left / 1px 18px no-repeat,
+        linear-gradient(var(--console-text-soft), var(--console-text-soft)) bottom right / 18px 1px no-repeat,
+        linear-gradient(var(--console-text-soft), var(--console-text-soft)) bottom right / 1px 18px no-repeat !important;
+}
+

@@ -40,7 +40,7 @@ git-ide
 | Shell | Fundo quase preto, sem tema claro |
 | Topbar | Barra compacta escura com borda inferior fina |
 | Sidebar | Painel escuro com borda, labels em caixa alta e navegação técnica |
-| Cards/Painéis | Superfícies pretas/cinza muito escuras, bordas finas e cantos retos |
+| Cards/Painéis | Superfícies pretas/cinza muito escuras, bordas finas, cantos retos e corner brackets nos quatro cantos |
 | Botões primários | Botões retangulares, sem gradiente, texto mono em caixa alta |
 | Inputs | Fundo preto, borda fina, prompt/placeholder técnico |
 | Código/Terminal | Superfície preta, texto mono, acento verde para prompt/live |
@@ -145,6 +145,7 @@ git-ide
 - [ ] A interface geral passa a ser dark e coerente com a referência visual enviada.
 - [ ] Topbar, sidebar, cards, inputs, botões, tabelas e modais seguem a paleta dark alvo.
 - [ ] Cantos arredondados grandes são reduzidos para estética técnica/retangular.
+- [ ] Cards, painéis e modais principais exibem corner brackets nos quatro cantos.
 - [ ] Acentos coloridos antigos são substituídos por verde/vermelho pontual e cinzas técnicos.
 - [ ] Foco, hover e active continuam perceptíveis.
 - [ ] A navegação e os módulos existentes permanecem operáveis.

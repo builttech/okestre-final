@@ -153,3 +153,54 @@ Corrigir a implementação anterior do rebrand, substituindo a leitura light por
 - Reportar limitações de validação visual que dependam de navegador.
 
 Para autorizar a execução de todas as tasks planejadas, responda: **"Aprovado executar o pacote Harness"**.
+
+## Plano — TASK-REQ-3091-003
+
+**Tarefa:** Aplicar corner brackets nos quatro cantos de todos os cards.
+
+### Objetivo
+
+Ajustar o detalhe visual de moldura técnica do rebrand dark para que o elemento de canto usado na referência apareça nos quatro cantos dos cards, painéis e modais principais, em vez de aparecer apenas no canto superior esquerdo.
+
+### Arquivo afetado
+
+`[MODIFICAR] .documents/dri/dri.md`
+
+`[MODIFICAR] .documents/task/task.md`
+
+`[MODIFICAR] .documents/task/task.details.md`
+
+`[MODIFICAR] gitide_server/static/rebrand.css`
+
+`[MODIFICAR] gitide_server/static/index.html`
+
+### Formato previsto da chamada
+
+1. Registrar a task na Task List.
+2. Anexar este plano detalhado preservando seções anteriores.
+3. Atualizar o DRI com a regra visual dos quatro corner brackets.
+4. Atualizar `index.html` para bust de cache do CSS.
+5. Adicionar camada final em `rebrand.css` com pseudo-elemento único desenhando os quatro cantos via backgrounds lineares.
+6. Validar por leitura dos trechos alterados e `git status`.
+7. Marcar a task como concluída em `task.md` somente após execução e verificação.
+
+### Fallback previsto
+
+- Se algum card tiver pseudo-elemento próprio conflitante, sobrescrever o `::before` no final de `rebrand.css` com maior especificidade.
+- Se um componente não aceitar pseudo-elemento por estrutura específica, incluí-lo explicitamente na lista de seletores de cards/painéis.
+
+### Fora desta task
+
+- Não alterar JavaScript.
+- Não alterar estrutura HTML.
+- Não alterar backend, banco de dados, endpoints, permissões ou autenticação.
+- Não fazer deploy.
+
+### Validação prevista
+
+- Ler o bloco CSS final aplicado.
+- Confirmar que `index.html` aponta para a nova versão de `rebrand.css`.
+- Executar `git status` para auditar alterações.
+- Reportar que a validação visual final depende de inspeção no navegador.
+
+Para autorizar a execução de todas as tasks planejadas, responda: **"Aprovado executar o pacote Harness"**.
