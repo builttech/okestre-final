@@ -10041,3 +10041,161 @@ button.btn-danger:hover {
         linear-gradient(var(--console-text-soft), var(--console-text-soft)) bottom right / 1px 18px no-repeat !important;
 }
 
+/* Git credentials card rebrand — QA-67617C17 */
+.app-container #tab-git .git-credentials-card.card {
+    padding: 8px !important;
+    color: var(--console-text) !important;
+    background: var(--console-panel) !important;
+    border: 1px solid var(--console-line-strong) !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    overflow: hidden !important;
+}
+
+.app-container #tab-git .git-credentials-card.card > .card-header {
+    min-height: 50px !important;
+    margin: -8px -8px 0 !important;
+    padding: 16px 20px !important;
+    display: flex !important;
+    align-items: center !important;
+    border-top: 0 !important;
+    border-left: 0 !important;
+    border-right: 0 !important;
+    border-bottom: 1px solid var(--console-line-soft) !important;
+    background: #030303 !important;
+}
+
+.app-container #tab-git .git-credentials-card.card > .card-header h4 {
+    margin: 0 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    color: var(--console-text) !important;
+    font-family: var(--console-font-mono) !important;
+    font-size: 10px !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.09em !important;
+    line-height: 1.2 !important;
+    text-transform: uppercase !important;
+}
+
+.app-container #tab-git .git-credentials-card.card > .card-header h4 i,
+.app-container #tab-git .git-credentials-card.card > .card-header h4 svg {
+    width: 15px !important;
+    height: 15px !important;
+    color: var(--console-green) !important;
+    stroke: currentColor !important;
+    stroke-width: 0.75px !important;
+}
+
+.app-container #tab-git .git-credentials-card.card > .card-body {
+    padding: 18px 20px 20px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 14px !important;
+    background: transparent !important;
+}
+
+.app-container #tab-git .git-credentials-card.card p {
+    margin: 0 !important;
+    color: var(--console-muted) !important;
+    font-family: var(--console-font-mono) !important;
+    font-size: 10px !important;
+    font-weight: 500 !important;
+    letter-spacing: 0.045em !important;
+    line-height: 1.55 !important;
+    text-transform: uppercase !important;
+}
+
+.app-container #tab-git .git-credentials-card.card .text-input,
+.app-container #tab-git .git-credentials-card.card input[type="password"],
+.app-container #tab-git .git-credentials-card.card input[type="text"] {
+    min-height: 34px !important;
+    width: 100% !important;
+    color: var(--console-text) !important;
+    background: #030303 !important;
+    border: 1px solid var(--console-line) !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    outline: none !important;
+    font-family: var(--console-font-mono) !important;
+    font-size: 10px !important;
+    font-weight: 500 !important;
+    letter-spacing: 0.04em !important;
+}
+
+.app-container #tab-git .git-credentials-card.card .text-input:focus,
+.app-container #tab-git .git-credentials-card.card input[type="password"]:focus,
+.app-container #tab-git .git-credentials-card.card input[type="text"]:focus {
+    border-color: rgba(0, 208, 132, 0.48) !important;
+    box-shadow: var(--console-focus) !important;
+}
+
+.app-container #tab-git .git-credentials-card.card .generated-command-container {
+    min-height: 48px !important;
+    padding: 12px 44px 12px 12px !important;
+    color: var(--console-text-soft) !important;
+    background: #030303 !important;
+    border: 1px solid var(--console-line) !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    font-family: var(--console-font-mono) !important;
+    font-size: 10px !important;
+    font-weight: 500 !important;
+    letter-spacing: 0.04em !important;
+    line-height: 1.45 !important;
+    word-break: break-all !important;
+}
+
+.app-container #tab-git .git-credentials-card.card #git-generated-command-text {
+    color: var(--console-muted) !important;
+    font-family: var(--console-font-mono) !important;
+    font-size: 10px !important;
+    letter-spacing: 0.04em !important;
+}
+
+.app-container #tab-git .git-credentials-card.card .btn-icon-copy {
+    position: absolute !important;
+    right: 10px !important;
+    top: 10px !important;
+    width: 28px !important;
+    min-width: 28px !important;
+    height: 28px !important;
+    min-height: 28px !important;
+    padding: 0 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    color: var(--console-muted) !important;
+    background: transparent !important;
+    border: 1px solid var(--console-line) !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+}
+
+.app-container #tab-git .git-credentials-card.card .btn-icon-copy:hover {
+    color: var(--console-text) !important;
+    background: rgba(255, 255, 255, 0.026) !important;
+    border-color: var(--console-line-strong) !important;
+}
+
+.app-container #tab-git .git-credentials-card.card .btn-icon-copy i,
+.app-container #tab-git .git-credentials-card.card .btn-icon-copy svg,
+.app-container #tab-git .git-credentials-card.card #btn-toggle-pat-visibility i,
+.app-container #tab-git .git-credentials-card.card #btn-toggle-pat-visibility svg,
+.app-container #tab-git .git-credentials-card.card #btn-run-generated-git-cmd i,
+.app-container #tab-git .git-credentials-card.card #btn-run-generated-git-cmd svg {
+    width: 15px !important;
+    height: 15px !important;
+    color: currentColor !important;
+    stroke: currentColor !important;
+    stroke-width: 0.75px !important;
+}
+
+.app-container #tab-git .git-credentials-card.card .btn-icon-copy svg *,
+.app-container #tab-git .git-credentials-card.card #btn-toggle-pat-visibility svg *,
+.app-container #tab-git .git-credentials-card.card #btn-run-generated-git-cmd svg * {
+    stroke-width: 0.75px !important;
+}
+

@@ -714,3 +714,54 @@ Corrigir a anotação `QA-0CD44BEE`, reduzindo os textos visíveis dos itens do 
 - Executar `git status` para auditar alterações.
 
 Para autorizar a execução de todas as tasks planejadas, responda: **"Aprovado executar o pacote Harness"**.
+
+## Plano — TASK-QA-67617C17-001
+
+**Tarefa:** Rebrand do card de autenticação Git PAT.
+
+### Objetivo
+
+Corrigir a anotação `QA-67617C17`, atualizando o card de autenticação Git PAT para o padrão dark technical console, removendo aparência antiga dos elementos internos e preservando IDs, fluxo JavaScript e segurança do token.
+
+### Arquivo afetado
+
+`[MODIFICAR] .documents/task/task.md`
+
+`[MODIFICAR] .documents/task/task.details.md`
+
+`[MODIFICAR] gitide_server/static/rebrand.css`
+
+`[MODIFICAR] gitide_server/static/index.html`
+
+### Formato previsto da chamada
+
+1. Registrar a task QA na Task List.
+2. Anexar este plano detalhado preservando seções anteriores.
+3. Atualizar `index.html` para bust de cache do CSS.
+4. Adicionar override final em `rebrand.css` para `.git-credentials-card.card`, header, body, textos, input, container do comando gerado e botão de cópia.
+5. Aplicar fundo dark técnico, borda fina, radius zero, header colado ao topo/laterais, espaçamento interno consistente e estados de foco coerentes.
+6. Preservar corner brackets existentes do card.
+7. Validar por leitura dos trechos alterados e `git status`.
+8. Marcar a task como concluída em `task.md` somente após execução e verificação.
+
+### Fallback previsto
+
+- Se algum inline style prevalecer, reforçar o override final em `rebrand.css` com escopo `.app-container #tab-git .git-credentials-card`.
+
+### Fora desta task
+
+- Não alterar JavaScript.
+- Não alterar estrutura HTML.
+- Não alterar IDs ligados ao token ou ao comando gerado.
+- Não alterar backend, banco de dados, endpoints, permissões ou autenticação.
+- Não registrar, expor ou manipular o valor do token.
+- Não fazer deploy.
+
+### Validação prevista
+
+- Confirmar que `.git-credentials-card` usa visual dark technical console.
+- Confirmar que input e comando gerado usam estilo técnico consistente.
+- Confirmar que `index.html` aponta para a nova versão de `rebrand.css`.
+- Executar `git status` para auditar alterações.
+
+Para autorizar a execução de todas as tasks planejadas, responda: **"Aprovado executar o pacote Harness"**.
