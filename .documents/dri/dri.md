@@ -11,8 +11,8 @@ git-ide
 | REQ | REQ-3091 |
 | Interface | Shell principal do GitIDE e módulos internos |
 | Tipo | Rebrand visual / Design System |
-| Fonte visual | `design_rebrand.md` |
-| Status | Aprovado para execução |
+| Fonte visual | Imagem de referência dark technical console enviada pelo usuário |
+| Status | Correção aprovada para execução |
 
 ## 2. Contexto de Uso
 
@@ -20,79 +20,82 @@ git-ide
 |---|---|
 | Usuários | Operadores e desenvolvedores usando o GitIDE |
 | Ambiente | Aplicação web local/servida pelo backend do projeto |
-| Objetivo da interface | Oferecer experiência clara, minimalista, técnica e consistente com o novo rebrand |
+| Objetivo da interface | Oferecer experiência dark, técnica, operacional e fiel à referência visual |
 
 ## 3. Arquitetura da Informação
 
 | Área | Papel na experiência |
 |---|---|
-| Topbar | Marca, status do servidor, token e logout |
-| Sidebar | Navegação entre módulos e seleção de projeto |
-| Conteúdo principal | Painéis funcionais por módulo |
-| Modais | Criação, configuração e ações contextuais |
-| Inputs e botões | Operações de edição, execução e navegação |
+| Topbar | Marca, status do servidor, token e ações globais em linha compacta |
+| Sidebar | Navegação entre módulos e seleção de projeto com aparência SYS_NAV |
+| Conteúdo principal | Painéis funcionais por módulo com moldura técnica |
+| Modais | Ações contextuais em superfície escura retangular |
+| Inputs e botões | Operações de edição, execução e navegação com aparência terminal |
+| Tabelas/Listas | Exibição de registros com divisórias finas e estados por pontos/acentos |
 
 ## 4. Mapa de Componentes
 
 | Componente | Diretriz visual |
 |---|---|
-| Shell | Fundo claro `#f9f4ed`, sem atmosfera escura |
-| Topbar | Superfície clara com borda inferior fina |
-| Sidebar | Superfície clara/creme, navegação geométrica |
-| Cards/Painéis | Superfícies `#ffffff` ou `#f4f4f5`, borda preta/cinza fina |
-| Botões primários | Fundo `#f4f4f5`/acento `#888888`, cantos retos |
-| Inputs | Fundo branco ou cinza claro, borda `#050505` suavizada |
-| Código/Terminal | Superfície clara com contraste legível e fonte mono |
+| Shell | Fundo quase preto, sem tema claro |
+| Topbar | Barra compacta escura com borda inferior fina |
+| Sidebar | Painel escuro com borda, labels em caixa alta e navegação técnica |
+| Cards/Painéis | Superfícies pretas/cinza muito escuras, bordas finas e cantos retos |
+| Botões primários | Botões retangulares, sem gradiente, texto mono em caixa alta |
+| Inputs | Fundo preto, borda fina, prompt/placeholder técnico |
+| Código/Terminal | Superfície preta, texto mono, acento verde para prompt/live |
+| Tabelas | Linhas discretas, cabeçalhos pequenos, metadados compactos |
 
 ## 5. Regras de Exibição
 
 | Regra | Descrição |
 |---|---|
-| Tema base | A experiência padrão deve ser clara |
-| Paleta | Monocromática com acento dominante `#888888` |
+| Tema base | A experiência padrão deve ser dark |
+| Paleta | Preto, cinzas frios, branco, azul acinzentado, verde status e vermelho live/error |
 | Cantos | Usar 0–2px como padrão visual |
-| Espaçamento | Priorizar múltiplos de 16px |
-| Tipografia | `Switzer` como primeira preferência, fallback seguro |
-| Ornamentos | Evitar gradientes coloridos, badges decorativos e saturação desnecessária |
+| Espaçamento | Compacto e modular, preservando múltiplos coerentes de 8/16px |
+| Tipografia | Monospace/sistema técnico para navegação, labels, botões, tabelas e metadados |
+| Ornamentos | Evitar glassmorphism, gradientes coloridos, sombras pesadas e saturação desnecessária |
 
 ## 6. Estados
 
 | Estado | Comportamento visual |
 |---|---|
-| Default | Claro, limpo, técnico |
+| Default | Escuro, técnico, com bordas finas |
 | Hover | Leve mudança de fundo/borda sem elevação exagerada |
-| Active/Selected | Acento cinza `#888888` ou superfície levemente destacada |
-| Focus | Outline/box-shadow discreto em cinza |
-| Disabled | Texto e borda em cinza claro, sem contraste excessivo |
-| Danger | Manter vermelho semântico apenas onde necessário |
-| Success | Manter verde semântico apenas onde necessário |
+| Active/Selected | Texto branco e borda/acento verde ou cinza claro |
+| Focus | Outline discreto em verde/acinzentado |
+| Disabled | Texto escurecido e borda quase invisível |
+| Live/Error | Vermelho pontual, sem preencher grandes superfícies |
+| Success/Online | Verde pontual para status, prompt e indicadores |
 
 ## 7. Fluxo de Interação
 
 | Fluxo | Expectativa |
 |---|---|
 | Navegar entre abas | Mantém estrutura atual, muda apenas aparência |
-| Selecionar projeto | Mantém select e botões existentes com novo estilo |
-| Editar arquivos | Editor e árvore recebem estilo claro sem alterar comportamento |
+| Selecionar projeto | Mantém select e botões existentes com novo estilo dark terminal |
+| Editar arquivos | Editor e árvore recebem estilo escuro sem alterar comportamento |
 | Usar terminal/git/db/agente | Módulos preservam fluxos e recebem superfícies compatíveis |
-| Abrir modais | Modal claro, geométrico e coerente com tokens |
+| Abrir modais | Modal escuro, geométrico e coerente com tokens |
 
 ## 8. Mapeamento de Dados
 
 | Dado | Origem | Exibição |
 |---|---|---|
 | Nome do projeto | Estado atual da aplicação | Select/sidebar |
-| Status do servidor | Backend/API existente | Badge na topbar |
+| Status do servidor | Backend/API existente | Badge/indicador na topbar |
 | Token | Backend/API existente | Badge copiável |
 | Conteúdos de módulos | APIs existentes | Painéis internos |
+| Estados de operação | APIs/estado local | Pontos verdes/vermelhos e labels técnicos |
 
 ## 9. Microcopy
 
 | Área | Diretriz |
 |---|---|
-| Marca | Evitar reforço do nome antigo quando houver nova marca operacional |
-| Subtítulos | Manter textos objetivos e técnicos |
-| Botões | Preservar microcopy funcional atual |
+| Marca | Manter identificação técnica sem copy promocional longa |
+| Subtítulos | Usar textos objetivos, compactos e operacionais |
+| Botões | Preferir caixa alta quando estilisticamente apropriado |
 | Estados vazios | Não criar mensagens novas fora do escopo |
 
 ## 10. Responsividade
@@ -101,14 +104,14 @@ git-ide
 |---|---|
 | Mobile < 640px | Manter empilhamento quando já suportado e touch targets mínimos |
 | Tablet 640–1024px | Preservar estrutura e espaçamentos proporcionais |
-| Desktop 1024–1440px | Layout completo atual com novo rebrand |
+| Desktop 1024–1440px | Layout completo atual com novo rebrand dark |
 | Wide > 1440px | Manter contenção visual e legibilidade |
 
 ## 11. Acessibilidade
 
 | Critério | Diretriz |
 |---|---|
-| Contraste | Texto principal preto/cinza sobre superfícies claras |
+| Contraste | Texto claro sobre superfícies quase pretas |
 | Foco | Estados de foco visíveis em inputs e botões |
 | Ícones | Preservar ícones existentes e labels quando disponíveis |
 | Tamanho alvo | Manter controles com altura adequada para clique |
@@ -117,36 +120,38 @@ git-ide
 
 | Token | Valor alvo |
 |---|---|
-| Background | `#f9f4ed` |
-| Surface | `#f4f4f5` / `#ffffff` |
-| Text | `#000000` |
-| Muted | `#52525b` |
-| Accent | `#888888` |
-| Secondary | `#aaaaaa` |
-| Border | `#050505` suavizado quando necessário |
+| Background | `#030303` / `#050505` |
+| Surface | `#080808` / `#0b0b0b` |
+| Text | `#f4f7fb` |
+| Muted | `#6f7688` |
+| Subtle | `#343a46` |
+| Border | `rgba(255,255,255,0.14)` |
+| Strong Border | `rgba(255,255,255,0.28)` |
+| Green Accent | `#00d084` |
+| Red Accent | `#ff3347` |
 | Radius | `0px`, `1px`, `2px` |
 
 ## 13. Dependências Visuais
 
 | Dependência | Tratamento |
 |---|---|
-| Switzer | Usar como primeira opção no CSS; fallback para Inter/system |
-| RedditMono/Fira Code | Preservar stack mono para código |
+| Fonte técnica | Usar `Fira Code`, `SFMono-Regular`, `Consolas`, monospace como base técnica |
 | Lucide/FontAwesome | Preservar ícones já carregados |
 | `rebrand.css` | Camada final de override visual |
+| `tokens.json` | Registro dos tokens dark da referência |
 
 ## 14. Critérios de Aceite da Interface
 
-- [ ] A interface geral passa a ser clara e coerente com `design_rebrand.md`.
-- [ ] Topbar, sidebar, cards, inputs, botões e modais seguem a paleta alvo.
-- [ ] Cantos arredondados grandes são reduzidos para estética geométrica.
-- [ ] Acentos coloridos antigos são substituídos por cinza/acento neutro onde não forem semânticos.
+- [ ] A interface geral passa a ser dark e coerente com a referência visual enviada.
+- [ ] Topbar, sidebar, cards, inputs, botões, tabelas e modais seguem a paleta dark alvo.
+- [ ] Cantos arredondados grandes são reduzidos para estética técnica/retangular.
+- [ ] Acentos coloridos antigos são substituídos por verde/vermelho pontual e cinzas técnicos.
 - [ ] Foco, hover e active continuam perceptíveis.
 - [ ] A navegação e os módulos existentes permanecem operáveis.
 
 ## 15. Lacunas e Premissas
 
-- A fonte Switzer não foi encontrada como asset local; a implementação depende de fonte instalada/disponível no ambiente ou fallback.
+- A fonte exata da referência não foi fornecida como asset local; a implementação usa fallback técnico/mono.
 - Alguns módulos profundos podem exigir QA visual posterior por conterem seletores específicos legados.
 - A validação automática não substitui inspeção visual completa no navegador.
 
@@ -160,7 +165,7 @@ git-ide
 
 ## 17. Possíveis Evoluções Futuras
 
-- Adicionar pacote próprio de fontes licenciado no repositório, se autorizado.
 - Criar screenshots comparativos antes/depois para QA visual.
 - Consolidar tokens em pipeline automático entre `tokens.json` e CSS.
 - Remover estilos legados redundantes após estabilização do rebrand.
+- Adicionar fonte licenciada específica se a marca exigir fidelidade tipográfica absoluta.

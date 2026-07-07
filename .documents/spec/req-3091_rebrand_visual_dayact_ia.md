@@ -1,15 +1,15 @@
-# REQ-3091 — Rebrand visual Dayact IA-like da ferramenta
+# REQ-3091 — Rebrand visual dark technical console da ferramenta
 
 ## 1.1 Identificação e Metadados Básicos
 
 | Campo | Valor |
 |---|---|
 | ID | REQ-3091 |
-| Título/Resumo | Rebrand visual da ferramenta com base em `design_rebrand.md` |
+| Título/Resumo | Rebrand visual dark technical console baseado na referência visual enviada |
 | Tipo | Requisito de interface / identidade visual |
 | Módulo | Interface Web / Design System |
 | Prioridade | Alta |
-| Status | Aprovado para execução |
+| Status | Em correção aprovada |
 | Solicitante | Usuário |
 | Responsável atual | Agente IA |
 | Release/Iteração | Branch `rebrand` |
@@ -17,36 +17,37 @@
 
 ## 1.2 Contexto
 
-O projeto `git-ide` está na branch `rebrand` e possui o arquivo `design_rebrand.md`, que define um novo direcionamento visual inspirado em Dayact IA. A interface atual possui uma camada `rebrand.css` com estética escura, glassmorphic e acentos coloridos, divergindo da nova proposta clara, minimalista, monocromática e técnica.
+O projeto `git-ide` está na branch `rebrand`. A primeira aplicação do rebrand seguiu uma leitura clara/light de `design_rebrand.md`, mas o usuário informou que a referência visual correta para esta etapa é dark theme, com estética fiel ao painel técnico apresentado na imagem de referência: console operacional escuro, bordas finas, layout técnico, tipografia mono/condensada, labels em caixa alta e acentos mínimos para estados.
 
 ## 1.3 Objetivo Funcional
 
-Aplicar uma nova identidade visual à ferramenta, tornando a experiência coerente com o design documentado em `design_rebrand.md`, sem alterar regras de negócio, fluxos funcionais, APIs, endpoints, persistência ou permissões.
+Aplicar uma nova identidade visual dark à ferramenta, tornando a experiência coerente com a referência visual enviada, sem alterar regras de negócio, fluxos funcionais, APIs, endpoints, persistência ou permissões.
 
 ## 1.4 Descrição do Requisito
 
-A aplicação deve adotar um sistema visual claro com fundo principal `#f9f4ed`, superfícies claras, texto preto/cinza, acento dominante `#888888`, cantos retos entre 0 e 2px, espaçamento baseado em múltiplos de 16px e tipografia com `Switzer` como primeira preferência de fonte, preservando fallback seguro quando a fonte não estiver instalada ou disponível.
+A aplicação deve adotar um sistema visual dark técnico, com fundo quase preto, painéis retangulares com bordas finas, divisórias sutis, tipografia técnica/monospace para navegação, labels e metadados, texto principal claro, texto secundário azul acinzentado, acentos verdes para estados ativos/sucesso e vermelho para live/error. A interface deve evitar glassmorphism colorido, gradientes decorativos, cantos arredondados grandes e aparência clara.
 
 A mudança deve ser aplicada principalmente por tokens e pela camada CSS de rebrand, mantendo a estrutura HTML e JavaScript existentes sempre que possível.
 
 ## 1.5 História de Usuário
 
-Como usuário da ferramenta, quero que a interface reflita o novo rebrand documentado para que a experiência visual seja clara, premium, minimalista e consistente em todos os módulos principais do produto.
+Como usuário da ferramenta, quero que a interface reflita fielmente a referência dark technical console para que a experiência visual seja precisa, operacional, premium e consistente com o produto desejado.
 
 ## 1.6 Regras de Negócio
 
-- A interface deve usar o `design_rebrand.md` como fonte de verdade visual.
-- A paleta deve priorizar `#f9f4ed`, `#f4f4f5`, `#ffffff`, `#000000`, `#52525b`, `#888888`, `#aaaaaa` e `#050505`.
-- A aparência padrão deve ser clara, não escura.
-- Elementos funcionais de alerta, erro e sucesso podem manter cores semânticas discretas quando necessário para compreensão operacional.
+- A interface deve usar a imagem de referência enviada pelo usuário como fonte visual prioritária para esta etapa.
+- A aparência padrão deve ser dark, não light.
+- A paleta deve priorizar fundo quase preto, painéis escuros, bordas claras sutis, texto branco/cinza, texto secundário azul acinzentado, verde para estados ativos e vermelho para estados live/erro.
+- A tipografia deve favorecer aparência técnica, compacta e monospace/condensada em navegação, labels, metadados, botões e tabelas.
+- Os cantos devem permanecer retos ou quase retos, entre 0 e 2px.
 - A implementação não deve criar estilos inline novos.
 - A lógica da aplicação não deve ser alterada.
 - A estrutura de navegação, abas, painéis e formulários deve continuar funcionando como antes.
 
 ## 1.7 Restrições e Premissas
 
-- O arquivo `design_rebrand.md` está disponível na raiz do projeto e será tratado como referência visual.
-- A fonte Switzer pode não existir localmente no workspace; nesse caso, a pilha CSS deve usar fallback seguro.
+- A referência visual enviada pelo usuário define a prioridade estética desta correção.
+- A fonte exata da referência pode não existir localmente; nesse caso, a pilha CSS deve usar fallback seguro com fontes monospace/sistema.
 - A mudança deve preservar compatibilidade com os arquivos estáticos atuais.
 - A aplicação usa `gitide_server/static/rebrand.css` como camada final de estilo, carregada após os estilos base.
 - Não serão adicionados arquivos binários de fonte.
@@ -62,10 +63,10 @@ Como usuário da ferramenta, quero que a interface reflita o novo rebrand docume
 
 ## 1.9 Critérios de Aceite
 
-- [ ] A camada visual padrão passa a usar tema claro compatível com `design_rebrand.md`.
-- [ ] Tokens principais refletem a nova paleta, tipografia e cantos retos.
-- [ ] Topbar, sidebar, cards, botões, inputs, modais, abas, painéis e áreas de código recebem overrides compatíveis com o rebrand.
-- [ ] A marca e o título principal deixam de enfatizar o nome antigo quando aplicável.
+- [ ] A camada visual padrão passa a usar tema dark compatível com a referência visual enviada.
+- [ ] Tokens principais refletem a nova paleta dark, tipografia técnica e cantos retos.
+- [ ] Topbar, sidebar, cards, botões, inputs, modais, abas, painéis, tabelas e áreas de código recebem overrides compatíveis com o rebrand dark.
+- [ ] A interface deixa de usar o override claro aplicado anteriormente.
 - [ ] Não são introduzidos estilos inline novos.
 - [ ] A implementação preserva a lógica funcional existente.
 - [ ] O workspace é validado por status Git e verificação técnica aplicável.
@@ -74,8 +75,9 @@ Como usuário da ferramenta, quero que a interface reflita o novo rebrand docume
 
 | Origem | Artefato |
 |---|---|
-| Solicitação do usuário | Realizar rebrand da ferramenta seguindo `design_rebrand.md` |
-| Fonte visual | `design_rebrand.md` |
-| Task técnica | TASK-REQ-3091-001 |
+| Solicitação do usuário | Corrigir rebrand para dark theme fiel à referência visual enviada |
+| Fonte visual | Imagem de referência enviada no chat |
+| Task técnica inicial | TASK-REQ-3091-001 |
+| Task técnica de correção | TASK-REQ-3091-002 |
 | Design | `.documents/design/design.md` |
 | DRI | `.documents/dri/dri.md` |

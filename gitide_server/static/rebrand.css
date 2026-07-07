@@ -8500,3 +8500,763 @@ table td {
     background: rgba(136, 136, 136, 0.24) !important;
 }
 
+/* Dark Technical Console Rebrand — source: user visual reference
+   Final corrective layer for TASK-REQ-3091-002. Keep this block last. */
+:root,
+:root[data-theme="dark"],
+:root[data-theme="light"] {
+    --console-bg: #030303;
+    --console-bg-2: #050505;
+    --console-panel: #070707;
+    --console-panel-2: #0b0b0b;
+    --console-panel-3: #101114;
+    --console-line: rgba(255, 255, 255, 0.13);
+    --console-line-strong: rgba(255, 255, 255, 0.27);
+    --console-line-soft: rgba(255, 255, 255, 0.075);
+    --console-text: #f4f7fb;
+    --console-text-soft: #a7b0c2;
+    --console-muted: #6f7688;
+    --console-dim: #383f4c;
+    --console-green: #00d084;
+    --console-green-soft: rgba(0, 208, 132, 0.16);
+    --console-red: #ff3347;
+    --console-red-soft: rgba(255, 51, 71, 0.16);
+    --console-amber: #c9a227;
+    --console-radius: 0px;
+    --console-radius-soft: 2px;
+    --console-font-ui: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --console-font-mono: 'Fira Code', 'SFMono-Regular', Consolas, monospace;
+    --console-shadow: none;
+    --console-focus: 0 0 0 1px rgba(0, 208, 132, 0.58), 0 0 18px rgba(0, 208, 132, 0.09);
+
+    --ds-bg: var(--console-bg);
+    --ds-surface: var(--console-panel);
+    --ds-surface-elevated: var(--console-panel-2);
+    --ds-surface-muted: var(--console-panel-3);
+    --ds-text: var(--console-text);
+    --ds-text-secondary: var(--console-muted);
+    --ds-text-muted: var(--console-dim);
+    --ds-border: var(--console-line);
+    --ds-border-strong: var(--console-line-strong);
+    --ds-primary: var(--console-green);
+    --ds-primary-soft: var(--console-green-soft);
+    --ds-secondary: var(--console-muted);
+    --ds-info: var(--console-text-soft);
+    --ds-purple: var(--console-muted);
+    --ds-success: var(--console-green);
+    --ds-warning: var(--console-amber);
+    --ds-danger: var(--console-red);
+    --ds-font-heading: var(--console-font-mono);
+    --ds-font-body: var(--console-font-ui);
+    --ds-font-mono: var(--console-font-mono);
+    --ds-radius-button: var(--console-radius);
+    --ds-radius-lg: var(--console-radius-soft);
+    --ds-radius-card: var(--console-radius-soft);
+    --ds-shadow-low: none;
+    --ds-shadow-surface: none;
+    --ds-shadow-focus: var(--console-focus);
+
+    --frame-bg: var(--console-bg);
+    --frame-canvas: var(--console-bg);
+    --frame-panel: var(--console-panel);
+    --frame-panel-solid: var(--console-panel-2);
+    --frame-panel-hover: rgba(255, 255, 255, 0.035);
+    --frame-border: var(--console-line);
+    --frame-border-strong: var(--console-line-strong);
+    --frame-blue: var(--console-green);
+    --frame-blue-soft: var(--console-green-soft);
+    --frame-text: var(--console-text);
+    --frame-muted: var(--console-muted);
+    --frame-subtle: var(--console-dim);
+    --frame-shadow: none;
+    --frame-radius: var(--console-radius);
+    --frame-radius-lg: var(--console-radius-soft);
+
+    --bg-base: var(--console-bg);
+    --bg-canvas: var(--console-bg);
+    --bg-surface: var(--console-panel);
+    --bg-surface-glass: var(--console-panel);
+    --bg-surface-hover: rgba(255, 255, 255, 0.035);
+    --bg-elevated: var(--console-panel-2);
+    --border-color: var(--console-line);
+    --border-color-strong: var(--console-line-strong);
+    --border-color-glow: rgba(0, 208, 132, 0.34);
+    --color-primary: var(--console-green);
+    --color-primary-glow: var(--console-green-soft);
+    --color-secondary: var(--console-muted);
+    --color-success: var(--console-green);
+    --color-success-glow: var(--console-green-soft);
+    --color-warning: var(--console-amber);
+    --color-danger: var(--console-red);
+    --color-danger-glow: var(--console-red-soft);
+    --text-main: var(--console-text);
+    --text-muted: var(--console-muted);
+    --text-dark: var(--console-dim);
+    --text-light: var(--console-text);
+    --font-sans: var(--console-font-ui);
+    --font-mono: var(--console-font-mono);
+    --sidebar-width: 292px;
+    --topbar-height: 48px;
+    --border-radius: var(--console-radius);
+    --radius-lg: var(--console-radius-soft);
+    --radius-xl: var(--console-radius-soft);
+    --shadow-panel: none;
+}
+
+html,
+body {
+    background: var(--console-bg) !important;
+    color: var(--console-text) !important;
+    font-family: var(--console-font-ui) !important;
+    font-weight: 400 !important;
+    letter-spacing: 0 !important;
+}
+
+body::before {
+    display: block !important;
+    background:
+        linear-gradient(rgba(255, 255, 255, 0.012) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.012) 1px, transparent 1px) !important;
+    background-size: 24px 24px !important;
+    opacity: 0.36 !important;
+}
+
+.app-container,
+.main-layout,
+.content-area,
+.tab-content,
+.files-layout,
+.database-layout,
+.logs-layout,
+.git-layout,
+.terminal-panel,
+.tokens-layout,
+.settings-dashboard-layout,
+.agent-layout,
+.sdd-layout,
+.qa-layout,
+.ops-infra-layout,
+.engineering-metrics-layout {
+    background: var(--console-bg) !important;
+    color: var(--console-text) !important;
+}
+
+.topbar {
+    height: 48px !important;
+    padding: 0 24px !important;
+    background: #000000 !important;
+    border-bottom: 1px solid var(--console-line-strong) !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+}
+
+.brand,
+.status-panel {
+    gap: 24px !important;
+}
+
+.logo-icon {
+    width: 10px !important;
+    height: 10px !important;
+    color: var(--console-text) !important;
+    background: var(--console-text) !important;
+    border: 0 !important;
+    border-radius: 1px !important;
+    box-shadow: none !important;
+    font-size: 0 !important;
+}
+
+.logo-icon i,
+.logo-icon svg {
+    display: none !important;
+}
+
+.brand-text h1 {
+    color: var(--console-text) !important;
+    -webkit-text-fill-color: var(--console-text) !important;
+    font-family: var(--console-font-mono) !important;
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    line-height: 14px !important;
+    letter-spacing: 0.08em !important;
+    text-transform: uppercase !important;
+}
+
+.brand-text h1::after {
+    content: "" !important;
+}
+
+.brand-text span {
+    display: none !important;
+}
+
+.status-panel,
+.status-item,
+.api-key-badge,
+.status-label,
+#api-token-preview {
+    font-family: var(--console-font-mono) !important;
+    color: var(--console-muted) !important;
+    font-size: 10px !important;
+    letter-spacing: 0.08em !important;
+    text-transform: uppercase !important;
+}
+
+.status-item,
+.api-key-badge,
+.user-chip,
+.branch-chip,
+.remote-chip {
+    min-height: 24px !important;
+    padding: 0 10px !important;
+    background: transparent !important;
+    border: 0 !important;
+    border-left: 1px solid var(--console-line) !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+}
+
+.status-dot.online {
+    width: 6px !important;
+    height: 6px !important;
+    background: var(--console-green) !important;
+    box-shadow: 0 0 10px rgba(0, 208, 132, 0.55) !important;
+}
+
+.sidebar {
+    width: 292px !important;
+    padding: 24px !important;
+    background: var(--console-bg-2) !important;
+    border-right: 1px solid var(--console-line-strong) !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+}
+
+.sidebar-section,
+.sidebar-footer,
+.sidebar-collapse-header {
+    margin: 0 0 24px !important;
+    padding: 0 0 18px !important;
+    background: transparent !important;
+    border-bottom: 1px solid var(--console-line-soft) !important;
+}
+
+.section-header,
+.panel-header,
+.card-header,
+.modal-header,
+.modal-footer,
+.panel-header-simple {
+    min-height: 48px !important;
+    padding: 16px 20px !important;
+    background: transparent !important;
+    border-color: var(--console-line-soft) !important;
+}
+
+.section-header h3,
+.panel-header h4,
+.card-header h4,
+.panel-header-simple h4,
+.panel-header-simple h5,
+.modal-header h3,
+.modal-header h4,
+.content-header h2,
+.tab-header h2,
+.agent-chat-header h3,
+.sdd-stage-title,
+.sdd-panel-title {
+    color: var(--console-text) !important;
+    font-family: var(--console-font-mono) !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.1em !important;
+    text-transform: uppercase !important;
+}
+
+.section-header h3,
+.panel-header h4,
+.card-header h4 {
+    font-size: 11px !important;
+}
+
+.content-header h2,
+.tab-header h2 {
+    font-family: var(--console-font-ui) !important;
+    font-size: 28px !important;
+    font-weight: 400 !important;
+    letter-spacing: -0.02em !important;
+    text-transform: none !important;
+}
+
+.sidebar-nav {
+    gap: 0 !important;
+}
+
+.nav-item {
+    min-height: 36px !important;
+    padding: 8px 0 !important;
+    color: var(--console-dim) !important;
+    background: transparent !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    font-family: var(--console-font-mono) !important;
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.06em !important;
+    text-transform: uppercase !important;
+}
+
+.nav-item:hover,
+.nav-item.active {
+    color: var(--console-text) !important;
+    background: transparent !important;
+    border-color: transparent !important;
+    transform: none !important;
+}
+
+.nav-item::before {
+    content: "[";
+    margin-right: 8px;
+    color: var(--console-dim);
+}
+
+.nav-item::after {
+    content: "]" !important;
+    width: auto !important;
+    height: auto !important;
+    margin-left: 8px !important;
+    background: none !important;
+    box-shadow: none !important;
+    color: var(--console-dim) !important;
+}
+
+.nav-item.active::before,
+.nav-item.active::after,
+.nav-item:hover::before,
+.nav-item:hover::after {
+    color: var(--console-text) !important;
+}
+
+.nav-item i,
+.nav-item svg {
+    display: none !important;
+}
+
+.files-layout,
+.database-layout,
+.logs-layout,
+.git-layout,
+.terminal-panel,
+.tokens-layout,
+.settings-dashboard-layout,
+.agent-layout,
+.sdd-layout,
+.qa-layout,
+.ops-infra-layout,
+.engineering-metrics-layout {
+    padding: 24px !important;
+    gap: 24px !important;
+}
+
+.file-tree-panel,
+.editor-panel,
+.db-explorer-sidebar,
+.db-editor-panel,
+.db-results-panel,
+.git-status-card,
+.git-operations-card,
+.git-console-card,
+.activity-logs-panel,
+.all-snapshots-panel,
+.tokens-sidebar-card,
+.tokens-content-panel,
+.settings-card,
+.agent-main-panel,
+.modal-card,
+.card,
+.panel,
+.sdd-panel,
+.qa-panel,
+.metric-card,
+.stat-card,
+.ops-card,
+.agent-chat-welcome,
+.agent-reasoning-monitor,
+.github-profile-bar,
+.token-container,
+.collapsible-content {
+    color: var(--console-text) !important;
+    background: var(--console-panel) !important;
+    border: 1px solid var(--console-line-strong) !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+}
+
+.file-tree-panel,
+.editor-panel,
+.db-results-panel,
+.git-console-card,
+.terminal-panel,
+.agent-main-panel,
+.modal-card {
+    overflow: hidden;
+}
+
+.file-tree-panel::before,
+.editor-panel::before,
+.db-explorer-sidebar::before,
+.db-editor-panel::before,
+.db-results-panel::before,
+.git-status-card::before,
+.git-operations-card::before,
+.git-console-card::before,
+.activity-logs-panel::before,
+.all-snapshots-panel::before,
+.tokens-sidebar-card::before,
+.tokens-content-panel::before,
+.settings-card::before,
+.agent-main-panel::before,
+.modal-card::before {
+    content: "";
+    position: absolute;
+    inset: -1px auto auto -1px;
+    width: 18px;
+    height: 18px;
+    border-top: 1px solid var(--console-text-soft);
+    border-left: 1px solid var(--console-text-soft);
+    pointer-events: none;
+}
+
+.file-tree-panel,
+.editor-panel,
+.db-explorer-sidebar,
+.db-editor-panel,
+.db-results-panel,
+.git-status-card,
+.git-operations-card,
+.git-console-card,
+.activity-logs-panel,
+.all-snapshots-panel,
+.tokens-sidebar-card,
+.tokens-content-panel,
+.settings-card,
+.agent-main-panel,
+.modal-card {
+    position: relative;
+}
+
+.btn,
+.btn-primary,
+.btn-secondary,
+.btn-danger,
+.btn-icon,
+.btn-icon-sm,
+.quick-action-btn,
+.modal-tab-btn,
+.github-connect-btn,
+.btn-select-folder,
+.collapsible-trigger,
+.action-pill-btn,
+button {
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    font-family: var(--console-font-mono) !important;
+    font-size: 10px !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.08em !important;
+    text-transform: uppercase !important;
+}
+
+.btn:hover,
+.btn-icon:hover,
+.btn-icon-sm:hover,
+.quick-action-btn:hover,
+.modal-tab-btn:hover,
+.github-connect-btn:hover,
+.btn-select-folder:hover,
+.collapsible-trigger:hover,
+.action-pill-btn:hover {
+    transform: none !important;
+}
+
+.btn-primary,
+#btn-send-agent-prompt,
+.action-pill-btn.btn-apply {
+    color: var(--console-text) !important;
+    background: transparent !important;
+    border: 1px solid var(--console-line-strong) !important;
+}
+
+.btn-primary:hover,
+#btn-send-agent-prompt:hover,
+.action-pill-btn.btn-apply:hover {
+    color: var(--console-green) !important;
+    background: rgba(0, 208, 132, 0.055) !important;
+    border-color: var(--console-green) !important;
+    box-shadow: none !important;
+}
+
+.btn-secondary,
+.quick-action-btn,
+.modal-tab-btn,
+.github-connect-btn,
+.btn-select-folder,
+.collapsible-trigger,
+.btn-icon,
+.btn-icon-sm,
+.action-pill-btn {
+    color: var(--console-muted) !important;
+    background: transparent !important;
+    border: 1px solid var(--console-line) !important;
+}
+
+.btn-secondary:hover,
+.quick-action-btn:hover,
+.modal-tab-btn:hover,
+.github-connect-btn:hover,
+.btn-select-folder:hover,
+.collapsible-trigger:hover,
+.btn-icon:hover,
+.btn-icon-sm:hover,
+.action-pill-btn:hover {
+    color: var(--console-text) !important;
+    background: rgba(255, 255, 255, 0.035) !important;
+    border-color: var(--console-line-strong) !important;
+}
+
+.btn-danger {
+    color: var(--console-red) !important;
+    background: transparent !important;
+    border-color: var(--console-red) !important;
+}
+
+.select-input,
+.text-input,
+.db-query-wrapper textarea,
+.terminal-input-wrapper,
+.editor-container,
+.db-results-container,
+#dir-browser-list,
+#file-editor-textarea,
+input,
+select,
+textarea {
+    color: var(--console-text) !important;
+    background: #030303 !important;
+    border: 1px solid var(--console-line) !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    font-family: var(--console-font-mono) !important;
+}
+
+.select-input:hover,
+.text-input:hover,
+.db-query-wrapper textarea:hover,
+#file-editor-textarea:hover,
+input:hover,
+select:hover,
+textarea:hover {
+    background: #050505 !important;
+    border-color: var(--console-line-strong) !important;
+}
+
+.select-input:focus,
+.text-input:focus,
+.db-query-wrapper textarea:focus,
+#file-editor-textarea:focus,
+input:focus,
+select:focus,
+textarea:focus {
+    outline: none !important;
+    border-color: var(--console-green) !important;
+    box-shadow: var(--console-focus) !important;
+}
+
+select.select-input,
+select.select-input option {
+    color: var(--console-text) !important;
+    background: #030303 !important;
+}
+
+.file-node,
+.db-table-item,
+.log-card,
+.snapshot-item,
+.git-file-item,
+.token-row,
+.token-category-header,
+.github-repo-item,
+.dir-item,
+.sdd-stage-card,
+.qa-annotation-card,
+.metric-row,
+.agent-message,
+.agent-tool-call,
+.agent-plan-step {
+    color: var(--console-muted) !important;
+    background: transparent !important;
+    border-color: var(--console-line-soft) !important;
+    border-radius: 0 !important;
+    font-family: var(--console-font-mono) !important;
+}
+
+.file-node:hover,
+.db-table-item:hover,
+.log-card:hover,
+.snapshot-item:hover,
+.git-file-item:hover,
+.token-row:hover,
+.github-repo-item:hover,
+.dir-item:hover,
+.sdd-stage-card:hover,
+.qa-annotation-card:hover {
+    color: var(--console-text) !important;
+    background: rgba(255, 255, 255, 0.028) !important;
+}
+
+.file-node.active,
+.db-table-item.active,
+.modal-tab-btn.active,
+.sdd-stage-card.active,
+.nav-tab.active,
+.tab-btn.active {
+    color: var(--console-text) !important;
+    background: rgba(0, 208, 132, 0.06) !important;
+    border-color: var(--console-green) !important;
+}
+
+.editor-gutter,
+.line-numbers,
+.code-block-header,
+.terminal-output,
+#git-console-output,
+pre,
+.code-box,
+.agent-message-text pre {
+    color: var(--console-muted) !important;
+    background: #020202 !important;
+    border-color: var(--console-line) !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+}
+
+#file-editor-textarea,
+.terminal-output,
+#git-console-output,
+pre,
+code,
+.code-box,
+.agent-message-text code {
+    font-family: var(--console-font-mono) !important;
+}
+
+.agent-message-text code {
+    color: var(--console-text-soft) !important;
+    background: rgba(255, 255, 255, 0.035) !important;
+    border-color: var(--console-line-soft) !important;
+    border-radius: 0 !important;
+}
+
+.db-table th,
+table th {
+    color: var(--console-muted) !important;
+    background: #050505 !important;
+    border-color: var(--console-line-soft) !important;
+    font-family: var(--console-font-mono) !important;
+    font-size: 10px !important;
+    letter-spacing: 0.08em !important;
+    text-transform: uppercase !important;
+}
+
+.db-table td,
+table td {
+    color: var(--console-text-soft) !important;
+    border-color: var(--console-line-soft) !important;
+}
+
+.modal-backdrop {
+    background: rgba(0, 0, 0, 0.78) !important;
+    backdrop-filter: blur(2px) !important;
+}
+
+.modal-card {
+    background: var(--console-panel) !important;
+    border: 1px solid var(--console-line-strong) !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+}
+
+.agent-chat-welcome {
+    background: var(--console-panel) !important;
+    border: 1px solid var(--console-line-strong) !important;
+    border-radius: 0 !important;
+}
+
+.agent-chat-welcome i,
+.state-icon i,
+.empty-state i,
+.agent-status-dot,
+.sdd-status-dot {
+    color: var(--console-green) !important;
+}
+
+.agent-input-wrapper > div {
+    background: #030303 !important;
+    border: 1px solid var(--console-line-strong) !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+}
+
+#agent-user-prompt {
+    color: var(--console-text) !important;
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+}
+
+.status-dot,
+.git-status-dot,
+.agent-status-dot,
+.sdd-status-dot,
+.connection-dot {
+    border-radius: 50% !important;
+    box-shadow: 0 0 10px currentColor !important;
+}
+
+.badge,
+.status-badge,
+.chip,
+.pill,
+.token-type-badge {
+    border-radius: 0 !important;
+    background: transparent !important;
+    border: 1px solid var(--console-line) !important;
+    color: var(--console-muted) !important;
+    font-family: var(--console-font-mono) !important;
+    letter-spacing: 0.08em !important;
+    text-transform: uppercase !important;
+}
+
+::placeholder {
+    color: var(--console-dim) !important;
+}
+
+::-webkit-scrollbar-track {
+    background: #030303 !important;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--console-line-strong) !important;
+    border-radius: 0 !important;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--console-muted) !important;
+}
+
+*::selection {
+    color: #000000 !important;
+    background: var(--console-green) !important;
+}
+

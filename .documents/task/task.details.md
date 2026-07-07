@@ -91,3 +91,65 @@ Implementar o rebrand visual Dayact IA-like definido em `design_rebrand.md`, con
 - Reportar limitações de validação visual que dependam de navegador.
 
 Para autorizar a execução de todas as tasks planejadas, responda: **"Aprovado executar o pacote Harness"**.
+
+## Plano — TASK-REQ-3091-002
+
+**Tarefa:** Ajustar rebrand para dark theme fiel à referência visual.
+
+### Objetivo
+
+Corrigir a implementação anterior do rebrand, substituindo a leitura light por uma estética dark technical console fiel à referência enviada pelo usuário: fundo quase preto, painéis retangulares, bordas finas, tipografia técnica/monospace, labels compactos, acentos verdes/vermelhos pontuais e ausência de glassmorphism colorido.
+
+### Arquivo afetado
+
+`[MODIFICAR] .documents/spec/req-3091_rebrand_visual_dayact_ia.md`
+
+`[MODIFICAR] .documents/design/design.md`
+
+`[MODIFICAR] .documents/dri/dri.md`
+
+`[MODIFICAR] .documents/task/task.md`
+
+`[MODIFICAR] .documents/task/task.details.md`
+
+`[MODIFICAR] tokens.json`
+
+`[MODIFICAR] gitide_server/static/rebrand.css`
+
+`[MODIFICAR] gitide_server/static/index.html`
+
+### Formato previsto da chamada
+
+1. Revisar o REQ `REQ-3091` para registrar a correção dark technical console.
+2. Atualizar Design vivo e DRI vivo com a nova referência visual.
+3. Adicionar a task `TASK-REQ-3091-002` na Task List.
+4. Anexar este plano detalhado preservando seções anteriores.
+5. Ajustar `tokens.json` para tema ativo dark e paleta técnica escura.
+6. Atualizar a versão do CSS em `index.html` para bust de cache.
+7. Adicionar camada final em `rebrand.css` para sobrescrever o override claro anterior.
+8. Validar arquivos modificados e estado Git.
+9. Marcar a task como concluída em `task.md` somente após execução e verificação.
+
+### Fallback previsto
+
+- Se a fonte exata da referência não estiver disponível como asset local, usar pilha técnica com `Fira Code`, `SFMono-Regular`, `Consolas`, monospace.
+- Se algum estilo legado tiver seletor mais específico, acrescentar override no final de `rebrand.css`, preservando a estrutura existente.
+- Se o comando de teste continuar bloqueado pelo painel Act IA, validar por leitura dos arquivos alterados e `git status`.
+
+### Fora desta task
+
+- Não alterar lógica JavaScript.
+- Não alterar backend, banco de dados, endpoints, permissões ou autenticação.
+- Não adicionar arquivos binários de fonte.
+- Não criar estilos inline novos.
+- Não fazer deploy.
+- Não executar mudanças Git destrutivas.
+
+### Validação prevista
+
+- Ler trechos alterados de `tokens.json`, `index.html`, `rebrand.css`, `task.md` e documentos Harness.
+- Executar `git status` para auditar alterações.
+- Executar validação técnica disponível do projeto quando aplicável/liberada.
+- Reportar limitações de validação visual que dependam de navegador.
+
+Para autorizar a execução de todas as tasks planejadas, responda: **"Aprovado executar o pacote Harness"**.

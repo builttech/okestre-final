@@ -8,8 +8,9 @@ git-ide
 
 ### Referência
 
-- REQ relacionado: `REQ-3091 — Rebrand visual Dayact IA-like da ferramenta`.
-- Fonte visual: `design_rebrand.md`.
+- REQ relacionado: `REQ-3091 — Rebrand visual dark technical console da ferramenta`.
+- Fonte visual prioritária da correção: imagem de referência enviada pelo usuário no chat.
+- Observação: a etapa anterior aplicou uma leitura light; a task atual corrige a direção para dark theme fiel à referência.
 
 ### Decisão técnica
 
@@ -18,9 +19,9 @@ O rebrand será implementado como uma evolução da camada visual já existente 
 - `gitide_server/static/index.html` continua carregando a estrutura principal da aplicação.
 - `gitide_server/static/style.css` permanece como base histórica de estilos.
 - `gitide_server/static/rebrand.css` permanece como camada final de override visual e será a principal superfície de implementação.
-- `tokens.json` será atualizado para registrar os tokens compatíveis com o novo sistema visual.
+- `tokens.json` será atualizado para registrar tokens compatíveis com o novo sistema dark technical console.
 
-A abordagem evita reescrita de HTML/JS e centraliza a mudança em CSS e tokens, reduzindo risco funcional.
+A correção será aplicada no final de `rebrand.css` para garantir precedência sobre a camada light adicionada anteriormente, sem reescrever a estrutura completa do arquivo. A abordagem evita reescrita de HTML/JS e centraliza a mudança em CSS e tokens, reduzindo risco funcional.
 
 ### Componentes impactados
 
@@ -31,7 +32,7 @@ A abordagem evita reescrita de HTML/JS e centraliza a mudança em CSS e tokens, 
 - Cards, cabeçalhos e seções.
 - Botões, inputs, selects, textareas e estados de foco.
 - Modais, abas, listas e itens selecionados.
-- Áreas de terminal, editor, blocos de código e logs.
+- Tabelas, linhas, divisórias, áreas de terminal, editor, blocos de código e logs.
 
 ### Dados, APIs e integrações
 
@@ -44,23 +45,23 @@ Não há alteração de autenticação, tokens, permissões ou URLs de remoto. A
 ### Riscos técnicos
 
 - Como a aplicação possui estilos legados e muitas classes, alguns seletores podem exigir ajustes visuais posteriores por QA.
-- A fonte `Switzer` pode não estar instalada/disponível no ambiente do usuário; a implementação deve usar fallback seguro.
-- A mudança de tema escuro para claro pode revelar pontos específicos com contraste insuficiente em módulos menos usados.
+- A fonte exata da referência pode não estar instalada/disponível no ambiente do usuário; a implementação deve usar fallback seguro.
+- A referência visual é mais compacta e orientada a dados do que a estrutura atual do GitIDE; a correção deve aproximar a estética sem quebrar layout ou funcionalidade existente.
 
 ## 2. Fluxos Técnicos
 
-1. Criar o REQ `REQ-3091` com base na solicitação e em `design_rebrand.md`.
-2. Revisar e atualizar Design vivo, DRI, Task List e Task Details.
-3. Atualizar tokens do design system para refletir a paleta clara Dayact-like.
-4. Atualizar `index.html` apenas em título/brand copy e versão do CSS quando necessário.
-5. Aplicar overrides em `rebrand.css` para transformar o tema visual atual em claro, minimalista, monocromático e geométrico.
-6. Validar por leitura dos arquivos modificados, status Git e comando técnico aplicável.
-7. Marcar a task concluída somente após verificação.
+1. Atualizar o REQ `REQ-3091` para registrar a correção dark technical console.
+2. Revisar e atualizar Design vivo, DRI, Task List e Task Details com `TASK-REQ-3091-002`.
+3. Atualizar `tokens.json` para voltar o tema ativo para dark e registrar a paleta dark da referência.
+4. Atualizar `index.html` apenas para versionar o CSS quando necessário.
+5. Aplicar uma camada final em `rebrand.css` para sobrescrever o tema claro anterior com dark technical console.
+6. Validar por leitura dos arquivos modificados, status Git e comando técnico aplicável quando liberado pelo Act IA.
+7. Marcar `TASK-REQ-3091-002` como concluída somente após verificação.
 
 ## 3. Estratégia de Validação
 
 - Revisar arquivos alterados via endpoint de leitura.
 - Executar `git status` para auditar alterações.
-- Executar teste/validação disponível no projeto quando aplicável e aprovado pelo pacote Harness.
+- Executar teste/validação disponível do projeto quando o painel Act IA permitir.
 - Confirmar que não houve alteração intencional de lógica JavaScript, backend, banco de dados ou endpoints.
 - Registrar limitações visuais que dependam de inspeção manual no navegador.
