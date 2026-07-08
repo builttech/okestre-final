@@ -533,17 +533,17 @@ textarea:focus {
 .sidebar-category {
     display: flex;
     flex-direction: column;
-    gap: 2px;
-    margin-bottom: 12px;
+    gap: 0px;
+    margin-bottom: 6px;
 }
 
 .sidebar-category-title {
-    font-size: 10px;
+    font-size: 9.5px;
     text-transform: uppercase;
     letter-spacing: 0.5px;
     color: var(--text-dark);
     padding: 0 12px;
-    margin-bottom: 4px;
+    margin-bottom: 2px;
     font-weight: 600;
 }
 
@@ -551,9 +551,9 @@ textarea:focus {
     background: transparent;
     border: 1px solid transparent;
     color: var(--text-muted);
-    padding: 10px 12px;
+    padding: 6px 12px;
     text-align: left;
-    border-radius: 12px;
+    border-radius: 8px;
     font-size: 13px;
     font-weight: 500;
     cursor: pointer;
