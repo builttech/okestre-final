@@ -6,6 +6,7 @@ from docx.shared import Inches, Pt, RGBColor
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.oxml import parse_xml
 from docx.oxml.ns import nsdecls
+import re
 
 # Cores do Tema Corporate (Clean Black & White / Gray)
 COLOR_PRIMARY = RGBColor(0, 0, 0)        # Preto puro para títulos
@@ -39,6 +40,60 @@ def format_run(run, font_name="Calibri", size_pt=11, color=COLOR_TEXT, bold=Fals
     run.bold = bold
     run.italic = italic
 
+def add_markdown_runs(paragraph, text, font_name="Calibri", size_pt=10, color=COLOR_TEXT, bold=False, italic=False):
+    """Analisa marcações markdown simples em um texto e insere múltiplos runs no parágrafo."""
+    # Pattern: ***bolditalic***, **bold**, *italic*, `code`
+    pattern = re.compile(r'(\*\*\*.*?\*\*\*|\*\*.*?\*\*|\*.*?\*|`.*?`)')
+    parts = pattern.split(text)
+    
+    for part in parts:
+        if not part:
+            continue
+        
+        is_bold = bold
+        is_italic = italic
+        run_font = font_name
+        run_color = color
+        
+        if part.startswith('***') and part.endswith('***') and len(part) >= 6:
+            txt = part[3:-3]
+            is_bold = True
+            is_italic = True
+        elif part.startswith('**') and part.endswith('**') and len(part) >= 4:
+            txt = part[2:-2]
+            is_bold = True
+        elif part.startswith('*') and part.endswith('*') and len(part) >= 2:
+            txt = part[1:-1]
+            is_italic = True
+        elif part.startswith('`') and part.endswith('`') and len(part) >= 2:
+            txt = part[1:-1]
+            run_font = "Consolas"
+            run_color = RGBColor(55, 65, 81)
+        else:
+            txt = part
+            
+        run = paragraph.add_run(txt)
+        format_run(run, font_name=run_font, size_pt=size_pt, color=run_color, bold=is_bold, italic=is_italic)
+
+def parse_markdown_table(md_str):
+    """Tenta converter uma string de tabela Markdown em uma matriz (lista de listas)."""
+    lines = md_str.strip().split('\n')
+    data = []
+    for line in lines:
+        line = line.strip()
+        # Ignora linhas de separador de cabeçalho
+        if not line or line.startswith('|-') or '-|-' in line:
+            continue
+        if line.startswith('|'):
+            line = line[1:]
+        if line.endswith('|'):
+            line = line[:-1]
+        
+        if line:
+            row = [cell.strip() for cell in line.split('|')]
+            data.append(row)
+    return data
+
 def generate_docx(project_path: str, title: str, sections: list, filename: str = None) -> dict:
     """
     Gera um arquivo Word (.docx) estruturado e com design premium.
@@ -59,10 +114,10 @@ def generate_docx(project_path: str, title: str, sections: list, filename: str =
         section.right_margin = Inches(1)
         
     # --- CABEÇALHO DO DOCUMENTO (CAPA / TÍTULO PRINCIPAL) ---
-    title_p = doc.add_paragraph()
+    title_p = doc.add_heading(title, level=0)
     title_p.alignment = WD_ALIGN_PARAGRAPH.LEFT
-    title_run = title_p.add_run(title)
-    format_run(title_run, font_name="Arial", size_pt=20, color=COLOR_PRIMARY, bold=True)
+    for r in title_p.runs:
+        format_run(r, font_name="Arial", size_pt=20, color=COLOR_PRIMARY, bold=True)
     title_p.paragraph_format.space_after = Pt(4)
     
     # Linha divisória colorida abaixo do título
@@ -80,7 +135,74 @@ def generate_docx(project_path: str, title: str, sections: list, filename: str =
     meta_p.paragraph_format.space_after = Pt(20)
     
     # --- SEÇÕES ---
+    processed_sections = []
     for sec in sections:
+        sec_type = sec.get("type", "paragraph").strip().lower()
+        if sec_type == "paragraph":
+            heading = sec.get("heading", "").strip()
+            if heading:
+                processed_sections.append({"type": "paragraph", "heading": heading, "text": ""})
+            
+            body = sec.get("text", "").strip()
+            if not body:
+                continue
+                
+            lines = body.split('\n')
+            current_block = []
+            block_type = "text"
+            
+            def flush_block():
+                if not current_block: return
+                text = "\n".join(current_block).strip()
+                if text:
+                    if block_type == "table":
+                        processed_sections.append({"type": "table", "text": text})
+                    elif block_type == "quote":
+                        clean = "\n".join(l.lstrip('> ').strip() for l in current_block)
+                        processed_sections.append({"type": "highlight", "text": clean})
+                    elif block_type == "hr":
+                        processed_sections.append({"type": "hr", "text": ""})
+                    else:
+                        processed_sections.append({"type": "paragraph", "text": text})
+                current_block.clear()
+                
+            for line in lines:
+                sline = line.strip()
+                if sline.startswith('---') and len(sline) >= 3 and sline.count('-') == len(sline):
+                    flush_block()
+                    block_type = "hr"
+                    current_block.append(sline)
+                    flush_block()
+                    block_type = "text"
+                elif sline.startswith('|') and sline.endswith('|'):
+                    if block_type != "table": 
+                        flush_block()
+                        block_type = "table"
+                    current_block.append(sline)
+                elif sline.startswith('>'):
+                    if block_type != "quote": 
+                        flush_block()
+                        block_type = "quote"
+                    current_block.append(sline)
+                elif sline.startswith('#'):
+                    flush_block()
+                    block_type = "heading"
+                    current_block.append(sline)
+                    flush_block()
+                    block_type = "text"
+                elif sline == "":
+                    flush_block()
+                    block_type = "text"
+                else:
+                    if block_type != "text": 
+                        flush_block()
+                        block_type = "text"
+                    current_block.append(sline)
+            flush_block()
+        else:
+            processed_sections.append(sec)
+
+    for sec in processed_sections:
         heading_text = sec.get("heading", "").strip()
         body_text = sec.get("text", "").strip()
         sec_type = sec.get("type", "paragraph").strip().lower()
@@ -88,12 +210,16 @@ def generate_docx(project_path: str, title: str, sections: list, filename: str =
         if sec_type == "page_break":
             doc.add_page_break()
             continue
+            
+        elif sec_type == "hr":
+            doc.add_paragraph().paragraph_format.space_after = Pt(16)
+            continue
         
         # 1. Adiciona título da seção se houver
         if heading_text:
-            h_p = doc.add_paragraph()
-            h_run = h_p.add_run(heading_text)
-            format_run(h_run, font_name="Arial", size_pt=13, color=COLOR_PRIMARY, bold=True)
+            h_p = doc.add_heading(heading_text, level=1)
+            for r in h_p.runs:
+                format_run(r, font_name="Arial", size_pt=14, color=COLOR_PRIMARY, bold=True)
             h_p.paragraph_format.space_before = Pt(14)
             h_p.paragraph_format.space_after = Pt(6)
             h_p.paragraph_format.keep_with_next = True
@@ -103,11 +229,23 @@ def generate_docx(project_path: str, title: str, sections: list, filename: str =
             continue
             
         if sec_type == "paragraph":
-            p = doc.add_paragraph()
-            run = p.add_run(body_text)
-            format_run(run, font_name="Calibri", size_pt=10, color=COLOR_TEXT)
-            p.paragraph_format.line_spacing = 1.15
-            p.paragraph_format.space_after = Pt(8)
+            if body_text.startswith('#'):
+                level = 0
+                while level < len(body_text) and body_text[level] == '#':
+                    level += 1
+                level = min(level, 4)
+                txt = body_text[level:].strip()
+                p = doc.add_heading(txt, level=level)
+                for r in p.runs:
+                    format_run(r, font_name="Arial", size_pt=15-level, color=COLOR_PRIMARY, bold=True)
+                p.paragraph_format.space_before = Pt(12)
+                p.paragraph_format.space_after = Pt(6)
+                p.paragraph_format.keep_with_next = True
+            else:
+                p = doc.add_paragraph()
+                add_markdown_runs(p, body_text, font_name="Calibri", size_pt=10, color=COLOR_TEXT)
+                p.paragraph_format.line_spacing = 1.15
+                p.paragraph_format.space_after = Pt(8)
             
         elif sec_type == "bullet":
             # Suporta múltiplas linhas separadas por quebra de linha como múltiplos itens de lista
@@ -117,8 +255,7 @@ def generate_docx(project_path: str, title: str, sections: list, filename: str =
                 if line.startswith("- ") or line.startswith("* "):
                     line = line[2:]
                 p = doc.add_paragraph(style='List Bullet')
-                run = p.add_run(line)
-                format_run(run, font_name="Calibri", size_pt=10, color=COLOR_TEXT)
+                add_markdown_runs(p, line, font_name="Calibri", size_pt=10, color=COLOR_TEXT)
                 p.paragraph_format.space_after = Pt(3)
                 
         elif sec_type == "highlight":
@@ -138,8 +275,7 @@ def generate_docx(project_path: str, title: str, sections: list, filename: str =
             p.paragraph_format.space_before = Pt(6)
             p.paragraph_format.space_after = Pt(6)
             
-            run = p.add_run(body_text)
-            format_run(run, font_name="Calibri", size_pt=9.5, color=COLOR_SECONDARY, italic=True)
+            add_markdown_runs(p, body_text, font_name="Calibri", size_pt=9.5, color=COLOR_SECONDARY, italic=True)
             
             # Espaço após a tabela
             space_p = doc.add_paragraph()
@@ -180,12 +316,18 @@ def generate_docx(project_path: str, title: str, sections: list, filename: str =
             space_p.paragraph_format.space_after = Pt(4)
             
         elif sec_type == "table":
-            # Tenta converter o texto JSON em tabela. Espera uma matriz de dados:
-            # [["Coluna 1", "Coluna 2"], ["Dado A", "Dado B"]]
             try:
-                data_matrix = json.loads(body_text)
+                # Tenta como JSON primeiro
+                if body_text.startswith('[') or body_text.startswith('{'):
+                    try:
+                        data_matrix = json.loads(body_text)
+                    except json.JSONDecodeError:
+                        data_matrix = parse_markdown_table(body_text)
+                else:
+                    data_matrix = parse_markdown_table(body_text)
+                    
                 if not isinstance(data_matrix, list) or len(data_matrix) == 0:
-                    raise ValueError("JSON não representa matriz válida")
+                    raise ValueError("Tabela vazia ou inválida")
                     
                 rows_count = len(data_matrix)
                 cols_count = max(len(row) for row in data_matrix if isinstance(row, list))
@@ -197,7 +339,6 @@ def generate_docx(project_path: str, title: str, sections: list, filename: str =
                     row = tbl.rows[r_idx]
                     is_header = (r_idx == 0)
                     
-                    # Estilo da linha
                     if is_header:
                         row.height = Pt(20)
                     else:
@@ -208,31 +349,25 @@ def generate_docx(project_path: str, title: str, sections: list, filename: str =
                             continue
                         cell = row.cells[c_idx]
                         
-                        # Alinhamento e espaçamento interno
                         p = cell.paragraphs[0]
                         p.paragraph_format.space_before = Pt(3)
                         p.paragraph_format.space_after = Pt(3)
                         
-                        run = p.add_run(str(cell_val))
-                        
                         if is_header:
-                            set_cell_background(cell, "374151") # Cabeçalho cinza escuro
-                            format_run(run, font_name="Arial", size_pt=9.5, color=RGBColor(255, 255, 255), bold=True)
+                            set_cell_background(cell, "374151")
+                            add_markdown_runs(p, str(cell_val), font_name="Arial", size_pt=9.5, color=RGBColor(255, 255, 255), bold=True)
                             p.alignment = WD_ALIGN_PARAGRAPH.CENTER
                         else:
-                            # Linhas alternadas em cinza claro para legibilidade
                             if r_idx % 2 == 1:
                                 set_cell_background(cell, COLOR_LIGHT_BG)
-                            format_run(run, font_name="Calibri", size_pt=9.5, color=COLOR_TEXT)
+                            add_markdown_runs(p, str(cell_val), font_name="Calibri", size_pt=9.5, color=COLOR_TEXT)
                             
-                # Espaço após a tabela
                 space_p = doc.add_paragraph()
                 space_p.paragraph_format.space_after = Pt(10)
                 
             except Exception as e:
-                # Fallback em caso de falha no parser do JSON
                 p = doc.add_paragraph()
-                run = p.add_run(f"[Tabela inválida: {body_text}]")
+                run = p.add_run(f"[Tabela inválida: não foi possível extrair os dados]")
                 format_run(run, font_name="Calibri", size_pt=10, color=RGBColor(239, 68, 68), italic=True)
                 p.paragraph_format.space_after = Pt(8)
                 
