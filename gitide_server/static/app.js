@@ -10765,6 +10765,27 @@ Descreva o objetivo macro da funcionalidade.\n
 | TAP | .documents/project-charter.md |\n`;
 }
 
+function sddGenerateRfId(parentId) {
+    if (!parentId) return 'RF-XX-01';
+    const parentNum = parentId.replace('REQ-', '');
+    const rfPattern = new RegExp(`\\bRF-${parentNum}-(\\d{2,4})\\b`, 'i');
+    
+    const sources = [
+        ...(sddState.specs || []).map(spec => `${spec.filename || ''} ${spec.title || ''}`),
+        sddState.activeFilename || '',
+        sddState.activeContent || ''
+    ];
+    
+    const usedNumbers = sources
+        .map(source => String(source || '').match(rfPattern))
+        .filter(Boolean)
+        .map(match => Number(match[1]))
+        .filter(Number.isFinite);
+
+    const next = usedNumbers.length ? Math.max(...usedNumbers) + 1 : 1;
+    return `RF-${parentNum}-${String(next).padStart(2, '0')}`;
+}
+
 async function sddOpenNewRequirementModal() {
     if (state.activeProjectId) {
         try {
@@ -10774,10 +10795,27 @@ async function sddOpenNewRequirementModal() {
             console.warn('Não foi possível atualizar a lista antes de criar requisito:', e);
         }
     }
+    
+    let kind = 'req';
+    let parentId = null;
+
+    if (sddState.activeTab === 'sdd-tab-rfs' || sddState.activeTab === 'sdd-tab-edit' || sddState.activeTab === 'sdd-tab-dri' || sddState.activeTab === 'sdd-tab-checklist' || sddState.activeTab === 'sdd-tab-tests') {
+        kind = 'rf';
+        parentId = sddState.activeReqId;
+    }
+
     const idInput = document.getElementById('sdd-new-requirement-id');
     const titleInput = document.getElementById('sdd-new-requirement-title');
     const authorInput = document.getElementById('sdd-new-requirement-author');
-    if (idInput) idInput.value = sddGenerateRequirementId();
+    
+    if (idInput) {
+        if (kind === 'req') {
+            idInput.value = sddGenerateRequirementId();
+        } else {
+            idInput.value = sddGenerateRfId(parentId);
+        }
+    }
+    
     if (titleInput) titleInput.value = '';
     if (authorInput) authorInput.value = '';
     openCustomModal('modal-sdd-new-requirement');
@@ -10800,7 +10838,7 @@ async function sddCreateRequirementFromModal() {
     
     let id = document.getElementById('sdd-new-requirement-id')?.value.trim();
     if (!id) {
-        id = kind === 'rf' ? `RF-${parentId.replace('REQ-','')}-01` : sddGenerateRequirementId();
+        id = kind === 'rf' ? sddGenerateRfId(parentId) : sddGenerateRequirementId();
     }
     
     const title = document.getElementById('sdd-new-requirement-title')?.value.trim();
