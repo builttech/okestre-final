@@ -7958,7 +7958,7 @@ input[type="checkbox"]:focus-visible{
     --text-light: var(--dayact-text);
     --font-sans: var(--ds-font-body);
     --font-mono: redditMono, 'Fira Code', 'SFMono-Regular', Consolas, monospace;
-    --sidebar-width: 270px;
+    --sidebar-width: 225px;
     --topbar-height: 48px;
     --border-radius: var(--dayact-radius);
     --radius-lg: var(--dayact-radius-soft);
@@ -8595,7 +8595,7 @@ table td {
     --text-light: var(--console-text);
     --font-sans: var(--console-font-ui);
     --font-mono: var(--console-font-mono);
-    --sidebar-width: 292px;
+    --sidebar-width: 225px;
     --topbar-height: 48px;
     --border-radius: var(--console-radius);
     --radius-lg: var(--console-radius-soft);
