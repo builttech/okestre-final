@@ -7692,10 +7692,13 @@ async function loadOllamaInstalledModels(selectedModel = '') {
     const hint = document.getElementById('agent-ollama-model-hint');
     if (!select) return;
     const baseUrl = endpointInput?.value.trim() || 'http://127.0.0.1:11434';
+    const apiKey = document.getElementById('agent-apikey')?.value.trim() || '';
     const current = selectedModel || select.value || 'llama3.1';
     select.innerHTML = '<option value="">Carregando modelos...</option>';
     try {
-        const res = await fetch(`/api/agent/ollama/models?base_url=${encodeURIComponent(baseUrl)}`, { headers: getHeaders() });
+        const qs = new URLSearchParams({ base_url: baseUrl });
+        if (apiKey) qs.append('api_key', apiKey);
+        const res = await fetch(`/api/agent/ollama/models?${qs.toString()}`, { headers: getHeaders() });
         const data = await res.json();
         select.innerHTML = '';
         const models = Array.isArray(data.models) ? data.models : [];

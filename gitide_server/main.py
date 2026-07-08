@@ -5729,13 +5729,19 @@ def save_agent_config(config_in: AgentConfigInput):
     return {"status": "success", "message": "Configurações do agente salvas."}
 
 @app.get("/api/agent/ollama/models", tags=["Agente IA"])
-def list_ollama_models(base_url: str = Query("http://127.0.0.1:11434", description="Endpoint local do Ollama")):
-    """Lista modelos instalados no Ollama local."""
+def list_ollama_models(
+    base_url: str = Query("http://127.0.0.1:11434", description="Endpoint local do Ollama"),
+    api_key: str = Query(None, description="API Key para Ollama Cloud")
+):
+    """Lista modelos instalados no Ollama local ou Cloud."""
     clean_url = (base_url or "http://127.0.0.1:11434").strip().rstrip("/")
-    if not clean_url.startswith(("http://127.0.0.1", "http://localhost", "http://0.0.0.0")):
-        raise HTTPException(status_code=400, detail="Por segurança, informe um endpoint local do Ollama.")
+    if not (clean_url.startswith(("http://127.0.0.1", "http://localhost", "http://0.0.0.0")) or clean_url.startswith("https://")):
+        raise HTTPException(status_code=400, detail="Por segurança, informe um endpoint local ou uma URL https:// para Cloud.")
     try:
-        response = requests.get(f"{clean_url}/api/tags", timeout=8)
+        headers = {}
+        if api_key:
+            headers["Authorization"] = f"Bearer {api_key}"
+        response = requests.get(f"{clean_url}/api/tags", headers=headers, timeout=8)
         response.raise_for_status()
         data = response.json()
         models = []
@@ -5972,7 +5978,8 @@ async def discovery_upload(
         if provider == "ollama":
             base_url = config.get("ollama_base_url", "http://127.0.0.1:11434")
             model = config.get("model", "llava")
-            client = OpenAI(base_url=f"{base_url}/v1", api_key="ollama")
+            ollama_api_key = config.get("api_key") or "ollama"
+            client = OpenAI(base_url=f"{base_url}/v1", api_key=ollama_api_key)
             md = MarkItDown(llm_client=client, llm_model=model)
         else:
             api_key = config.get("api_key")
@@ -6022,7 +6029,8 @@ def discovery_url(
         if provider == "ollama":
             base_url = config.get("ollama_base_url", "http://127.0.0.1:11434")
             model = config.get("model", "llava")
-            client = OpenAI(base_url=f"{base_url}/v1", api_key="ollama")
+            ollama_api_key = config.get("api_key") or "ollama"
+            client = OpenAI(base_url=f"{base_url}/v1", api_key=ollama_api_key)
             md = MarkItDown(llm_client=client, llm_model=model)
         else:
             api_key = config.get("api_key")
