@@ -1550,7 +1550,17 @@ REGRA INQUEBRÁVEL: antes de executar qualquer task, valide REQ, DRI e Task List
                                         </section>
                                         <aside class="sdd-stage-aside">
                                             <h5><i data-lucide="sparkles"></i> Assistente IA</h5>
-                                            <p>Gere ou refine a documentação de negócio. Cada requisito deve ter código único, como <code>REQ-001</code>.</p>
+                                            <p>Gere ou refine a documentação de negócio.</p>
+                                            
+                                            <select id="sdd-wizard-kind" class="text-input" style="margin-bottom: 8px;" onchange="document.getElementById('sdd-wizard-parent-id-container').style.display = this.value === 'rf' ? 'block' : 'none'">
+                                                <option value="req">1. Macro Requisito (REQ Pai)</option>
+                                                <option value="rf">2. Requisito Funcional (RF)</option>
+                                            </select>
+                                            
+                                            <div id="sdd-wizard-parent-id-container" style="display: none; margin-bottom: 8px;">
+                                                <input type="text" id="sdd-wizard-parent-id" class="text-input" placeholder="ID do REQ Pai (ex: REQ-01)">
+                                            </div>
+
                                             <input type="text" id="sdd-wizard-title" class="text-input" placeholder="Título da feature">
                                             <textarea id="sdd-wizard-prompt" class="text-input" placeholder="Descreva regras de negócio, usuários, restrições e requisitos..."></textarea>
                                             <button class="btn btn-primary" id="btn-sdd-generate-spec-ia"><i data-lucide="sparkles"></i> Gerar Specify com IA</button>
@@ -2210,8 +2220,19 @@ REGRA INQUEBRÁVEL: antes de executar qualquer task, valide REQ, DRI e Task List
             </div>
             <div class="modal-body" style="padding: 20px; display: flex; flex-direction: column; gap: 14px;">
                 <div class="form-group">
-                    <label for="sdd-new-requirement-id">ID Único</label>
-                    <input type="text" id="sdd-new-requirement-id" class="text-input" readonly>
+                    <label for="sdd-new-requirement-kind">Tipo</label>
+                    <select id="sdd-new-requirement-kind" class="text-input" onchange="document.getElementById('sdd-new-requirement-parent-id-group').style.display = this.value === 'rf' ? 'block' : 'none'">
+                        <option value="req">Macro Requisito (REQ Pai)</option>
+                        <option value="rf">Requisito Funcional (RF)</option>
+                    </select>
+                </div>
+                <div class="form-group" id="sdd-new-requirement-parent-id-group" style="display: none;">
+                    <label for="sdd-new-requirement-parent-id">ID do REQ Pai</label>
+                    <input type="text" id="sdd-new-requirement-parent-id" class="text-input" placeholder="Ex: REQ-01">
+                </div>
+                <div class="form-group">
+                    <label for="sdd-new-requirement-id">ID Único (Deixe em branco para auto-gerar ou RF-XX-XX)</label>
+                    <input type="text" id="sdd-new-requirement-id" class="text-input">
                 </div>
                 <div class="form-group">
                     <label for="sdd-new-requirement-title">Título / Resumo</label>

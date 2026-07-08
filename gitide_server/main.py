@@ -374,6 +374,8 @@ class SddSpecSaveRequest(BaseModel):
 class SddSpecGenerateRequest(BaseModel):
     prompt: str = Field(..., description="Prompt descrevendo a feature a ser especificada")
     title: Optional[str] = Field(None, description="Título opcional para a especificação")
+    kind: str = Field("req", description="Tipo de documento a gerar: 'req' ou 'rf'")
+    parent_id: Optional[str] = Field(None, description="ID do REQ pai, caso kind='rf'")
 
 class SddCharterSaveRequest(BaseModel):
     content: str = Field(..., description="Conteúdo em Markdown do Project Charter/TAP")
@@ -4219,55 +4221,81 @@ SDD_PROJECT_DOCUMENTS = {
     },
 }
 
-def _sdd_req_template(req_id: str = "REQ-0000", title: str = "Título do Requisito") -> str:
+def _sdd_req_pai_template(req_id: str = "REQ-01", title: str = "Título do Macro Requisito") -> str:
     return (
         f"# {req_id} — {title}\n\n"
-        "## 1. Specify - Especificação Funcional\n\n"
-        "### 1.1 Identificação e Metadados Básicos\n\n"
-        f"**ID Único:** {req_id}\n\n"
-        f"**Título / Resumo:** {title}\n"
-        "**Tipo:** Requisito funcional\n"
-        "**Módulo:** A definir\n"
-        "**Prioridade:** A definir\n"
-        "**Status:** Especificado\n"
-        "**Solicitante:** A definir\n"
-        "**Responsável atual:** Equipe técnica\n"
-        "**Release / Iteração:** A definir\n"
-        "**Esforço estimado:** A definir\n\n"
-        "---\n\n"
-        "### 1.2 Contexto\n\n"
-        "Descreva o problema, oportunidade, origem da demanda e contexto operacional.\n\n"
-        "---\n\n"
-        "### 1.3 Objetivo Funcional\n\n"
-        "Descreva o resultado funcional esperado para o usuário ou negócio.\n\n"
-        "---\n\n"
-        "### 1.4 Descrição do Requisito\n\n"
-        "O sistema deve...\n\n"
-        "---\n\n"
-        "### 1.5 História de Usuário\n\n"
-        "Como [tipo de usuário], eu quero [ação/funcionalidade], para que [valor/benefício].\n\n"
-        "---\n\n"
-        "### 1.6 Regras de Negócio\n\n"
-        "- **RN-001:** Descrever regra de negócio.\n\n"
-        "---\n\n"
-        "### 1.7 Restrições e Premissas\n\n"
-        "- **Restrição:** A definir.\n"
-        "- **Premissa:** A definir.\n\n"
-        "---\n\n"
-        "### 1.8 Fora do Escopo\n\n"
-        "- A definir.\n\n"
-        "---\n\n"
-        "### 1.9 Critérios de Aceite\n\n"
-        "- [ ] Dado que [contexto], quando [ação], então [resultado esperado].\n"
-        "- [ ] Dado que [contexto], quando [ação], então [resultado esperado].\n\n"
-        "---\n\n"
-        "### 1.10 Rastreabilidade Funcional\n\n"
-        "**Origem / Link ascendente:** A definir.\n\n"
-        "**Design relacionado:** `.documents/design/design.md`\n\n"
-        "**DRI relacionado:** `.documents/dri/dri.md`\n\n"
-        "**Tasks relacionadas:** `.documents/task/task.md`\n\n"
-        "**Casos de teste relacionados:** A definir.\n\n"
-        "**Commits / PRs / Deploys:** A definir após implementação.\n"
+        "## 1. Identificação\n\n"
+        "| Campo | Valor |\n"
+        "|---|---|\n"
+        f"| ID | {req_id} |\n"
+        f"| Título | {title} |\n"
+        "| Projeto | A definir |\n"
+        "| Tipo | Requisito Macro |\n"
+        "| Prioridade | Alta |\n"
+        "| Status | Levantado |\n"
+        "| Fonte | .documents/project-charter.md |\n\n"
+        "## 2. Objetivo\n\n"
+        "Descreva o objetivo macro da funcionalidade.\n\n"
+        "## 3. Escopo Macro\n\n"
+        "- Escopo 1\n"
+        "- Escopo 2\n\n"
+        "## 4. Requisitos Funcionais Vinculados\n\n"
+        "| ID | Requisito Funcional | Arquivo | Status |\n"
+        "|---|---|---|---|\n"
+        f"| RF-01-01 | Primeiro fluxo de {title} | functional-requirements/RF-01-01.md | Levantado |\n\n"
+        "## 5. Fontes de Dados\n\n"
+        "| ID | Fonte | Uso no processo |\n"
+        "|---|---|---|\n"
+        "| FD-01-01 | Banco de Dados / API | Descrição |\n\n"
+        "## 6. Regras Gerais\n\n"
+        "| ID | Regra |\n"
+        "|---|---|\n"
+        "| RN-01-01 | Regra macro 1 |\n\n"
+        "## 7. Critérios de Aceite Macro\n\n"
+        "- [ ] Critério 1.\n\n"
+        "## 8. Fora do Escopo\n\n"
+        "- Item fora do escopo.\n\n"
+        "## 9. Rastreabilidade\n\n"
+        "| Origem | Referência |\n"
+        "|---|---|\n"
+        "| TAP | .documents/project-charter.md |\n"
+    )
+
+def _sdd_rf_template(rf_id: str = "RF-01-01", req_id: str = "REQ-01", title: str = "Título do Requisito Funcional") -> str:
+    return (
+        f"# {rf_id} — {title}\n\n"
+        "## 1. Identificação\n\n"
+        "| Campo | Valor |\n"
+        "|---|---|\n"
+        f"| ID | {rf_id} |\n"
+        f"| REQ Pai | {req_id} |\n"
+        f"| Título | {title} |\n"
+        "| Tipo | Requisito funcional |\n"
+        "| Prioridade | Alta |\n"
+        "| Status | Detalhado |\n\n"
+        "## 2. Objetivo\n\n"
+        "Objetivo específico deste fluxo.\n\n"
+        "## 3. Descrição Funcional\n\n"
+        "Descrição detalhada de como o fluxo funciona.\n\n"
+        "## 4. História do Usuário\n\n"
+        "Como [usuário], quero [ação], para que [benefício].\n\n"
+        "## 5. Regras de Negócio\n\n"
+        "| ID | Regra |\n"
+        "|---|---|\n"
+        f"| RN-{rf_id}-01 | Regra específica 1 |\n\n"
+        "## 6. Dados Necessários\n\n"
+        "| Campo | Tipo | Obrigatório | Descrição |\n"
+        "|---|---|---|---|\n"
+        "| campo_exemplo | string | Sim | Descrição do dado |\n\n"
+        "## 7. Critérios de Aceite\n\n"
+        "- [ ] Critério de aceite específico 1.\n\n"
+        "## 8. Fora do Escopo\n\n"
+        "- Item fora do escopo deste RF.\n\n"
+        "## 9. Próximo Artefato\n\n"
+        "| Tipo | Arquivo |\n"
+        "|---|---|\n"
+        f"| DRI | ../dri/DRI-{rf_id}.md |\n"
+        f"| Task List | ../task-lists/TASKLIST-{rf_id}.md |\n"
     )
 
 def _dri_template() -> str:
@@ -4376,7 +4404,7 @@ def _dri_template() -> str:
     )
 
 def _sdd_spec_dir(project: Project, create: bool = False) -> str:
-    spec_dir = os.path.join(_sdd_documents_dir(project), "spec")
+    spec_dir = os.path.join(_sdd_documents_dir(project), "requirements")
     if create:
         os.makedirs(spec_dir, exist_ok=True)
     return spec_dir
@@ -4731,8 +4759,9 @@ def generate_sdd_charter(
 
 @app.get("/api/projects/{project_id}/sdd/specs", tags=["Spec-Driven Development"])
 def list_sdd_specs(project: Project = Depends(get_project_or_404)):
-    """Lista REQs de .documents/spec e specs legadas de .documents/specs."""
+    """Lista REQs de .documents/requirements, antigas de .documents/spec e specs legadas de .documents/specs."""
     documents_dir = os.path.join(project.path, ".documents")
+    requirements_dir = os.path.join(documents_dir, "requirements")
     spec_dir = os.path.join(documents_dir, "spec")
     legacy_specs_dir = os.path.join(documents_dir, "specs")
 
@@ -4750,23 +4779,32 @@ def list_sdd_specs(project: Project = Depends(get_project_or_404)):
     def append_markdown_specs(directory: str, storage_type: str, filepath_prefix: str):
         if not os.path.exists(directory):
             return
-        for entry in os.scandir(directory):
-            if not entry.is_file() or not entry.name.endswith(".md"):
-                continue
-            stat = entry.stat()
-            title = extract_markdown_title(entry.path, entry.name)
-            specs.append({
-                "id": os.path.splitext(entry.name)[0],
-                "filename": entry.name,
-                "title": title,
-                "size_bytes": stat.st_size,
-                "modified_at": datetime.fromtimestamp(stat.st_mtime).isoformat(),
-                "storage_type": storage_type,
-                "filepath": f"{filepath_prefix}/{entry.name}"
-            })
+        for root, _, files in os.walk(directory):
+            for filename in files:
+                if not filename.endswith(".md"):
+                    continue
+                filepath = os.path.join(root, filename)
+                rel_dir = os.path.relpath(root, directory)
+                if rel_dir == ".":
+                    rel_path = filename
+                else:
+                    rel_path = f"{rel_dir}/{filename}".replace("\\", "/")
+                
+                stat = os.stat(filepath)
+                title = extract_markdown_title(filepath, filename)
+                specs.append({
+                    "id": os.path.splitext(filename)[0],
+                    "filename": rel_path,
+                    "title": title,
+                    "size_bytes": stat.st_size,
+                    "modified_at": datetime.fromtimestamp(stat.st_mtime).isoformat(),
+                    "storage_type": storage_type,
+                    "filepath": f"{filepath_prefix}/{rel_path}".replace("\\", "/")
+                })
 
     specs = []
     try:
+        append_markdown_specs(requirements_dir, "project_spec_file", ".documents/requirements")
         append_markdown_specs(spec_dir, "project_spec_file", ".documents/spec")
         append_markdown_specs(legacy_specs_dir, "legacy_markdown", ".documents/specs")
         specs.sort(key=lambda x: x["modified_at"], reverse=True)
@@ -4774,11 +4812,11 @@ def list_sdd_specs(project: Project = Depends(get_project_or_404)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro ao listar especificações: {str(e)}")
 
-@app.get("/api/projects/{project_id}/sdd/specs/{filename}", tags=["Spec-Driven Development"])
+@app.get("/api/projects/{project_id}/sdd/specs/{filename:path}", tags=["Spec-Driven Development"])
 def get_sdd_spec(filename: str, project: Project = Depends(get_project_or_404)):
     """Retorna o conteúdo de um REQ em .documents/spec ou de uma spec legada."""
-    filename = os.path.basename(filename.strip())
-    if not filename or ".." in filename or "/" in filename or "\\" in filename or not filename.endswith(".md"):
+    filename = filename.strip()
+    if not filename or ".." in filename or not filename.endswith(".md"):
         raise HTTPException(status_code=400, detail="Nome de arquivo inválido.")
 
     spec_path = os.path.join(_sdd_spec_dir(project), filename)
@@ -4813,8 +4851,8 @@ def save_sdd_spec(
     _ = Depends(get_api_key)
 ):
     """Cria ou atualiza um REQ em .documents/spec, preservando edição legada quando aplicável."""
-    filename = os.path.basename(req.filename.strip())
-    if not filename or ".." in filename or "/" in filename or "\\" in filename or not filename.endswith(".md"):
+    filename = req.filename.strip().replace("\\", "/")
+    if not filename or ".." in filename or not filename.endswith(".md"):
         raise HTTPException(status_code=400, detail="Nome de arquivo inválido. Deve terminar com .md")
 
     spec_dir = _sdd_spec_dir(project, create=True)
@@ -4902,21 +4940,23 @@ def generate_sdd_spec(
     if not api_key:
         raise HTTPException(status_code=400, detail="Chave de API da LLM não configurada no Agente IA.")
         
+    is_rf = req.kind == "rf"
+    doc_type = "Requisito Funcional (RF)" if is_rf else "Macro Requisito (REQ Pai)"
+    req_id = req.parent_id if is_rf and req.parent_id else "REQ-01"
+    template_to_use = _sdd_rf_template("RF-01-01", req_id, "[Título]") if is_rf else _sdd_req_pai_template("REQ-01", "[Título]")
+    folder_context = f"REQ-01-nome/functional-requirements/RF-01-01-nome.md" if is_rf else f"REQ-01-nome/REQ-01.md"
+    
     system_prompt = (
-        "Você é um Product Engineer especialista em Harness Engineering.\n"
-        "Sua tarefa é gerar SOMENTE o documento Specify de um REQ funcional individual.\n"
+        f"Você é um Product Engineer especialista em Harness Engineering.\n"
+        f"Sua tarefa é gerar SOMENTE o documento {doc_type}.\n"
         "Você DEVE retornar a resposta formatada estritamente como um objeto JSON estruturado contendo:\n"
-        "1. \"title\": O título da funcionalidade.\n"
-        "2. \"filename\": nome seguro em snake_case terminando em .md.\n"
-        "3. \"markdown\": o arquivo Markdown do REQ.\n\n"
-        "REGRA INQUEBRÁVEL: o Markdown deve conter APENAS Specify. É proibido gerar qualquer seção Design, Planejamento, DRI, Task List, Tasks, Tarefas, Execute ou Implementação.\n"
-        "Design fica em .documents/design/design.md. DRI fica em .documents/dri/dri.md. Tasks ficam exclusivamente em .documents/task/task.md. O plano detalhado da task atual fica exclusivamente em .documents/task/task.details.md.\n\n"
-        "Use obrigatoriamente o template completo abaixo como estrutura mínima. Não resuma, não remova seções e não troque nomes de seções:\n\n"
-        f"{_sdd_req_template('REQ-0000', '[Título / Resumo]')}\n\n"
-        "Em Critérios de Aceite, use checklist Markdown '- [ ]'. Esses itens são critérios funcionais, NÃO tarefas técnicas.\n"
-        "Em Rastreabilidade, informe que tarefas técnicas devem ser registradas separadamente em .documents/task/task.md, sem listar tarefas neste REQ.\n"
-        "Não use termos genéricos como 'atualizar schema' ou 'usar biblioteca de popup' sem evidência no prompt; mantenha o requisito funcional e verificável.\n\n"
-        "Retorne estritamente um objeto JSON. Não adicione tags de bloco ```json ou outro texto fora do JSON."
+        "1. \"title\": O título.\n"
+        f"2. \"filename\": nome seguro com caminho relativo: ex: {folder_context}\n"
+        f"3. \"markdown\": o arquivo Markdown gerado.\n\n"
+        "Use obrigatoriamente o template abaixo:\n\n"
+        f"{template_to_use}\n\n"
+        "Em Critérios de Aceite, use checklist Markdown '- [ ]'.\n"
+        "Retorne estritamente um JSON."
     )
     
     messages = [
@@ -4928,27 +4968,15 @@ def generate_sdd_spec(
         parsed = agent.extract_json(raw_resp)
         
         title = parsed.get("title", req.title or "Especificação Gerada")
-        filename = parsed.get("filename", "spec.md")
+        filename = parsed.get("filename", "spec.md").replace("\\", "/")
         if not filename.endswith(".md"):
             filename += ".md"
             
-        # Limpa o filename contra caminhos maliciosos
-        filename = os.path.basename(filename)
-        
-        markdown_content = _sdd_strip_forbidden_req_sections(parsed.get("markdown", ""))
+        markdown_content = parsed.get("markdown", "")
         if not markdown_content:
-            raise HTTPException(status_code=500, detail="A IA não retornou um Specify válido para o REQ.")
+            raise HTTPException(status_code=500, detail="A IA não retornou um documento válido.")
         required_sections = [
-            "### 1.1 Identificação e Metadados Básicos",
-            "### 1.2 Contexto",
-            "### 1.3 Objetivo Funcional",
-            "### 1.4 Descrição do Requisito",
-            "### 1.5 História de Usuário",
-            "### 1.6 Regras de Negócio",
-            "### 1.7 Restrições e Premissas",
-            "### 1.8 Fora do Escopo",
-            "### 1.9 Critérios de Aceite",
-            "### 1.10 Rastreabilidade Funcional",
+            "## 1. Identificação",
         ]
         missing_sections = [section for section in required_sections if section not in markdown_content]
         if missing_sections:
@@ -4956,6 +4984,7 @@ def generate_sdd_spec(
         
         specs_dir = _sdd_spec_dir(project, create=True)
         spec_path = os.path.join(specs_dir, filename)
+        os.makedirs(os.path.dirname(spec_path), exist_ok=True)
         
         with open(spec_path, "w", encoding="utf-8") as f:
             f.write(markdown_content)
@@ -4980,11 +5009,11 @@ def generate_sdd_spec(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro ao gerar especificação por IA: {str(e)}")
 
-@app.get("/api/projects/{project_id}/sdd/specs/{filename}/criteria", tags=["Spec-Driven Development"])
+@app.get("/api/projects/{project_id}/sdd/specs/{filename:path}/criteria", tags=["Spec-Driven Development"])
 def get_sdd_spec_criteria(filename: str, project: Project = Depends(get_project_or_404)):
     """Extrai tarefas exclusivamente do task.md vivo do projeto."""
-    filename = os.path.basename(filename.strip())
-    if not filename or ".." in filename or "/" in filename or "\\" in filename:
+    filename = filename.strip()
+    if not filename or ".." in filename:
         raise HTTPException(status_code=400, detail="Nome de arquivo inválido.")
 
     task_path = _sdd_project_document_path(project, "task")

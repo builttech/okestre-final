@@ -9551,19 +9551,69 @@ function sddRenderSpecList(specs) {
         if (window.lucide) lucide.createIcons();
         return;
     }
-    list.innerHTML = specs.map(spec => {
-        const storageLabel = spec.storage_type === 'project_spec_file' ? '.documents/spec' : 'legado';
+
+    // Group specs by parent REQ
+    const groupedSpecs = {};
+    const standaloneSpecs = [];
+
+    specs.forEach(spec => {
+        // match REQ-XX from filename or folder
+        const match = spec.filename.match(/^(REQ-\d+)/);
+        if (match) {
+            const reqId = match[1];
+            if (!groupedSpecs[reqId]) {
+                groupedSpecs[reqId] = { req: null, rfs: [] };
+            }
+            if (spec.filename.includes('functional-requirements')) {
+                groupedSpecs[reqId].rfs.push(spec);
+            } else {
+                if (!groupedSpecs[reqId].req) {
+                    groupedSpecs[reqId].req = spec;
+                } else {
+                    standaloneSpecs.push(spec);
+                }
+            }
+        } else {
+            standaloneSpecs.push(spec);
+        }
+    });
+
+    let html = '';
+
+    const renderSpecItem = (spec, isChild = false) => {
+        const storageLabel = spec.storage_type === 'project_spec_file' ? '.documents/req' : 'legado';
+        const indentClass = isChild ? 'style="margin-left: 20px; border-left: 2px solid var(--border-color);"' : '';
+        const icon = isChild ? 'file-code' : 'file-text';
         return `
         <div class="spec-item ${sddState.activeFilename === spec.filename ? 'active' : ''}" 
              data-filename="${spec.filename}" 
-             onclick="sddSelectSpec('${spec.filename}')">
-            <i data-lucide="file-text" style="width:15px;height:15px;flex-shrink:0;"></i>
+             onclick="sddSelectSpec('${spec.filename}')"
+             ${indentClass}>
+            <i data-lucide="${icon}" style="width:15px;height:15px;flex-shrink:0;"></i>
             <div style="flex:1;min-width:0;">
                 <div class="spec-item-title" title="${spec.title}">${spec.title}</div>
-                <div class="spec-item-meta">${storageLabel} &middot; ${spec.filepath || spec.filename} &middot; ${new Date(spec.modified_at).toLocaleDateString('pt-BR')}</div>
+                <div class="spec-item-meta">${spec.filepath || spec.filename}</div>
             </div>
         </div>`;
-    }).join('');
+    };
+
+    Object.keys(groupedSpecs).sort().forEach(reqId => {
+        const group = groupedSpecs[reqId];
+        if (group.req) {
+            html += renderSpecItem(group.req);
+        } else {
+            html += `<div class="spec-item-title" style="padding: 8px 12px; color: var(--text-secondary); font-size: 0.8rem; text-transform: uppercase;">Grupo ${reqId} (REQ Pai Ausente)</div>`;
+        }
+        group.rfs.sort((a, b) => a.filename.localeCompare(b.filename)).forEach(rf => {
+            html += renderSpecItem(rf, true);
+        });
+    });
+
+    standaloneSpecs.forEach(spec => {
+        html += renderSpecItem(spec);
+    });
+
+    list.innerHTML = html;
     if (window.lucide) lucide.createIcons();
 }
 
@@ -10441,13 +10491,29 @@ function sddGenerateRequirementId() {
     return `REQ-${String(next).padStart(4, '0')}`;
 }
 
-function sddBuildUniqueRequirementFilename(id, title) {
-    const base = `${id.toLowerCase()}_${sddSlugify(title)}`;
+function sddBuildUniqueRequirementFilename(id, title, kind = 'req', parentId = null) {
+    const slug = sddSlugify(title);
+    
+    let baseFilename = '';
+    let folderPath = '';
+    
+    if (kind === 'rf') {
+        const pId = parentId || 'REQ-XX';
+        const pSlug = pId.toLowerCase(); // simplified
+        folderPath = `${pSlug}/functional-requirements/`;
+        baseFilename = `${id.toLowerCase()}_${slug}`;
+    } else {
+        const reqSlug = `${id.toLowerCase()}_${slug}`;
+        folderPath = `${reqSlug}/`;
+        baseFilename = reqSlug;
+    }
+    
     const existing = new Set((sddState.specs || []).map(spec => (spec.filename || '').toLowerCase()));
-    let filename = `${base}.md`;
+    
+    let filename = `${folderPath}${baseFilename}.md`;
     let suffix = 2;
     while (existing.has(filename.toLowerCase())) {
-        filename = `${base}_${suffix}.md`;
+        filename = `${folderPath}${baseFilename}_${suffix}.md`;
         suffix += 1;
     }
     return filename;
@@ -10620,80 +10686,80 @@ Descreva o propósito da tela, quais dados ou decisões ela sustenta, qual resul
 `;
 }
 
-function sddBuildRequirementTemplate({ id, title, owner }) {
-    const attribution = owner || 'Autor: \nResponsável atual: ';
-    return `# ${id} - ${title}
+function sddBuildRequirementTemplate({ id, title, owner, kind = 'req', parentId = null }) {
+    if (kind === 'rf') {
+        const pId = parentId || 'REQ-XX';
+        return `# ${id} — ${title}\n
+## 1. Identificação\n
+| Campo | Valor |
+|---|---|
+| ID | ${id} |
+| REQ Pai | ${pId} |
+| Título | ${title} |
+| Tipo | Requisito funcional |
+| Prioridade | Alta |
+| Status | Detalhado |\n
+## 2. Objetivo\n
+Objetivo específico deste fluxo.\n
+## 3. Descrição Funcional\n
+Descrição detalhada de como o fluxo funciona.\n
+## 4. História do Usuário\n
+Como [usuário], quero [ação], para que [benefício].\n
+## 5. Regras de Negócio\n
+| ID | Regra |
+|---|---|
+| RN-${id}-01 | Regra específica 1 |\n
+## 6. Dados Necessários\n
+| Campo | Tipo | Obrigatório | Descrição |
+|---|---|---|---|
+| campo_exemplo | string | Sim | Descrição do dado |\n
+## 7. Critérios de Aceite\n
+- [ ] Critério de aceite específico 1.\n
+## 8. Fora do Escopo\n
+- Item fora do escopo deste RF.\n
+## 9. Próximo Artefato\n
+| Tipo | Arquivo |
+|---|---|
+| DRI | ../dri/DRI-${id}.md |
+| Task List | ../task-lists/TASKLIST-${id}.md |\n`;
+    }
 
-## 1. Specify - Especificação
-
-### 1. Identificação e Metadados Básicos
-
-**ID Único:** ${id}
-
-**Título / Resumo:** ${title}
-
-**Atribuição:** ${attribution}
-
-### 2. O Coração do Requisito (O "Quê")
-
-**Descrição:** O sistema deve permitir que...
-
-**História de Usuário:**
-
-Como um [tipo de usuário], eu quero [ação/funcionalidade], para que [valor/benefício].
-
-**Critérios de Aceite:**
-
-- [ ] **Dado que** [contexto inicial], **quando** [ação do usuário ocorre], **então** [resultado esperado no sistema].
-- [ ] **Dado que** [contexto inicial], **quando** [ação do usuário ocorre], **então** [resultado esperado no sistema].
-
-### 3. Rastreabilidade
-
-**Links Ascendentes (Pais):**
-
-- TAP: .documents/project-charter.md
-- Design vivo: .documents/design/design.md
-- DRI vivo: .documents/dri/dri.md
-- Task List viva: .documents/task/task.md
-- Task Details vivo: .documents/task/task.details.md
-
-**Links Descendentes (Filhos):**
-
-- Tarefas relacionadas devem ser registradas em .documents/task/task.md.
-- O plano detalhado da task atual deve ser registrado em .documents/task/task.details.md.
-
-**Código e Deploy:**
-
-- Commits:
-- Pull Requests:
-- Pipelines:
-
-**Casos de Teste (Test Cases):**
-
-- Testes de QA:
-
-### 4. Gestão e Planejamento
-
-**Prioridade:** P2
-
-**Status (Workflow):** Novo
-
-**Estimativa / Esforço:** A definir
-
-**Iteração / Release:** A definir
-
-### 5. Contexto Adicional
-
-**Anexos:**
-
-- Mockups:
-- Diagramas:
-- Planilhas:
-
-**Trilha de Auditoria e Comentários:**
-
-- Criado no Act IA Harness Engineering em .documents/spec/${id}.md.
-`;
+    return `# ${id} — ${title}\n
+## 1. Identificação\n
+| Campo | Valor |
+|---|---|
+| ID | ${id} |
+| Título | ${title} |
+| Projeto | A definir |
+| Tipo | Requisito Macro |
+| Prioridade | Alta |
+| Status | Levantado |
+| Fonte | .documents/project-charter.md |\n
+## 2. Objetivo\n
+Descreva o objetivo macro da funcionalidade.\n
+## 3. Escopo Macro\n
+- Escopo 1
+- Escopo 2\n
+## 4. Requisitos Funcionais Vinculados\n
+| ID | Requisito Funcional | Arquivo | Status |
+|---|---|---|---|
+| RF-01-01 | Primeiro fluxo de ${title} | functional-requirements/RF-01-01.md | Levantado |\n
+## 5. Fontes de Dados\n
+| ID | Fonte | Uso no processo |
+|---|---|---|
+| FD-01-01 | Banco de Dados / API | Descrição |\n
+## 6. Regras Gerais\n
+| ID | Regra |
+|---|---|
+| RN-01-01 | Regra macro 1 |\n
+## 7. Critérios de Aceite Macro\n
+- [ ] Critério 1.\n
+## 8. Fora do Escopo\n
+- Item fora do escopo.\n
+## 9. Rastreabilidade\n
+| Origem | Referência |
+|---|---|
+| TAP | .documents/project-charter.md |\n`;
 }
 
 async function sddOpenNewRequirementModal() {
@@ -10716,7 +10782,19 @@ async function sddOpenNewRequirementModal() {
 }
 
 async function sddCreateRequirementFromModal() {
-    const id = document.getElementById('sdd-new-requirement-id')?.value.trim() || sddGenerateRequirementId();
+    const kind = document.getElementById('sdd-new-requirement-kind')?.value || 'req';
+    let parentId = document.getElementById('sdd-new-requirement-parent-id')?.value.trim();
+    
+    if (kind === 'rf' && !parentId) {
+        gitideNotify({ title: 'REQ Pai obrigatório', message: 'Informe o ID do REQ Pai.', variant: 'warning' });
+        return;
+    }
+    
+    let id = document.getElementById('sdd-new-requirement-id')?.value.trim();
+    if (!id) {
+        id = kind === 'rf' ? `RF-${parentId.replace('REQ-','')}-01` : sddGenerateRequirementId();
+    }
+    
     const title = document.getElementById('sdd-new-requirement-title')?.value.trim();
     const owner = document.getElementById('sdd-new-requirement-author')?.value.trim();
     if (!title) {
@@ -10731,10 +10809,10 @@ async function sddCreateRequirementFromModal() {
     sddState.isDraft = true;
     await sddLoadProjectDocuments();
     document.getElementById('sdd-workspace-nav-tabs').style.display = 'flex';
-    const filename = sddBuildUniqueRequirementFilename(id, title);
+    const filename = sddBuildUniqueRequirementFilename(id, title, kind, parentId);
     sddSetActiveSpecHeader({ title: `${id} - ${title}`, filename });
     document.getElementById('sdd-edit-filename').value = filename;
-    const template = sddBuildRequirementTemplate({ id, title, owner });
+    const template = sddBuildRequirementTemplate({ id, title, owner, kind, parentId });
     sddState.activeContent = template;
     document.getElementById('sdd-spec-editor-textarea').value = template;
     sddPopulateStageEditors(template);
@@ -10750,8 +10828,15 @@ async function sddCreateRequirementFromModal() {
 async function sddGenerateSpecIA() {
     const title = document.getElementById('sdd-wizard-title').value.trim();
     const prompt = document.getElementById('sdd-wizard-prompt').value.trim();
+    const kind = document.getElementById('sdd-wizard-kind')?.value || 'req';
+    const parent_id = document.getElementById('sdd-wizard-parent-id')?.value.trim();
+
     if (!prompt) {
         alert('Por favor, descreva as funcionalidades para gerar a especificação.');
+        return;
+    }
+    if (kind === 'rf' && !parent_id) {
+        alert('Por favor, informe o ID do REQ Pai para gerar um Requisito Funcional.');
         return;
     }
     if (!state.activeProjectId) {
@@ -10766,7 +10851,7 @@ async function sddGenerateSpecIA() {
         const res = await fetch(`/api/projects/${state.activeProjectId}/sdd/generate-spec`, {
             method: 'POST',
             headers: { ...getHeaders(), 'Content-Type': 'application/json' },
-            body: JSON.stringify({ title, prompt })
+            body: JSON.stringify({ title, prompt, kind, parent_id })
         });
         const data = await res.json();
         const generatedContent = data.content !== undefined ? data.content : data.markdown;
