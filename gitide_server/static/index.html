@@ -38,13 +38,14 @@
         .CodeMirror {
             font-family: var(--font-mono);
             font-size: 14px;
+            position: absolute !important;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
             height: 100% !important;
-            flex: 1;
-        }
-        .editor-container {
-            display: flex;
-            flex-direction: column;
-            flex: 1;
+            width: 100% !important;
+            z-index: 10;
         }
     </style>
 </head>
