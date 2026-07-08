@@ -5995,9 +5995,9 @@ async def discovery_upload(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro na conversão: {str(e)}")
         
-    # Clean up base64 images
+    # Clean up base64 images (including MarkItDown's truncated ones)
     import re
-    text_content = re.sub(r'!\[([^\]]*)\]\(data:image\/[^;]+;base64,[^\)]+\)', r'![\1](<imagem-base64-removida>)', result.text_content)
+    text_content = re.sub(r'!\[([^\]]*)\]\(data:image\/[^;]+;base64[^\)]+\)', r'![\1](<imagem-base64-removida>)', result.text_content)
     
     # Save output
     basename = os.path.splitext(file.filename)[0]
