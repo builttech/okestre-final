@@ -135,13 +135,84 @@ def generate_docx(project_path: str, title: str, sections: list, filename: str =
     meta_p.paragraph_format.space_after = Pt(20)
     
     # --- SEÇÕES ---
+    processed_sections = []
     for sec in sections:
+        sec_type = sec.get("type", "paragraph").strip().lower()
+        if sec_type == "paragraph":
+            heading = sec.get("heading", "").strip()
+            if heading:
+                processed_sections.append({"type": "paragraph", "heading": heading, "text": ""})
+            
+            body = sec.get("text", "").strip()
+            if not body:
+                continue
+                
+            lines = body.split('\n')
+            current_block = []
+            block_type = "text"
+            
+            def flush_block():
+                if not current_block: return
+                text = "\n".join(current_block).strip()
+                if text:
+                    if block_type == "table":
+                        processed_sections.append({"type": "table", "text": text})
+                    elif block_type == "quote":
+                        clean = "\n".join(l.lstrip('> ').strip() for l in current_block)
+                        processed_sections.append({"type": "highlight", "text": clean})
+                    elif block_type == "hr":
+                        processed_sections.append({"type": "hr", "text": ""})
+                    else:
+                        processed_sections.append({"type": "paragraph", "text": text})
+                current_block.clear()
+                
+            for line in lines:
+                sline = line.strip()
+                if sline.startswith('---') and len(sline) >= 3 and sline.count('-') == len(sline):
+                    flush_block()
+                    block_type = "hr"
+                    current_block.append(sline)
+                    flush_block()
+                    block_type = "text"
+                elif sline.startswith('|') and sline.endswith('|'):
+                    if block_type != "table": 
+                        flush_block()
+                        block_type = "table"
+                    current_block.append(sline)
+                elif sline.startswith('>'):
+                    if block_type != "quote": 
+                        flush_block()
+                        block_type = "quote"
+                    current_block.append(sline)
+                elif sline.startswith('#'):
+                    flush_block()
+                    block_type = "heading"
+                    current_block.append(sline)
+                    flush_block()
+                    block_type = "text"
+                elif sline == "":
+                    flush_block()
+                    block_type = "text"
+                else:
+                    if block_type != "text": 
+                        flush_block()
+                        block_type = "text"
+                    current_block.append(sline)
+            flush_block()
+        else:
+            processed_sections.append(sec)
+
+    for sec in processed_sections:
         heading_text = sec.get("heading", "").strip()
         body_text = sec.get("text", "").strip()
         sec_type = sec.get("type", "paragraph").strip().lower()
 
         if sec_type == "page_break":
             doc.add_page_break()
+            continue
+            
+        elif sec_type == "hr":
+            doc.add_paragraph().paragraph_format.space_after = Pt(16)
             continue
         
         # 1. Adiciona título da seção se houver
