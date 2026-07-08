@@ -5990,14 +5990,44 @@ async def discovery_upload(
                 md = MarkItDown()
     except Exception:
         md = MarkItDown()
+        client = None
+        model = None
     try:
-        result = md.convert(original_path)
+        # Pede para não truncar as imagens para podermos enviá-las ao LLM
+        result = md.convert(original_path, keep_data_uris=True)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro na conversão: {str(e)}")
         
-    # Clean up base64 images (including MarkItDown's truncated ones)
     import re
-    text_content = re.sub(r'!\[([^\]]*)\]\(data:image\/[^;]+;base64[^\)]+\)', r'![\1](<imagem-base64-removida>)', result.text_content)
+    if 'client' in locals() and client:
+        def replace_with_llm(match):
+            data_uri = match.group(0)
+            uri_match = re.search(r'data:image\/[^;]+;base64,[a-zA-Z0-9+/=]+', data_uri)
+            if not uri_match:
+                return "<imagem-truncada-removida>"
+            uri_full = uri_match.group(0)
+            try:
+                resp = client.chat.completions.create(
+                    model=model if provider == "ollama" else "gpt-4o",
+                    messages=[
+                        {
+                            "role": "user",
+                            "content": [
+                                {"type": "text", "text": "Descreva o conteúdo desta imagem ou extraia o texto presente nela em Markdown. Se for um fluxograma, descreva o fluxo."},
+                                {"type": "image_url", "image_url": {"url": uri_full}}
+                            ]
+                        }
+                    ]
+                )
+                return resp.choices[0].message.content
+            except Exception:
+                return "<erro-ao-extrair-imagem>"
+        
+        text_content = re.sub(r'!\[([^\]]*)\]\(data:image\/[^;]+;base64,[^\)]+\)', replace_with_llm, result.text_content)
+        text_content = re.sub(r'!\[([^\]]*)\]\(data:image\/[^;]+;base64[^\)]+\)', r'![\1](<imagem-truncada-removida>)', text_content)
+    else:
+        text_content = re.sub(r'!\[([^\]]*)\]\(data:image\/[^;]+;base64[^\)]+\)', r'![\1](<imagem-base64-removida>)', result.text_content)
+    
     
     # Save output
     basename = os.path.splitext(file.filename)[0]
@@ -6041,13 +6071,47 @@ def discovery_url(
                 md = MarkItDown()
     except Exception:
         md = MarkItDown()
+        client = None
+        model = None
     try:
-        result = md.convert(payload.url)
+        result = md.convert(payload.url, keep_data_uris=True)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro na extração da URL: {str(e)}")
         
     # Create a filename based on URL hash
     url_hash = hashlib.md5(payload.url.encode()).hexdigest()[:8]
+    
+    import re
+    if 'client' in locals() and client:
+        def replace_with_llm(match):
+            data_uri = match.group(0)
+            uri_match = re.search(r'data:image\/[^;]+;base64,[a-zA-Z0-9+/=]+', data_uri)
+            if not uri_match:
+                return "<imagem-truncada-removida>"
+            uri_full = uri_match.group(0)
+            try:
+                resp = client.chat.completions.create(
+                    model=model if provider == "ollama" else "gpt-4o",
+                    messages=[
+                        {
+                            "role": "user",
+                            "content": [
+                                {"type": "text", "text": "Descreva o conteúdo desta imagem ou extraia o texto presente nela em Markdown. Se for um fluxograma, descreva o fluxo."},
+                                {"type": "image_url", "image_url": {"url": uri_full}}
+                            ]
+                        }
+                    ]
+                )
+                return resp.choices[0].message.content
+            except Exception:
+                return "<erro-ao-extrair-imagem>"
+        
+        text_content = re.sub(r'!\[([^\]]*)\]\(data:image\/[^;]+;base64,[^\)]+\)', replace_with_llm, result.text_content)
+        text_content = re.sub(r'!\[([^\]]*)\]\(data:image\/[^;]+;base64[^\)]+\)', r'![\1](<imagem-truncada-removida>)', text_content)
+    else:
+        text_content = re.sub(r'!\[([^\]]*)\]\(data:image\/[^;]+;base64[^\)]+\)', r'![\1](<imagem-base64-removida>)', result.text_content)
+        
+    content = f"# Fonte: {payload.url}\n\n{text_content}"
     out_filename = f"url_{url_hash}.md"
     out_path = os.path.join(saida_dir, out_filename)
     
