@@ -6024,7 +6024,7 @@ async def discovery_upload(
                 import traceback
                 traceback.print_exc()
                 print(f"Erro LLM: {e}")
-                return "<erro-ao-extrair-imagem>"
+                return f"<erro-ao-extrair-imagem: {str(e)}>"
         
         text_content = re.sub(r'!\[([^\]]*)\]\(data:image\/[^;]+;base64,[^\)]+\)', replace_with_llm, result.text_content)
         text_content = re.sub(r'!\[([^\]]*)\]\(data:image\/[^;]+;base64[^\)]+\)', r'![\1](<imagem-truncada-removida>)', text_content)
@@ -6110,7 +6110,7 @@ def discovery_url(
                 import traceback
                 traceback.print_exc()
                 print(f"Erro LLM: {e}")
-                return "<erro-ao-extrair-imagem>"
+                return f"<erro-ao-extrair-imagem: {str(e)}>"
         
         text_content = re.sub(r'!\[([^\]]*)\]\(data:image\/[^;]+;base64,[^\)]+\)', replace_with_llm, result.text_content)
         text_content = re.sub(r'!\[([^\]]*)\]\(data:image\/[^;]+;base64[^\)]+\)', r'![\1](<imagem-truncada-removida>)', text_content)
