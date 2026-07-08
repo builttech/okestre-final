@@ -290,7 +290,10 @@ def call_llm(provider: str, model: str, api_key: str, messages: list, system_pro
             },
             "keep_alive": "10m"
         }
-        res = requests.post(f"{base_url}/api/chat", json=payload, timeout=120)
+        headers = {}
+        if api_key:
+            headers["Authorization"] = f"Bearer {api_key}"
+        res = requests.post(f"{base_url}/api/chat", json=payload, headers=headers, timeout=120)
         res.raise_for_status()
         data = res.json()
         return data.get("message", {}).get("content", "")
