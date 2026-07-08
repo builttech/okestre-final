@@ -5965,15 +5965,23 @@ async def discovery_upload(
         
     # Convert
     config = agent.load_agent_config()
-    api_key = config.get("api_key")
-    if api_key:
-        try:
-            from openai import OpenAI
-            client = OpenAI(api_key=api_key)
-            md = MarkItDown(llm_client=client, llm_model="gpt-4o")
-        except Exception:
-            md = MarkItDown()
-    else:
+    provider = config.get("provider", "openai")
+    
+    try:
+        from openai import OpenAI
+        if provider == "ollama":
+            base_url = config.get("ollama_base_url", "http://127.0.0.1:11434")
+            model = config.get("model", "llava")
+            client = OpenAI(base_url=f"{base_url}/v1", api_key="ollama")
+            md = MarkItDown(llm_client=client, llm_model=model)
+        else:
+            api_key = config.get("api_key")
+            if api_key:
+                client = OpenAI(api_key=api_key)
+                md = MarkItDown(llm_client=client, llm_model="gpt-4o")
+            else:
+                md = MarkItDown()
+    except Exception:
         md = MarkItDown()
     try:
         result = md.convert(original_path)
@@ -6007,15 +6015,23 @@ def discovery_url(
     entrega_dir, saida_dir = _ensure_discovery_dirs(project)
     
     config = agent.load_agent_config()
-    api_key = config.get("api_key")
-    if api_key:
-        try:
-            from openai import OpenAI
-            client = OpenAI(api_key=api_key)
-            md = MarkItDown(llm_client=client, llm_model="gpt-4o")
-        except Exception:
-            md = MarkItDown()
-    else:
+    provider = config.get("provider", "openai")
+    
+    try:
+        from openai import OpenAI
+        if provider == "ollama":
+            base_url = config.get("ollama_base_url", "http://127.0.0.1:11434")
+            model = config.get("model", "llava")
+            client = OpenAI(base_url=f"{base_url}/v1", api_key="ollama")
+            md = MarkItDown(llm_client=client, llm_model=model)
+        else:
+            api_key = config.get("api_key")
+            if api_key:
+                client = OpenAI(api_key=api_key)
+                md = MarkItDown(llm_client=client, llm_model="gpt-4o")
+            else:
+                md = MarkItDown()
+    except Exception:
         md = MarkItDown()
     try:
         result = md.convert(payload.url)
