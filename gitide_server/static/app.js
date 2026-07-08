@@ -9658,7 +9658,7 @@ function sddExtractTitle(content) {
 }
 
 function sddExtractRequirementId(value) {
-    const match = (value || '').match(/\bREQ[-_ ]?(\d{3,6})\b/i);
+    const match = (value || '').match(/\bREQ[-_ ]?(\d{3,6})/i);
     return match ? `REQ-${match[1]}` : '';
 }
 
@@ -9930,7 +9930,7 @@ function sddExtractActiveReqCode() {
         sddState.activeFilepath || '',
         sddState.activeContent || ''
     ].join('\n');
-    const match = source.match(/\bREQ-\d{2,6}\b/i);
+    const match = source.match(/\bREQ-\d{2,6}/i);
     return match ? match[0].toUpperCase() : '';
 }
 
@@ -10485,7 +10485,7 @@ function sddGenerateRequirementId() {
         sddState.activeContent || ''
     ];
     const usedNumbers = sources
-        .map(source => String(source || '').match(/\bREQ[-_ ]?(\d{3,6})\b/i))
+        .map(source => String(source || '').match(/\bREQ[-_ ]?(\d{3,6})/i))
         .filter(Boolean)
         .map(match => Number(match[1]))
         .filter(Number.isFinite);
@@ -10768,7 +10768,7 @@ Descreva o objetivo macro da funcionalidade.\n
 function sddGenerateRfId(parentId) {
     if (!parentId) return 'RF-XX-01';
     const parentNum = parentId.replace('REQ-', '');
-    const rfPattern = new RegExp(`\\bRF-${parentNum}-(\\d{2,4})\\b`, 'i');
+    const rfPattern = new RegExp(`\\bRF-${parentNum}-(\\d{2,4})`, 'i');
     
     const sources = [
         ...(sddState.specs || []).map(spec => `${spec.filename || ''} ${spec.title || ''}`),
