@@ -9804,10 +9804,28 @@ function sddPopulateStageEditors(content) {
     if (driEditor) driEditor.value = dri || '# DRI — Documento de Requisito de Interface do Projeto\n\n## 1. Interfaces Mapeadas\n\n## 2. Regras de Interface\n\n## 3. Critérios de Aceite da Interface\n\n- [ ] \n';
     if (fullEditor) fullEditor.value = content;
     const empty = document.getElementById('sdd-empty-workspace');
+    const emptyRf = document.getElementById('sdd-empty-workspace-rf');
     const previewTab = document.getElementById('sdd-tab-preview');
+    const rfsTab = document.getElementById('sdd-tab-rfs');
+    
     const hasContent = Boolean(sddState.activeFilename || content);
+    const isRf = Boolean(sddState.activeFilename && sddState.activeFilename.includes('functional-requirements'));
+
     if (empty) empty.style.display = hasContent ? 'none' : 'flex';
     if (previewTab) previewTab.classList.toggle('has-content', hasContent);
+
+    if (emptyRf) {
+        emptyRf.style.display = isRf ? 'none' : 'flex';
+        const p = emptyRf.querySelector('p');
+        if (p) {
+            if (sddState.activeReqId) {
+                p.textContent = 'Selecione um RF na barra lateral ou clique em "+" para criar um novo.';
+            } else {
+                p.textContent = 'Selecione um REQ na barra lateral (aba 1 REQ) para habilitar a criação de seus RFs aqui.';
+            }
+        }
+    }
+    if (rfsTab) rfsTab.classList.toggle('has-content', isRf);
 }
 
 function sddPopulatePreview(content) {

@@ -6260,7 +6260,9 @@ input[type="checkbox"]:focus-visible{
 }
 
 #sdd-tab-preview:not(.has-content) .sdd-stage-main,
-#sdd-tab-preview:not(.has-content) .sdd-stage-aside {
+#sdd-tab-preview:not(.has-content) .sdd-stage-aside,
+#sdd-tab-rfs:not(.has-content) .sdd-stage-main,
+#sdd-tab-rfs:not(.has-content) .sdd-stage-aside {
     display: none;
 }
 
