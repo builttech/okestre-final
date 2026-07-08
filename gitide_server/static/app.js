@@ -9266,7 +9266,9 @@ const sddState = {
     executeTask: null,
     charterLoaded: false,
     charterProjectId: null,
-    isDraft: false
+    isDraft: false,
+    activeReqId: null,
+    activeTab: 'sdd-tab-preview'
 };
 
 function sddSetButtonLoading(button, loading, loadingText, defaultHtml) {
@@ -9552,43 +9554,13 @@ function sddRenderSpecList(specs) {
         return;
     }
 
-    // Group specs by parent REQ
-    const groupedSpecs = {};
-    const standaloneSpecs = [];
-
-    specs.forEach(spec => {
-        // match REQ-XX from filename or folder
-        const match = spec.filename.match(/^(REQ-\d+)/);
-        if (match) {
-            const reqId = match[1];
-            if (!groupedSpecs[reqId]) {
-                groupedSpecs[reqId] = { req: null, rfs: [] };
-            }
-            if (spec.filename.includes('functional-requirements')) {
-                groupedSpecs[reqId].rfs.push(spec);
-            } else {
-                if (!groupedSpecs[reqId].req) {
-                    groupedSpecs[reqId].req = spec;
-                } else {
-                    standaloneSpecs.push(spec);
-                }
-            }
-        } else {
-            standaloneSpecs.push(spec);
-        }
-    });
-
     let html = '';
-
     const renderSpecItem = (spec, isChild = false) => {
-        const storageLabel = spec.storage_type === 'project_spec_file' ? '.documents/req' : 'legado';
-        const indentClass = isChild ? 'style="margin-left: 20px; border-left: 2px solid var(--border-color);"' : '';
         const icon = isChild ? 'file-code' : 'file-text';
         return `
         <div class="spec-item ${sddState.activeFilename === spec.filename ? 'active' : ''}" 
              data-filename="${spec.filename}" 
-             onclick="sddSelectSpec('${spec.filename}')"
-             ${indentClass}>
+             onclick="sddSelectSpec('${spec.filename}')">
             <i data-lucide="${icon}" style="width:15px;height:15px;flex-shrink:0;"></i>
             <div style="flex:1;min-width:0;">
                 <div class="spec-item-title" title="${spec.title}">${spec.title}</div>
@@ -9597,21 +9569,30 @@ function sddRenderSpecList(specs) {
         </div>`;
     };
 
-    Object.keys(groupedSpecs).sort().forEach(reqId => {
-        const group = groupedSpecs[reqId];
-        if (group.req) {
-            html += renderSpecItem(group.req);
+    if (sddState.activeTab === 'sdd-tab-preview') {
+        // Aba 1 REQ: Mostrar apenas REQs Pai
+        const reqs = specs.filter(s => !s.filename.includes('functional-requirements'));
+        if (reqs.length === 0) {
+            html = `<div class="specs-empty-state"><span>Nenhum REQ Pai encontrado.</span></div>`;
         } else {
-            html += `<div class="spec-item-title" style="padding: 8px 12px; color: var(--text-secondary); font-size: 0.8rem; text-transform: uppercase;">Grupo ${reqId} (REQ Pai Ausente)</div>`;
+            reqs.forEach(req => { html += renderSpecItem(req, false); });
         }
-        group.rfs.sort((a, b) => a.filename.localeCompare(b.filename)).forEach(rf => {
-            html += renderSpecItem(rf, true);
-        });
-    });
-
-    standaloneSpecs.forEach(spec => {
-        html += renderSpecItem(spec);
-    });
+    } else {
+        // Demais abas: Mostrar apenas RFs do REQ selecionado
+        if (!sddState.activeReqId) {
+            html = `<div class="specs-empty-state"><span>Selecione um REQ na aba 1 REQ primeiro.</span></div>`;
+        } else {
+            const reqId = sddState.activeReqId;
+            const rfs = specs.filter(s => s.filename.includes('functional-requirements') && s.filename.startsWith(reqId));
+            
+            html += `<div class="spec-item-title" style="padding: 8px 12px; color: var(--text-secondary); font-size: 0.8rem; text-transform: uppercase;">RFs de ${reqId}</div>`;
+            if (rfs.length === 0) {
+                html += `<div class="specs-empty-state"><span>Nenhum RF encontrado para ${reqId}.</span></div>`;
+            } else {
+                rfs.forEach(rf => { html += renderSpecItem(rf, true); });
+            }
+        }
+    }
 
     list.innerHTML = html;
     if (window.lucide) lucide.createIcons();
@@ -9636,17 +9617,30 @@ async function sddSelectSpec(filename) {
             sddLoadProjectDocuments()
         ]);
         const data = await specRes.json();
-        if (!specRes.ok) throw new Error(data.detail || 'Erro ao carregar REQ');
+        if (!specRes.ok) throw new Error(data.detail || 'Erro ao carregar Especificação');
         sddState.activeContent = data.content || '';
         sddState.activeStorageType = data.storage_type || 'legacy_markdown';
         sddState.activeFilepath = data.filepath || '';
         sddSetActiveSpecHeader({ filename, content: sddState.activeContent });
-
         sddPopulatePreview(sddState.activeContent);
-        document.getElementById('sdd-spec-editor-textarea').value = sddState.activeContent;
-        document.getElementById('sdd-edit-filename').value = filename;
 
-        sddSwitchTab('sdd-tab-preview');
+        // Extract activeReqId from the filename
+        const match = filename.match(/^(REQ-\d+)/);
+        if (match) {
+            sddState.activeReqId = match[1];
+        }
+
+        if (filename.includes('functional-requirements')) {
+            // It's an RF
+            document.getElementById('sdd-rf-editor').value = sddState.activeContent;
+            document.getElementById('sdd-edit-filename').value = filename;
+            sddSwitchTab('sdd-tab-rfs');
+        } else {
+            // It's a REQ Pai
+            document.getElementById('sdd-specify-editor').value = sddState.activeContent;
+            document.getElementById('sdd-edit-filename').value = filename;
+            sddSwitchTab('sdd-tab-preview');
+        }
 
         const checklistTab = document.getElementById('sdd-tab-checklist');
         if (checklistTab && checklistTab.classList.contains('active')) {
@@ -9825,6 +9819,7 @@ function sddPopulatePreview(content) {
 
 // --- Workspace Sub-tab Switching ---
 function sddSwitchTab(tabId) {
+    sddState.activeTab = tabId;
     document.querySelectorAll('.sdd-tab-content').forEach(t => t.classList.remove('active'));
     document.querySelectorAll('.sdd-nav-btn').forEach(b => b.classList.remove('active'));
     const tab = document.getElementById(tabId);
@@ -9832,6 +9827,9 @@ function sddSwitchTab(tabId) {
     const btn = document.querySelector(`[data-sdd-tab="${tabId}"]`);
     if (btn) btn.classList.add('active');
     sddUpdateFlowStrip(tabId);
+
+    // Re-render specs list dynamically based on the active tab
+    sddRenderSpecList(sddState.specs || []);
 
     // Load criteria when switching to checklist
     if (tabId === 'sdd-tab-checklist' && sddState.activeFilename) {
@@ -10393,27 +10391,32 @@ async function sddSaveStage(stage) {
         return;
     }
 
-    let content = sddState.activeContent || `# ${sddExtractTitle(specifyEditor?.value || '') || 'Nova Feature'}\n`;
+    let content = sddState.activeContent || `# ${sddExtractTitle(specifyEditor?.value || document.getElementById('sdd-rf-editor')?.value || '') || 'Nova Feature'}\n`;
     if (stage === 'specify') {
         content = isProjectSpec
             ? (specifyEditor?.value || '')
             : sddReplaceSection(content, ['Specify', 'Especificação', 'Requisitos'], '## 1. Specify - Especificação', specifyEditor?.value || '');
+        document.getElementById('sdd-spec-editor-textarea').value = content;
+    } else if (stage === 'rf') {
+        content = document.getElementById('sdd-rf-editor')?.value || '';
+        document.getElementById('sdd-spec-editor-textarea').value = content;
     }
 
     if (!isProjectSpec && stage === 'design') {
         content = sddReplaceSection(content, ['Design', 'Planejamento', 'Arquitetura'], '## 2. Design - Planejamento', designEditor?.value || '');
+        document.getElementById('sdd-spec-editor-textarea').value = content;
     }
 
     if (!isProjectSpec && stage === 'dri') {
         content = sddReplaceSection(content, ['DRI', 'Documento de Requisito de Interface', 'Requisito de Interface'], '## 3. DRI - Documento de Requisito de Interface', driEditor?.value || '');
+        document.getElementById('sdd-spec-editor-textarea').value = content;
     }
 
-    document.getElementById('sdd-spec-editor-textarea').value = content;
     if (filenameInput) filenameInput.value = filename;
     await sddSaveSpec();
     sddState.activeContent = content;
     sddPopulateStageEditors(content);
-    sddSwitchTab(stage === 'dri' ? 'sdd-tab-dri' : stage === 'design' ? 'sdd-tab-edit' : 'sdd-tab-preview');
+    sddSwitchTab(stage === 'dri' ? 'sdd-tab-dri' : stage === 'design' ? 'sdd-tab-edit' : stage === 'rf' ? 'sdd-tab-rfs' : 'sdd-tab-preview');
 }
 
 // --- Delete Spec ---
@@ -10782,11 +10785,16 @@ async function sddOpenNewRequirementModal() {
 }
 
 async function sddCreateRequirementFromModal() {
-    const kind = document.getElementById('sdd-new-requirement-kind')?.value || 'req';
-    let parentId = document.getElementById('sdd-new-requirement-parent-id')?.value.trim();
-    
+    let kind = 'req';
+    let parentId = null;
+
+    if (sddState.activeTab === 'sdd-tab-rfs' || sddState.activeTab === 'sdd-tab-edit' || sddState.activeTab === 'sdd-tab-dri' || sddState.activeTab === 'sdd-tab-checklist' || sddState.activeTab === 'sdd-tab-tests') {
+        kind = 'rf';
+        parentId = sddState.activeReqId;
+    }
+
     if (kind === 'rf' && !parentId) {
-        gitideNotify({ title: 'REQ Pai obrigatório', message: 'Informe o ID do REQ Pai.', variant: 'warning' });
+        gitideNotify({ title: 'REQ Pai obrigatório', message: 'Selecione um REQ na aba "1 REQ" primeiro.', variant: 'warning' });
         return;
     }
     
@@ -10814,39 +10822,51 @@ async function sddCreateRequirementFromModal() {
     document.getElementById('sdd-edit-filename').value = filename;
     const template = sddBuildRequirementTemplate({ id, title, owner, kind, parentId });
     sddState.activeContent = template;
-    document.getElementById('sdd-spec-editor-textarea').value = template;
-    sddPopulateStageEditors(template);
-    document.querySelectorAll('.sdd-nav-btn').forEach(b => b.classList.remove('active'));
-    document.querySelectorAll('.sdd-tab-content').forEach(t => t.classList.remove('active'));
-    sddSwitchTab('sdd-tab-preview');
+    
+    if (kind === 'rf') {
+        document.getElementById('sdd-rf-editor').value = template;
+        sddSwitchTab('sdd-tab-rfs');
+    } else {
+        document.getElementById('sdd-specify-editor').value = template;
+        sddPopulateStageEditors(template);
+        sddSwitchTab('sdd-tab-preview');
+    }
+
     // Remove sidebar active
     document.querySelectorAll('.spec-item').forEach(el => el.classList.remove('active'));
     closeCustomModal('modal-sdd-new-requirement');
 }
 
 // --- AI Spec Generation ---
-async function sddGenerateSpecIA() {
-    const title = document.getElementById('sdd-wizard-title').value.trim();
-    const prompt = document.getElementById('sdd-wizard-prompt').value.trim();
-    const kind = document.getElementById('sdd-wizard-kind')?.value || 'req';
-    const parent_id = document.getElementById('sdd-wizard-parent-id')?.value.trim();
+async function sddGenerateSpecIA(kind = 'req') {
+    const isRf = kind === 'rf';
+    const titleInputId = isRf ? 'sdd-wizard-rf-title' : 'sdd-wizard-title';
+    const promptInputId = isRf ? 'sdd-wizard-rf-prompt' : 'sdd-wizard-prompt';
+    const btnId = isRf ? 'btn-sdd-generate-rf-ia' : 'btn-sdd-generate-spec-ia';
+
+    const title = document.getElementById(titleInputId).value.trim();
+    const prompt = document.getElementById(promptInputId).value.trim();
+    const parent_id = isRf ? sddState.activeReqId : null;
 
     if (!prompt) {
         alert('Por favor, descreva as funcionalidades para gerar a especificação.');
         return;
     }
-    if (kind === 'rf' && !parent_id) {
-        alert('Por favor, informe o ID do REQ Pai para gerar um Requisito Funcional.');
+    if (isRf && !parent_id) {
+        alert('Por favor, selecione um REQ Pai primeiro na aba "1 REQ" antes de gerar um RF.');
         return;
     }
     if (!state.activeProjectId) {
         alert('Selecione um projeto primeiro.');
         return;
     }
-    const btn = document.getElementById('btn-sdd-generate-spec-ia');
-    btn.disabled = true;
-    btn.innerHTML = '<i data-lucide="loader-2" style="animation:spin 1s linear infinite;"></i> Gerando com IA...';
-    if (window.lucide) lucide.createIcons();
+
+    const btn = document.getElementById(btnId);
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i data-lucide="loader-2" style="animation:spin 1s linear infinite;"></i> Gerando com IA...';
+        if (window.lucide) lucide.createIcons();
+    }
     try {
         const res = await fetch(`/api/projects/${state.activeProjectId}/sdd/generate-spec`, {
             method: 'POST',
@@ -10859,18 +10879,33 @@ async function sddGenerateSpecIA() {
             sddState.activeFilename = data.filename;
             sddState.activeContent = generatedContent;
             sddState.activeStorageType = data.storage_type || 'project_spec_file';
-            sddState.activeFilepath = data.filepath || `.documents/spec/${data.filename}`;
+            sddState.activeFilepath = data.filepath || '';
             sddState.isDraft = false;
+            
+            // Extract activeReqId if REQ
+            if (kind === 'req') {
+                const match = data.filename.match(/^(REQ-\d+)/);
+                if (match) sddState.activeReqId = match[1];
+            }
+
             await sddLoadProjectDocuments();
             sddSetActiveSpecHeader({ title: data.title, filename: data.filename, content: generatedContent });
             document.getElementById('sdd-workspace-nav-tabs').style.display = 'flex';
             sddPopulatePreview(generatedContent);
-            document.getElementById('sdd-spec-editor-textarea').value = generatedContent;
-            document.getElementById('sdd-edit-filename').value = data.filename;
-            sddSwitchTab('sdd-tab-preview');
+            
+            if (isRf) {
+                document.getElementById('sdd-rf-editor').value = generatedContent;
+                document.getElementById('sdd-edit-filename').value = data.filename;
+                sddSwitchTab('sdd-tab-rfs');
+            } else {
+                document.getElementById('sdd-specify-editor').value = generatedContent;
+                document.getElementById('sdd-edit-filename').value = data.filename;
+                sddSwitchTab('sdd-tab-preview');
+            }
+
             // Clear wizard inputs
-            document.getElementById('sdd-wizard-title').value = '';
-            document.getElementById('sdd-wizard-prompt').value = '';
+            document.getElementById(titleInputId).value = '';
+            document.getElementById(promptInputId).value = '';
             await sddLoadSpecs(true);
         } else {
             alert('Erro ao gerar especificação: ' + (data.detail || JSON.stringify(data)));
@@ -10878,9 +10913,11 @@ async function sddGenerateSpecIA() {
     } catch (e) {
         alert('Erro na geração por IA: ' + e.message);
     } finally {
-        btn.disabled = false;
-        btn.innerHTML = '<i data-lucide="sparkles"></i> Gerar Specify com IA';
-        if (window.lucide) lucide.createIcons();
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = isRf ? '<i data-lucide="sparkles"></i> Gerar RF com IA' : '<i data-lucide="sparkles"></i> Gerar REQ Pai com IA';
+            if (window.lucide) lucide.createIcons();
+        }
     }
 }
 
@@ -10988,6 +11025,9 @@ function setupSddEventListeners() {
     const btnSaveSpecify = document.getElementById('btn-sdd-save-specify');
     if (btnSaveSpecify) btnSaveSpecify.addEventListener('click', () => sddSaveStage('specify'));
 
+    const btnSaveRf = document.getElementById('btn-sdd-save-rf');
+    if (btnSaveRf) btnSaveRf.addEventListener('click', () => sddSaveStage('rf'));
+
     const btnSaveDesign = document.getElementById('btn-sdd-save-design');
     if (btnSaveDesign) btnSaveDesign.addEventListener('click', () => sddSaveStage('design'));
 
@@ -11000,10 +11040,16 @@ function setupSddEventListeners() {
 
     const btnDeleteSpecify = document.getElementById('btn-sdd-delete-specify');
     if (btnDeleteSpecify) btnDeleteSpecify.addEventListener('click', sddDeleteSpec);
+    
+    const btnDeleteRf = document.getElementById('btn-sdd-delete-rf');
+    if (btnDeleteRf) btnDeleteRf.addEventListener('click', sddDeleteSpec);
 
     // Generate spec via IA
     const btnGenSpec = document.getElementById('btn-sdd-generate-spec-ia');
-    if (btnGenSpec) btnGenSpec.addEventListener('click', sddGenerateSpecIA);
+    if (btnGenSpec) btnGenSpec.addEventListener('click', () => sddGenerateSpecIA('req'));
+
+    const btnGenRf = document.getElementById('btn-sdd-generate-rf-ia');
+    if (btnGenRf) btnGenRf.addEventListener('click', () => sddGenerateSpecIA('rf'));
 
     const btnDesignAi = document.getElementById('btn-sdd-design-ai');
     if (btnDesignAi) btnDesignAi.addEventListener('click', () => {

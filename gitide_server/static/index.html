@@ -1521,23 +1521,24 @@ REGRA INQUEBRÁVEL: antes de executar qualquer task, valide REQ, DRI e Task List
                                     <span id="sdd-active-spec-filename" class="badge" style="display: none;"></span>
                                 </div>
                                 <div class="sdd-workspace-nav" id="sdd-workspace-nav-tabs" style="display: none;">
-                                    <button class="sdd-nav-btn active" data-sdd-tab="sdd-tab-preview"><span>1</span> Specify</button>
-                                    <button class="sdd-nav-btn" data-sdd-tab="sdd-tab-edit"><span>2</span> Design</button>
-                                    <button class="sdd-nav-btn" data-sdd-tab="sdd-tab-dri"><span>3</span> DRI</button>
-                                    <button class="sdd-nav-btn" data-sdd-tab="sdd-tab-checklist"><span>4</span> Task List</button>
-                                    <button class="sdd-nav-btn" data-sdd-tab="sdd-tab-tests"><span>5</span> Execute</button>
+                                    <button class="sdd-nav-btn active" data-sdd-tab="sdd-tab-preview"><span>1</span> REQ</button>
+                                    <button class="sdd-nav-btn" data-sdd-tab="sdd-tab-rfs"><span>2</span> RFs</button>
+                                    <button class="sdd-nav-btn" data-sdd-tab="sdd-tab-edit"><span>3</span> Design</button>
+                                    <button class="sdd-nav-btn" data-sdd-tab="sdd-tab-dri"><span>4</span> DRI</button>
+                                    <button class="sdd-nav-btn" data-sdd-tab="sdd-tab-checklist"><span>5</span> Task List</button>
+                                    <button class="sdd-nav-btn" data-sdd-tab="sdd-tab-tests"><span>6</span> Execute</button>
                                 </div>
                             </div>
 
                             <div class="sdd-workspace-body">
-                                <!-- STEP 1: SPECIFY -->
+                                <!-- STEP 1: REQ -->
                                 <div id="sdd-tab-preview" class="sdd-tab-content active">
                                     <div class="sdd-stage-grid">
                                         <section class="sdd-stage-main">
                                             <div class="sdd-stage-title">
                                                 <div>
-                                                    <span>Specify - Especificação</span>
-                                                    <h5>REQ individual em .documents/spec</h5>
+                                                    <span>REQ - Macro Requisito</span>
+                                                    <h5>REQ pai em .documents/requirements/REQ-XX/REQ-XX.md</h5>
                                                 </div>
                                                 <div class="sdd-stage-actions">
                                                     <button class="btn btn-secondary btn-sm sdd-danger-action" id="btn-sdd-delete-specify" title="Excluir requisito"><i data-lucide="trash-2"></i></button>
@@ -1546,30 +1547,58 @@ REGRA INQUEBRÁVEL: antes de executar qualquer task, valide REQ, DRI e Task List
                                                     <button class="btn btn-primary btn-sm" id="btn-sdd-save-specify"><i data-lucide="save"></i> Salvar</button>
                                                 </div>
                                             </div>
-                                            <textarea id="sdd-specify-editor" class="sdd-doc-editor text-input" placeholder="# Requisitos de negócio..."></textarea>
+                                            <textarea id="sdd-specify-editor" class="sdd-doc-editor text-input" placeholder="# Macro Requisito..."></textarea>
                                         </section>
                                         <aside class="sdd-stage-aside">
                                             <h5><i data-lucide="sparkles"></i> Assistente IA</h5>
-                                            <p>Gere ou refine a documentação de negócio.</p>
+                                            <p>Gere ou refine a documentação do Macro Requisito.</p>
                                             
-                                            <select id="sdd-wizard-kind" class="text-input" style="margin-bottom: 8px;" onchange="document.getElementById('sdd-wizard-parent-id-container').style.display = this.value === 'rf' ? 'block' : 'none'">
-                                                <option value="req">1. Macro Requisito (REQ Pai)</option>
-                                                <option value="rf">2. Requisito Funcional (RF)</option>
-                                            </select>
-                                            
-                                            <div id="sdd-wizard-parent-id-container" style="display: none; margin-bottom: 8px;">
-                                                <input type="text" id="sdd-wizard-parent-id" class="text-input" placeholder="ID do REQ Pai (ex: REQ-01)">
-                                            </div>
+                                            <input type="hidden" id="sdd-wizard-kind" value="req">
+                                            <input type="hidden" id="sdd-wizard-parent-id" value="">
 
-                                            <input type="text" id="sdd-wizard-title" class="text-input" placeholder="Título da feature">
-                                            <textarea id="sdd-wizard-prompt" class="text-input" placeholder="Descreva regras de negócio, usuários, restrições e requisitos..."></textarea>
-                                            <button class="btn btn-primary" id="btn-sdd-generate-spec-ia"><i data-lucide="sparkles"></i> Gerar Specify com IA</button>
+                                            <input type="text" id="sdd-wizard-title" class="text-input" placeholder="Título do REQ Pai">
+                                            <textarea id="sdd-wizard-prompt" class="text-input" placeholder="Descreva os objetivos, integrações, regras macro..."></textarea>
+                                            <button class="btn btn-primary" id="btn-sdd-generate-spec-ia"><i data-lucide="sparkles"></i> Gerar REQ Pai com IA</button>
                                         </aside>
                                         <div class="sdd-empty-workspace" id="sdd-empty-workspace">
                                             <i data-lucide="sparkles" style="width: 48px; height: 48px; color: var(--color-primary); opacity: 0.6; margin-bottom: 12px;"></i>
-                                            <h3>Fluxo Spec-Driven Development</h3>
-                                            <p>Crie ou selecione um REQ para editar o Specify. Design, DRI e Task List são documentos vivos do projeto.</p>
-                                            <button class="btn btn-primary" id="btn-switch-to-ia-generator"><i data-lucide="plus-circle"></i> Criar Fluxo com IA</button>
+                                            <h3>Fluxo de Requisitos (REQ Pai)</h3>
+                                            <p>Crie ou selecione um REQ na barra lateral.</p>
+                                            <button class="btn btn-primary" id="btn-switch-to-ia-generator"><i data-lucide="plus-circle"></i> Criar REQ com IA</button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- STEP 2: RFs -->
+                                <div id="sdd-tab-rfs" class="sdd-tab-content">
+                                    <div class="sdd-stage-grid">
+                                        <section class="sdd-stage-main">
+                                            <div class="sdd-stage-title">
+                                                <div>
+                                                    <span>RF - Requisito Funcional</span>
+                                                    <h5>Requisito funcional em .documents/requirements/REQ-XX/functional-requirements/RF-XX.md</h5>
+                                                </div>
+                                                <div class="sdd-stage-actions">
+                                                    <button class="btn btn-secondary btn-sm sdd-danger-action" id="btn-sdd-delete-rf" title="Excluir RF"><i data-lucide="trash-2"></i></button>
+                                                    <button class="btn btn-secondary btn-sm sdd-layout-action" data-sdd-aside-toggle title="Recolher assistente IA"><i data-lucide="panel-right-close"></i></button>
+                                                    <button class="btn btn-secondary btn-sm sdd-layout-action" data-sdd-focus-toggle title="Modo foco"><i data-lucide="maximize-2"></i></button>
+                                                    <button class="btn btn-primary btn-sm" id="btn-sdd-save-rf"><i data-lucide="save"></i> Salvar</button>
+                                                </div>
+                                            </div>
+                                            <textarea id="sdd-rf-editor" class="sdd-doc-editor text-input" placeholder="# Requisito Funcional..."></textarea>
+                                        </section>
+                                        <aside class="sdd-stage-aside">
+                                            <h5><i data-lucide="sparkles"></i> Assistente IA (RF)</h5>
+                                            <p>Gere ou refine a documentação do Requisito Funcional.</p>
+
+                                            <input type="text" id="sdd-wizard-rf-title" class="text-input" placeholder="Título do RF">
+                                            <textarea id="sdd-wizard-rf-prompt" class="text-input" placeholder="Descreva as regras do RF, fluxos, dados, etc..."></textarea>
+                                            <button class="btn btn-primary" id="btn-sdd-generate-rf-ia"><i data-lucide="sparkles"></i> Gerar RF com IA</button>
+                                        </aside>
+                                        <div class="sdd-empty-workspace" id="sdd-empty-workspace-rf">
+                                            <i data-lucide="sparkles" style="width: 48px; height: 48px; color: var(--color-primary); opacity: 0.6; margin-bottom: 12px;"></i>
+                                            <h3>Fluxo de Requisitos Funcionais (RF)</h3>
+                                            <p>Selecione um REQ na barra lateral (aba 1 REQ) para habilitar a criação de seus RFs aqui.</p>
                                         </div>
                                     </div>
                                 </div>
@@ -2219,19 +2248,11 @@ REGRA INQUEBRÁVEL: antes de executar qualquer task, valide REQ, DRI e Task List
                 <button class="btn-icon sdd-requirement-close"><i class="fa-solid fa-xmark"></i></button>
             </div>
             <div class="modal-body" style="padding: 20px; display: flex; flex-direction: column; gap: 14px;">
+                <input type="hidden" id="sdd-new-requirement-kind" value="req">
+                <input type="hidden" id="sdd-new-requirement-parent-id" value="">
+                
                 <div class="form-group">
-                    <label for="sdd-new-requirement-kind">Tipo</label>
-                    <select id="sdd-new-requirement-kind" class="text-input" onchange="document.getElementById('sdd-new-requirement-parent-id-group').style.display = this.value === 'rf' ? 'block' : 'none'">
-                        <option value="req">Macro Requisito (REQ Pai)</option>
-                        <option value="rf">Requisito Funcional (RF)</option>
-                    </select>
-                </div>
-                <div class="form-group" id="sdd-new-requirement-parent-id-group" style="display: none;">
-                    <label for="sdd-new-requirement-parent-id">ID do REQ Pai</label>
-                    <input type="text" id="sdd-new-requirement-parent-id" class="text-input" placeholder="Ex: REQ-01">
-                </div>
-                <div class="form-group">
-                    <label for="sdd-new-requirement-id">ID Único (Deixe em branco para auto-gerar ou RF-XX-XX)</label>
+                    <label for="sdd-new-requirement-id">ID Único (Deixe em branco para auto-gerar ou usar RF-XX-XX)</label>
                     <input type="text" id="sdd-new-requirement-id" class="text-input">
                 </div>
                 <div class="form-group">
