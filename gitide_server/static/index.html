@@ -141,6 +141,9 @@
                     <button class="nav-item" data-tab="tab-ops-infra" title="Ops Infra">
                         <i data-lucide="server-cog"></i> <span class="nav-label">Ops Infra</span>
                     </button>
+                    <button class="nav-item" data-tab="tab-discovery" title="Discovery (MarkItDown)">
+                        <i data-lucide="search-code"></i> <span class="nav-label">Discovery</span>
+                    </button>
                 </nav>
 
                 <!-- Footer Info -->
@@ -1695,6 +1698,54 @@ REGRA INQUEBRÁVEL: antes de executar qualquer task, valide REQ, DRI e Task List
                     </div>
                 </div>
 
+                <!-- TAB: DISCOVERY (MARKITDOWN) -->
+                <div id="tab-discovery" class="tab-pane">
+                    <div class="discovery-layout" style="display: flex; gap: 20px; height: 100%; padding: 20px;">
+                        <!-- Coluna 1: Upload / Input -->
+                        <div class="discovery-input-panel" style="flex: 1; display: flex; flex-direction: column; gap: 20px; max-width: 50%;">
+                            <div class="card" style="padding: 20px;">
+                                <h3><i data-lucide="file-up"></i> Extrair de Arquivo</h3>
+                                <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 16px;">
+                                    Formatos suportados: PDF, Word (docx), PowerPoint (pptx), Excel (xlsx), ZIP, CSV, JSON, Imagens e Áudios.
+                                </p>
+                                <div id="discovery-dropzone" style="border: 2px dashed var(--border-color); border-radius: 8px; padding: 40px 20px; text-align: center; cursor: pointer; transition: all 0.3s; background: rgba(0,0,0,0.2);">
+                                    <i data-lucide="upload-cloud" style="width: 48px; height: 48px; color: var(--color-primary); margin-bottom: 12px;"></i>
+                                    <div style="font-weight: 500; margin-bottom: 8px;">Arraste um arquivo ou clique para selecionar</div>
+                                    <input type="file" id="discovery-file-input" style="display: none;">
+                                </div>
+                            </div>
+                            
+                            <div class="card" style="padding: 20px;">
+                                <h3><i data-lucide="link"></i> Extrair de URL (Youtube, etc)</h3>
+                                <div style="display: flex; gap: 10px; margin-top: 16px;">
+                                    <input type="text" id="discovery-url-input" class="text-input" style="flex: 1;" placeholder="https://www.youtube.com/watch?v=...">
+                                    <button class="btn btn-primary" id="btn-discovery-url"><i class="fa-solid fa-wand-magic-sparkles"></i> Extrair</button>
+                                </div>
+                            </div>
+
+                            <div class="card" style="padding: 20px; flex: 1;">
+                                <h3><i data-lucide="terminal"></i> Status da Conversão</h3>
+                                <div id="discovery-log" style="background: rgba(0,0,0,0.5); padding: 12px; border-radius: 6px; font-family: monospace; font-size: 12px; height: 150px; overflow-y: auto; margin-top: 16px; color: var(--text-muted);">
+                                    <div>Aguardando arquivos...</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Coluna 2: Resultados -->
+                        <div class="discovery-results-panel" style="flex: 1; display: flex; flex-direction: column;">
+                            <div class="card" style="flex: 1; display: flex; flex-direction: column;">
+                                <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; padding: 16px;">
+                                    <h3 style="margin: 0;"><i data-lucide="folder-search"></i> Arquivos Convertidos (.md)</h3>
+                                    <button class="btn-icon" id="btn-discovery-refresh" title="Atualizar lista"><i class="fa-solid fa-rotate"></i></button>
+                                </div>
+                                <div id="discovery-files-list" style="padding: 16px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 8px;">
+                                    <div style="color: var(--text-muted); text-align: center; padding: 40px;">Nenhum arquivo convertido ainda.</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- TAB: OPS INFRA -->
                 <div id="tab-ops-infra" class="tab-pane">
                     <div class="ops-infra-layout">
@@ -2434,7 +2485,7 @@ REGRA INQUEBRÁVEL: antes de executar qualquer task, valide REQ, DRI e Task List
     </aside>
 
     <!-- Custom JavaScript -->
-    <script src="/static/app.js?v=74"></script>
+    <script src="/static/app.js?v=77"></script>
     <script src="/static/theme-toggle.js?v=1"></script>
 </body>
 </html>

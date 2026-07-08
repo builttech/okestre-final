@@ -5932,6 +5932,104 @@ STATIC_DIR = os.path.join(os.path.dirname(__file__), "static")
 if os.path.exists(STATIC_DIR):
     app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
+# --- MARKITDOWN DISCOVERY ---
+
+class DiscoveryUrlInput(BaseModel):
+    url: str
+
+def _ensure_discovery_dirs(project: Project):
+    base = os.path.join(project.path, ".discovery")
+    entrega = os.path.join(base, "entrega")
+    saida = os.path.join(base, "saida")
+    os.makedirs(entrega, exist_ok=True)
+    os.makedirs(saida, exist_ok=True)
+    return entrega, saida
+
+@app.post("/api/projects/{project_id}/discovery/upload", tags=["Discovery"])
+async def discovery_upload(
+    project_id: int, 
+    file: UploadFile = File(...), 
+    project: Project = Depends(get_project_or_404)
+):
+    try:
+        from markitdown import MarkItDown
+    except ImportError:
+        raise HTTPException(status_code=500, detail="Biblioteca markitdown não instalada.")
+        
+    entrega_dir, saida_dir = _ensure_discovery_dirs(project)
+    
+    # Save original
+    original_path = os.path.join(entrega_dir, file.filename)
+    with open(original_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+        
+    # Convert
+    md = MarkItDown()
+    try:
+        result = md.convert(original_path)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro na conversão: {str(e)}")
+        
+    # Save output
+    basename = os.path.splitext(file.filename)[0]
+    out_filename = f"{basename}.md"
+    out_path = os.path.join(saida_dir, out_filename)
+    with open(out_path, "w", encoding="utf-8") as out:
+        out.write(result.text_content)
+        
+    return {"message": "Convertido com sucesso", "original": file.filename, "markdown": out_filename}
+
+@app.post("/api/projects/{project_id}/discovery/url", tags=["Discovery"])
+def discovery_url(
+    project_id: int,
+    payload: DiscoveryUrlInput,
+    project: Project = Depends(get_project_or_404)
+):
+    try:
+        from markitdown import MarkItDown
+    except ImportError:
+        raise HTTPException(status_code=500, detail="Biblioteca markitdown não instalada.")
+        
+    entrega_dir, saida_dir = _ensure_discovery_dirs(project)
+    
+    md = MarkItDown()
+    try:
+        result = md.convert(payload.url)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro na extração da URL: {str(e)}")
+        
+    # Create a filename based on URL hash
+    url_hash = hashlib.md5(payload.url.encode()).hexdigest()[:8]
+    out_filename = f"url_{url_hash}.md"
+    out_path = os.path.join(saida_dir, out_filename)
+    
+    # Prepend the URL as title
+    content = f"# Fonte: {payload.url}\n\n{result.text_content}"
+    
+    with open(out_path, "w", encoding="utf-8") as out:
+        out.write(content)
+        
+    return {"message": "URL processada com sucesso", "markdown": out_filename}
+
+@app.get("/api/projects/{project_id}/discovery/files", tags=["Discovery"])
+def list_discovery_files(project_id: int, project: Project = Depends(get_project_or_404)):
+    saida_dir = os.path.join(project.path, ".discovery", "saida")
+    if not os.path.exists(saida_dir):
+        return []
+    
+    files = []
+    for f in os.listdir(saida_dir):
+        if f.endswith(".md"):
+            fp = os.path.join(saida_dir, f)
+            files.append({
+                "filename": f,
+                "size": os.path.getsize(fp),
+                "mtime": os.path.getmtime(fp),
+                "filepath": f".discovery/saida/{f}"
+            })
+    files.sort(key=lambda x: x["mtime"], reverse=True)
+    return files
+
 @app.get("/", response_class=HTMLResponse, tags=["Dashboard UI"])
 def get_dashboard():
     """Servidor HTML principal do Dashboard do Act IA."""

@@ -5207,6 +5207,7 @@ function uiCanvasPointerUp() {
 function setupEventListeners() {
     // SDD Module
     setupSddEventListeners();
+    initDiscoveryTab();
 
     document.getElementById('btn-sidebar-collapse')?.addEventListener('click', toggleSidebarCollapsed);
     document.getElementById('btn-auth-logout')?.addEventListener('click', logoutGitide);
@@ -7360,6 +7361,148 @@ function updateLineNumbers() {
 window.addEventListener('click', () => {
     closeAllDropdowns();
 });
+
+// --- DISCOVERY TAB ---
+function initDiscoveryTab() {
+    const dropzone = document.getElementById('discovery-dropzone');
+    const fileInput = document.getElementById('discovery-file-input');
+    const urlInput = document.getElementById('discovery-url-input');
+    const urlBtn = document.getElementById('btn-discovery-url');
+    const logDiv = document.getElementById('discovery-log');
+    const listDiv = document.getElementById('discovery-files-list');
+    const refreshBtn = document.getElementById('btn-discovery-refresh');
+
+    function logStatus(msg, error=false) {
+        if (!logDiv) return;
+        const line = document.createElement('div');
+        line.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+        if (error) line.style.color = 'var(--color-danger)';
+        if (logDiv.innerHTML.includes('Aguardando...')) {
+            logDiv.innerHTML = '';
+        }
+        logDiv.appendChild(line);
+        logDiv.scrollTop = logDiv.scrollHeight;
+    }
+
+    if (logDiv && logDiv.innerHTML.includes('Aguardando arquivos...')) {
+        logDiv.innerHTML = '<div style="color:var(--color-success)">[Sistema] Módulo de Discovery pronto. Aguardando...</div>';
+    }
+
+    async function reloadDiscoveryFiles() {
+        if (!state.activeProjectId || !listDiv) return;
+        try {
+            const res = await fetch(`/api/projects/${state.activeProjectId}/discovery/files`, { headers: getHeaders() });
+            if (res.ok) {
+                const files = await res.json();
+                listDiv.innerHTML = '';
+                if (files.length === 0) {
+                    listDiv.innerHTML = '<div style="color: var(--text-muted); text-align: center; padding: 40px;">Nenhum arquivo convertido ainda.</div>';
+                }
+                files.forEach(f => {
+                    const el = document.createElement('div');
+                    el.className = 'file-node file-node-file';
+                    el.style.padding = '8px';
+                    el.style.background = 'rgba(255,255,255,0.02)';
+                    el.style.borderRadius = '4px';
+                    el.style.cursor = 'pointer';
+                    el.innerHTML = `<i data-lucide="file-text"></i> <span>${f.filename}</span> <span style="font-size: 10px; color: gray; float: right;">${(f.size/1024).toFixed(1)} KB</span>`;
+                    el.onclick = () => {
+                        document.querySelector('[data-tab="tab-files"]').click();
+                        state.activeFilepath = f.filepath;
+                        loadFile(f.filepath, f.size, f.mtime);
+                    };
+                    listDiv.appendChild(el);
+                });
+                if (window.lucide) window.lucide.createIcons();
+            }
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    async function uploadFile(file) {
+        if (!state.activeProjectId) {
+            gitideNotify({title: 'Erro', message: 'Selecione um projeto primeiro!', variant: 'danger'});
+            return;
+        }
+        logStatus(`Enviando ${file.name}...`);
+        const formData = new FormData();
+        formData.append('file', file);
+        try {
+            const res = await fetch(`/api/projects/${state.activeProjectId}/discovery/upload`, {
+                method: 'POST',
+                body: formData
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.detail);
+            logStatus(`Sucesso: ${file.name} -> ${data.markdown}`);
+            reloadDiscoveryFiles();
+            loadFiles();
+        } catch(e) {
+            logStatus(`Erro: ${e.message}`, true);
+        }
+    }
+
+    if(dropzone) {
+        dropzone.addEventListener('click', (e) => {
+            if (e.target.tagName !== 'INPUT') {
+                fileInput.click();
+            }
+        });
+        dropzone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropzone.style.background = 'rgba(0,153,255,0.1)';
+        });
+        dropzone.addEventListener('dragleave', () => dropzone.style.background = 'rgba(0,0,0,0.2)');
+        dropzone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropzone.style.background = 'rgba(0,0,0,0.2)';
+            if (e.dataTransfer.files.length) {
+                Array.from(e.dataTransfer.files).forEach(uploadFile);
+            }
+        });
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length) {
+                Array.from(e.target.files).forEach(uploadFile);
+            }
+        });
+    }
+
+    if(urlBtn) {
+        urlBtn.addEventListener('click', async () => {
+            const url = urlInput.value.trim();
+            if (!url) return;
+            if (!state.activeProjectId) {
+                gitideNotify({title: 'Erro', message: 'Selecione um projeto primeiro!', variant: 'danger'});
+                return;
+            }
+            logStatus(`Extraindo URL: ${url}...`);
+            urlBtn.disabled = true;
+            try {
+                const res = await fetch(`/api/projects/${state.activeProjectId}/discovery/url`, {
+                    method: 'POST',
+                    headers: getHeaders(),
+                    body: JSON.stringify({url})
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.detail);
+                logStatus(`Sucesso: URL processada -> ${data.markdown}`);
+                urlInput.value = '';
+                reloadDiscoveryFiles();
+                loadFiles();
+            } catch(e) {
+                logStatus(`Erro: ${e.message}`, true);
+            }
+            urlBtn.disabled = false;
+        });
+    }
+    
+    if(refreshBtn) {
+        refreshBtn.addEventListener('click', reloadDiscoveryFiles);
+    }
+    
+    document.querySelector('[data-tab="tab-discovery"]')?.addEventListener('click', reloadDiscoveryFiles);
+}
 
 // --- PROD DATABASE CREDENTIALS MANAGER ---
 
