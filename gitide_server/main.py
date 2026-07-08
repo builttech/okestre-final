@@ -5964,7 +5964,17 @@ async def discovery_upload(
         shutil.copyfileobj(file.file, buffer)
         
     # Convert
-    md = MarkItDown()
+    config = agent.load_agent_config()
+    api_key = config.get("api_key")
+    if api_key:
+        try:
+            from openai import OpenAI
+            client = OpenAI(api_key=api_key)
+            md = MarkItDown(llm_client=client, llm_model="gpt-4o")
+        except Exception:
+            md = MarkItDown()
+    else:
+        md = MarkItDown()
     try:
         result = md.convert(original_path)
     except Exception as e:
@@ -5996,7 +6006,17 @@ def discovery_url(
         
     entrega_dir, saida_dir = _ensure_discovery_dirs(project)
     
-    md = MarkItDown()
+    config = agent.load_agent_config()
+    api_key = config.get("api_key")
+    if api_key:
+        try:
+            from openai import OpenAI
+            client = OpenAI(api_key=api_key)
+            md = MarkItDown(llm_client=client, llm_model="gpt-4o")
+        except Exception:
+            md = MarkItDown()
+    else:
+        md = MarkItDown()
     try:
         result = md.convert(payload.url)
     except Exception as e:
