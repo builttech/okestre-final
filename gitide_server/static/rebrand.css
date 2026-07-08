@@ -10671,3 +10671,13 @@ button.btn-danger:hover {
     stroke-width: 0.75px !important;
 }
 
+
+
+/* Fix sidebar categories when collapsed */
+.app-container.sidebar-collapsed .sidebar-category-title {
+    display: none !important;
+}
+.app-container.sidebar-collapsed .sidebar-category {
+    align-items: center;
+    margin-bottom: 6px;
+}
