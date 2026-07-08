@@ -301,7 +301,7 @@ def call_llm(provider: str, model: str, api_key: str, messages: list, system_pro
     else:
         raise ValueError(f"Provedor de LLM inválido: {provider}")
 
-def call_ollama_plain(model: str, user_prompt: str, system_context: str, ollama_base_url: str = "http://127.0.0.1:11434", ollama_options: dict = None) -> str:
+def call_ollama_plain(model: str, user_prompt: str, system_context: str, ollama_base_url: str = "http://127.0.0.1:11434", ollama_options: dict = None, api_key: str = None) -> str:
     """Fallback sem tool-calling para quando o modelo local quebra o JSON."""
     base_url = (ollama_base_url or "http://127.0.0.1:11434").rstrip("/")
     if not model:
@@ -324,7 +324,10 @@ def call_ollama_plain(model: str, user_prompt: str, system_context: str, ollama_
         },
         "keep_alive": "10m",
     }
-    res = requests.post(f"{base_url}/api/generate", json=payload, timeout=120)
+    headers = {}
+    if api_key:
+        headers["Authorization"] = f"Bearer {api_key}"
+    res = requests.post(f"{base_url}/api/generate", json=payload, headers=headers, timeout=120)
     res.raise_for_status()
     data = res.json()
     return (data.get("response") or "").strip()
@@ -663,6 +666,7 @@ def run_agent_loop(db: Session, project: Project, config: dict, user_prompt: str
                         system_context,
                         ollama_base_url=ollama_base_url,
                         ollama_options={"num_ctx": ollama_num_ctx},
+                        api_key=api_key,
                     )
                     parsed = {
                         "thought": "Fallback textual acionado após resposta JSON inválida do Ollama.",
