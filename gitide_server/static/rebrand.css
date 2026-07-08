@@ -9587,23 +9587,13 @@ button.btn-danger:hover {
 }
 
 .app-container .sidebar .sidebar-nav .nav-item::before {
-    content: "[" !important;
-    flex: 0 0 auto !important;
-    margin: 0 !important;
-    color: currentColor !important;
-    opacity: 0.75 !important;
+    display: none !important;
+    content: "" !important;
 }
 
 .app-container .sidebar .sidebar-nav .nav-item::after {
-    content: "]" !important;
-    flex: 0 0 auto !important;
-    width: auto !important;
-    height: auto !important;
-    margin: 0 0 0 8px !important;
-    color: currentColor !important;
-    background: none !important;
-    box-shadow: none !important;
-    opacity: 0.75 !important;
+    display: none !important;
+    content: "" !important;
 }
 
 .app-container .sidebar .sidebar-nav .nav-item i,
