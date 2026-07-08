@@ -526,6 +526,25 @@ textarea:focus {
     flex-direction: column;
     gap: 6px;
     flex: 1;
+    overflow-y: auto;
+    padding-bottom: 12px;
+}
+
+.sidebar-category {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin-bottom: 12px;
+}
+
+.sidebar-category-title {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-dark);
+    padding: 0 12px;
+    margin-bottom: 4px;
+    font-weight: 600;
 }
 
 .nav-item {

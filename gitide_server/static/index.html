@@ -102,48 +102,71 @@
 
                 <!-- Navigation Tabs -->
                 <nav class="sidebar-nav">
-                    <button class="nav-item active" data-tab="tab-files" title="Arquivos do Workspace">
-                        <i data-lucide="files"></i> <span class="nav-label">Arquivos</span>
-                    </button>
-                    <button class="nav-item" data-tab="tab-terminal" title="Terminal Console">
-                        <i data-lucide="terminal"></i> <span class="nav-label">Terminal</span>
-                    </button>
-                    <button class="nav-item" data-tab="tab-database" title="Banco de Dados (SQL)">
-                        <i data-lucide="database"></i> <span class="nav-label">Banco</span>
-                    </button>
-                    <button class="nav-item" data-tab="tab-git" title="Controle de Versão (Git)">
-                        <i data-lucide="git-branch"></i> <span class="nav-label">Git</span>
-                    </button>
-                    <button class="nav-item" data-tab="tab-logs" title="Histórico & Rollbacks">
-                        <i data-lucide="history"></i> <span class="nav-label">Histórico</span>
-                    </button>
-                    <button class="nav-item" data-tab="tab-tokens" title="Design System (Tokens)">
-                        <i data-lucide="palette"></i> <span class="nav-label">Tokens</span>
-                    </button>
-                    <button class="nav-item" data-tab="tab-ui-canvas" title="UI Canvas">
-                        <i data-lucide="layout-dashboard"></i> <span class="nav-label">UI</span>
-                    </button>
-                    <button class="nav-item" data-tab="tab-qa" title="QA">
-                        <i data-lucide="bug"></i> <span class="nav-label">QA</span>
-                    </button>
-                    <button class="nav-item" data-tab="tab-engineering-metrics" title="Engineering Metrics">
-                        <i data-lucide="chart-line"></i> <span class="nav-label">Metrics</span>
-                    </button>
-                    <button class="nav-item" data-tab="tab-agent" title="Agente IA Nativo">
-                        <i data-lucide="bot"></i> <span class="nav-label">Agente</span>
-                    </button>
-                    <button class="nav-item" data-tab="tab-documents" title="Documentos (Word)">
-                        <i data-lucide="file-text"></i> <span class="nav-label">Documentos</span>
-                    </button>
-                    <button class="nav-item" data-tab="tab-sdd" title="Harness Engineering">
-                        <i data-lucide="file-check"></i> <span class="nav-label">Harness</span>
-                    </button>
-                    <button class="nav-item" data-tab="tab-ops-infra" title="Ops Infra">
-                        <i data-lucide="server-cog"></i> <span class="nav-label">Computer</span>
-                    </button>
-                    <button class="nav-item" data-tab="tab-discovery" title="Discovery (MarkItDown)">
-                        <i data-lucide="search-code"></i> <span class="nav-label">Discovery</span>
-                    </button>
+                    <div class="sidebar-category">
+                        <div class="sidebar-category-title">01. Workspace</div>
+                        <button class="nav-item active" data-tab="tab-files" title="Arquivos do Workspace">
+                            <i data-lucide="files"></i> <span class="nav-label">Arquivos</span>
+                        </button>
+                        <button class="nav-item" data-tab="tab-documents" title="Documentos (Word)">
+                            <i data-lucide="file-text"></i> <span class="nav-label">Documentos</span>
+                        </button>
+                        <button class="nav-item" data-tab="tab-ui-canvas" title="UI Canvas">
+                            <i data-lucide="layout-dashboard"></i> <span class="nav-label">UI</span>
+                        </button>
+                    </div>
+
+                    <div class="sidebar-category">
+                        <div class="sidebar-category-title">02. Engenharia</div>
+                        <button class="nav-item" data-tab="tab-terminal" title="Terminal Console">
+                            <i data-lucide="terminal"></i> <span class="nav-label">Terminal</span>
+                        </button>
+                        <button class="nav-item" data-tab="tab-git" title="Controle de Versão (Git)">
+                            <i data-lucide="git-branch"></i> <span class="nav-label">Git</span>
+                        </button>
+                        <button class="nav-item" data-tab="tab-ops-infra" title="Ops Infra">
+                            <i data-lucide="server-cog"></i> <span class="nav-label">Computer</span>
+                        </button>
+                    </div>
+
+                    <div class="sidebar-category">
+                        <div class="sidebar-category-title">03. Dados & Config</div>
+                        <button class="nav-item" data-tab="tab-database" title="Banco de Dados (SQL)">
+                            <i data-lucide="database"></i> <span class="nav-label">Banco</span>
+                        </button>
+                        <button class="nav-item" data-tab="tab-tokens" title="Design System (Tokens)">
+                            <i data-lucide="palette"></i> <span class="nav-label">Tokens</span>
+                        </button>
+                    </div>
+
+                    <div class="sidebar-category">
+                        <div class="sidebar-category-title">04. Qualidade</div>
+                        <button class="nav-item" data-tab="tab-qa" title="QA">
+                            <i data-lucide="bug"></i> <span class="nav-label">QA</span>
+                        </button>
+                        <button class="nav-item" data-tab="tab-engineering-metrics" title="Engineering Metrics">
+                            <i data-lucide="chart-line"></i> <span class="nav-label">Metrics</span>
+                        </button>
+                        <button class="nav-item" data-tab="tab-logs" title="Histórico & Rollbacks">
+                            <i data-lucide="history"></i> <span class="nav-label">Histórico</span>
+                        </button>
+                    </div>
+
+                    <div class="sidebar-category">
+                        <div class="sidebar-category-title">05. Automação</div>
+                        <button class="nav-item" data-tab="tab-agent" title="Agente IA Nativo">
+                            <i data-lucide="bot"></i> <span class="nav-label">Agente</span>
+                        </button>
+                        <button class="nav-item" data-tab="tab-sdd" title="Harness Engineering">
+                            <i data-lucide="file-check"></i> <span class="nav-label">Harness</span>
+                        </button>
+                    </div>
+
+                    <div class="sidebar-category">
+                        <div class="sidebar-category-title">06. Discovery</div>
+                        <button class="nav-item" data-tab="tab-discovery" title="Discovery (MarkItDown)">
+                            <i data-lucide="search-code"></i> <span class="nav-label">Discovery</span>
+                        </button>
+                    </div>
                 </nav>
 
                 <!-- Footer Info -->
