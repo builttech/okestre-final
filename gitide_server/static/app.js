@@ -7649,7 +7649,18 @@ function updateAgentModelOptions() {
 
     const isOllama = provider === 'ollama';
     modelSelect.parentElement.style.display = isOllama ? 'none' : '';
-    if (apiKeyGroup) apiKeyGroup.style.display = isOllama ? 'none' : '';
+    if (apiKeyGroup) {
+        apiKeyGroup.style.display = '';
+        const apiKeyLabel = document.querySelector('label[for="agent-apikey"]');
+        const apiKeyInput = document.getElementById('agent-apikey');
+        if (isOllama) {
+            if (apiKeyLabel) apiKeyLabel.textContent = 'API Key (Cloud):';
+            if (apiKeyInput) apiKeyInput.placeholder = 'Chave API (Opcional para local)';
+        } else {
+            if (apiKeyLabel) apiKeyLabel.textContent = 'API Key:';
+            if (apiKeyInput) apiKeyInput.placeholder = 'Cole sua chave API aqui';
+        }
+    }
     if (ollamaUrlGroup) ollamaUrlGroup.style.display = isOllama ? '' : 'none';
     if (ollamaModelGroup) ollamaModelGroup.style.display = isOllama ? '' : 'none';
     if (ollamaPerformanceGroup) ollamaPerformanceGroup.style.display = isOllama ? '' : 'none';
