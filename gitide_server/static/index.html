@@ -23,6 +23,30 @@
     <script defer src="/static/settings-tabs.js?v=6"></script>
     <script defer src="/static/sidebar-workspace-footer.js?v=2"></script>
     <script defer src="/static/navigation-unlock.js?v=2"></script>
+
+    <!-- CodeMirror (Editor de código) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/theme/darcula.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/markdown/markdown.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/xml/xml.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/javascript/javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/python/python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/sql/sql.min.js"></script>
+    
+    <style>
+        .CodeMirror {
+            font-family: var(--font-mono);
+            font-size: 14px;
+            height: 100% !important;
+            flex: 1;
+        }
+        .editor-container {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+        }
+    </style>
 </head>
 <body>
     <div class="app-container">

@@ -793,6 +793,24 @@ async function openFile(filepath, size, mtime) {
     
     document.getElementById('active-file-name').innerHTML = `<i class="fa-solid fa-file-code"></i> ${filepath}`;
     
+    // Troca o modo de syntax highlighting dependendo da extensão
+    if (window.cmEditor) {
+        const ext = filepath.split('.').pop().toLowerCase();
+        const modeMap = {
+            'md': 'markdown',
+            'js': 'javascript',
+            'json': 'javascript',
+            'py': 'python',
+            'html': 'xml',
+            'sql': 'sql',
+            'xml': 'xml',
+            'css': 'css'
+        };
+        window.cmEditor.setOption('mode', modeMap[ext] || 'markdown');
+        // Corrige bug visual do codemirror ao carregar em div oculta
+        setTimeout(() => window.cmEditor.refresh(), 50);
+    }
+    
     // Metadados
     const metaSize = (size / 1024).toFixed(2) + ' KB';
     const metaDate = new Date(mtime).toLocaleString();
@@ -5411,14 +5429,32 @@ function setupEventListeners() {
         }
     });
     
-    // Sincronismo do editor de código
+    // Inicialização do CodeMirror (Editor de código)
     const editorTextarea = document.getElementById('file-editor-textarea');
     const editorGutter = document.getElementById('editor-gutter');
-    if (editorTextarea && editorGutter) {
-        editorTextarea.addEventListener('input', updateLineNumbers);
-        editorTextarea.addEventListener('scroll', () => {
-            editorGutter.scrollTop = editorTextarea.scrollTop;
+    if (editorTextarea) {
+        if (editorGutter) editorGutter.style.display = 'none';
+        
+        window.cmEditor = CodeMirror.fromTextArea(editorTextarea, {
+            mode: 'markdown',
+            theme: 'darcula',
+            lineNumbers: true,
+            lineWrapping: true
         });
+        
+        // Override textarea properties to proxy to CodeMirror
+        Object.defineProperty(editorTextarea, 'value', {
+            get: function() { return window.cmEditor.getValue(); },
+            set: function(val) { window.cmEditor.setValue(val); }
+        });
+        
+        Object.defineProperty(editorTextarea, 'disabled', {
+            get: function() { return window.cmEditor.getOption('readOnly') !== false; },
+            set: function(val) { window.cmEditor.setOption('readOnly', val ? 'nocursor' : false); }
+        });
+        
+        // Substitui a função original para evitar conflitos, já que o CM cuida dos números de linha
+        window.updateLineNumbers = function() {};
     }
     
     // 5. Ações do Terminal
