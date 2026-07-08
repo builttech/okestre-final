@@ -5964,18 +5964,32 @@ async def discovery_upload(
         shutil.copyfileobj(file.file, buffer)
         
     # Convert
-    md = MarkItDown()
+    config = agent.load_agent_config()
+    api_key = config.get("api_key")
+    if api_key:
+        try:
+            from openai import OpenAI
+            client = OpenAI(api_key=api_key)
+            md = MarkItDown(llm_client=client, llm_model="gpt-4o")
+        except Exception:
+            md = MarkItDown()
+    else:
+        md = MarkItDown()
     try:
         result = md.convert(original_path)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro na conversão: {str(e)}")
         
+    # Clean up base64 images
+    import re
+    text_content = re.sub(r'!\[([^\]]*)\]\(data:image\/[^;]+;base64,[^\)]+\)', r'![\1](<imagem-base64-removida>)', result.text_content)
+    
     # Save output
     basename = os.path.splitext(file.filename)[0]
     out_filename = f"{basename}.md"
     out_path = os.path.join(saida_dir, out_filename)
     with open(out_path, "w", encoding="utf-8") as out:
-        out.write(result.text_content)
+        out.write(text_content)
         
     return {"message": "Convertido com sucesso", "original": file.filename, "markdown": out_filename}
 
@@ -5992,7 +6006,17 @@ def discovery_url(
         
     entrega_dir, saida_dir = _ensure_discovery_dirs(project)
     
-    md = MarkItDown()
+    config = agent.load_agent_config()
+    api_key = config.get("api_key")
+    if api_key:
+        try:
+            from openai import OpenAI
+            client = OpenAI(api_key=api_key)
+            md = MarkItDown(llm_client=client, llm_model="gpt-4o")
+        except Exception:
+            md = MarkItDown()
+    else:
+        md = MarkItDown()
     try:
         result = md.convert(payload.url)
     except Exception as e:
