@@ -6020,7 +6020,10 @@ async def discovery_upload(
                     ]
                 )
                 return resp.choices[0].message.content
-            except Exception:
+            except Exception as e:
+                import traceback
+                traceback.print_exc()
+                print(f"Erro LLM: {e}")
                 return "<erro-ao-extrair-imagem>"
         
         text_content = re.sub(r'!\[([^\]]*)\]\(data:image\/[^;]+;base64,[^\)]+\)', replace_with_llm, result.text_content)
@@ -6103,7 +6106,10 @@ def discovery_url(
                     ]
                 )
                 return resp.choices[0].message.content
-            except Exception:
+            except Exception as e:
+                import traceback
+                traceback.print_exc()
+                print(f"Erro LLM: {e}")
                 return "<erro-ao-extrair-imagem>"
         
         text_content = re.sub(r'!\[([^\]]*)\]\(data:image\/[^;]+;base64,[^\)]+\)', replace_with_llm, result.text_content)

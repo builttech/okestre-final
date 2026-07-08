@@ -7409,7 +7409,7 @@ function initDiscoveryTab() {
                     el.onclick = () => {
                         document.querySelector('[data-tab="tab-files"]').click();
                         state.activeFilepath = f.filepath;
-                        loadFile(f.filepath, f.size, f.mtime);
+                        openFile(f.filepath, f.size, f.mtime);
                     };
                     listDiv.appendChild(el);
                 });
