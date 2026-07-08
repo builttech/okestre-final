@@ -9624,7 +9624,7 @@ button.btn-danger:hover {
 
 .app-container .sidebar .sidebar-nav .nav-label {
     display: inline-block !important;
-    flex: 0 0 auto !important;
+    flex: 0 0 95px !important;
     min-width: 0 !important;
     color: currentColor !important;
     text-align: left !important;
