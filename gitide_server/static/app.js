@@ -9583,7 +9583,7 @@ function sddRenderSpecList(specs) {
             html = `<div class="specs-empty-state"><span>Selecione um REQ na aba 1 REQ primeiro.</span></div>`;
         } else {
             const reqId = sddState.activeReqId;
-            const rfs = specs.filter(s => s.filename.includes('functional-requirements') && s.filename.startsWith(reqId));
+            const rfs = specs.filter(s => s.filename.includes('functional-requirements') && s.filename.toLowerCase().includes(reqId.toLowerCase()));
             
             html += `<div class="spec-item-title" style="padding: 8px 12px; color: var(--text-secondary); font-size: 0.8rem; text-transform: uppercase;">RFs de ${reqId}</div>`;
             if (rfs.length === 0) {
@@ -9625,9 +9625,9 @@ async function sddSelectSpec(filename) {
         sddPopulatePreview(sddState.activeContent);
 
         // Extract activeReqId from the filename
-        const match = filename.match(/^(REQ-\d+)/);
+        const match = filename.match(/(REQ-\d+)/i);
         if (match) {
-            sddState.activeReqId = match[1];
+            sddState.activeReqId = match[1].toUpperCase();
         }
 
         if (filename.includes('functional-requirements')) {
@@ -10922,8 +10922,8 @@ async function sddGenerateSpecIA(kind = 'req') {
             
             // Extract activeReqId if REQ
             if (kind === 'req') {
-                const match = data.filename.match(/^(REQ-\d+)/);
-                if (match) sddState.activeReqId = match[1];
+                const match = data.filename.match(/(REQ-\d+)/i);
+                if (match) sddState.activeReqId = match[1].toUpperCase();
             }
 
             await sddLoadProjectDocuments();
