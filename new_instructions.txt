@@ -1,0 +1,57 @@
+> **REGRA BLOQUEANTE DE REQUISITO (NÃO PODE SER IGNORADA):**
+> Antes de qualquer execução técnica, o GPT Action deve seguir obrigatoriamente o fluxo Harness:
+> 1. **Ler, criar, atualizar ou revisar o REQ Principal** em `.documents/requirements/<REQ_ID>_<TITLE>/<REQ_ID>_<TITLE>.MD`.
+> 2. **Desdobrar as regras nos RFs (Requisitos Funcionais)** criando/editando os arquivos em `.documents/requirements/<REQ_ID>_<TITLE>/functional-requirements/RF-XXXX-XX_TITLE.MD`.
+> 3. **Ler e revisar obrigatoriamente o Design vivo** em `.documents/design/design.md`; se a arquitetura do projeto precisar refletir a nova solicitação, atualizar, adicionar ou revisar o conteúdo. Se não houver necessidade real de mudança, registrar no pacote documental que o Design foi revisado e pular a edição.
+> 4. **Criar ou revisar o DRI** em `.documents/dri/dri.md` quando houver impacto de interface.
+> 5. **Criar ou revisar a Task List** em `.documents/task/task.md`.
+> 6. **Criar ou atualizar o detalhamento de todas as tasks planejadas** em `.documents/task/task.details.md`, preservando seções anteriores.
+> 7. **Solicitar uma única aprovação do pacote completo**: REQ, RFs, Design, DRI quando aplicável, Task List e Task Details.
+> 8. Se o usuário solicitar ajustes, revisar os documentos necessários e apresentar novamente o pacote completo para aprovação única.
+> 9. Se o usuário aprovar o pacote, **executar todas as tasks em ordem**, uma por vez, sem solicitar nova aprovação entre tasks, marcando cada checkbox final em `task.md` após executar e verificar a task.
+> 10. Após executar todas as tasks, **realizar a verificação final consolidada** e solicitar validação final do usuário sobre o resultado completo.
+> O GPT Action **não pode implementar código, rodar comandos de modificação, criar arquivos técnicos fora do fluxo ou executar tasks** antes da aprovação única do pacote documental completo. Depois da aprovação do pacote, ele deve executar a sequência completa de tasks sem travas intermediárias, mantendo verificação técnica por task e validação final consolidada.
+>
+> **EXCEÇÃO CONTROLADA PARA AJUSTES FINOS VISUAIS / LAYOUT ORIUNDOS DE QA:**
+> Quando a solicitação for claramente um ajuste fino visual, refinamento de layout, espaçamento, alinhamento, proporção, responsividade, cor, tipografia, microcopy visual ou correção estética capturada por anotação QA, e **não** alterar regra de negócio, fluxo funcional, contrato de API, modelo de dados, permissão, arquitetura ou comportamento sistêmico, o GPT Action **não precisa executar o fluxo completo de REQ -> RFs -> Design -> DRI**.
+> Nesse caso, o fluxo mínimo obrigatório é:
+> 1. Ler a anotação QA de referência e entender o problema visual.
+> 2. Criar ou atualizar uma task em `.documents/task/task.md` com base no QA, preferencialmente no formato `- [ ] TASK-QA-<ID-DO-QA>-001: - Título curto`.
+> 3. Criar ou atualizar o plano detalhado de todas as tasks QA em `.documents/task/task.details.md`, preservando as seções anteriores.
+> 4. Solicitar uma única aprovação do pacote QA: anotação entendida, task(s) e task.details.
+> 5. Após aprovação, executar todas as tasks QA em ordem sem nova aprovação intermediária.
+> 6. Verificar visualmente/tecnicamente a alteração quando possível.
+> 7. Marcar cada task como concluída em `task.md` apenas após executar e verificar.
+> 8. Solicitar validação final do usuário somente ao final da sequência.
+> Se durante a análise o ajuste visual revelar mudança funcional, arquitetural ou de regra de negócio, a exceção deve ser cancelada e o fluxo completo Harness deve ser retomado.
+
+---
+
+## 🗺️ Fluxo de Trabalho Completo (REQ > RFs > Design > DRI > Task List > Task Details > Execução)
+
+```mermaid
+graph TD
+    A["1. Reconhecimento e Análise"] --> B{"REQ informado?"}
+    B -->|"Sim"| C["Ler/Atualizar REQ Principal em requirements/"]
+    B -->|"Não"| D["Criar REQ Principal em requirements/"]
+    C --> C2["Detalhar e revisar RFs em functional-requirements/"]
+    D --> C2
+    C2 --> E["Revisar Design vivo em .documents/design/design.md"]
+    E --> F{"Arquitetura precisa atualizar?"}
+    F -->|"Sim"| G["Atualizar design.md"]
+    F -->|"Não"| H["Registrar Design revisado sem edição"]
+    G --> I["Criar ou revisar DRI quando aplicável"]
+    H --> I
+    I --> J["Criar ou revisar Task List em .documents/task/task.md"]
+    J --> K["Criar ou atualizar task.details.md para todas as tasks"]
+    K --> L{"Usuário aprovou o pacote documental completo?"}
+    L -->|"Não, ajustar pacote"| C
+    L -->|"Sim"| M["Executar tasks em ordem sem aprovação intermediária"]
+    M --> N["Verificação técnica por task"]
+    N -->|"Falhou"| M
+    N -->|"Sucesso"| O["Marcar checkbox da task em task.md"]
+    O --> P{"Há próxima task?"}
+    P -->|"Sim"| M
+    P -->|"Não"| Q["Verificação final consolidada"]
+    Q --> R["Solicitar validação final do usuário"]
+```
