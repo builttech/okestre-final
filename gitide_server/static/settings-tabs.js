@@ -68,7 +68,13 @@
       panel.classList.toggle('is-active', panel.dataset.settingsTabPanel === tabName);
     });
 
+    
     if (tabName === 'prompt-copy') updatePromptPreview();
+    if (tabName === 'parametrization') {
+       if (!paramEditor) setTimeout(initParamEditor, 50);
+       else setTimeout(() => paramEditor.refresh(), 50);
+    }
+
     if (tabName === 'prod-validator' && typeof window.loadProdReadinessValidator === 'function') {
       window.loadProdReadinessValidator();
     }
@@ -153,7 +159,139 @@
     });
   }
 
+  
+  let paramEditor = null;
+  let currentParamFile = null;
+  let currentParamType = null;
+
+  function createParametrizationPanel() {
+    const panel = createPanel('parametrization', false);
+    panel.innerHTML = `
+      <div class="settings-card card parametrization-card" style="height: 100%;">
+        <div class="card-header" style="border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 16px;">
+          <h4 style="margin: 0; font-size: 16px; display: flex; align-items: center; gap: 8px;"><i data-lucide="file-edit"></i> Parametrização Base</h4>
+        </div>
+        <div class="card-body parametrization-grid" style="display: flex; gap: 16px; height: calc(100vh - 180px); min-height: 500px; padding: 0;">
+          <div class="parametrization-sidebar" style="width: 250px; border-right: 1px solid var(--border-color); padding-right: 16px; overflow-y: auto;">
+             <div style="font-weight: bold; margin-bottom: 8px; color: var(--text-light);">Templates</div>
+             <ul id="parametrization-templates-list" style="list-style: none; padding: 0; margin: 0; margin-bottom: 16px; font-size: 13px; display: flex; flex-direction: column; gap: 4px;"></ul>
+             <div style="font-weight: bold; margin-bottom: 8px; color: var(--text-light);">Contratos</div>
+             <ul id="parametrization-contracts-list" style="list-style: none; padding: 0; margin: 0; font-size: 13px; display: flex; flex-direction: column; gap: 4px;"></ul>
+          </div>
+          <div class="parametrization-editor-container" style="flex: 1; display: flex; flex-direction: column; gap: 12px; position: relative; width: calc(100% - 250px);">
+             <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span id="parametrization-current-file" style="font-weight: 500; font-family: var(--font-mono); color: var(--color-primary);">Selecione um arquivo...</span>
+                <button class="btn btn-primary btn-sm" id="btn-save-parametrization" disabled><i data-lucide="save"></i> Salvar</button>
+             </div>
+             <div style="flex: 1; border: 1px solid var(--border-color); border-radius: 4px; position: relative; display: flex; flex-direction: column;" id="parametrization-cm-wrapper">
+                <textarea id="parametrization-editor"></textarea>
+             </div>
+          </div>
+        </div>
+      </div>
+    `;
+    return panel;
+  }
+
+  function renderParamList(elementId, items, type) {
+    const list = document.getElementById(elementId);
+    if (!list) return;
+    list.innerHTML = items.map(item => `
+      <li>
+        <a href="#" data-param-file="${item}" data-param-type="${type}" class="param-file-link" style="color: var(--text-muted); text-decoration: none; padding: 4px 8px; display: block; border-radius: 4px;">
+          <i data-lucide="file-text" style="width: 14px; height: 14px; margin-right: 6px; vertical-align: text-bottom;"></i>${item}
+        </a>
+      </li>
+    `).join('');
+  }
+
+  function initParamEditor() {
+    if (paramEditor) return;
+    const textarea = document.getElementById('parametrization-editor');
+    if (!textarea) return;
+    
+    paramEditor = CodeMirror.fromTextArea(textarea, {
+      mode: 'markdown',
+      theme: 'darcula',
+      lineNumbers: true,
+      lineWrapping: true,
+      viewportMargin: Infinity
+    });
+    paramEditor.setSize('100%', '100%');
+    
+    paramEditor.on('change', () => {
+       document.getElementById('btn-save-parametrization').disabled = false;
+    });
+  }
+
+  function loadParamFile(file, type) {
+    currentParamFile = file;
+    currentParamType = type;
+    document.getElementById('parametrization-current-file').textContent = file;
+    document.getElementById('btn-save-parametrization').disabled = true;
+    
+    document.querySelectorAll('.param-file-link').forEach(link => {
+       if (link.dataset.paramFile === file && link.dataset.paramType === type) {
+           link.style.background = 'var(--bg-lighter)';
+           link.style.color = 'var(--text-light)';
+       } else {
+           link.style.background = 'transparent';
+           link.style.color = 'var(--text-muted)';
+       }
+    });
+
+    fetch(`/api/system/parameters/content?type=${type}&filename=${file}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.status === 'success') {
+          if (!paramEditor) initParamEditor();
+          paramEditor.setValue(data.content);
+          document.getElementById('btn-save-parametrization').disabled = true;
+        }
+      });
+  }
+
+  function wireParametrization() {
+    fetch('/api/system/parameters')
+      .then(res => res.json())
+      .then(data => {
+         if (data.status === 'success') {
+            renderParamList('parametrization-templates-list', data.templates, 'template');
+            renderParamList('parametrization-contracts-list', data.contracts, 'contract');
+            if (typeof window.refreshLucideIcons === 'function') window.refreshLucideIcons();
+            
+            document.querySelectorAll('.param-file-link').forEach(link => {
+               link.addEventListener('click', (e) => {
+                  e.preventDefault();
+                  loadParamFile(link.dataset.paramFile, link.dataset.paramType);
+               });
+            });
+         }
+      });
+      
+    document.getElementById('btn-save-parametrization')?.addEventListener('click', () => {
+       if (!currentParamFile || !currentParamType || !paramEditor) return;
+       const btn = document.getElementById('btn-save-parametrization');
+       const originalText = btn.innerHTML;
+       btn.innerHTML = 'Salvando...';
+       btn.disabled = true;
+       
+       fetch(`/api/system/parameters/content?type=${currentParamType}&filename=${currentParamFile}`, {
+           method: 'POST',
+           headers: { 'Content-Type': 'application/json' },
+           body: JSON.stringify({ content: paramEditor.getValue() })
+       }).then(() => {
+           btn.innerHTML = 'Salvo!';
+           setTimeout(() => { btn.innerHTML = originalText; btn.disabled = true; }, 2000);
+       }).catch(() => {
+           btn.innerHTML = 'Erro!';
+           setTimeout(() => { btn.innerHTML = originalText; btn.disabled = false; }, 2000);
+       });
+    });
+  }
+
   function initSettingsTabs() {
+
     const layout = document.querySelector('#tab-settings .settings-dashboard-layout');
     if (!layout || layout.dataset.settingsTabsReady === 'true') return;
 
@@ -171,7 +309,10 @@
     sidebar.className = 'settings-tabs-sidebar';
     sidebar.setAttribute('role', 'tablist');
     sidebar.innerHTML = '<div class="settings-tabs-title">Settings</div>';
+    
     sidebar.appendChild(createTabButton('prompt-copy', 'clipboard-copy', 'Prompt Copy', true));
+    sidebar.appendChild(createTabButton('parametrization', 'file-edit', 'Parametrização', false));
+
     sidebar.appendChild(createTabButton('agent-config', 'bot', 'Configurações do Agente', false));
     sidebar.appendChild(createTabButton('gpt-action', 'rocket', 'Configurações do GPT Action', false));
     if (prodValidatorCard) {
@@ -184,7 +325,10 @@
     const content = document.createElement('div');
     content.className = 'settings-tabs-content';
 
+    
     const promptPanel = createPromptCopyPanel();
+    const parametrizationPanel = createParametrizationPanel();
+
     const agentPanel = createPanel('agent-config', false);
     const gptPanel = createPanel('gpt-action', false);
     const prodValidatorPanel = createPanel('prod-validator', false);
@@ -194,7 +338,10 @@
     gptPanel.appendChild(gptCard);
     if (prodValidatorCard) prodValidatorPanel.appendChild(prodValidatorCard);
     if (securityRulesCard) securityRulesPanel.appendChild(securityRulesCard);
+    
     content.appendChild(promptPanel);
+    content.appendChild(parametrizationPanel);
+
     content.appendChild(agentPanel);
     content.appendChild(gptPanel);
     if (prodValidatorCard) content.appendChild(prodValidatorPanel);
@@ -204,7 +351,10 @@
     layout.appendChild(sidebar);
     layout.appendChild(content);
 
+    
     wirePromptActions();
+    wireParametrization();
+
     document.getElementById('project-selector')?.addEventListener('change', updatePromptPreview);
     updatePromptPreview();
 

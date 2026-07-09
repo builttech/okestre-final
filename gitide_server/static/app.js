@@ -7937,7 +7937,14 @@ function renderAgentAssistantMessage(content) {
 
 function renderAgentChatHistory() {
     const chatHistory = document.getElementById('agent-chat-history');
+    const monitor = document.getElementById('agent-monitor');
     if (!chatHistory) return;
+    
+    // Protege o monitor de ser destruido
+    if (monitor && monitor.parentNode === chatHistory) {
+        document.body.appendChild(monitor);
+    }
+    
     chatHistory.innerHTML = '';
     if (!state.agentChatMessages.length) {
         chatHistory.innerHTML = getAgentWelcomeHtml();
@@ -7950,6 +7957,12 @@ function renderAgentChatHistory() {
             chatHistory.appendChild(node);
         });
     }
+    
+    // Insere o monitor sempre no final do fluxo de chat
+    if (monitor) {
+        chatHistory.appendChild(monitor);
+    }
+    
     if (window.lucide) lucide.createIcons();
     chatHistory.scrollTop = chatHistory.scrollHeight;
 }
@@ -9564,7 +9577,6 @@ function sddRenderSpecList(specs) {
             <i data-lucide="${icon}" style="width:15px;height:15px;flex-shrink:0;"></i>
             <div style="flex:1;min-width:0;">
                 <div class="spec-item-title" title="${spec.title}">${spec.title}</div>
-                <div class="spec-item-meta">${spec.filepath || spec.filename}</div>
             </div>
         </div>`;
     };
@@ -9671,7 +9683,7 @@ function sddSetActiveSpecHeader({ title, filename, content }) {
     const rawTitle = title || sddExtractTitle(content || '') || filename || 'Nova Especificação';
     const cleanTitle = sddCleanRequirementTitle(rawTitle);
     const reqId = sddExtractRequirementId(rawTitle) || sddExtractRequirementId(filename);
-    const metaParts = [reqId, filename].filter(Boolean);
+    const metaParts = [reqId].filter(Boolean);
     const titleEl = document.getElementById('sdd-active-spec-title');
     const filenameEl = document.getElementById('sdd-active-spec-filename');
 
@@ -9679,6 +9691,20 @@ function sddSetActiveSpecHeader({ title, filename, content }) {
     if (filenameEl) {
         filenameEl.textContent = metaParts.join(' · ');
         filenameEl.style.display = metaParts.length ? 'inline' : 'none';
+    }
+    
+    // Atualizar títulos dos editores (REQ e RF)
+    const isRf = filename && filename.includes('functional-requirements');
+    if (isRf) {
+        const rfTitle = document.getElementById('sdd-stage-rf-title');
+        const rfSubtitle = document.getElementById('sdd-stage-rf-subtitle');
+        if (rfTitle) rfTitle.textContent = cleanTitle;
+        if (rfSubtitle) rfSubtitle.textContent = filename;
+    } else {
+        const reqTitle = document.getElementById('sdd-stage-req-title');
+        const reqSubtitle = document.getElementById('sdd-stage-req-subtitle');
+        if (reqTitle) reqTitle.textContent = cleanTitle;
+        if (reqSubtitle) reqSubtitle.textContent = filename;
     }
 }
 
@@ -9700,6 +9726,7 @@ function sddResetWorkspaceEmpty() {
     const specifyEditor = document.getElementById('sdd-specify-editor');
     const designEditor = document.getElementById('sdd-design-editor');
     const driEditor = document.getElementById('sdd-dri-editor');
+    const taskDetailsEditor = document.getElementById('sdd-task-details-editor');
     const executeEditor = document.getElementById('sdd-execute-instructions');
     const resultPanel = document.getElementById('sdd-test-result-panel');
 
@@ -10336,10 +10363,21 @@ async function sddSaveSpec() {
         alert('O nome do arquivo deve terminar com .md');
         return;
     }
-    const btn = document.getElementById('btn-sdd-save');
-    btn.disabled = true;
-    btn.innerHTML = '<i data-lucide="loader-2" style="animation:spin 1s linear infinite;"></i> Salvando...';
-    if (window.lucide) lucide.createIcons();
+    let btn = null;
+    if (sddState.activeTab === 'sdd-tab-preview') btn = document.getElementById('btn-sdd-save-specify');
+    else if (sddState.activeTab === 'sdd-tab-rfs') btn = document.getElementById('btn-sdd-save-rf');
+    else if (sddState.activeTab === 'sdd-tab-edit') btn = document.getElementById('btn-sdd-save-design');
+    else if (sddState.activeTab === 'sdd-tab-dri') btn = document.getElementById('btn-sdd-save-dri');
+    else if (sddState.activeTab === 'sdd-tab-task-details') btn = document.getElementById('btn-sdd-save-task-details');
+    
+    let originalHtml = '';
+    if (btn) {
+        btn.disabled = true;
+        originalHtml = btn.innerHTML;
+        btn.innerHTML = '<i data-lucide="loader-2" style="animation:spin 1s linear infinite;"></i> Salvando...';
+        if (window.lucide) lucide.createIcons();
+    }
+    
     try {
         const res = await fetch(`/api/projects/${state.activeProjectId}/sdd/specs`, {
             method: 'POST',
@@ -10367,9 +10405,11 @@ async function sddSaveSpec() {
     } catch (e) {
         alert('Erro ao salvar especificação: ' + e.message);
     } finally {
-        btn.disabled = false;
-        btn.innerHTML = '<i data-lucide="save"></i> Salvar Alterações';
-        if (window.lucide) lucide.createIcons();
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = originalHtml || '<i data-lucide="save"></i> Salvar';
+            if (window.lucide) lucide.createIcons();
+        }
     }
 }
 
@@ -10891,6 +10931,9 @@ async function sddCreateRequirementFromModal() {
     // Remove sidebar active
     document.querySelectorAll('.spec-item').forEach(el => el.classList.remove('active'));
     closeCustomModal('modal-sdd-new-requirement');
+
+    // Auto-save immediately upon creation
+    await sddSaveStage(kind === 'rf' ? 'rf' : 'specify');
 }
 
 // --- AI Spec Generation ---
@@ -11075,8 +11118,7 @@ function setupSddEventListeners() {
     });
 
     // Save spec
-    const btnSave = document.getElementById('btn-sdd-save');
-    if (btnSave) btnSave.addEventListener('click', sddSaveSpec);
+    // Legacy global save button removed, do nothing here
 
     const btnSaveSpecify = document.getElementById('btn-sdd-save-specify');
     if (btnSaveSpecify) btnSaveSpecify.addEventListener('click', () => sddSaveStage('specify'));
@@ -11088,11 +11130,11 @@ function setupSddEventListeners() {
     if (btnSaveDesign) btnSaveDesign.addEventListener('click', () => sddSaveStage('design'));
 
     const btnSaveDri = document.getElementById('btn-sdd-save-dri');
+    const btnSaveTaskDetails = document.getElementById('btn-sdd-save-task-details');
     if (btnSaveDri) btnSaveDri.addEventListener('click', () => sddSaveStage('dri'));
 
     // Delete spec
-    const btnDelete = document.getElementById('btn-sdd-delete');
-    if (btnDelete) btnDelete.addEventListener('click', sddDeleteSpec);
+    // Legacy global delete button removed, do nothing here
 
     const btnDeleteSpecify = document.getElementById('btn-sdd-delete-specify');
     if (btnDeleteSpecify) btnDeleteSpecify.addEventListener('click', sddDeleteSpec);

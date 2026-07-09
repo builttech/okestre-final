@@ -17,7 +17,7 @@
     <link rel="stylesheet" href="/static/workspace-switcher-refactor.css?v=2">
     <link rel="stylesheet" href="/static/workspace-native-fallback.css?v=1">
     <link rel="stylesheet" href="/static/settings-tabs.css?v=1">
-    <link rel="stylesheet" href="/static/rebrand.css?v=62">
+    <link rel="stylesheet" href="/static/rebrand.css?v=68">
     <script src="/static/lucide-bootstrap.js"></script>
     <script defer src="/static/ui/workspace-switcher.js?v=3"></script>
     <script defer src="/static/settings-tabs.js?v=6"></script>
@@ -693,7 +693,7 @@
 
                 <!-- TAB: SETTINGS & TUNNEL -->
                 <div id="tab-settings" class="tab-pane">
-                    <div class="settings-dashboard-layout" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 20px; padding: 20px; max-width: 1200px; margin: 0 auto;">
+                    <div class="settings-dashboard-layout" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 20px; padding: 20px; max-width: 100%; margin: 0 auto;">
                         
                         <!-- CARD 1: CONFIGURAÇÕES DO AGENTE IA -->
                         <div class="settings-card card" style="display: flex; flex-direction: column; height: fit-content;">
@@ -1269,7 +1269,7 @@ REGRA INQUEBRÁVEL: antes de executar qualquer task, valide REQ, DRI e Task List
                 <div id="tab-agent" class="tab-pane">
                     <div class="agent-layout" style="display: flex; gap: 20px; height: 100%; min-height: 0;">
                         <!-- Coluna Única: Chat & Monitor de Raciocínio (Largura Total) -->
-                        <div class="agent-main-panel card" style="flex: 1; display: flex; flex-direction: column; min-width: 0; height: 100%; overflow: hidden;">
+                        <div class="agent-main-panel" style="flex: 1; display: flex; flex-direction: column; min-width: 0; height: 100%; overflow: hidden; border: none; background: transparent;">
                             
                             <!-- Cabeçalho do Chat -->
                             <div class="agent-chat-header">
@@ -1296,15 +1296,17 @@ REGRA INQUEBRÁVEL: antes de executar qualquer task, valide REQ, DRI e Task List
                             </div>
 
                             <!-- Monitor de Raciocínio (Pensamentos em tempo real) -->
-                            <div class="agent-reasoning-monitor" id="agent-monitor">
-                                <div class="agent-monitor-header">
-                                    <span><i data-lucide="workflow"></i> Workflow do agente</span>
-                                    <button id="btn-clear-agent-monitor" type="button" title="Limpar workflow"><i data-lucide="x"></i></button>
-                                </div>
-                                <div id="agent-monitor-logs">
+                            <details class="agent-reasoning-monitor" id="agent-monitor">
+                                <summary class="agent-monitor-header" style="cursor: pointer; user-select: none; display: flex; align-items: center; justify-content: space-between; list-style: none;">
+                                    <div style="display: flex; align-items: center; gap: 8px;">
+                                        <i data-lucide="workflow"></i> <span>Workflow do agente</span>
+                                    </div>
+                                    <button id="btn-clear-agent-monitor" type="button" title="Limpar workflow" style="background: none; border: none; color: inherit; cursor: pointer; padding: 0;"><i data-lucide="x"></i></button>
+                                </summary>
+                                <div id="agent-monitor-logs" style="padding-top: 10px;">
                                     <!-- Injetado dinamicamente -->
                                 </div>
-                            </div>
+                            </details>
                             
                             <!-- Área de Chat Histórico -->
                             <div class="agent-chat-container" id="agent-chat-history">
@@ -1518,7 +1520,7 @@ REGRA INQUEBRÁVEL: antes de executar qualquer task, valide REQ, DRI e Task List
                             <div class="sdd-workspace-header">
                                 <div class="sdd-active-spec-info">
                                     <h4 id="sdd-active-spec-title">Nenhuma Especificação Selecionada</h4>
-                                    <span id="sdd-active-spec-filename" class="badge" style="display: none;"></span>
+                                    <span id="sdd-active-spec-filename" class="badge" style="display: none; font-size: 10px;"></span>
                                 </div>
                                 <div class="sdd-workspace-nav" id="sdd-workspace-nav-tabs" style="display: none;">
                                     <button class="sdd-nav-btn active" data-sdd-tab="sdd-tab-preview"><span>1</span> REQ</button>
@@ -1526,7 +1528,8 @@ REGRA INQUEBRÁVEL: antes de executar qualquer task, valide REQ, DRI e Task List
                                     <button class="sdd-nav-btn" data-sdd-tab="sdd-tab-edit"><span>3</span> Design</button>
                                     <button class="sdd-nav-btn" data-sdd-tab="sdd-tab-dri"><span>4</span> DRI</button>
                                     <button class="sdd-nav-btn" data-sdd-tab="sdd-tab-checklist"><span>5</span> Task List</button>
-                                    <button class="sdd-nav-btn" data-sdd-tab="sdd-tab-tests"><span>6</span> Execute</button>
+                                    <button class="sdd-nav-btn" data-sdd-tab="sdd-tab-task-details"><span>6</span> Task Detalhes</button>
+                                    <button class="sdd-nav-btn" data-sdd-tab="sdd-tab-tests"><span>7</span> Execução</button>
                                 </div>
                             </div>
 
@@ -1537,8 +1540,8 @@ REGRA INQUEBRÁVEL: antes de executar qualquer task, valide REQ, DRI e Task List
                                         <section class="sdd-stage-main">
                                             <div class="sdd-stage-title">
                                                 <div>
-                                                    <span>REQ - Macro Requisito</span>
-                                                    <h5>REQ pai em .documents/requirements/REQ-XX/REQ-XX.md</h5>
+                                                    <span id="sdd-stage-req-title">REQ - Macro Requisito</span>
+                                                    <h5 id="sdd-stage-req-subtitle">REQ pai em .documents/requirements/REQ-XX/REQ-XX.md</h5>
                                                 </div>
                                                 <div class="sdd-stage-actions">
                                                     <button class="btn btn-secondary btn-sm sdd-danger-action" id="btn-sdd-delete-specify" title="Excluir requisito"><i data-lucide="trash-2"></i></button>
@@ -1575,8 +1578,8 @@ REGRA INQUEBRÁVEL: antes de executar qualquer task, valide REQ, DRI e Task List
                                         <section class="sdd-stage-main">
                                             <div class="sdd-stage-title">
                                                 <div>
-                                                    <span>RF - Requisito Funcional</span>
-                                                    <h5>Requisito funcional em .documents/requirements/REQ-XX/functional-requirements/RF-XX.md</h5>
+                                                    <span id="sdd-stage-rf-title">RF - Requisito Funcional</span>
+                                                    <h5 id="sdd-stage-rf-subtitle">Requisito funcional em .documents/requirements/REQ-XX/functional-requirements/RF-XX.md</h5>
                                                 </div>
                                                 <div class="sdd-stage-actions">
                                                     <button class="btn btn-secondary btn-sm sdd-danger-action" id="btn-sdd-delete-rf" title="Excluir RF"><i data-lucide="trash-2"></i></button>
@@ -1657,8 +1660,7 @@ REGRA INQUEBRÁVEL: antes de executar qualquer task, valide REQ, DRI e Task List
 
                                 <input type="hidden" id="sdd-edit-filename">
                                 <textarea id="sdd-spec-editor-textarea" style="display:none;"></textarea>
-                                <button id="btn-sdd-save" style="display:none;" type="button"></button>
-                                <button id="btn-sdd-delete" style="display:none;" type="button"></button>
+                                <!-- Legacy global buttons removed -->
 
                                 <!-- STEP 4: TASK LIST -->
                                 <div id="sdd-tab-checklist" class="sdd-tab-content">
@@ -1679,7 +1681,29 @@ REGRA INQUEBRÁVEL: antes de executar qualquer task, valide REQ, DRI e Task List
                                     </div>
                                 </div>
 
-                                <!-- STEP 5: EXECUTE -->
+                                <!-- STEP 6: TASK DETALHES -->
+                                <div id="sdd-tab-task-details" class="sdd-tab-content">
+                                    <div class="sdd-stage-grid">
+                                        <section class="sdd-stage-main">
+                                            <div class="sdd-stage-title">
+                                                <div>
+                                                    <span>Task Details - Detalhamento das Tarefas</span>
+                                                    <h5>Plano técnico de execução para o Agente</h5>
+                                                </div>
+                                                <div class="sdd-stage-actions">
+                                                    <button class="btn btn-primary btn-sm" id="btn-sdd-save-task-details"><i data-lucide="save"></i> Salvar Detalhes</button>
+                                                </div>
+                                            </div>
+                                            <textarea id="sdd-task-details-editor" class="sdd-doc-editor text-input" placeholder="Aqui aparecerão os detalhes das tasks (.documents/task/task.details.md)."></textarea>
+                                        </section>
+                                        <aside class="sdd-stage-aside">
+                                            <h5><i data-lucide="info"></i> Sobre o Task Details</h5>
+                                            <p>Este arquivo (<code>task.details.md</code>) acumula os planos técnicos de implementação de cada tarefa. Ele deve ser aprovado junto com o restante da documentação antes da execução.</p>
+                                        </aside>
+                                    </div>
+                                </div>
+
+                                <!-- STEP 7: EXECUTE -->
                                 <div id="sdd-tab-tests" class="sdd-tab-content">
                                     <div class="sdd-execute-grid">
                                         <section class="sdd-stage-main">
@@ -2550,7 +2574,7 @@ REGRA INQUEBRÁVEL: antes de executar qualquer task, valide REQ, DRI e Task List
     </aside>
 
     <!-- Custom JavaScript -->
-    <script src="/static/app.js?v=82"></script>
+    <script src="/static/app.js?v=88"></script>
     <script src="/static/theme-toggle.js?v=1"></script>
 </body>
 </html>

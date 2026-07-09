@@ -637,11 +637,59 @@ def sync_project_system_files(project_path: str) -> list[str]:
         os.path.join(".documents", "prod-readiness"),
         os.path.join(".documents", "security"),
         os.path.join(".documents", "ops-infra"),
+        os.path.join(".documents", "agent"),
+        os.path.join(".documents", "design"),
+        os.path.join(".documents", "dri"),
+        os.path.join(".documents", "requirements"),
+        os.path.join(".documents", "spec"),
+        os.path.join(".documents", "task"),
     ):
         try:
             os.makedirs(os.path.join(project_path, rel_dir), exist_ok=True)
         except Exception as e:
             print(f"Erro ao criar diretório {rel_dir} no workspace: {str(e)}")
+
+    try:
+        task_dir = os.path.join(project_path, ".documents", "task")
+        task_md = os.path.join(task_dir, "task.md")
+        task_details_md = os.path.join(task_dir, "task.details.md")
+        
+        design_dir = os.path.join(project_path, ".documents", "design")
+        design_md = os.path.join(design_dir, "design.md")
+        
+        dri_dir = os.path.join(project_path, ".documents", "dri")
+        dri_md = os.path.join(dri_dir, "dri.md")
+        
+        req_dir = os.path.join(project_path, ".documents", "requirements")
+        req_md = os.path.join(req_dir, "REQ-01-template.md")
+        
+        func_req_dir = os.path.join(req_dir, "functional-requirements")
+        rf_md = os.path.join(func_req_dir, "RF-01-01-template.md")
+        
+        if not os.path.exists(func_req_dir):
+            os.makedirs(func_req_dir, exist_ok=True)
+            
+        import shutil
+        templates_dir = os.path.join(server_root, "gitide_server", "templates")
+        project_charter_md = os.path.join(project_path, ".documents", "project-charter.md")
+        
+        template_map = {
+            "REQ-01-template.md": req_md,
+            "RF-01-01-template.md": rf_md,
+            "task.md": task_md,
+            "task.details.md": task_details_md,
+            "design.md": design_md,
+            "dri.md": dri_md,
+            "project-charter.md": project_charter_md
+        }
+        
+        for tpl_name, target_path in template_map.items():
+            tpl_path = os.path.join(templates_dir, tpl_name)
+            if not os.path.exists(target_path) and os.path.exists(tpl_path):
+                shutil.copy2(tpl_path, target_path)
+                
+    except Exception as e:
+        print(f"Erro ao criar arquivos de template: {str(e)}")
 
     for filename, overwrite in files:
         src = os.path.join(server_root, filename)
@@ -2234,8 +2282,8 @@ BUSINESS_DOCUMENTS = {
     "specify": {
         "filename": "specify-especificacao.docx",
         "title": "Specify - Especificação",
-        "source": ".documents/spec/*.md",
-        "description": "Todos os REQs funcionais criados no projeto, com cada REQ iniciado em uma nova página.",
+        "source": ".documents/requirements/**/*.md",
+        "description": "Todos os REQs e RFs funcionais criados no projeto, com cada especificação em uma nova página.",
     },
     "design": {
         "filename": "design-planejamento.docx",
@@ -2320,22 +2368,34 @@ def _build_business_document_sections(project: Project, kind: str) -> list:
         return _markdown_to_word_sections(content)
 
     if kind == "specify":
-        spec_dir = _sdd_spec_dir(project)
+        documents_dir = os.path.join(project.path, ".documents")
+        dirs_to_check = [
+            os.path.join(documents_dir, "requirements"),
+            os.path.join(documents_dir, "spec"),
+            os.path.join(documents_dir, "specs")
+        ]
         sections = []
         spec_files = []
-        if os.path.exists(spec_dir):
-            for entry in os.scandir(spec_dir):
-                if entry.is_file() and entry.name.lower().endswith(".md"):
-                    spec_files.append(entry)
-        spec_files.sort(key=lambda item: item.name.lower())
+        
+        for d in dirs_to_check:
+            if os.path.exists(d):
+                for root, _, files in os.walk(d):
+                    for filename in files:
+                        if filename.lower().endswith(".md"):
+                            spec_files.append(os.path.join(root, filename))
+                            
+        spec_files.sort(key=lambda p: os.path.basename(p).lower())
+        
         if not spec_files:
-            return [{"heading": "Nenhum REQ encontrado", "text": "Crie REQs em .documents/spec para compor este documento.", "type": "highlight"}]
-        for index, entry in enumerate(spec_files):
+            return [{"heading": "Nenhum REQ encontrado", "text": "Crie REQs em .documents/requirements ou .documents/spec para compor este documento.", "type": "highlight"}]
+            
+        for index, filepath in enumerate(spec_files):
             if index > 0:
                 sections.append({"heading": "", "text": "", "type": "page_break"})
-            content = _read_text_if_exists(entry.path)
-            req_sections = _markdown_to_word_sections(content, os.path.splitext(entry.name)[0])
-            sections.extend(req_sections or [{"heading": entry.name, "text": "REQ sem conteúdo.", "type": "paragraph"}])
+            content = _read_text_if_exists(filepath)
+            filename = os.path.basename(filepath)
+            req_sections = _markdown_to_word_sections(content, os.path.splitext(filename)[0])
+            sections.extend(req_sections or [{"heading": filename, "text": "REQ sem conteúdo.", "type": "paragraph"}])
         return sections
 
     if kind == "design":
@@ -4812,6 +4872,56 @@ def list_sdd_specs(project: Project = Depends(get_project_or_404)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro ao listar especificações: {str(e)}")
 
+@app.get("/api/projects/{project_id}/sdd/specs/{filename:path}/criteria", tags=["Spec-Driven Development"])
+def get_sdd_spec_criteria(filename: str, project: Project = Depends(get_project_or_404)):
+    """Extrai tarefas exclusivamente do task.md vivo do projeto."""
+    filename = filename.strip()
+    if not filename or ".." in filename:
+        raise HTTPException(status_code=400, detail="Nome de arquivo inválido.")
+
+    task_path = _sdd_project_document_path(project, "task")
+    source_type = "project_task_document"
+
+    if not os.path.exists(task_path):
+        return {
+            "filename": filename,
+            "source_type": "project_task_document",
+            "filepath": os.path.relpath(task_path, project.path).replace("\\", "/"),
+            "criteria": []
+        }
+
+    criteria = []
+    try:
+        with open(task_path, "r", encoding="utf-8") as f:
+            lines = f.readlines()
+
+        for i in range(0, len(lines)):
+            line_stripped = lines[i].strip()
+            checkbox_match = re.match(r"^\-\s*\[([ xX])\]\s*(.*)", line_stripped)
+            if checkbox_match:
+                raw_text = checkbox_match.group(2).strip()
+                task_match = re.match(r"^(TASK-(?:REQ-\d{2,6}|QA-[A-Z0-9-]+)-\d{3})\s*:\s*-?\s*(.+)$", raw_text, flags=re.IGNORECASE)
+                if not task_match:
+                    continue
+                task_code = task_match.group(1).upper()
+                task_title = task_match.group(2).strip()
+                criteria.append({
+                    "id": i,
+                    "line_no": i + 1,
+                    "code": task_code,
+                    "title": task_title,
+                    "text": f"{task_code}: - {task_title}",
+                    "checked": checkbox_match.group(1).lower() == "x"
+                })
+        return {
+            "filename": filename,
+            "source_type": source_type,
+            "filepath": os.path.relpath(task_path, project.path).replace("\\", "/"),
+            "criteria": criteria
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao extrair tarefas: {str(e)}")
+
 @app.get("/api/projects/{project_id}/sdd/specs/{filename:path}", tags=["Spec-Driven Development"])
 def get_sdd_spec(filename: str, project: Project = Depends(get_project_or_404)):
     """Retorna o conteúdo de um REQ em .documents/spec ou de uma spec legada."""
@@ -4819,16 +4929,20 @@ def get_sdd_spec(filename: str, project: Project = Depends(get_project_or_404)):
     if not filename or ".." in filename or not filename.endswith(".md"):
         raise HTTPException(status_code=400, detail="Nome de arquivo inválido.")
 
+    spec_path_requirements = os.path.join(project.path, ".documents", "requirements", filename)
     spec_path = os.path.join(_sdd_spec_dir(project), filename)
     legacy_spec_path = os.path.join(project.path, ".documents", "specs", filename)
     storage_type = "project_spec_file"
-    target_path = spec_path
+    
+    target_path = None
+    for p in [spec_path_requirements, spec_path, legacy_spec_path]:
+        if os.path.exists(p):
+            target_path = p
+            if p == legacy_spec_path:
+                storage_type = "legacy_markdown"
+            break
 
-    if not os.path.exists(target_path):
-        target_path = legacy_spec_path
-        storage_type = "legacy_markdown"
-
-    if not os.path.exists(target_path):
+    if not target_path:
         raise HTTPException(status_code=404, detail="Especificação não encontrada.")
 
     try:
@@ -4891,7 +5005,7 @@ def save_sdd_spec(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro ao salvar REQ: {str(e)}")
 
-@app.delete("/api/projects/{project_id}/sdd/specs/{filename}", tags=["Spec-Driven Development"])
+@app.delete("/api/projects/{project_id}/sdd/specs/{filename:path}", tags=["Spec-Driven Development"])
 def delete_sdd_spec(
     filename: str,
     project: Project = Depends(get_project_or_404),
@@ -4899,18 +5013,47 @@ def delete_sdd_spec(
     _ = Depends(get_api_key)
 ):
     """Deleta uma especificação específica."""
-    if ".." in filename or "/" in filename or "\\" in filename:
+    if ".." in filename or "\\" in filename:
         raise HTTPException(status_code=400, detail="Nome de arquivo inválido.")
         
-    filename = os.path.basename(filename.strip())
-    spec_path = os.path.join(_sdd_spec_dir(project), filename)
-    legacy_spec_path = os.path.join(project.path, ".documents", "specs", filename)
-    target_path = spec_path if os.path.exists(spec_path) else legacy_spec_path
-    if not os.path.exists(target_path):
+    filename = filename.strip()
+    
+    docs_dir = os.path.join(project.path, ".documents")
+    spec_path = os.path.join(docs_dir, "requirements", filename)
+    legacy_spec_path = os.path.join(docs_dir, "specs", filename)
+    legacy_spec2_path = os.path.join(docs_dir, "spec", filename)
+    
+    target_path = None
+    for p in [spec_path, legacy_spec_path, legacy_spec2_path]:
+        if os.path.exists(p):
+            target_path = p
+            break
+            
+    if not target_path:
         raise HTTPException(status_code=404, detail="Especificação não encontrada.")
         
     try:
         os.remove(target_path)
+        
+        # Check if this is the main REQ file inside a REQ folder
+        parent_dir = os.path.dirname(target_path)
+        basename_no_ext = os.path.splitext(os.path.basename(target_path))[0]
+        parent_dir_name = os.path.basename(parent_dir)
+        
+        if parent_dir_name and basename_no_ext.lower() == parent_dir_name.lower():
+            import shutil
+            try:
+                shutil.rmtree(parent_dir)
+            except Exception:
+                pass
+        else:
+            # Cleanup parent directory if it is now empty (e.g. RF folder)
+            if os.path.exists(parent_dir) and not os.listdir(parent_dir):
+                try:
+                    os.rmdir(parent_dir)
+                except Exception:
+                    pass
+                
         rel_path = os.path.relpath(target_path, project.path).replace("\\", "/")
         log = ActivityLog(
             project_id=project.id,
@@ -5008,56 +5151,6 @@ def generate_sdd_spec(
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro ao gerar especificação por IA: {str(e)}")
-
-@app.get("/api/projects/{project_id}/sdd/specs/{filename:path}/criteria", tags=["Spec-Driven Development"])
-def get_sdd_spec_criteria(filename: str, project: Project = Depends(get_project_or_404)):
-    """Extrai tarefas exclusivamente do task.md vivo do projeto."""
-    filename = filename.strip()
-    if not filename or ".." in filename:
-        raise HTTPException(status_code=400, detail="Nome de arquivo inválido.")
-
-    task_path = _sdd_project_document_path(project, "task")
-    source_type = "project_task_document"
-
-    if not os.path.exists(task_path):
-        return {
-            "filename": filename,
-            "source_type": "project_task_document",
-            "filepath": os.path.relpath(task_path, project.path).replace("\\", "/"),
-            "criteria": []
-        }
-
-    criteria = []
-    try:
-        with open(task_path, "r", encoding="utf-8") as f:
-            lines = f.readlines()
-
-        for i in range(0, len(lines)):
-            line_stripped = lines[i].strip()
-            checkbox_match = re.match(r"^\-\s*\[([ xX])\]\s*(.*)", line_stripped)
-            if checkbox_match:
-                raw_text = checkbox_match.group(2).strip()
-                task_match = re.match(r"^(TASK-(?:REQ-\d{2,6}|QA-[A-Z0-9-]+)-\d{3})\s*:\s*-?\s*(.+)$", raw_text, flags=re.IGNORECASE)
-                if not task_match:
-                    continue
-                task_code = task_match.group(1).upper()
-                task_title = task_match.group(2).strip()
-                criteria.append({
-                    "id": i,
-                    "line_no": i + 1,
-                    "code": task_code,
-                    "title": task_title,
-                    "text": f"{task_code}: - {task_title}",
-                    "checked": checkbox_match.group(1).lower() == "x"
-                })
-        return {
-            "filename": filename,
-            "source_type": source_type,
-            "filepath": os.path.relpath(task_path, project.path).replace("\\", "/"),
-            "criteria": criteria
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erro ao extrair tarefas: {str(e)}")
 
 @app.get("/api/projects/{project_id}/sdd/tasks", tags=["Spec-Driven Development"])
 def get_sdd_project_tasks(project: Project = Depends(get_project_or_404)):
@@ -6005,29 +6098,10 @@ async def discovery_upload(
     with open(original_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
         
-    # Convert
-    config = agent.load_agent_config()
-    provider = config.get("provider", "openai")
-    
-    try:
-        from openai import OpenAI
-        if provider == "ollama":
-            base_url = config.get("ollama_base_url", "http://127.0.0.1:11434")
-            model = config.get("model", "llava")
-            ollama_api_key = config.get("api_key") or "ollama"
-            client = OpenAI(base_url=f"{base_url}/v1", api_key=ollama_api_key)
-            md = MarkItDown(llm_client=client, llm_model=model)
-        else:
-            api_key = config.get("api_key")
-            if api_key:
-                client = OpenAI(api_key=api_key)
-                md = MarkItDown(llm_client=client, llm_model="gpt-4o")
-            else:
-                md = MarkItDown()
-    except Exception:
-        md = MarkItDown()
-        client = None
-        model = None
+    # Convert sem LLM para evitar travamentos e crashes com Ollama local
+    md = MarkItDown()
+    client = None
+    model = None
     try:
         # Pede para não truncar as imagens para podermos enviá-las ao LLM
         result = md.convert(original_path, keep_data_uris=True)
@@ -6340,4 +6414,57 @@ def ops_infra_openapi():
             if isinstance(method_data, dict):
                 method_data["x-openai-isConsequential"] = False
     return schema
+
+from pydantic import BaseModel
+class ParameterContentUpdate(BaseModel):
+    content: str
+
+@app.get("/api/system/parameters", tags=["System Parameters"])
+def get_system_parameters():
+    server_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    templates_dir = os.path.join(server_root, "gitide_server", "templates")
+    
+    templates = []
+    if os.path.exists(templates_dir):
+        templates = [f for f in os.listdir(templates_dir) if f.endswith(".md")]
+        
+    contracts = [
+        "GPT_INSTRUCTIONS.md",
+        "OPS_INFRA_OPERATOR.md",
+        "PROD_READINESS_VALIDATOR.md",
+        "SECURITY_RULES.md"
+    ]
+    
+    return {"status": "success", "templates": templates, "contracts": contracts}
+
+@app.get("/api/system/parameters/content", tags=["System Parameters"])
+def get_system_parameter_content(type: str = Query(...), filename: str = Query(...)):
+    server_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    
+    if type == "template":
+        filepath = os.path.join(server_root, "gitide_server", "templates", filename)
+    else:
+        filepath = os.path.join(server_root, filename)
+        
+    if not os.path.exists(filepath):
+        raise HTTPException(status_code=404, detail="File not found")
+        
+    with open(filepath, "r", encoding="utf-8") as f:
+        content = f.read()
+        
+    return {"status": "success", "content": content}
+
+@app.post("/api/system/parameters/content", tags=["System Parameters"])
+def update_system_parameter_content(type: str = Query(...), filename: str = Query(...), payload: ParameterContentUpdate = None):
+    server_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    
+    if type == "template":
+        filepath = os.path.join(server_root, "gitide_server", "templates", filename)
+    else:
+        filepath = os.path.join(server_root, filename)
+        
+    with open(filepath, "w", encoding="utf-8") as f:
+        f.write(payload.content)
+        
+    return {"status": "success"}
 

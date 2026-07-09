@@ -167,13 +167,20 @@ def _fallback_final_from_invalid_model_response(response_text: str, error: Excep
     if clean and not clean.startswith("{"):
         final = clean[:3000]
     else:
-        final = (
-            "Tive uma falha de formatação do modelo local ao tentar responder. "
-            "A conexão com o Ollama respondeu, mas o texto veio fora do contrato JSON esperado. "
-            "Tente novamente com uma solicitação objetiva ou troque para um modelo local mais instruído para tool calling."
-        )
+        error_msg = str(error).lower()
+        if "connection" in error_msg or "url" in error_msg or "http" in error_msg or "timeout" in error_msg or "refused" in error_msg or "forbidden" in error_msg or "403" in error_msg:
+            final = (
+                f"Não foi possível conectar ao servidor Ollama. Ocorreu um erro de rede ou de configuração: {str(error)}. "
+                "Verifique se o seu servidor Ollama está rodando e se a URL configurada está correta (o padrão é http://127.0.0.1:11434)."
+            )
+        else:
+            final = (
+                "Tive uma falha de formatação do modelo local ao tentar responder. "
+                "A conexão com o Ollama respondeu, mas o texto veio fora do contrato JSON esperado. "
+                "Tente novamente com uma solicitação objetiva ou troque para um modelo local mais instruído para tool calling."
+            )
     return {
-        "thought": f"Resposta local inválida normalizada para final_answer. Erro: {str(error)[:160]}",
+        "thought": f"Erro ou falha de resposta normalizada para final_answer. Erro: {str(error)[:160]}",
         "final_answer": final,
     }
 
@@ -283,7 +290,15 @@ def call_llm(provider: str, model: str, api_key: str, messages: list, system_pro
             "model": model,
             "messages": ollama_messages,
             "stream": False,
-            "format": "json",
+            "format": {
+                "type": "object",
+                "properties": {
+                    "thought": {"type": "string"},
+                    "tool": {"type": "string"},
+                    "args": {"type": "object"},
+                    "final_answer": {"type": "string"}
+                }
+            },
             "options": {
                 "temperature": 0.1,
                 **(ollama_options or {})
@@ -293,8 +308,19 @@ def call_llm(provider: str, model: str, api_key: str, messages: list, system_pro
         headers = {}
         if api_key:
             headers["Authorization"] = f"Bearer {api_key}"
-        res = requests.post(f"{base_url}/api/chat", json=payload, headers=headers, timeout=120)
-        res.raise_for_status()
+            
+        try:
+            res = requests.post(f"{base_url}/api/chat", json=payload, headers=headers, timeout=120)
+            res.raise_for_status()
+        except requests.exceptions.HTTPError as e:
+            if e.response.status_code == 400 and isinstance(payload.get("format"), dict):
+                # Fallback for older Ollama versions that don't support JSON Schema format
+                payload["format"] = "json"
+                res = requests.post(f"{base_url}/api/chat", json=payload, headers=headers, timeout=120)
+                res.raise_for_status()
+            else:
+                raise
+
         data = res.json()
         return data.get("message", {}).get("content", "")
         
@@ -611,6 +637,9 @@ def run_agent_loop(db: Session, project: Project, config: dict, user_prompt: str
     max_steps = 12 if is_ollama else 50
     step = 0
     
+    
+    step = 0
+    
     yield f"data: {json.dumps({'type': 'start', 'prompt': user_prompt})}\n\n"
     
     last_thought = ""
@@ -637,8 +666,13 @@ def run_agent_loop(db: Session, project: Project, config: dict, user_prompt: str
                     "repeat_penalty": 1.08,
                 } if is_ollama else None
             )
-            parsed = extract_json(raw_response)
         except Exception as le:
+            yield f"data: {json.dumps({'type': 'error', 'content': f'Erro de conexão/API com o modelo ({provider}): {str(le)}'})}\n\n"
+            return
+            
+        try:
+            parsed = extract_json(raw_response)
+        except Exception as parse_error:
             if is_ollama and json_repair_attempts < 2:
                 json_repair_attempts += 1
                 raw_preview = (raw_response if "raw_response" in locals() else "")[:1200]
@@ -715,7 +749,8 @@ def run_agent_loop(db: Session, project: Project, config: dict, user_prompt: str
             else:
                 yield f"data: {json.dumps({'type': 'tool_call', 'tool': tool, 'args': args})}\n\n"
                 tool_result = execute_agent_tool(db, project, tool, args)
-
+
+
                 
             model_tool_result = _compact_tool_result_for_local_model(tool_result) if is_ollama else tool_result
 

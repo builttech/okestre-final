@@ -6274,9 +6274,9 @@ input[type="checkbox"]:focus-visible{
 .sdd-stage-aside,
 .sdd-test-result {
     min-height: 0;
-    border: 1px solid var(--flat-border-soft);
-    border-radius: 14px;
-    background: rgba(255,255,255,0.012);
+    border: none !important;
+    border-radius: 0 !important;
+    background: transparent !important;
 }
 
 .sdd-stage-main {
@@ -10560,9 +10560,9 @@ button.btn-danger:hover {
     min-height: 48px !important;
     padding: 9px 10px !important;
     display: flex !important;
-    align-items: flex-start !important;
-    flex-direction: column !important;
-    justify-content: center !important;
+    align-items: center !important;
+    flex-direction: row !important;
+    justify-content: flex-start !important;
     gap: 4px !important;
     color: var(--console-muted) !important;
     background: transparent !important;
@@ -10672,4 +10672,99 @@ button.btn-danger:hover {
 .app-container.sidebar-collapsed .sidebar-category {
     align-items: center;
     margin-bottom: 6px;
+}
+
+
+/* Centralize Agent UI */
+.user-message-wrapper,
+.agent-assistant-message,
+.agent-reasoning-monitor,
+.agent-input-wrapper > div,
+.agent-quick-actions,
+.agent-chat-welcome {
+    max-width: 800px !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    width: 100% !important;
+}
+
+.agent-reasoning-monitor {
+    max-height: 120px !important;
+    border-radius: 12px !important;
+    border: 1px solid var(--border-color) !important;
+    opacity: 0.85 !important;
+    margin-top: 10px !important;
+    margin-bottom: 10px !important;
+}
+
+.user-message-wrapper {
+    align-self: center !important;
+    justify-content: flex-end !important;
+}
+
+.agent-quick-actions {
+    justify-content: center !important;
+}
+
+/* Ensure the layout wrapper itself supports centering */
+.agent-chat-container {
+    align-items: center !important;
+}
+
+
+/* Flat Design Overrides */
+.agent-chat-welcome {
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+}
+
+.agent-chat-container {
+    background: transparent !important;
+}
+
+.agent-layout .agent-main-panel {
+    background: transparent !important;
+    box-shadow: none !important;
+    border: none !important;
+}
+
+/* Collapsible Reasoning Monitor (Details/Summary) */
+.agent-reasoning-monitor {
+    background: transparent !important;
+    border: 1px solid var(--border-color) !important;
+    max-height: none !important; /* Allow details to expand naturally */
+}
+
+.agent-reasoning-monitor[open] {
+    max-height: 300px !important;
+    overflow-y: auto !important;
+}
+
+.agent-reasoning-monitor summary::-webkit-details-marker {
+    display: none;
+}
+.agent-reasoning-monitor summary {
+    list-style: none;
+}
+
+
+/* Completely remove the border box from reasoning monitor */
+.agent-reasoning-monitor {
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+}
+
+.agent-reasoning-monitor::before {
+    display: none !important;
+    content: none !important;
+    background: none !important;
+}
+
+.agent-reasoning-monitor .agent-monitor-header {
+    border: none !important;
+    padding: 8px 0 !important;
+    opacity: 0.7;
+    font-size: 13px;
 }

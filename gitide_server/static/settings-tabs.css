@@ -4,7 +4,7 @@
     grid-template-columns: 240px minmax(0, 1fr) !important;
     gap: 18px !important;
     align-items: start;
-    max-width: 1180px !important;
+    max-width: 100% !important; width: 100% !important;
 }
 
 .settings-tabs-sidebar {
