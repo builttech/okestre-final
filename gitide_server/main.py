@@ -641,6 +641,7 @@ def sync_project_system_files(project_path: str) -> list[str]:
         os.path.join(".documents", "design"),
         os.path.join(".documents", "dri"),
         os.path.join(".documents", "requirements"),
+        os.path.join(".documents", "functional-requirements"),
         os.path.join(".documents", "spec"),
         os.path.join(".documents", "task"),
     ):
@@ -663,7 +664,7 @@ def sync_project_system_files(project_path: str) -> list[str]:
         req_dir = os.path.join(project_path, ".documents", "requirements")
         req_md = os.path.join(req_dir, "REQ-01-template.md")
         
-        func_req_dir = os.path.join(req_dir, "functional-requirements")
+        func_req_dir = os.path.join(project_path, ".documents", "functional-requirements")
         rf_md = os.path.join(func_req_dir, "RF-01-01-template.md")
         
         if not os.path.exists(func_req_dir):
@@ -4307,7 +4308,7 @@ def _sdd_req_pai_template(req_id: str = "REQ-01", title: str = "Título do Macro
         "## 4. Requisitos Funcionais Vinculados\n\n"
         "| ID | Requisito Funcional | Arquivo | Status |\n"
         "|---|---|---|---|\n"
-        f"| RF-01-01 | Primeiro fluxo de {title} | functional-requirements/RF-01-01.md | Levantado |\n\n"
+        f"| RF-01-01 | Primeiro fluxo de {title} | .documents/functional-requirements/RF-01-01.md | Levantado |\n\n"
         "## 5. Fontes de Dados\n\n"
         "| ID | Fonte | Uso no processo |\n"
         "|---|---|---|\n"
@@ -4827,6 +4828,7 @@ def list_sdd_specs(project: Project = Depends(get_project_or_404)):
     """Lista REQs de .documents/requirements, antigas de .documents/spec e specs legadas de .documents/specs."""
     documents_dir = os.path.join(project.path, ".documents")
     requirements_dir = os.path.join(documents_dir, "requirements")
+    functional_dir = os.path.join(documents_dir, "functional-requirements")
     spec_dir = os.path.join(documents_dir, "spec")
     legacy_specs_dir = os.path.join(documents_dir, "specs")
 
@@ -4870,6 +4872,7 @@ def list_sdd_specs(project: Project = Depends(get_project_or_404)):
     specs = []
     try:
         append_markdown_specs(requirements_dir, "project_spec_file", ".documents/requirements")
+        append_markdown_specs(functional_dir, "project_spec_file", ".documents/functional-requirements")
         append_markdown_specs(spec_dir, "project_spec_file", ".documents/spec")
         append_markdown_specs(legacy_specs_dir, "legacy_markdown", ".documents/specs")
         specs.sort(key=lambda x: x["modified_at"], reverse=True)
@@ -4935,12 +4938,13 @@ def get_sdd_spec(filename: str, project: Project = Depends(get_project_or_404)):
         raise HTTPException(status_code=400, detail="Nome de arquivo inválido.")
 
     spec_path_requirements = os.path.join(project.path, ".documents", "requirements", filename)
+    spec_path_functional = os.path.join(project.path, ".documents", "functional-requirements", filename)
     spec_path = os.path.join(_sdd_spec_dir(project), filename)
     legacy_spec_path = os.path.join(project.path, ".documents", "specs", filename)
     storage_type = "project_spec_file"
     
     target_path = None
-    for p in [spec_path_requirements, spec_path, legacy_spec_path]:
+    for p in [spec_path_requirements, spec_path_functional, spec_path, legacy_spec_path]:
         if os.path.exists(p):
             target_path = p
             if p == legacy_spec_path:
@@ -4974,8 +4978,20 @@ def save_sdd_spec(
     if not filename or ".." in filename or not filename.endswith(".md"):
         raise HTTPException(status_code=400, detail="Nome de arquivo inválido. Deve terminar com .md")
 
-    spec_dir = _sdd_spec_dir(project, create=True)
     legacy_specs_dir = os.path.join(_sdd_documents_dir(project), "specs")
+    
+    # Se for um RF, salva em functional-requirements, senão em requirements
+    if filename.startswith("RF-") or "functional-requirements" in filename:
+        spec_dir = os.path.join(_sdd_documents_dir(project), "functional-requirements")
+        # Remove a pasta do nome do arquivo se o frontend enviar para não aninhar
+        if "/" in filename:
+            filename = filename.split("/")[-1]
+    else:
+        spec_dir = os.path.join(_sdd_documents_dir(project), "requirements")
+        if "/" in filename:
+            filename = filename.split("/")[-1]
+            
+    os.makedirs(spec_dir, exist_ok=True)
     spec_path = os.path.join(spec_dir, filename)
     legacy_spec_path = os.path.join(legacy_specs_dir, filename)
 
@@ -5025,11 +5041,12 @@ def delete_sdd_spec(
     
     docs_dir = os.path.join(project.path, ".documents")
     spec_path = os.path.join(docs_dir, "requirements", filename)
+    func_spec_path = os.path.join(docs_dir, "functional-requirements", filename)
     legacy_spec_path = os.path.join(docs_dir, "specs", filename)
     legacy_spec2_path = os.path.join(docs_dir, "spec", filename)
     
     target_path = None
-    for p in [spec_path, legacy_spec_path, legacy_spec2_path]:
+    for p in [spec_path, func_spec_path, legacy_spec_path, legacy_spec2_path]:
         if os.path.exists(p):
             target_path = p
             break
@@ -5092,7 +5109,7 @@ def generate_sdd_spec(
     doc_type = "Requisito Funcional (RF)" if is_rf else "Macro Requisito (REQ Pai)"
     req_id = req.parent_id if is_rf and req.parent_id else "REQ-01"
     template_to_use = _sdd_rf_template("RF-01-01", req_id, "[Título]") if is_rf else _sdd_req_pai_template("REQ-01", "[Título]")
-    folder_context = f"REQ-01-nome/functional-requirements/RF-01-01-nome.md" if is_rf else f"REQ-01-nome/REQ-01.md"
+    folder_context = f"RF-01-01-nome.md (em .documents/functional-requirements)" if is_rf else f"REQ-01-nome.md (em .documents/requirements)"
     
     system_prompt = (
         f"Você é um Product Engineer especialista em Harness Engineering.\n"

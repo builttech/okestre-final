@@ -11,8 +11,8 @@ Este documento é de leitura obrigatória para o Agente IA (GPT Action) antes de
 >
 > **REGRA BLOQUEANTE DE REQUISITO (NÃO PODE SER IGNORADA):**
 > Antes de qualquer execução técnica, o GPT Action deve seguir obrigatoriamente o fluxo Harness:
-> 1. **Ler, criar, atualizar ou revisar o REQ Principal** em `.documents/requirements/<REQ_ID>_<TITLE>/<REQ_ID>_<TITLE>.MD`.
-> 2. **Desdobrar as regras nos RFs (Requisitos Funcionais)** criando/editando os arquivos em `.documents/requirements/<REQ_ID>_<TITLE>/functional-requirements/RF-XXXX-XX_TITLE.MD`.
+> 1. **Ler, criar, atualizar ou revisar o REQ Principal** em `.documents/requirements/REQ-ID-TITLE.MD`.
+> 2. **Desdobrar as regras nos RFs (Requisitos Funcionais)** criando/editando os arquivos em `.documents/functional-requirements/RF-ID-TITLE.MD`.
 > 3. **Ler e revisar obrigatoriamente o Design vivo** em `.documents/design/design.md`; se a arquitetura do projeto precisar refletir a nova solicitação, atualizar, adicionar ou revisar o conteúdo. Se não houver necessidade real de mudança, registrar no pacote documental que o Design foi revisado e pular a edição.
 > 4. **Criar ou revisar o DRI** em `.documents/dri/dri.md` quando houver impacto de interface.
 > 5. **Criar ou revisar a Task List** em `.documents/task/task.md`.
@@ -71,7 +71,7 @@ graph TD
 ### 1. Reconhecimento e Análise do Contexto
 Antes de propor ou fazer qualquer alteração, o agente deve:
 - **Verificar o REQ de referência:** Identificar se a solicitação do usuário informa um requisito existente (`REQ-xxxx`). Se informar, ler primeiro a especificação correspondente antes de planejar qualquer implementação.
-- **Criar REQ quando não existir:** Se a solicitação não informar um `REQ-xxxx`, o primeiro passo obrigatório é criar e documentar um novo requisito funcional em `.documents/requirements/<REQ_ID>_<TITLE>/<REQ_ID>_<TITLE>.MD e functional-requirements/RF-XXXX-XX_TITLE.MD`, preenchendo somente `Specify - Especificação`.
+- **Criar REQ quando não existir:** Se a solicitação não informar um `REQ-xxxx`, o primeiro passo obrigatório é criar e documentar um novo requisito funcional em `.documents/requirements/REQ-ID-TITLE.MD e .documents/functional-requirements/RF-ID-TITLE.MD`, preenchendo somente `Specify - Especificação`.
 - **Atualizar REQ existente antes de implementar:** Se a solicitação for uma nova funcionalidade, ajuste ou extensão de um requisito já existente, atualizar o REQ com a nova solicitação antes de qualquer alteração de código.
 - **Montar pacote documental completo antes de executar:** Após ler, criar, atualizar ou revisar o REQ, o agente deve seguir diretamente para Design, DRI quando aplicável, Task List e Task Details, sem pedir aprovação separada por etapa.
 - **Revisar Design vivo após REQ:** Depois do REQ, o agente deve ler `.documents/design/design.md` e verificar se a arquitetura viva do projeto continua correta. Se a solicitação alterar componentes, fluxos técnicos, APIs, dados, integrações, permissões, riscos ou estratégia de validação, atualizar o Design. Se não houver alteração arquitetural necessária, pular a edição, mas deixar explícito no pacote documental que o Design foi revisado.
@@ -121,7 +121,7 @@ Após cada implementação, o agente deve obrigatoriamente:
 
 Quando o usuário solicitar criação, revisão ou atualização de requisitos funcionais no fluxo Harness Engineering, o Agente IA deve tratar os documentos Markdown abaixo como fontes de verdade separadas:
 
-- **Specify / REQs individuais:** `.documents/requirements/<REQ_ID>_<TITLE>/<REQ_ID>_<TITLE>.MD e functional-requirements/RF-XXXX-XX_TITLE.MD`
+- **Specify / REQs individuais:** `.documents/requirements/REQ-ID-TITLE.MD e .documents/functional-requirements/RF-ID-TITLE.MD`
 - **Design vivo do projeto:** `.documents/design/design.md`
 - **DRI vivo do projeto:** `.documents/dri/dri.md`
 - **Task List viva do projeto:** `.documents/task/task.md`
@@ -141,7 +141,7 @@ Quando o usuário solicitar criação, revisão ou atualização de requisitos f
 O agente deve manter cada responsabilidade no arquivo correto:
 
 1. **Specify - Especificação**
-   - Preencher ou atualizar somente a documentação funcional do requisito individual em `.documents/requirements/<REQ_ID>_<TITLE>/<REQ_ID>_<TITLE>.MD (dividindo requisitos técnicos em RFs)`.
+   - Preencher ou atualizar somente a documentação funcional do requisito individual em `.documents/requirements/REQ-ID-TITLE.MD (dividindo requisitos técnicos em RFs)`.
    - Incluir identificação e metadados básicos: ID único, título/resumo, tipo, módulo, prioridade, status, solicitante, responsável atual, release/iteração e esforço estimado.
    - Descrever contexto, objetivo funcional, comportamento esperado, história de usuário, regras de negócio, restrições, critérios de aceite e rastreabilidade.
    - Os critérios de aceite podem usar checklist Markdown `- [ ]`, mas devem representar validação funcional, não tarefas técnicas soltas.
@@ -201,7 +201,7 @@ O agente deve manter cada responsabilidade no arquivo correto:
    - Encerrar o conjunto de planos com a frase: `Para autorizar a execução de todas as tasks planejadas, responda: **"Aprovado executar o pacote Harness"**.`
    - Nunca marcar a task como concluída em `task.md` enquanto a task não tiver sido executada e verificada tecnicamente.
 
-Regra obrigatória: o GPT Action deve manter a separação entre **o que o sistema deve fazer** (Specify em `.documents/requirements/<REQ_ID>_<TITLE>/<REQ_ID>_<TITLE>.MD e functional-requirements/RF-XXXX-XX_TITLE.MD`), **como será planejado tecnicamente** (Design em `.documents/design/design.md`), **como a interface deve se comportar** (DRI em `.documents/dri/dri.md`), **quais tarefas serão executadas** (Task List em `.documents/task/task.md`), **como a task atual será executada** (Task Details em `.documents/task/task.details.md`) e **a implementação de uma tarefa selecionada** (Execute).
+Regra obrigatória: o GPT Action deve manter a separação entre **o que o sistema deve fazer** (Specify em `.documents/requirements/REQ-ID-TITLE.MD e .documents/functional-requirements/RF-ID-TITLE.MD`), **como será planejado tecnicamente** (Design em `.documents/design/design.md`), **como a interface deve se comportar** (DRI em `.documents/dri/dri.md`), **quais tarefas serão executadas** (Task List em `.documents/task/task.md`), **como a task atual será executada** (Task Details em `.documents/task/task.details.md`) e **a implementação de uma tarefa selecionada** (Execute).
 
 1. **Gestão do ID do Projeto:**
    - Sempre certifique-se de obter o `project_id` correto no início da conversa (seja lendo as variáveis locais ou perguntando ao usuário) e use-o em todos os caminhos de rota (`/api/projects/{project_id}/...`).

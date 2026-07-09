@@ -9588,7 +9588,17 @@ function sddRenderSpecList(specs) {
             html = `<div class="specs-empty-state"><span>Selecione um REQ na aba 1 REQ primeiro.</span></div>`;
         } else {
             const reqId = sddState.activeReqId;
-            const rfs = specs.filter(s => s.filename.includes('functional-requirements') && s.filename.toLowerCase().includes(reqId.toLowerCase()));
+            const reqNumMatch = reqId ? reqId.match(/REQ-(\d+)/i) : null;
+            const reqNum = reqNumMatch ? reqNumMatch[1] : reqId;
+            
+            const rfs = specs.filter(s => {
+                if (!s.filename.includes('functional-requirements')) return false;
+                // Se for a estrutura aninhada antiga, o caminho contém o REQ ID inteiro
+                if (s.filename.toLowerCase().includes(reqId.toLowerCase())) return true;
+                // Na nova estrutura achatada, o arquivo chama RF-<ID>-<SUBID>
+                const fname = s.filename.split('/').pop().toUpperCase();
+                return fname.startsWith(`RF-${reqNum}-`);
+            });
             
             html += `<div class="spec-item-title" style="padding: 8px 12px; color: var(--text-secondary); font-size: 0.8rem; text-transform: uppercase;">RFs de ${reqId}</div>`;
             if (rfs.length === 0) {
