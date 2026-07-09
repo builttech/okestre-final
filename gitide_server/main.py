@@ -624,7 +624,7 @@ def sync_project_system_files(project_path: str) -> list[str]:
     """Garante os prompts de sistema necessários na raiz do workspace do projeto."""
     server_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     files = [
-        ("GPT_INSTRUCTIONS.md", False),
+        ("GPT_INSTRUCTIONS.md", True),
         ("PROD_READINESS_VALIDATOR.md", True),
         ("SECURITY_RULES.md", True),
         ("OPS_INFRA_OPERATOR.md", True),
@@ -685,8 +685,13 @@ def sync_project_system_files(project_path: str) -> list[str]:
         
         for tpl_name, target_path in template_map.items():
             tpl_path = os.path.join(templates_dir, tpl_name)
-            if not os.path.exists(target_path) and os.path.exists(tpl_path):
-                shutil.copy2(tpl_path, target_path)
+            if os.path.exists(tpl_path):
+                # Se for arquivo de template (termina com template.md), sempre sobrescreve para manter a parametrização atualizada.
+                # Se for arquivo de trabalho (design.md, task.md), só cria se não existir para não apagar o trabalho da IA.
+                if "template.md" in tpl_name:
+                    shutil.copy2(tpl_path, target_path)
+                elif not os.path.exists(target_path):
+                    shutil.copy2(tpl_path, target_path)
                 
     except Exception as e:
         print(f"Erro ao criar arquivos de template: {str(e)}")
