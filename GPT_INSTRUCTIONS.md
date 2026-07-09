@@ -170,7 +170,7 @@ O agente deve manter cada responsabilidade no arquivo correto:
 4. **Task List - Tarefas**
    - Preencher ou atualizar exclusivamente `.documents/task/task.md`.
    - A etapa visual Task List do Act IA lê somente `.documents/task/task.md`.
-   - Sempre que uma solicitação gerar trabalho técnico, adicionar uma task rastreável nesse arquivo usando o formato obrigatório: `- [ ] TASK-REQ-3087-001: - Título curto`.
+   - Sempre que uma solicitação gerar trabalho técnico, crie explicitamente uma task para cada RF (Requisito Funcional) correspondente nesse arquivo usando o formato obrigatório preferencial: `- [ ] TASK-REQ-0001-RF-01: - Título curto da implementação do RF.`. (Onde REQ-0001 representa o requisito pai e RF-01 representa o requisito funcional filho, pois os RFs são o menor bloco funcional especificado).
    - Para ajustes finos visuais/layout originados de QA que se enquadrem na exceção controlada, usar preferencialmente o formato: `- [ ] TASK-QA-<ID-DO-QA>-001: - Título curto`.
    - O arquivo `task.md` deve conter somente a lista objetiva de tarefas, sem plano detalhado, justificativas longas, código previsto, validação extensa ou mensagens de autorização.
    - Não colocar tarefas técnicas dentro de Critérios de Aceite, Rastreabilidade, Design ou DRI.

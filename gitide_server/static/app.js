@@ -8612,25 +8612,21 @@ function buildDocumentTableRow(doc, tbody) {
     actionsCell.className = 'documents-actions-cell';
 
     const generateBtn = document.createElement('button');
-    generateBtn.className = 'btn btn-sm btn-secondary btn-generate-business-doc documents-row-action';
+    generateBtn.className = 'btn-icon btn-generate-business-doc';
     generateBtn.dataset.kind = doc.kind || '';
-    generateBtn.innerHTML = `<i class="fa-solid fa-file-export"></i> ${doc.exists ? 'Atualizar' : 'Gerar'}`;
+    // title tooltip for better UX since there's no text
+    generateBtn.title = doc.exists ? 'Atualizar' : 'Gerar';
+    generateBtn.innerHTML = `<i class="fa-solid fa-file-export"></i>`;
 
     const downloadBtn = document.createElement('button');
-    downloadBtn.className = 'btn btn-sm btn-primary btn-download-doc documents-row-action';
+    downloadBtn.className = 'btn-icon btn-download-doc';
     downloadBtn.dataset.filename = doc.filename;
-    downloadBtn.innerHTML = '<i class="fa-solid fa-download"></i> Baixar';
+    downloadBtn.title = 'Baixar';
+    downloadBtn.innerHTML = '<i class="fa-solid fa-download"></i>';
     downloadBtn.disabled = !doc.exists;
-
-    const deleteBtn = document.createElement('button');
-    deleteBtn.className = 'btn btn-sm btn-danger btn-delete-doc documents-row-action';
-    deleteBtn.dataset.filename = doc.filename;
-    deleteBtn.innerHTML = '<i class="fa-solid fa-trash-can"></i> Excluir';
-    deleteBtn.disabled = !doc.exists;
 
     actionsCell.appendChild(generateBtn);
     actionsCell.appendChild(downloadBtn);
-    actionsCell.appendChild(deleteBtn);
 
     tr.appendChild(nameCell);
     tr.appendChild(sizeCell);
@@ -8662,10 +8658,7 @@ function buildDocumentTableRow(doc, tbody) {
         downloadDocumentFile(e.currentTarget.dataset.filename);
     });
 
-    deleteBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        deleteDocumentFile(e.currentTarget.dataset.filename);
-    });
+
 
     return tr;
 }
