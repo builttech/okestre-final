@@ -10562,14 +10562,13 @@ function sddBuildUniqueRequirementFilename(id, title, kind = 'req', parentId = n
     let folderPath = '';
     
     if (kind === 'rf') {
-        const pId = parentId || 'REQ-XX';
-        const pSlug = pId.toLowerCase(); // simplified
-        folderPath = `${pSlug}/functional-requirements/`;
-        baseFilename = `${id.toLowerCase()}_${slug}`;
+        // Estrutura achatada: RF-ID-TITLE.md em functional-requirements
+        folderPath = `functional-requirements/`;
+        baseFilename = `${id.toUpperCase()}-${slug}`;
     } else {
-        const reqSlug = `${id.toLowerCase()}_${slug}`;
-        folderPath = `${reqSlug}/`;
-        baseFilename = reqSlug;
+        // Estrutura achatada: REQ-ID-TITLE.md em requirements
+        folderPath = `requirements/`;
+        baseFilename = `${id.toUpperCase()}-${slug}`;
     }
     
     const existing = new Set((sddState.specs || []).map(spec => (spec.filename || '').toLowerCase()));
