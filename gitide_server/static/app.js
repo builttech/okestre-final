@@ -9362,6 +9362,8 @@ function sddSwitchHarnessPanel(panelId) {
         sddLoadSpecs(true);
     } else if (panelId === 'harness-tasks-panel') {
         sddLoadProjectTasks();
+    } else if (panelId === 'harness-pricing-panel') {
+        sddLoadPricingTab();
     }
 }
 
@@ -9868,6 +9870,7 @@ function sddPopulatePreview(content) {
 // --- Workspace Sub-tab Switching ---
 function sddSwitchTab(tabId) {
     sddState.activeTab = tabId;
+    if (tabId === "sdd-tab-pricing") sddLoadPricingTab();
     document.querySelectorAll('.sdd-tab-content').forEach(t => t.classList.remove('active'));
     document.querySelectorAll('.sdd-nav-btn').forEach(b => b.classList.remove('active'));
     const tab = document.getElementById(tabId);
@@ -11463,3 +11466,86 @@ function setupChatMentions() {
         setTimeout(hideMentionDropdown, 150);
     });
 }
+
+// PRICING TAB LOGIC
+async function sddLoadPricingTab() {
+    if (!currentProjectId) return;
+    try {
+        const configRes = await fetch(`/api/projects/${currentProjectId}/pricing/config`);
+        if (configRes.ok) {
+            const config = await configRes.json();
+            document.getElementById('sdd-pricing-hourly-rate').value = config.hourly_rate || 150;
+            document.getElementById('sdd-pricing-daily-hours').value = config.daily_hours || 8;
+        }
+        
+        const reportRes = await fetch(`/api/projects/${currentProjectId}/pricing/report`);
+        if (reportRes.ok) {
+            const report = await reportRes.json();
+            if (report.markdown) {
+                const container = document.getElementById('sdd-pricing-markdown-container');
+                container.innerHTML = window.marked ? marked.parse(report.markdown) : report.markdown;
+            }
+        }
+    } catch (e) {
+        console.error('Error loading pricing tab', e);
+    }
+}
+
+async function sddSavePricingConfig() {
+    if (!currentProjectId) return;
+    const rate = parseFloat(document.getElementById('sdd-pricing-hourly-rate').value) || 150;
+    const hours = parseInt(document.getElementById('sdd-pricing-daily-hours').value) || 8;
+    try {
+        await fetch(`/api/projects/${currentProjectId}/pricing/config`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ hourly_rate: rate, daily_hours: hours })
+        });
+    } catch (e) {
+        console.error('Error saving pricing config', e);
+    }
+}
+
+async function sddGeneratePricing() {
+    if (!currentProjectId) return;
+    
+    await sddSavePricingConfig();
+    
+    const btn = document.getElementById('btn-sdd-generate-pricing');
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i data-lucide="loader-2" style="animation:spin 1s linear infinite;"></i> Gerando estimativa...';
+    if (window.lucide) lucide.createIcons();
+    
+    const container = document.getElementById('sdd-pricing-markdown-container');
+    container.innerHTML = '<div class="specs-empty-state" style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;"> <i data-lucide="brain" style="width:48px;height:48px;color:var(--primary-color);margin-bottom:16px;animation:pulse 2s infinite;"></i> <span style="font-size:16px;color:var(--text-primary);margin-bottom:8px;">Agente analisando projeto...</span> <span style="font-size:12px;color:var(--text-muted);">Lendo tarefas e requisitos para calcular o esforço total.</span> </div>';
+    if (window.lucide) lucide.createIcons();
+
+    try {
+        const res = await fetch(`/api/projects/${currentProjectId}/pricing/generate`, { method: 'POST' });
+        const data = await res.json();
+        
+        if (res.ok && data.status === 'success') {
+            container.innerHTML = window.marked ? marked.parse(data.markdown) : data.markdown;
+            gitideNotify({ title: 'Estimativa gerada', message: 'Relatório salvo com sucesso em .documents/pricing.md.', variant: 'success' });
+        } else {
+            container.innerHTML = `<div class="specs-empty-state"><span style="color:var(--danger-color)">Erro: ${data.detail || 'Desconhecido'}</span></div>`;
+        }
+    } catch (e) {
+        container.innerHTML = `<div class="specs-empty-state"><span style="color:var(--danger-color)">Erro de conexão: ${e.message}</span></div>`;
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+        if (window.lucide) lucide.createIcons();
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    const rateInput = document.getElementById('sdd-pricing-hourly-rate');
+    const hoursInput = document.getElementById('sdd-pricing-daily-hours');
+    if (rateInput) rateInput.addEventListener('change', sddSavePricingConfig);
+    if (hoursInput) hoursInput.addEventListener('change', sddSavePricingConfig);
+    
+    const btnGen = document.getElementById('btn-sdd-generate-pricing');
+    if (btnGen) btnGen.addEventListener('click', sddGeneratePricing);
+});
