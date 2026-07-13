@@ -440,6 +440,10 @@
 
 ### 15.1. Tratamento Obrigatório de QAs Levantados pelo Usuário
 
+- A fonte oficial das anotações de QA é o arquivo `.documents/qa/annotations.json`.
+- Quando o usuário pedir execução, análise, correção ou transformação de QAs em tasks, o agente deve obrigatoriamente ler `.documents/qa/annotations.json` antes de criar ou alterar qualquer task.
+- Se o usuário informar um ou mais IDs de QA, o agente deve localizar esses IDs dentro de `.documents/qa/annotations.json` e usar os dados completos da anotação como base da task.
+- Se o usuário não informar IDs específicos, o agente deve listar ou resumir os QAs abertos encontrados em `.documents/qa/annotations.json` e solicitar confirmação do escopo antes de criar tasks.
 - Quando o usuário informar uma lista de QAs, IDs de QA, anotações de QA ou pedir execução de QAs capturados pela ferramenta, o agente deve analisar obrigatoriamente **QA por QA**, sem agrupar problemas diferentes em uma única task genérica.
 - Cada QA deve gerar exatamente uma task própria em `.documents/task/task.md`, salvo quando o próprio usuário pedir explicitamente a consolidação.
 - Cada task originada de QA deve usar o padrão `- [ ] TASK-QA-<ID-DO-QA>-001: Título curto e objetivo`.
