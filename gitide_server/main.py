@@ -6378,11 +6378,13 @@ def _collect_pricing_context(project: Project) -> tuple:
 
     tasks = []
     for match in PRICING_TASK_PATTERN.finditer(task_content):
+        if match.group(1).lower() == "x":
+            continue
         task_id = match.group(2).upper()
         tasks.append({
             "id": task_id,
             "title": match.group(3).strip().rstrip("."),
-            "completed": match.group(1).lower() == "x",
+            "completed": False,
             "details": details_by_task.get(task_id, ""),
         })
 
@@ -6501,7 +6503,8 @@ def _pricing_markdown(report: dict) -> str:
         "",
         "## Premissas",
         "",
-        "- A estimativa considera o conteúdo atual de REQs, RFs, Task List e Task Details.",
+        "- A estimativa considera somente as tarefas em aberto de REQs, RFs, Task List e Task Details.",
+        "- Tarefas concluídas (`[x]`) não entram no esforço, prazo ou custo projetado.",
         "- O cenário com IA pressupõe uso contínuo do Act IA para análise, implementação, testes e documentação.",
         "- Horas e custos devem ser revisados quando o escopo documental mudar.",
     ])
@@ -6527,13 +6530,28 @@ def save_pricing_config(config: PricingConfigIn, project: Project = Depends(get_
 def get_pricing_report(project: Project = Depends(get_project_or_404)):
     report_json_path, report_md_path = _pricing_report_paths(project)
     report = None
+    markdown = ""
     if os.path.exists(report_json_path):
         try:
             with open(report_json_path, "r", encoding="utf-8") as f:
                 report = json.load(f)
         except (OSError, json.JSONDecodeError):
             report = None
-    markdown = _read_project_markdown(report_md_path)
+    if isinstance(report, dict):
+        open_tasks, _ = _collect_pricing_context(project)
+        open_task_ids = {task["id"] for task in open_tasks}
+        report = dict(report)
+        report["tasks"] = [
+            task for task in report.get("tasks", [])
+            if isinstance(task, dict) and str(task.get("id") or "").upper() in open_task_ids
+        ]
+        report["totals"] = _pricing_totals(
+            report["tasks"],
+            report.get("config") or _load_pricing_config(project),
+        )
+        markdown = _pricing_markdown(report)
+    else:
+        markdown = _read_project_markdown(report_md_path)
     return {"status": "success", "report": report, "markdown": markdown}
 
 @app.post("/api/projects/{project_id}/pricing/generate", tags=["Pricing"])
@@ -6543,7 +6561,7 @@ def generate_pricing_report(project: Project = Depends(get_project_or_404)):
     if not tasks:
         raise HTTPException(
             status_code=400,
-            detail="Nenhuma tarefa válida foi encontrada em .documents/task/task.md. Use o formato TASK-REQ-NNNN-001: Título.",
+            detail="Nenhuma tarefa em aberto foi encontrada em .documents/task/task.md. Use o formato - [ ] TASK-REQ-NNNN-001: Título.",
         )
 
     llm_config = agent.load_agent_config()
