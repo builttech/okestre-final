@@ -359,7 +359,7 @@ class DocumentCreateRequest(BaseModel):
     sections: List[DocumentSection] = Field(..., description="Lista de seções ordenadas do documento")
 
 class BusinessDocumentGenerateRequest(BaseModel):
-    kind: str = Field("all", description="Documento a gerar: charter, specify, design, dri, tasks ou all")
+    kind: str = Field("all", description="Documento a gerar: charter, specify, design, dri, tasks, estimation ou all")
 
 class CreateDirectoryRequest(BaseModel):
     parent_path: str = Field(..., description="Caminho do diretório pai")
@@ -2321,6 +2321,12 @@ BUSINESS_DOCUMENTS = {
         "source": ".documents/task/task.md + .documents/task/task.details.md",
         "description": "Tarefas do projeto e planos detalhados acumulados para execução e rastreabilidade.",
     },
+    "estimation": {
+        "filename": "estimativa-do-projeto.docx",
+        "title": "Estimativa - Esforço e Custos",
+        "source": ".documents/estimativa.md + .documents/estimativa.json",
+        "description": "Estimativa executiva e dados estruturados de esforço, prazo, custo, cenário com IA e sem IA.",
+    },
 }
 
 def _read_text_if_exists(path: str) -> str:
@@ -2432,6 +2438,44 @@ def _build_business_document_sections(project: Project, kind: str) -> list:
             + [{"heading": "", "text": "", "type": "page_break"}]
             + _markdown_to_word_sections(details_content, "Task Details - Planos Detalhados")
         )
+
+    if kind == "estimation":
+        estimation_md_path = os.path.join(docs_dir, "estimativa.md")
+        estimation_json_path = os.path.join(docs_dir, "estimativa.json")
+        estimation_md = _read_text_if_exists(estimation_md_path)
+        estimation_json = _read_text_if_exists(estimation_json_path)
+        sections = []
+
+        if estimation_md:
+            sections.extend(_markdown_to_word_sections(estimation_md, "Estimativa - Relatório Executivo"))
+        else:
+            sections.append({
+                "heading": "Estimativa - Relatório Executivo",
+                "text": "Arquivo .documents/estimativa.md não encontrado. Gere a estimativa pela página Estimativa do Projeto antes de exportar o Word.",
+                "type": "highlight"
+            })
+
+        sections.append({"heading": "", "text": "", "type": "page_break"})
+
+        if estimation_json:
+            try:
+                structured_estimation = json.loads(estimation_json)
+                estimation_json = json.dumps(structured_estimation, indent=2, ensure_ascii=False)
+            except Exception:
+                pass
+            sections.append({
+                "heading": "Estimativa - Dados Estruturados",
+                "text": estimation_json,
+                "type": "code"
+            })
+        else:
+            sections.append({
+                "heading": "Estimativa - Dados Estruturados",
+                "text": "Arquivo .documents/estimativa.json não encontrado. Gere a estimativa pela página Estimativa do Projeto antes de exportar o Word.",
+                "type": "highlight"
+            })
+
+        return sections
 
     raise HTTPException(status_code=400, detail="Documento de negócio inválido.")
 

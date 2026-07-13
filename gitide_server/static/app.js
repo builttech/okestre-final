@@ -8914,13 +8914,17 @@ Primeiro mantenha os arquivos vivos do Harness Engineering atualizados:
 - DRI: .documents/dri/dri.md
 - Task List: .documents/task/task.md
 - Task Details: .documents/task/task.details.md
+- Estimativa: .documents/estimativa.md e .documents/estimativa.json
+
+Nunca sobrescreva ou apague o histórico/conteúdo vivo de .documents/estimativa.md e .documents/estimativa.json para gerar o Word. A aba Documentos (Word) deve apenas ler esses arquivos e derivar o .docx oficial.
 
 Depois, use a aba Documentos (Word) do Act IA para gerar/atualizar os .docx oficiais:
 - Termo de Abertura do Projeto
 - Specify - Especificação, com cada REQ em uma página
 - Design - Planejamento
 - DRI - Documento de Requisito de Interface
-- Task List - Tarefas + task.details`;
+- Task List - Tarefas + task.details
+- Estimativa - Esforço e Custos`;
 
     navigator.clipboard.writeText(instructions).then(() => {
         const btn = document.getElementById('btn-copy-doc-prompt-instructions');
