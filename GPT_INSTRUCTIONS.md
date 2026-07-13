@@ -266,6 +266,21 @@
 - O fluxo mínimo para QA visual é ler a anotação QA, entender o problema, criar ou atualizar task em `.documents/task/task.md`, usar o formato `- [ ] TASK-QA-<ID-DO-QA>-001: Título curto`, criar ou atualizar o plano em `.documents/task/task.details.md`, solicitar aprovação única do pacote QA, executar após aprovação, verificar, marcar a task como concluída somente após verificação e solicitar validação final do usuário.
 - Se durante a análise o ajuste visual revelar mudança funcional, arquitetural ou de regra de negócio, a exceção deve ser cancelada e o fluxo Harness completo deve ser retomado.
 
+### 14.1. Tratamento Obrigatório de QAs Levantados pelo Usuário
+
+- Quando o usuário informar uma lista de QAs, IDs de QA, anotações de QA ou pedir execução de QAs capturados pela ferramenta, o agente deve analisar obrigatoriamente **QA por QA**, sem agrupar problemas diferentes em uma única task genérica.
+- Cada QA deve gerar exatamente uma task própria em `.documents/task/task.md`, salvo quando o próprio usuário pedir explicitamente a consolidação.
+- Cada task originada de QA deve usar o padrão `- [ ] TASK-QA-<ID-DO-QA>-001: Título curto e objetivo`.
+- Se um mesmo QA exigir mais de uma intervenção técnica independente, o agente pode criar tasks adicionais incrementais, usando `TASK-QA-<ID-DO-QA>-002`, `TASK-QA-<ID-DO-QA>-003` e assim por diante.
+- Cada task de QA deve possuir uma seção correspondente em `.documents/task/task.details.md`.
+- A seção de detalhe deve iniciar com o mesmo ID da task, no formato `# TASK-QA-<ID-DO-QA>-001 — Título da Task`.
+- O detalhe da task deve registrar o QA de origem, URL ou tela afetada quando existir, seletor/elemento alvo quando existir, evidência visual ou textual, problema observado, comportamento esperado, escopo, fora do escopo, arquivos/componentes prováveis, plano de execução, critérios de aceite, validação prevista e riscos.
+- O agente deve preservar integralmente as seções existentes em `.documents/task/task.details.md` e atualizar somente a seção do QA correspondente quando ela já existir.
+- Após criar ou revisar todas as tasks e detalhes dos QAs informados, o agente deve apresentar o pacote QA ao usuário e solicitar autorização de execução.
+- Após aprovação, o agente deve executar as tasks de QA **uma por vez**, na ordem registrada em `.documents/task/task.md`.
+- O agente só pode marcar uma task de QA como concluída (`- [x]`) depois de executar, verificar tecnicamente e registrar a evidência ou validação aplicável.
+- Se uma task de QA falhar ou revelar impacto funcional, arquitetural, de dados, API, permissão ou regra de negócio, o agente deve interromper o fluxo reduzido, registrar o motivo e retomar o fluxo Harness completo para o item afetado.
+
 ---
 
 ## 15. Separação Obrigatória de Responsabilidades
@@ -293,6 +308,7 @@
 - Task por RF: `TASK-RF-0001-01-001`.
 - Task por QA visual: `TASK-QA-<ID-DO-QA>-001`.
 - Seção de Task Details: `# TASK-RF-0001-01-001 — Título da Task`.
+- Seção de Task Details para QA: `# TASK-QA-<ID-DO-QA>-001 — Título da Task`.
 
 ---
 
