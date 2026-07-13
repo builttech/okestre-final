@@ -6384,16 +6384,6 @@ input[type="checkbox"]:focus-visible{
     tab-size: 2;
 }
 
-.sdd-task-status {
-    width: 118px !important;
-    min-width: 118px;
-    max-width: 118px;
-    flex: 0 0 118px;
-    height: 34px;
-    font-size: 12px;
-    padding: 0 10px;
-}
-
 @media (max-width: 1280px) {
     .sdd-stage-grid,
     .sdd-execute-grid {
@@ -6745,10 +6735,17 @@ input[type="checkbox"]:focus-visible{
     color: var(--text-muted);
 }
 
+.sdd-task-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    flex: 0 0 auto;
+}
+
 .sdd-task-detail-action{
-    width:34px;
-    height:34px;
-    border-radius:12px;
+    width:32px;
+    height:32px;
+    border-radius:10px;
     border:1px solid var(--flat-border-soft, var(--border-color));
     background:rgba(255,255,255,.028);
     color:var(--text-muted);
@@ -6772,6 +6769,18 @@ input[type="checkbox"]:focus-visible{
 .sdd-task-detail-action svg{
     width:16px;
     height:16px;
+}
+
+.sdd-task-delete-action:hover,
+.sdd-task-delete-action:focus-visible{
+    color:#f87171;
+    border-color:rgba(248,113,113,.45);
+    background:rgba(248,113,113,.08);
+}
+
+.sdd-task-delete-action.is-loading{
+    opacity:.55;
+    pointer-events:none;
 }
 
 .sdd-task-detail-drawer{

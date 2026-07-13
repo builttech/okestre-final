@@ -333,3 +333,5 @@ graph TD
     R -->|"Não"| S["11. Verificação final / QA / Evidências"]
     S --> T["Solicitar validação final do usuário"]
 ```
+Importante: O usuário pode solicitar que se pule uma etapa sempre que necessário, mas isso deve ser feito apenas quando solicitado explicitamente.
+

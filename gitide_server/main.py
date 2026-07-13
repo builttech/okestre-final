@@ -4516,7 +4516,6 @@ def _sdd_project_document_path(project: Project, kind: str, create_dir: bool = F
         os.makedirs(doc_dir, exist_ok=True)
     return os.path.join(doc_dir, config["filename"])
 
-
 SDD_TASK_CODE_FRAGMENT = r"TASK-(?:REQ-\d{2,6}|RF-\d{2,6}-\d{1,4}|QA-[A-Z0-9-]+)-\d{3}"
 SDD_TASK_CODE_PATTERN = re.compile(rf"\b{SDD_TASK_CODE_FRAGMENT}\b", flags=re.IGNORECASE)
 SDD_TASK_LINE_PATTERN = re.compile(
@@ -4542,6 +4541,45 @@ def _parse_sdd_task_line(line: str, line_index: int) -> Optional[dict]:
         "text": f"{task_code}: - {task_title}",
         "checked": checkbox_match.group(1).lower() == "x",
     }
+
+
+def _remove_sdd_task_detail_section(details_path: str, task_code: str) -> bool:
+    if not os.path.exists(details_path):
+        return False
+
+    with open(details_path, "r", encoding="utf-8", errors="replace") as f:
+        lines = f.readlines()
+
+    heading_pattern = re.compile(
+        rf"^(#{{1,6}})\s+.*\b{re.escape(task_code)}\b.*$",
+        flags=re.IGNORECASE,
+    )
+    start_index = -1
+    heading_level = 0
+    for index, line in enumerate(lines):
+        match = heading_pattern.match(line.strip())
+        if match:
+            start_index = index
+            heading_level = len(match.group(1))
+            break
+
+    if start_index < 0:
+        return False
+
+    end_index = len(lines)
+    for index in range(start_index + 1, len(lines)):
+        heading = re.match(r"^(#{1,6})\s+", lines[index].strip())
+        if heading and len(heading.group(1)) <= heading_level:
+            end_index = index
+            break
+
+    while start_index > 0 and not lines[start_index - 1].strip():
+        start_index -= 1
+
+    updated_lines = lines[:start_index] + lines[end_index:]
+    with open(details_path, "w", encoding="utf-8") as f:
+        f.writelines(updated_lines)
+    return True
 
 def _default_sdd_project_document(project: Project, kind: str) -> str:
     config = SDD_PROJECT_DOCUMENTS.get(kind)
@@ -5349,6 +5387,60 @@ def update_sdd_project_tasks(
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro ao atualizar tarefas: {str(e)}")
+
+
+@app.delete("/api/projects/{project_id}/sdd/tasks/{line_no}", tags=["Spec-Driven Development"])
+def delete_sdd_project_task(
+    line_no: int,
+    project: Project = Depends(get_project_or_404),
+    db: Session = Depends(get_db),
+    _ = Depends(get_api_key),
+):
+    """Remove uma tarefa do task.md e sua seção correspondente do task.details.md."""
+    if line_no < 1:
+        raise HTTPException(status_code=400, detail="Número de linha inválido.")
+
+    task_path = _sdd_project_document_path(project, "task")
+    if not os.path.exists(task_path):
+        raise HTTPException(status_code=404, detail="Documento de tarefas não encontrado.")
+
+    try:
+        with open(task_path, "r", encoding="utf-8") as f:
+            lines = f.readlines()
+
+        line_index = line_no - 1
+        if line_index >= len(lines):
+            raise HTTPException(status_code=404, detail="Tarefa não encontrada na linha informada.")
+
+        criterion = _parse_sdd_task_line(lines[line_index], line_index)
+        if not criterion:
+            raise HTTPException(status_code=400, detail="A linha informada não contém uma tarefa válida.")
+
+        task_code = criterion["code"]
+        del lines[line_index]
+        with open(task_path, "w", encoding="utf-8") as f:
+            f.writelines(lines)
+
+        details_path = _sdd_project_document_path(project, "task_details")
+        detail_removed = _remove_sdd_task_detail_section(details_path, task_code)
+        rel_path = os.path.relpath(task_path, project.path).replace("\\", "/")
+        db.add(ActivityLog(
+            project_id=project.id,
+            action_type="SDD_TASK_DELETED",
+            details=f"{task_code} removida de {rel_path}; detalhe removido: {detail_removed}",
+        ))
+        db.commit()
+        return {
+            "status": "success",
+            "message": "Tarefa excluída com sucesso.",
+            "task_code": task_code,
+            "detail_removed": detail_removed,
+            "filepath": rel_path,
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao excluir tarefa: {str(e)}")
 
 @app.post("/api/projects/{project_id}/sdd/generate-tests", tags=["Spec-Driven Development"])
 def generate_sdd_tests(

@@ -10131,17 +10131,29 @@ function sddRenderCriteria() {
                 <span class="sdd-task-toggle-dot"></span>
             </button>
             <span class="sdd-criteria-text">${escapeHtml(c.text)}</span>
-            <button type="button"
-                    class="sdd-task-detail-action"
-                    title="Visualizar detalhe da task"
-                    aria-label="Visualizar detalhe da task"
-                    onclick="sddOpenTaskDetail(${c.line_no})">
-                <i data-lucide="file-text"></i>
-            </button>
-            <select class="sdd-task-status select-input" onchange="sddSetTaskStatus(${c.line_no}, this.value)">
-                <option value="todo">todo</option>
-                <option value="execute">executar</option>
-            </select>
+            <div class="sdd-task-actions">
+                <button type="button"
+                        class="sdd-task-detail-action"
+                        title="Visualizar detalhe da task"
+                        aria-label="Visualizar detalhe da task"
+                        onclick="sddOpenTaskDetail(${c.line_no}, 'current')">
+                    <i data-lucide="file-text"></i>
+                </button>
+                <button type="button"
+                        class="sdd-task-detail-action"
+                        title="Enviar task para Execute"
+                        aria-label="Enviar task para Execute"
+                        onclick="sddSetTaskStatus(${c.line_no}, 'execute', 'current')">
+                    <i data-lucide="play"></i>
+                </button>
+                <button type="button"
+                        class="sdd-task-detail-action sdd-task-delete-action"
+                        title="Excluir task"
+                        aria-label="Excluir task"
+                        onclick="sddDeleteTask(${c.line_no})">
+                    <i data-lucide="trash-2"></i>
+                </button>
+            </div>
         </div>`).join('');
     if (window.lucide) lucide.createIcons();
 }
@@ -10226,17 +10238,29 @@ function sddRenderProjectTasks() {
                 <span class="sdd-task-toggle-dot"></span>
             </button>
             <span class="sdd-criteria-text">${escapeHtml(c.text)}</span>
-            <button type="button"
-                    class="sdd-task-detail-action"
-                    title="Visualizar detalhe da task"
-                    aria-label="Visualizar detalhe da task"
-                    onclick="sddOpenTaskDetail(${c.line_no}, 'project')">
-                <i data-lucide="file-text"></i>
-            </button>
-            <select class="sdd-task-status select-input" onchange="sddSetTaskStatus(${c.line_no}, this.value, 'project')">
-                <option value="todo">todo</option>
-                <option value="execute">executar</option>
-            </select>
+            <div class="sdd-task-actions">
+                <button type="button"
+                        class="sdd-task-detail-action"
+                        title="Visualizar detalhe da task"
+                        aria-label="Visualizar detalhe da task"
+                        onclick="sddOpenTaskDetail(${c.line_no}, 'project')">
+                    <i data-lucide="file-text"></i>
+                </button>
+                <button type="button"
+                        class="sdd-task-detail-action"
+                        title="Enviar task para Execute"
+                        aria-label="Enviar task para Execute"
+                        onclick="sddSetTaskStatus(${c.line_no}, 'execute', 'project')">
+                    <i data-lucide="play"></i>
+                </button>
+                <button type="button"
+                        class="sdd-task-detail-action sdd-task-delete-action"
+                        title="Excluir task"
+                        aria-label="Excluir task"
+                        onclick="sddDeleteTask(${c.line_no}, 'project')">
+                    <i data-lucide="trash-2"></i>
+                </button>
+            </div>
         </div>`).join('');
     if (window.lucide) lucide.createIcons();
 }
@@ -10410,6 +10434,53 @@ function sddSetTaskStatus(lineNo, value, source = 'current') {
         sddSwitchHarnessPanel('harness-specs-panel');
     }
     sddSwitchTab('sdd-tab-tests');
+}
+
+async function sddDeleteTask(lineNo, source = 'current') {
+    if (!state.activeProjectId) return;
+    const row = sddGetTaskRow(lineNo, source);
+    const taskText = row?.querySelector('.sdd-criteria-text')?.textContent?.trim() || '';
+    if (!taskText) return;
+
+    const confirmed = await gitideConfirm({
+        title: 'Excluir task',
+        kicker: 'Task List',
+        message: `Tem certeza que deseja excluir <strong>${escapeHtml(taskText)}</strong>?<br><small>A task e seu detalhe correspondente serão removidos.</small>`,
+        confirmText: 'Excluir task',
+        variant: 'danger'
+    });
+    if (!confirmed) return;
+
+    const deleteButton = row.querySelector('.sdd-task-delete-action');
+    if (deleteButton) {
+        deleteButton.disabled = true;
+        deleteButton.classList.add('is-loading');
+    }
+
+    try {
+        const res = await fetch(`/api/projects/${state.activeProjectId}/sdd/tasks/${lineNo}`, {
+            method: 'DELETE',
+            headers: getHeaders()
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || 'Erro ao excluir task');
+
+        sddCloseTaskDetail();
+        gitideNotify({
+            title: 'Task excluída',
+            message: `${data.task_code || 'A tarefa'} foi removida da Task List.`,
+            variant: 'success'
+        });
+        await sddLoadProjectTasks();
+        if (sddState.activeFilename) await sddLoadCriteria();
+        await sddLoadProjectDocuments();
+    } catch (error) {
+        if (deleteButton) {
+            deleteButton.disabled = false;
+            deleteButton.classList.remove('is-loading');
+        }
+        gitideNotify({ title: 'Falha ao excluir task', message: error.message, variant: 'danger' });
+    }
 }
 
 function sddPopulateExecuteInstructions(taskText) {
