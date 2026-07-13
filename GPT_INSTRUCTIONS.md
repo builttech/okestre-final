@@ -227,6 +227,7 @@
 - A estimativa deve ser registrada em `.documents/estimativa.json` e `.documents/estimativa.md` quando a ferramenta suportar geração estruturada e relatório em Markdown.
 - A estimativa faz parte do pacote Harness e deve ser apresentada junto com TAP, REQs, RFs, Design, DRI, Task List e Task Details.
 - A estimativa deve considerar somente tasks abertas. Tasks concluídas (`- [x]`) não devem compor esforço restante, prazo restante ou custo restante.
+- O arquivo `.documents/estimativa.json` deve seguir exatamente o contrato consumido pela tela **Estimativas**. O agente não deve criar chaves alternativas em português para os campos estruturados.
 - Quando o agente gerar, revisar ou apoiar estimativas do projeto, ele deve analisar individualmente cada task registrada em `.documents/task/task.md`.
 - Para cada task, o agente deve ler obrigatoriamente sua seção correspondente em `.documents/task/task.details.md` antes de estimar esforço.
 - A estimativa deve considerar também REQs, RFs, Design e DRI relacionados quando existirem.
@@ -283,6 +284,90 @@
 - A justificativa deve mencionar fatores relevantes de escopo, complexidade, risco, validação ou ganho de produtividade.
 - Quando a informação disponível for insuficiente, o agente deve registrar lacuna ou incerteza e indicar o impacto na estimativa.
 - O agente não deve usar contingência automática silenciosa para substituir a análise individual.
+
+### 11.5. Contrato obrigatório do arquivo `.documents/estimativa.json`
+
+- O agente deve salvar `.documents/estimativa.json` como JSON válido, indentado e compatível com a tela de Estimativas.
+- O agente não deve salvar apenas Markdown no `.json`.
+- O agente não deve usar `sem_ia_horas`, `com_ia_horas_humanas`, `totais`, `totais_por_req` ou outros nomes livres como substitutos do contrato abaixo.
+- O objeto raiz deve conter obrigatoriamente:
+  - `version`: número da versão do relatório.
+  - `generated_at`: data/hora ISO em UTC.
+  - `project_id`: ID do projeto no Act IA.
+  - `project_name`: nome do projeto.
+  - `config`: objeto com `hourly_rate` e `daily_hours`.
+  - `totals`: objeto calculado.
+  - `tasks`: lista de tasks abertas estimadas.
+  - `warning`: texto opcional.
+- O objeto `totals` deve conter obrigatoriamente:
+  - `task_count`;
+  - `manual_hours`;
+  - `ai_hours`;
+  - `manual_days`;
+  - `ai_days`;
+  - `manual_cost`;
+  - `ai_cost`;
+  - `saved_hours`;
+  - `saved_cost`;
+  - `saving_percent`.
+- Cada item de `tasks` deve conter obrigatoriamente:
+  - `id`: mesmo ID da task em `.documents/task/task.md`;
+  - `title`: título curto da task;
+  - `task_type`: `implementation`, `correction` ou `adjustment`;
+  - `technical_area`: `frontend`, `backend`, `fullstack`, `infra`, `qa`, `docs` ou `general`;
+  - `complexity`: `low`, `medium` ou `high`;
+  - `manual_hours`: esforço sem IA;
+  - `ai_hours`: esforço humano com IA;
+  - `saved_hours`: diferença entre `manual_hours` e `ai_hours`;
+  - `saving_percent`: percentual de economia;
+  - `rationale`: justificativa técnica objetiva;
+  - `source`: `ai`;
+  - `completed`: sempre `false` para tasks abertas.
+- Exemplo mínimo válido:
+
+```json
+{
+  "version": 1,
+  "generated_at": "2026-07-13T22:00:00Z",
+  "project_id": 1,
+  "project_name": "Nome do Projeto",
+  "config": {
+    "hourly_rate": 150,
+    "daily_hours": 8
+  },
+  "totals": {
+    "task_count": 1,
+    "manual_hours": 2,
+    "ai_hours": 0.6,
+    "manual_days": 0.3,
+    "ai_days": 0.1,
+    "manual_cost": 300,
+    "ai_cost": 90,
+    "saved_hours": 1.4,
+    "saved_cost": 210,
+    "saving_percent": 70
+  },
+  "tasks": [
+    {
+      "id": "TASK-RF-0001-01-001",
+      "title": "Criar estrutura inicial",
+      "task_type": "implementation",
+      "technical_area": "fullstack",
+      "complexity": "medium",
+      "manual_hours": 2,
+      "ai_hours": 0.6,
+      "saved_hours": 1.4,
+      "saving_percent": 70,
+      "rationale": "Task de escopo moderado, com impacto em estrutura e validação básica.",
+      "source": "ai",
+      "completed": false
+    }
+  ],
+  "warning": ""
+}
+```
+
+- O arquivo `.documents/estimativa.md` pode ter seções executivas, tabelas por REQ/RF e justificativas detalhadas, mas deve refletir os mesmos dados do `.documents/estimativa.json`.
 
 ---
 

@@ -6661,6 +6661,74 @@ def _enrich_pricing_task_classification(task: dict) -> dict:
     return enriched
 
 
+def _pricing_float_from_aliases(data: dict, aliases: list, default: Optional[float] = None) -> Optional[float]:
+    for alias in aliases:
+        value = data.get(alias)
+        if value is None:
+            continue
+        try:
+            return float(str(value).replace(",", "."))
+        except (TypeError, ValueError):
+            continue
+    return default
+
+
+def _normalize_pricing_complexity(value: Optional[str]) -> str:
+    normalized = str(value or "").strip().lower()
+    aliases = {
+        "baixa": "low",
+        "baixo": "low",
+        "low": "low",
+        "media": "medium",
+        "média": "medium",
+        "medio": "medium",
+        "médio": "medium",
+        "medium": "medium",
+        "alta": "high",
+        "alto": "high",
+        "high": "high",
+    }
+    return aliases.get(normalized, "medium")
+
+
+def _normalize_saved_pricing_task(saved_task: dict, source_task: dict) -> Optional[dict]:
+    if not isinstance(saved_task, dict) or not isinstance(source_task, dict):
+        return None
+    manual_hours = _pricing_float_from_aliases(
+        saved_task,
+        ["manual_hours", "sem_ia_horas", "sem_ia_hours", "manual", "without_ai_hours"],
+    )
+    ai_hours = _pricing_float_from_aliases(
+        saved_task,
+        ["ai_hours", "com_ia_horas", "com_ia_horas_humanas", "with_ai_hours", "human_ai_hours"],
+    )
+    if manual_hours is None or ai_hours is None or manual_hours <= 0 or ai_hours <= 0:
+        return None
+    saved_hours = round(manual_hours - ai_hours, 1)
+    rationale = str(
+        saved_task.get("rationale")
+        or saved_task.get("justificativa")
+        or saved_task.get("justificativa_tecnica")
+        or saved_task.get("justificativa_técnica")
+        or "Estimativa importada do arquivo .documents/estimativa.json."
+    ).strip()
+    normalized = {
+        "id": source_task["id"],
+        "title": str(saved_task.get("title") or saved_task.get("titulo") or source_task.get("title") or "").strip(),
+        "complexity": _normalize_pricing_complexity(saved_task.get("complexity") or saved_task.get("complexidade")),
+        "manual_hours": round(manual_hours, 1),
+        "ai_hours": round(ai_hours, 1),
+        "task_type": saved_task.get("task_type") or saved_task.get("tipo") or saved_task.get("tipo_task"),
+        "technical_area": saved_task.get("technical_area") or saved_task.get("area") or saved_task.get("área"),
+        "rationale": rationale[:700],
+        "source": saved_task.get("source") or "ai",
+        "completed": False,
+        "saved_hours": saved_hours,
+        "saving_percent": round((saved_hours / manual_hours * 100) if manual_hours else 0, 1),
+    }
+    return _enrich_pricing_task_classification(normalized)
+
+
 def _normalize_pricing_estimate(task: dict, candidate: Optional[dict]) -> dict:
     if not isinstance(candidate, dict):
         raise ValueError(f"A IA não retornou estimativa para {task['id']}.")
@@ -6781,12 +6849,20 @@ def get_pricing_report(project: Project = Depends(get_project_or_404)):
             report = None
     if isinstance(report, dict):
         open_tasks, _ = _collect_pricing_context(project)
-        open_task_ids = {task["id"] for task in open_tasks}
+        open_tasks_by_id = {task["id"]: task for task in open_tasks}
+        open_task_ids = set(open_tasks_by_id)
         report = dict(report)
-        report["tasks"] = [
-            _enrich_pricing_task_classification(task) for task in report.get("tasks", [])
-            if isinstance(task, dict) and str(task.get("id") or "").upper() in open_task_ids
-        ]
+        normalized_tasks = []
+        for task in report.get("tasks", []):
+            if not isinstance(task, dict):
+                continue
+            task_id = str(task.get("id") or "").upper()
+            if task_id not in open_task_ids:
+                continue
+            normalized_task = _normalize_saved_pricing_task(task, open_tasks_by_id[task_id])
+            if normalized_task:
+                normalized_tasks.append(normalized_task)
+        report["tasks"] = normalized_tasks
         report["totals"] = _pricing_totals(
             report["tasks"],
             report.get("config") or _load_pricing_config(project),
