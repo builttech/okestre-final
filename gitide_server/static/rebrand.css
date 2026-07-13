@@ -11139,12 +11139,14 @@ button.btn-danger:hover {
     text-transform: uppercase;
 }
 
-.estimation-table th:first-child { width: 46%; }
-.estimation-table th:nth-child(2) { width: 10%; }
-.estimation-table th:nth-child(3),
-.estimation-table th:nth-child(4),
-.estimation-table th:nth-child(5) { width: 9%; }
-.estimation-table th:last-child { width: 10%; }
+.estimation-table th:first-child { width: 34%; }
+.estimation-table th:nth-child(2),
+.estimation-table th:nth-child(3) { width: 10%; }
+.estimation-table th:nth-child(4) { width: 9%; }
+.estimation-table th:nth-child(5),
+.estimation-table th:nth-child(6),
+.estimation-table th:nth-child(7) { width: 8%; }
+.estimation-table th:last-child { width: 9%; }
 
 .estimation-table td {
     padding: 13px 14px;
@@ -11194,6 +11196,7 @@ button.btn-danger:hover {
 }
 
 .estimation-complexity,
+.estimation-classification,
 .estimation-source {
     display: inline-flex;
     padding: 4px 7px;
@@ -11209,6 +11212,16 @@ button.btn-danger:hover {
 .estimation-complexity.medium { color: #fbbf24; border-color: rgba(245, 158, 11, 0.3); }
 .estimation-complexity.low,
 .estimation-source.ai { color: #34d399; border-color: rgba(16, 185, 129, 0.3); }
+.estimation-classification.type-implementation { color: #93c5fd; border-color: rgba(59, 130, 246, 0.28); }
+.estimation-classification.type-correction { color: #f87171; border-color: rgba(239, 68, 68, 0.32); }
+.estimation-classification.type-adjustment { color: #fbbf24; border-color: rgba(245, 158, 11, 0.3); }
+.estimation-classification.area-frontend { color: #c4b5fd; border-color: rgba(139, 92, 246, 0.3); }
+.estimation-classification.area-backend { color: #67e8f9; border-color: rgba(6, 182, 212, 0.3); }
+.estimation-classification.area-fullstack { color: #34d399; border-color: rgba(16, 185, 129, 0.3); }
+.estimation-classification.area-infra { color: #fb923c; border-color: rgba(249, 115, 22, 0.3); }
+.estimation-classification.area-qa { color: #f9a8d4; border-color: rgba(236, 72, 153, 0.3); }
+.estimation-classification.area-docs,
+.estimation-classification.area-general { color: var(--text-muted); border-color: var(--border-color); }
 
 .estimation-table[data-mode="ai"] .estimation-col-manual,
 .estimation-table[data-mode="ai"] .estimation-col-saving,
@@ -11247,7 +11260,7 @@ html[data-theme="light"] .estimation-table-panel {
     .estimation-actions input,
     .estimation-actions .btn { width: 100%; }
     .estimation-mode-filter { overflow-x: auto; }
-    .estimation-table { min-width: 900px; }
+    .estimation-table { min-width: 1080px; }
 }
 
 /* Markdown and code text surfaces should never create infinite horizontal lines. */

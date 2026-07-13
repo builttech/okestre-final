@@ -11814,6 +11814,26 @@ function estimationComplexityLabel(value) {
     return ({ low: 'Baixa', medium: 'Média', high: 'Alta' })[value] || 'Média';
 }
 
+function estimationTaskTypeLabel(value) {
+    return ({
+        implementation: 'Implementação',
+        correction: 'Correção',
+        adjustment: 'Ajuste'
+    })[value] || 'Implementação';
+}
+
+function estimationTechnicalAreaLabel(value) {
+    return ({
+        frontend: 'Front-end',
+        backend: 'Back-end',
+        fullstack: 'Full stack',
+        infra: 'Infra',
+        qa: 'QA',
+        docs: 'Docs',
+        general: 'Geral'
+    })[value] || 'Geral';
+}
+
 function setEstimationText(id, value) {
     const element = document.getElementById(id);
     if (element) element.textContent = value;
@@ -11831,7 +11851,7 @@ function renderEstimationEmpty(message = 'Gere a primeira estimativa para visual
     setEstimationText('estimation-saving-context', 'Economia de esforço e custo');
     const body = document.getElementById('estimation-table-body');
     if (body) {
-        body.innerHTML = `<tr><td colspan="6"><div class="estimation-empty"><i data-lucide="calculator"></i><span>${escapeHtml(message)}</span></div></td></tr>`;
+        body.innerHTML = `<tr><td colspan="8"><div class="estimation-empty"><i data-lucide="calculator"></i><span>${escapeHtml(message)}</span></div></td></tr>`;
     }
     const warning = document.getElementById('estimation-warning');
     if (warning) warning.hidden = true;
@@ -11871,6 +11891,8 @@ function renderEstimationReport(report) {
                     <span>${escapeHtml(task.title || '')}</span>
                     <small>${escapeHtml(task.rationale || '')}</small>
                 </td>
+                <td><span class="estimation-classification type-${escapeHtml(task.task_type || 'implementation')}">${estimationTaskTypeLabel(task.task_type)}</span></td>
+                <td><span class="estimation-classification area-${escapeHtml(task.technical_area || 'general')}">${estimationTechnicalAreaLabel(task.technical_area)}</span></td>
                 <td><span class="estimation-complexity ${escapeHtml(task.complexity || 'medium')}">${estimationComplexityLabel(task.complexity)}</span></td>
                 <td class="estimation-col-manual"><strong>${estimationHours(task.manual_hours)}</strong></td>
                 <td class="estimation-col-ai"><strong>${estimationHours(task.ai_hours)}</strong></td>

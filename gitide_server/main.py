@@ -6595,27 +6595,118 @@ def _fallback_task_estimate(task: dict) -> dict:
     }
 
 
+def _infer_pricing_task_type(task: dict) -> str:
+    searchable = f"{task.get('id', '')}\n{task.get('title', '')}\n{task.get('details', '')}\n{task.get('rationale', '')}".lower()
+    if any(token in searchable for token in ["corrigir", "correção", "correcao", "bug", "erro", "falha", "quebrou", "fix"]):
+        return "correction"
+    if any(token in searchable for token in ["ajustar", "ajuste", "melhorar", "refinar", "visual", "layout", "spacing", "gap", "copy", "texto", "alinh"]):
+        return "adjustment"
+    return "implementation"
+
+
+def _infer_pricing_task_area(task: dict) -> str:
+    searchable = f"{task.get('id', '')}\n{task.get('title', '')}\n{task.get('details', '')}\n{task.get('rationale', '')}".lower()
+    frontend_tokens = [
+        "front", "frontend", "front-end", "ui", "ux", "layout", "visual", "css", "html", "tela",
+        "componente", "modal", "drawer", "botão", "botao", "select", "preview", "canvas", "react",
+    ]
+    backend_tokens = [
+        "back", "backend", "back-end", "api", "endpoint", "rota", "server", "servidor", "banco",
+        "database", "sql", "schema", "migration", "auth", "token", "arquivo", "persist", "json",
+    ]
+    infra_tokens = ["docker", "deploy", "caddy", "ssh", "vm", "infra", "domínio", "dominio", "pipeline", "git"]
+    qa_tokens = ["teste", "test", "qa", "validação", "validacao", "evidência", "evidencia"]
+    has_front = any(token in searchable for token in frontend_tokens)
+    has_back = any(token in searchable for token in backend_tokens)
+    if any(token in searchable for token in infra_tokens):
+        return "infra"
+    if has_front and has_back:
+        return "fullstack"
+    if has_front:
+        return "frontend"
+    if has_back:
+        return "backend"
+    if any(token in searchable for token in qa_tokens):
+        return "qa"
+    return "general"
+
+
+def _normalize_pricing_task_type(value: Optional[str], task: dict) -> str:
+    normalized = str(value or "").strip().lower().replace("-", "_").replace(" ", "_")
+    aliases = {
+        "implementacao": "implementation",
+        "implementação": "implementation",
+        "implementation": "implementation",
+        "feature": "implementation",
+        "correcao": "correction",
+        "correção": "correction",
+        "correction": "correction",
+        "fix": "correction",
+        "bugfix": "correction",
+        "ajuste": "adjustment",
+        "ajustes": "adjustment",
+        "adjustment": "adjustment",
+        "improvement": "adjustment",
+        "melhoria": "adjustment",
+    }
+    return aliases.get(normalized) or _infer_pricing_task_type(task)
+
+
+def _normalize_pricing_task_area(value: Optional[str], task: dict) -> str:
+    normalized = str(value or "").strip().lower().replace("-", "_").replace(" ", "_")
+    aliases = {
+        "front": "frontend",
+        "frontend": "frontend",
+        "front_end": "frontend",
+        "back": "backend",
+        "backend": "backend",
+        "back_end": "backend",
+        "full": "fullstack",
+        "fullstack": "fullstack",
+        "full_stack": "fullstack",
+        "infra": "infra",
+        "devops": "infra",
+        "ops": "infra",
+        "qa": "qa",
+        "test": "qa",
+        "teste": "qa",
+        "docs": "docs",
+        "documentacao": "docs",
+        "documentação": "docs",
+    }
+    return aliases.get(normalized) or _infer_pricing_task_area(task)
+
+
+def _enrich_pricing_task_classification(task: dict) -> dict:
+    enriched = dict(task)
+    enriched["task_type"] = _normalize_pricing_task_type(enriched.get("task_type"), enriched)
+    enriched["technical_area"] = _normalize_pricing_task_area(enriched.get("technical_area"), enriched)
+    return enriched
+
+
 def _normalize_pricing_estimate(task: dict, candidate: Optional[dict]) -> dict:
     fallback = _fallback_task_estimate(task)
     if not isinstance(candidate, dict):
-        return fallback
+        return _enrich_pricing_task_classification(fallback)
     try:
         manual_hours = max(0.5, float(candidate.get("manual_hours")))
         ai_hours = max(0.5, min(manual_hours, float(candidate.get("ai_hours"))))
     except (TypeError, ValueError):
-        return fallback
+        return _enrich_pricing_task_classification(fallback)
     complexity = str(candidate.get("complexity") or "medium").lower()
     if complexity not in {"low", "medium", "high"}:
         complexity = "medium"
-    return {
+    return _enrich_pricing_task_classification({
         "id": task["id"],
         "title": task["title"],
         "complexity": complexity,
         "manual_hours": round(manual_hours, 1),
         "ai_hours": round(ai_hours, 1),
+        "task_type": candidate.get("task_type"),
+        "technical_area": candidate.get("technical_area"),
         "rationale": str(candidate.get("rationale") or "Estimativa calculada pela IA a partir da tarefa e de seu plano técnico.").strip()[:500],
         "source": "ai",
-    }
+    })
 
 
 def _pricing_totals(tasks: list, config: dict) -> dict:
@@ -6656,14 +6747,14 @@ def _pricing_markdown(report: dict) -> str:
         "",
         "## Estimativa por Tarefa",
         "",
-        "| Tarefa | Título | Complexidade | Sem IA | Com IA | Economia |",
-        "| --- | --- | --- | ---: | ---: | ---: |",
+        "| Tarefa | Título | Tipo | Área | Complexidade | Sem IA | Com IA | Economia |",
+        "| --- | --- | --- | --- | --- | ---: | ---: | ---: |",
     ]
     for task in report["tasks"]:
         saving = max(0, float(task["manual_hours"]) - float(task["ai_hours"]))
         title = str(task["title"]).replace("|", "\\|")
         lines.append(
-            f"| {task['id']} | {title} | {task['complexity']} | {task['manual_hours']:.1f}h | {task['ai_hours']:.1f}h | {saving:.1f}h |"
+            f"| {task['id']} | {title} | {task.get('task_type', 'implementation')} | {task.get('technical_area', 'general')} | {task['complexity']} | {task['manual_hours']:.1f}h | {task['ai_hours']:.1f}h | {saving:.1f}h |"
         )
     lines.extend([
         "",
@@ -6708,7 +6799,7 @@ def get_pricing_report(project: Project = Depends(get_project_or_404)):
         open_task_ids = {task["id"] for task in open_tasks}
         report = dict(report)
         report["tasks"] = [
-            task for task in report.get("tasks", [])
+            _enrich_pricing_task_classification(task) for task in report.get("tasks", [])
             if isinstance(task, dict) and str(task.get("id") or "").upper() in open_task_ids
         ]
         report["totals"] = _pricing_totals(
@@ -6747,11 +6838,13 @@ def generate_pricing_report(project: Project = Depends(get_project_or_404)):
                     "properties": {
                         "id": {"type": "string"},
                         "complexity": {"type": "string", "enum": ["low", "medium", "high"]},
+                        "task_type": {"type": "string", "enum": ["implementation", "correction", "adjustment"]},
+                        "technical_area": {"type": "string", "enum": ["frontend", "backend", "fullstack", "infra", "qa", "docs", "general"]},
                         "manual_hours": {"type": "number"},
                         "ai_hours": {"type": "number"},
                         "rationale": {"type": "string"},
                     },
-                    "required": ["id", "complexity", "manual_hours", "ai_hours", "rationale"],
+                    "required": ["id", "complexity", "task_type", "technical_area", "manual_hours", "ai_hours", "rationale"],
                 },
             }
         },
@@ -6760,6 +6853,8 @@ def generate_pricing_report(project: Project = Depends(get_project_or_404)):
     system_prompt = (
         "Você é um Engenheiro de Software Sênior especialista em estimativas de projetos. "
         "Estime cada tarefa individualmente a partir do título, Task Details, REQs e RFs. "
+        "Classifique task_type como implementation, correction ou adjustment. "
+        "Classifique technical_area como frontend, backend, fullstack, infra, qa, docs ou general. "
         "manual_hours representa execução por engenharia sem assistência de IA. "
         "ai_hours representa o mesmo escopo usando o Act IA em análise, código, testes e documentação. "
         "Considere complexidade, integrações, testes, riscos, retrabalho e validação. "
