@@ -1,4 +1,5 @@
-FROM python:3.11-slim
+ARG PYTHON_IMAGE=public.ecr.aws/docker/library/python:3.11-slim
+FROM ${PYTHON_IMAGE}
 
 # Instala o Git, necessário para as operações do agente no repositório
 RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*
