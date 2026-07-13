@@ -674,6 +674,11 @@ def sync_project_system_files(project_path: str) -> list[str]:
         templates_dir = os.path.join(server_root, "gitide_server", "templates")
         project_charter_md = os.path.join(project_path, ".documents", "project-charter.md")
         
+        estimativa_path = os.path.join(project_path, ".documents", "estimativa.md")
+        if not os.path.exists(estimativa_path):
+            with builtins.open(estimativa_path, "w", encoding="utf-8") as f:
+                f.write("# Estimativa Global\n\nClique em 'Gerar Estimativa' no painel Harness para analisar o projeto.")
+
         template_map = {
             "REQ-01-template.md": req_md,
             "RF-01-01-template.md": rf_md,
@@ -4544,17 +4549,17 @@ def _default_sdd_project_document(project: Project, kind: str) -> str:
             f"# {config['title']}\n\n"
             f"## Projeto\n\n{project_name}\n\n"
             "## Task List - Tarefas\n\n"
-            "> Use itens rastreáveis no formato `- [ ] TASK-REQ-0000-001: - Título curto da tarefa.`\n"
+            "> Use itens rastreáveis no formato `- [ ] TASK-RF-0001-01-001: - Título curto da tarefa.`\n"
             "> Não coloque plano detalhado aqui. Use `.documents/task/task.details.md` para o plano da task atual.\n\n"
-            "- [ ] TASK-REQ-0000-001: - Detalhar primeira tarefa do projeto.\n"
+            "- [ ] TASK-RF-0001-01-001: - Detalhar primeira tarefa do projeto.\n"
         )
     return (
         f"# {config['title']}\n\n"
         f"## Projeto\n\n{project_name}\n\n"
         "> Arquivo acumulativo. Não sobrescreva detalhes de tasks anteriores.\n"
-        "> Para uma nova task, anexe uma nova seção `## Plano — TASK-REQ-0000-000` ao final.\n"
+        "> Para uma nova task, anexe uma nova seção `# TASK-RF-0001-01-000` ao final.\n"
         "> Para revisar uma task existente, atualize somente a seção daquela task.\n\n"
-        "## Plano — TASK-REQ-0000-001\n\n"
+        "# TASK-RF-0001-01-001\n\n"
         "### Título\n\n"
         "Título curto da task.\n\n"
         "### Objetivo\n\n"
@@ -5495,8 +5500,8 @@ def _native_agent_intent_context(project: Project, prompt: str) -> str:
         "- REQ individual deve ficar em `.documents/spec/*.md` e conter obrigatoriamente: `## 1. Specify - Especificação Funcional`, `### 1.1 Identificação e Metadados Básicos`, `### 1.2 Contexto`, `### 1.3 Objetivo Funcional`, `### 1.4 Descrição do Requisito`, `### 1.5 História de Usuário`, `### 1.6 Regras de Negócio`, `### 1.7 Restrições e Premissas`, `### 1.8 Fora do Escopo`, `### 1.9 Critérios de Aceite` e `### 1.10 Rastreabilidade Funcional`.\n"
         "- Design deve ficar em `.documents/design/design.md` e conter arquitetura proposta, fluxos técnicos, APIs/eventos/contratos, dados/persistência, segurança/permissões e estratégia de validação.\n"
         "- DRI deve ficar em `.documents/dri/dri.md` e seguir o RI oficial completo com as seções 1 a 17, incluindo critérios de aceite da interface, lacunas/premissas, fora do escopo e evoluções futuras.\n"
-        "- Task List deve ficar em `.documents/task/task.md` e conter somente itens no formato `- [ ] TASK-REQ-0000-001: - Título curto` ou `- [ ] TASK-QA-XXXXXXXX-001: - Título curto`.\n"
-        "- Task Details deve ficar em `.documents/task/task.details.md`, ser acumulativo, nunca apagar seções anteriores e usar seções `## Plano — TASK-...` contendo as subseções: Título, Objetivo, História do usuário, Escopo, Regras de negócio, Critérios de aceite, Dependências e Definition of Done, além de pedir a autorização única do pacote Harness.\n"
+        "- Task List deve ficar em `.documents/task/task.md` e conter somente itens no formato `- [ ] TASK-RF-0001-01-001: - Título curto` ou `- [ ] TASK-QA-XXXXXXXX-001: - Título curto`.\n"
+        "- Task Details deve ficar em `.documents/task/task.details.md`, ser acumulativo, nunca apagar seções anteriores e usar seções `# TASK-...` contendo as subseções: Título, Objetivo, História do usuário, Escopo, Regras de negócio, Critérios de aceite, Dependências e Definition of Done, além de pedir a autorização única do pacote Harness.\n"
         "- O agente deve criar/revisar REQ, Design, DRI quando aplicável, Task List e Task Details em sequência, sem pedir aprovação por documento.\n"
         "- Depois de montar todos os documentos, solicite uma única aprovação do pacote completo. Se aprovado, execute todas as tasks em ordem, sem aprovação intermediária por task. Solicite validação final somente após executar e verificar todas as tasks.\n"
         "- Para QA visual/layout enquadrado na exceção controlada, não crie REQ resumido: crie somente TASK-QA no task.md e detalhe completo no task.details.md, peça uma única aprovação do pacote QA e depois execute todas as tasks QA em sequência.\n"
@@ -5557,7 +5562,7 @@ def _native_agent_intent_context(project: Project, prompt: str) -> str:
             parts.append(
                 "INTENÇÃO DETECTADA: REQ\n"
                 f"REQ ID: {req_id.upper()}\n"
-                "Regra: tente localizar em .documents/spec. Se não existir, crie o REQ antes de qualquer execução técnica usando obrigatoriamente o template oficial completo com seções 1.1 a 1.10."
+                "Regra: Localize os requisitos em .documents/requirements e .documents/functional-requirements."
             )
 
     if not parts:
@@ -6304,7 +6309,7 @@ def save_pricing_config(config: PricingConfigIn, project: Project = Depends(get_
 
 @app.get("/api/projects/{project_id}/pricing/report", tags=["Pricing"])
 def get_pricing_report(project: Project = Depends(get_project_or_404)):
-    pricing_md_path = os.path.join(project.path, ".documents", "pricing.md")
+    pricing_md_path = os.path.join(project.path, ".documents", "estimativa.md")
     if os.path.exists(pricing_md_path):
         with open(pricing_md_path, "r", encoding="utf-8") as f:
             return {"markdown": f.read()}
@@ -6374,7 +6379,7 @@ def generate_pricing_report(project: Project = Depends(get_project_or_404)):
         ], temperature=0.3)
         
         # Save the result
-        pricing_md_path = os.path.join(project.path, ".documents", "pricing.md")
+        pricing_md_path = os.path.join(project.path, ".documents", "estimativa.md")
         with open(pricing_md_path, "w", encoding="utf-8") as f:
             f.write(result)
             

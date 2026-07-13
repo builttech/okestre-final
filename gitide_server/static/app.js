@@ -8892,7 +8892,7 @@ function copyDocPromptInstructions() {
 Para documentação executiva, NÃO escreva o documento Word diretamente no chat.
 Primeiro mantenha os arquivos vivos do Harness Engineering atualizados:
 - TAP: .documents/project-charter.md
-- Specify: todos os REQs em .documents/spec/*.md
+- Specify: todos os REQs em .documents/requirements/*.md
 - Design: .documents/design/design.md
 - DRI: .documents/dri/dri.md
 - Task List: .documents/task/task.md
@@ -10007,7 +10007,7 @@ function sddRenderCriteria() {
         const hasAllTasks = (sddState.allCriteria || []).length > 0;
         const emptyMessage = hasAllTasks && activeReq
             ? `Nenhuma tarefa vinculada a <code>${escapeHtml(activeReq)}</code>.<br>Use a aba superior <strong>Task List</strong> para visualizar todas as tarefas do projeto.`
-            : `Nenhuma tarefa encontrada em <code>${escapeHtml(sddState.taskFilepath || '.documents/task/task.md')}</code>.<br>Use o formato <code>- [ ] TASK-REQ-0000-001: - Título curto</code> ou <code>- [ ] TASK-QA-ID-001: - Título curto</code>.`;
+            : `Nenhuma tarefa encontrada em <code>${escapeHtml(sddState.taskFilepath || '.documents/task/task.md')}</code>.<br>Use o formato <code>- [ ] TASK-RF-0000-00-001: Título curto</code> ou <code>- [ ] TASK-QA-ID-001: - Título curto</code>.`;
         container.innerHTML = `
             <div style="text-align:center;padding:40px;color:var(--text-muted);">
                 <i data-lucide="clipboard-list" style="width:40px;height:40px;margin-bottom:12px;opacity:0.4;"></i>
@@ -10240,7 +10240,7 @@ async function sddOpenTaskDetail(lineNo, source = 'current') {
                 <div class="sdd-task-detail-empty">
                     <i data-lucide="badge-alert"></i>
                     <h5>ID da task não encontrado</h5>
-                    <p>Use o formato <code>TASK-REQ-0000-001: - Título curto</code> ou <code>TASK-QA-ID-001: - Título curto</code> em .documents/task/task.md.</p>
+                    <p>Use o formato <code>TASK-RF-0000-00-001: Título curto</code> ou <code>TASK-QA-ID-001: - Título curto</code> em .documents/task/task.md.</p>
                 </div>
             `;
         } else if (!section) {
@@ -10399,7 +10399,7 @@ async function sddSaveSpec() {
             sddState.activeFilename = filename;
             sddState.activeContent = content;
             sddState.activeStorageType = data.storage_type || 'project_spec_file';
-            sddState.activeFilepath = data.filepath || `.documents/spec/${filename}`;
+            sddState.activeFilepath = data.filepath || `.documents/requirements/${filename}`;
             sddState.isDraft = false;
             sddPopulatePreview(content);
             sddSetActiveSpecHeader({ filename, content });
@@ -11527,7 +11527,7 @@ async function sddGeneratePricing() {
         
         if (res.ok && data.status === 'success') {
             container.innerHTML = window.marked ? marked.parse(data.markdown) : data.markdown;
-            gitideNotify({ title: 'Estimativa gerada', message: 'Relatório salvo com sucesso em .documents/pricing.md.', variant: 'success' });
+            gitideNotify({ title: 'Estimativa gerada', message: 'Relatório salvo com sucesso em .documents/estimativa.md.', variant: 'success' });
         } else {
             container.innerHTML = `<div class="specs-empty-state"><span style="color:var(--danger-color)">Erro: ${data.detail || 'Desconhecido'}</span></div>`;
         }

@@ -2,8 +2,7 @@
 
 Controle rígido de execução das tarefas da Inteligência Artificial.
 
-## Épico: [Nome da Feature/REQ]
+## RF-0001-01 — Título do RF
 
-- [ ] TASK-01: [Título curto da tarefa]
-- [ ] TASK-02: [Título curto da tarefa]
-- [ ] TASK-03: [Título curto da tarefa]
+- [ ] TASK-RF-0001-01-001: Título curto da implementação.
+- [ ] TASK-RF-0001-01-002: Título curto da implementação.

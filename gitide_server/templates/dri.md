@@ -1,21 +1,63 @@
-# DRI (Documento de Registro de Decisão / Incidentes)
+# Documento de Requisito de Interface (DRI)
 
-## Decisão 001: [Título Curto da Decisão]
+Este documento centraliza as especificações de interfaces (telas, modais, componentes visuais) do projeto.
 
-- **Data:** [YYYY-MM-DD]
-- **Status:** [Proposta / Aceita / Rejeitada / Obsoleta]
-- **Autores:** [Nomes/IA]
+# RI-0001 — [Nome da Interface]
 
-### 1. Contexto e Problema
-[Qual o problema técnico ou necessidade de negócio que motivou essa discussão?]
+## 1. Identificação da Interface
+- **ID:** RI-0001
+- **Nome:** [Nome]
+- **RF Vinculado:** [RF-0001-01]
 
-### 2. Opções Consideradas
-- **Opção A:** [Descrição]
-- **Opção B:** [Descrição]
+## 2. Objetivo
+[O que a interface resolve]
 
-### 3. Decisão Tomada
-[Qual foi a opção escolhida e por que ela é a melhor opção técnica no momento?]
+## 3. Contexto de Uso
+[Onde o usuário está quando acessa isso]
 
-### 4. Consequências (Trade-offs)
-- **O que ganhamos:** [Vantagens]
-- **O que perdemos:** [Desvantagens, débitos técnicos ou limitações assumidas]
+## 4. Arquitetura da Informação
+[Como os dados estão organizados na tela]
+
+## 5. Mapa de Componentes
+- [Header, Sidebar, Formulário, Tabela]
+
+## 6. Regras de Exibição
+[Condicionais de UI]
+
+## 7. Estados
+- **Loading:** [Spinner, Skeleton]
+- **Empty:** [Ilustração, mensagem]
+- **Error:** [Toaster, red alert]
+
+## 8. Fluxo de Interação
+[O que acontece quando clica no botão X]
+
+## 9. Mapeamento de Dados
+[De onde vem cada dado exibido na tela]
+
+## 10. Hierarquia Visual
+[Prioridade dos elementos]
+
+## 11. Microcopy
+[Textos curtos de botões, tooltips, placeholders]
+
+## 12. Responsividade
+[Como se comporta no mobile/tablet]
+
+## 13. Acessibilidade
+[Aria-labels, contraste, navegação por teclado]
+
+## 14. Critérios de Aceite
+- [ ] O componente X aparece quando Y.
+
+## 15. Lacunas e Premissas
+[O que falta definir]
+
+## 16. Fora do Escopo
+[O que não terá nessa interface]
+
+## 17. Evoluções Futuras
+[O que pode ser feito numa v2]
+
+## 18. Rastreabilidade
+- **Design no Figma:** [Link]
