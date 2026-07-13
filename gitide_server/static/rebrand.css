@@ -3488,7 +3488,10 @@ input[type="checkbox"]:focus-visible{
     font-size:12px;
     line-height:1.6;
     color:#f8fafc;
-    white-space:pre;
+    white-space:pre-wrap;
+    overflow-x:hidden;
+    overflow-wrap:anywhere;
+    word-break:break-word;
 }
 
 .git-side-empty-state{
@@ -6379,8 +6382,11 @@ input[type="checkbox"]:focus-visible{
     font-size: 13px;
     line-height: 1.68;
     padding: 20px !important;
-    white-space: pre;
-    overflow: auto;
+    white-space: pre-wrap;
+    overflow-y: auto;
+    overflow-x: hidden;
+    overflow-wrap: anywhere;
+    word-break: break-word;
     tab-size: 2;
 }
 
@@ -6473,6 +6479,9 @@ input[type="checkbox"]:focus-visible{
     color: var(--text-main);
     height: 100%;
     overflow-y: auto;
+    overflow-x: hidden;
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 
 .sdd-markdown-preview h1,
@@ -6506,13 +6515,19 @@ input[type="checkbox"]:focus-visible{
     padding: 2px 6px;
     border-radius: 4px;
     color: var(--color-primary-light, #818cf8);
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 
 .sdd-markdown-preview pre {
     background: rgba(0,0,0,0.4);
     padding: 14px;
     border-radius: 8px;
-    overflow-x: auto;
+    overflow-x: hidden;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    word-break: break-word;
     margin-bottom: 16px;
     border: 1px solid var(--flat-border-soft);
 }
@@ -6521,6 +6536,7 @@ input[type="checkbox"]:focus-visible{
     background: transparent;
     padding: 0;
     color: #f8fafc;
+    white-space: inherit;
 }
 
 /* Checklist Interativa */
@@ -7011,6 +7027,8 @@ input[type="checkbox"]:focus-visible{
     color:var(--text-muted);
     line-height:1.48;
     margin:0 0 8px;
+    overflow-wrap:anywhere;
+    word-break:break-word;
 }
 
 .sdd-task-detail-markdown ul{
@@ -7020,6 +7038,22 @@ input[type="checkbox"]:focus-visible{
 
 .sdd-task-detail-markdown code{
     color:var(--text-main);
+    white-space:pre-wrap;
+    overflow-wrap:anywhere;
+    word-break:break-word;
+}
+
+.sdd-task-detail-markdown,
+.sdd-task-detail-markdown pre,
+.sdd-task-detail-markdown code{
+    max-width:100%;
+}
+
+.sdd-task-detail-markdown pre{
+    white-space:pre-wrap;
+    overflow-x:hidden;
+    overflow-wrap:anywhere;
+    word-break:break-word;
 }
 
 /* Workspace account menu must escape the footer/sidebar clipping. */
@@ -11214,4 +11248,87 @@ html[data-theme="light"] .estimation-table-panel {
     .estimation-actions .btn { width: 100%; }
     .estimation-mode-filter { overflow-x: auto; }
     .estimation-table { min-width: 900px; }
+}
+
+/* Markdown and code text surfaces should never create infinite horizontal lines. */
+.markdown-render,
+.sdd-markdown-preview,
+.sdd-task-detail-markdown,
+.agent-message-text,
+.qa-detail-body,
+.qa-detail-section,
+.ops-ai-prompt,
+.ops-infra-console,
+.prod-validator-preview,
+.security-rules-preview,
+#prod-readiness-validator-text,
+#security-rules-text,
+#gpt-custom-instructions-text,
+#sdd-test-result-code,
+.code-box,
+.terminal-output,
+#git-console-output {
+    max-width: 100%;
+    overflow-x: hidden !important;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+.markdown-render pre,
+.markdown-render code,
+.sdd-markdown-preview pre,
+.sdd-markdown-preview code,
+.sdd-task-detail-markdown pre,
+.sdd-task-detail-markdown code,
+.agent-message-text pre,
+.agent-message-text code,
+.qa-detail-body pre,
+.qa-detail-body code,
+.qa-detail-section pre,
+.qa-detail-section code,
+.ops-ai-prompt,
+.ops-infra-console,
+.prod-validator-preview pre,
+.security-rules-preview pre,
+#prod-readiness-validator-text,
+#security-rules-text,
+#gpt-custom-instructions-text,
+#sdd-test-result-code,
+.code-box,
+.terminal-output,
+#git-console-output,
+pre.code-box,
+pre.engineering-report-table-line {
+    white-space: pre-wrap !important;
+    overflow-x: hidden !important;
+    overflow-wrap: anywhere !important;
+    word-break: break-word !important;
+}
+
+.markdown-render table,
+.sdd-markdown-preview table,
+.sdd-task-detail-markdown table,
+.agent-message-text table,
+.qa-detail-body table,
+.qa-detail-section table {
+    width: 100%;
+    max-width: 100%;
+    table-layout: fixed;
+}
+
+.markdown-render th,
+.markdown-render td,
+.sdd-markdown-preview th,
+.sdd-markdown-preview td,
+.sdd-task-detail-markdown th,
+.sdd-task-detail-markdown td,
+.agent-message-text th,
+.agent-message-text td,
+.qa-detail-body th,
+.qa-detail-body td,
+.qa-detail-section th,
+.qa-detail-section td {
+    white-space: normal !important;
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }

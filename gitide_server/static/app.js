@@ -8106,7 +8106,7 @@ function formatAgentMessage(text) {
                     <span><i data-lucide="code-2"></i> ${filename}</span>
                     <button class="btn-copy-code" onclick="navigator.clipboard.writeText(\`${escapedCode}\`).then(() => { this.textContent = 'Copiado'; setTimeout(() => this.textContent = 'Copiar', 1500); })">Copiar</button>
                 </div>
-                <pre style="margin: 0; padding: 16px; overflow-x: auto; font-family: monospace; font-size: 12px; line-height: 1.5; color: #e2e8f0; background: transparent;"><code style="font-family: inherit;">${codeToShow}</code></pre>
+                <pre style="margin: 0; padding: 16px; overflow-x: hidden; white-space: pre-wrap; overflow-wrap: anywhere; word-break: break-word; font-family: monospace; font-size: 12px; line-height: 1.5; color: #e2e8f0; background: transparent;"><code style="font-family: inherit; white-space: inherit;">${codeToShow}</code></pre>
                 <div class="code-block-actions" style="display: flex; gap: 10px; padding: 10px 16px; background: rgba(0,0,0,0.1); border-top: 1px solid var(--border-color);">
                     <button class="action-pill-btn btn-apply"><i data-lucide="check"></i> Aplicar</button>
                     <button class="action-pill-btn btn-test"><i data-lucide="play"></i> Testar</button>
@@ -9092,7 +9092,10 @@ function renderDocumentPreview(data) {
                 pre.style.background = '#F9FAFB';
                 pre.style.padding = '10px';
                 pre.style.borderRadius = '4px';
-                pre.style.overflowX = 'auto';
+                pre.style.overflowX = 'hidden';
+                pre.style.whiteSpace = 'pre-wrap';
+                pre.style.overflowWrap = 'anywhere';
+                pre.style.wordBreak = 'break-word';
                 pre.style.marginBottom = '12px';
                 pre.style.border = '1px solid #E5E7EB';
                 
