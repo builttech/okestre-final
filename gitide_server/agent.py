@@ -229,7 +229,16 @@ def _compact_tool_result_for_local_model(tool_result: str, max_chars: int = 2200
     except Exception:
         return tool_result[:max_chars] + ("... [truncado]" if len(tool_result) > max_chars else "")
 
-def call_llm(provider: str, model: str, api_key: str, messages: list, system_prompt: str, ollama_base_url: str = "http://127.0.0.1:11434", ollama_options: dict = None) -> str:
+def call_llm(
+    provider: str,
+    model: str,
+    api_key: str,
+    messages: list,
+    system_prompt: str,
+    ollama_base_url: str = "http://127.0.0.1:11434",
+    ollama_options: dict = None,
+    response_schema: dict = None,
+) -> str:
     """Faz a chamada à API correspondente (Gemini ou OpenAI)."""
     if provider == "gemini":
         # Ajusta histórico de mensagens para o formato do Gemini
@@ -251,6 +260,8 @@ def call_llm(provider: str, model: str, api_key: str, messages: list, system_pro
                 "responseMimeType": "application/json"
             }
         }
+        if response_schema:
+            payload["generationConfig"]["responseSchema"] = response_schema
         res = requests.post(url, json=payload, timeout=40)
         res.raise_for_status()
         data = res.json()
@@ -290,7 +301,7 @@ def call_llm(provider: str, model: str, api_key: str, messages: list, system_pro
             "model": model,
             "messages": ollama_messages,
             "stream": False,
-            "format": {
+            "format": response_schema or {
                 "type": "object",
                 "properties": {
                     "thought": {"type": "string"},

@@ -10768,3 +10768,330 @@ button.btn-danger:hover {
     opacity: 0.7;
     font-size: 13px;
 }
+
+/* Project Estimation */
+#tab-estimation { min-height: 0; overflow: hidden; }
+#tab-estimation.active { display: block; height: 100%; }
+
+.estimation-page {
+    height: 100%;
+    min-height: 0;
+    overflow: auto;
+    padding: 22px;
+    box-sizing: border-box;
+    color: var(--text-light);
+}
+
+.estimation-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 24px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.estimation-header h3 {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    margin: 5px 0 0;
+    font-size: 20px;
+}
+
+.estimation-header p,
+.estimation-table-header p {
+    margin: 7px 0 0;
+    color: var(--text-muted);
+    line-height: 1.45;
+}
+
+.estimation-actions {
+    display: flex;
+    align-items: flex-end;
+    gap: 9px;
+    flex-shrink: 0;
+}
+
+.estimation-actions label {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    color: var(--text-muted);
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.estimation-actions input {
+    width: 104px;
+    height: 38px;
+    padding: 0 11px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    box-sizing: border-box;
+    color: var(--text-light);
+    background: rgba(255, 255, 255, 0.025);
+    font: 600 12px var(--font-mono);
+    outline: none;
+}
+
+.estimation-actions input:focus { border-color: var(--color-primary); }
+.estimation-input-prefix { position: relative; }
+
+.estimation-input-prefix b {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    z-index: 1;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+    font: 600 11px var(--font-mono);
+}
+
+.estimation-input-prefix input { padding-left: 31px; }
+
+.estimation-summary {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+    margin-top: 18px;
+}
+
+.estimation-card {
+    position: relative;
+    min-height: 118px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 8px;
+    border: 1px solid var(--border-color);
+    border-radius: 7px;
+    background: rgba(255, 255, 255, 0.025);
+    overflow: hidden;
+}
+
+.estimation-card::before {
+    content: "";
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 2px;
+    background: var(--border-color);
+}
+
+.estimation-card.manual::before { background: #f59e0b; }
+.estimation-card.ai::before,
+.estimation-card.saving::before { background: var(--color-primary); }
+.estimation-card.ai { background: rgba(16, 185, 129, 0.055); }
+
+.estimation-card span {
+    color: var(--text-muted);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.estimation-card strong {
+    color: var(--text-light);
+    font-size: 25px;
+    line-height: 1.1;
+}
+
+.estimation-card small { color: var(--text-dark); line-height: 1.35; }
+
+.estimation-table-panel {
+    margin-top: 14px;
+    border: 1px solid var(--border-color);
+    border-radius: 7px;
+    background: rgba(255, 255, 255, 0.018);
+    overflow: hidden;
+}
+
+.estimation-table-header {
+    padding: 17px 18px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.estimation-table-header h4 { margin: 0; font-size: 14px; }
+.estimation-table-header p { font-size: 12px; }
+
+.estimation-mode-filter {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background: rgba(0, 0, 0, 0.14);
+}
+
+.estimation-mode-filter button {
+    height: 32px;
+    padding: 0 12px;
+    border: 0;
+    border-radius: 4px;
+    color: var(--text-muted);
+    background: transparent;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.estimation-mode-filter button:hover,
+.estimation-mode-filter button.active {
+    color: var(--text-light);
+    background: rgba(255, 255, 255, 0.075);
+}
+
+.estimation-warning {
+    margin: 12px 18px 0;
+    padding: 11px 13px;
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    border: 1px solid rgba(245, 158, 11, 0.3);
+    border-radius: 6px;
+    color: #fbbf24;
+    background: rgba(245, 158, 11, 0.07);
+    font-size: 12px;
+    line-height: 1.45;
+}
+
+.estimation-warning[hidden] { display: none; }
+.estimation-table-scroll { max-height: calc(100vh - 390px); overflow: auto; }
+
+.estimation-table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+}
+
+.estimation-table th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    padding: 11px 14px;
+    border-bottom: 1px solid var(--border-color);
+    color: var(--text-muted);
+    background: var(--bg-dark);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-align: left;
+    text-transform: uppercase;
+}
+
+.estimation-table th:first-child { width: 46%; }
+.estimation-table th:nth-child(2) { width: 10%; }
+.estimation-table th:nth-child(3),
+.estimation-table th:nth-child(4),
+.estimation-table th:nth-child(5) { width: 9%; }
+.estimation-table th:last-child { width: 10%; }
+
+.estimation-table td {
+    padding: 13px 14px;
+    border-bottom: 1px solid var(--border-color);
+    color: var(--text-muted);
+    font-size: 12px;
+    vertical-align: middle;
+}
+
+.estimation-table tbody tr:last-child td { border-bottom: 0; }
+.estimation-table tbody tr:hover td { background: rgba(255, 255, 255, 0.018); }
+.estimation-task-cell strong,
+.estimation-task-cell span,
+.estimation-task-cell small { display: block; }
+
+.estimation-task-cell strong {
+    color: var(--color-primary);
+    font: 600 10px var(--font-mono);
+}
+
+.estimation-task-cell span {
+    margin-top: 4px;
+    color: var(--text-light);
+    font-weight: 700;
+}
+
+.estimation-task-cell small {
+    margin-top: 4px;
+    overflow: hidden;
+    color: var(--text-dark);
+    line-height: 1.35;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.estimation-col-manual > strong,
+.estimation-col-ai > strong,
+.estimation-col-saving > strong {
+    color: var(--text-light);
+    font: 700 12px var(--font-mono);
+}
+
+.estimation-col-saving small {
+    display: block;
+    margin-top: 3px;
+    color: var(--color-primary);
+}
+
+.estimation-complexity,
+.estimation-source {
+    display: inline-flex;
+    padding: 4px 7px;
+    border-radius: 999px;
+    border: 1px solid var(--border-color);
+    color: var(--text-muted);
+    font-size: 10px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.estimation-complexity.high { color: #f87171; border-color: rgba(239, 68, 68, 0.3); }
+.estimation-complexity.medium { color: #fbbf24; border-color: rgba(245, 158, 11, 0.3); }
+.estimation-complexity.low,
+.estimation-source.ai { color: #34d399; border-color: rgba(16, 185, 129, 0.3); }
+
+.estimation-table[data-mode="ai"] .estimation-col-manual,
+.estimation-table[data-mode="ai"] .estimation-col-saving,
+.estimation-table[data-mode="manual"] .estimation-col-ai,
+.estimation-table[data-mode="manual"] .estimation-col-saving { display: none; }
+
+.estimation-empty {
+    min-height: 180px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 10px;
+    color: var(--text-muted);
+}
+
+.estimation-empty svg { width: 28px; height: 28px; opacity: 0.55; }
+
+html[data-theme="light"] .estimation-actions input,
+html[data-theme="light"] .estimation-card,
+html[data-theme="light"] .estimation-table-panel {
+    background: rgba(15, 23, 42, 0.025);
+}
+
+@media (max-width: 1180px) {
+    .estimation-header,
+    .estimation-table-header { align-items: stretch; flex-direction: column; }
+    .estimation-actions { flex-wrap: wrap; }
+    .estimation-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 720px) {
+    .estimation-page { padding: 14px; }
+    .estimation-summary { grid-template-columns: 1fr; }
+    .estimation-actions > label,
+    .estimation-actions input,
+    .estimation-actions .btn { width: 100%; }
+    .estimation-mode-filter { overflow-x: auto; }
+    .estimation-table { min-width: 900px; }
+}

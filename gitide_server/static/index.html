@@ -17,7 +17,7 @@
     <link rel="stylesheet" href="/static/workspace-switcher-refactor.css?v=2">
     <link rel="stylesheet" href="/static/workspace-native-fallback.css?v=1">
     <link rel="stylesheet" href="/static/settings-tabs.css?v=1">
-    <link rel="stylesheet" href="/static/rebrand.css?v=68">
+    <link rel="stylesheet" href="/static/rebrand.css?v=69">
     <script src="/static/lucide-bootstrap.js"></script>
     <script defer src="/static/ui/workspace-switcher.js?v=3"></script>
     <script defer src="/static/settings-tabs.js?v=6"></script>
@@ -145,6 +145,9 @@
                         </button>
                         <button class="nav-item" data-tab="tab-engineering-metrics" title="Engineering Metrics">
                             <i data-lucide="chart-line"></i> <span class="nav-label">Metrics</span>
+                        </button>
+                        <button class="nav-item" data-tab="tab-estimation" title="Estimativas do Projeto">
+                            <i data-lucide="calculator"></i> <span class="nav-label">Estimativas</span>
                         </button>
                         <button class="nav-item" data-tab="tab-logs" title="Histórico & Rollbacks">
                             <i data-lucide="history"></i> <span class="nav-label">Histórico</span>
@@ -1265,6 +1268,85 @@ REGRA INQUEBRÁVEL: antes de executar qualquer task, valide REQ, DRI e Task List
                     </div>
                 </div>
 
+                <!-- TAB: PROJECT ESTIMATION -->
+                <div id="tab-estimation" class="tab-pane">
+                    <div class="estimation-page">
+                        <header class="estimation-header">
+                            <div>
+                                <span class="qa-kicker">Engineering Intelligence</span>
+                                <h3><i data-lucide="calculator"></i> Estimativa do Projeto</h3>
+                                <p>Esforço, prazo e custo calculados a partir dos REQs, RFs, Task List e Task Details do projeto.</p>
+                            </div>
+                            <div class="estimation-actions">
+                                <label>
+                                    <span>Valor/hora</span>
+                                    <div class="estimation-input-prefix"><b>R$</b><input type="number" id="estimation-hourly-rate" min="1" step="1" value="150"></div>
+                                </label>
+                                <label>
+                                    <span>Horas/dia</span>
+                                    <input type="number" id="estimation-daily-hours" min="1" max="24" step="1" value="8">
+                                </label>
+                                <button class="btn btn-primary" id="btn-estimation-generate" type="button"><i data-lucide="sparkles"></i> Gerar estimativa</button>
+                            </div>
+                        </header>
+
+                        <section class="estimation-summary" aria-label="Resumo da estimativa">
+                            <article class="estimation-card neutral">
+                                <span>Tarefas analisadas</span>
+                                <strong id="estimation-task-count">-</strong>
+                                <small id="estimation-updated-at">Aguardando primeira análise</small>
+                            </article>
+                            <article class="estimation-card manual">
+                                <span>Sem IA</span>
+                                <strong id="estimation-manual-hours">-</strong>
+                                <small id="estimation-manual-context">Horas, dias e custo</small>
+                            </article>
+                            <article class="estimation-card ai">
+                                <span>Com IA</span>
+                                <strong id="estimation-ai-hours">-</strong>
+                                <small id="estimation-ai-context">Horas, dias e custo</small>
+                            </article>
+                            <article class="estimation-card saving">
+                                <span>Ganho estimado</span>
+                                <strong id="estimation-saving-percent">-</strong>
+                                <small id="estimation-saving-context">Economia de esforço e custo</small>
+                            </article>
+                        </section>
+
+                        <section class="estimation-table-panel">
+                            <div class="estimation-table-header">
+                                <div>
+                                    <h4>Estimativa por tarefa</h4>
+                                    <p>Compare o esforço previsto para a mesma entrega nos dois modos de execução.</p>
+                                </div>
+                                <div class="estimation-mode-filter" role="group" aria-label="Filtrar cenário da estimativa">
+                                    <button class="active" type="button" data-estimation-mode="comparison">Comparativo</button>
+                                    <button type="button" data-estimation-mode="ai">Com IA</button>
+                                    <button type="button" data-estimation-mode="manual">Sem IA</button>
+                                </div>
+                            </div>
+                            <div class="estimation-warning" id="estimation-warning" hidden></div>
+                            <div class="estimation-table-scroll">
+                                <table class="estimation-table" id="estimation-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Tarefa</th>
+                                            <th>Complexidade</th>
+                                            <th class="estimation-col-manual">Sem IA</th>
+                                            <th class="estimation-col-ai">Com IA</th>
+                                            <th class="estimation-col-saving">Economia</th>
+                                            <th>Fonte</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="estimation-table-body">
+                                        <tr><td colspan="6"><div class="estimation-empty"><i data-lucide="calculator"></i><span>Gere a primeira estimativa para visualizar o painel.</span></div></td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </section>
+                    </div>
+                </div>
+
                 <!-- TAB: AGENT -->
                 <div id="tab-agent" class="tab-pane">
                     <div class="agent-layout" style="display: flex; gap: 20px; height: 100%; min-height: 0;">
@@ -1456,9 +1538,6 @@ REGRA INQUEBRÁVEL: antes de executar qualquer task, valide REQ, DRI e Task List
                                 </button>
                                 <button class="harness-top-tab" data-harness-panel="harness-tasks-panel">
                                     <i data-lucide="list-checks"></i> Task List
-                                </button>
-                                <button class="harness-top-tab" data-harness-panel="harness-pricing-panel">
-                                    <i data-lucide="calculator"></i> Estimativa
                                 </button>
                             </div>
                         </div>
@@ -1781,43 +1860,6 @@ REGRA INQUEBRÁVEL: antes de executar qualquer task, valide REQ, DRI e Task List
                                                 <p>Abra esta aba para carregar as tarefas do projeto.</p>
                                             </div>
                                         </div>
-                                    </div>
-                                </div>
-                            </section>
-                        </div>
-                        
-                        <div id="harness-pricing-panel" class="harness-panel">
-                            <section class="sdd-workspace card harness-pricing-card">
-                                <div class="sdd-workspace-header">
-                                    <div class="sdd-active-spec-info">
-                                        <h4>Estimativa / Precificação Global</h4>
-                                        <span class="badge">Análise de esforço e custos do projeto</span>
-                                    </div>
-                                </div>
-                                <div class="sdd-workspace-body">
-                                    <div class="sdd-execute-grid" style="height: 100%;">
-                                        <section class="sdd-stage-main" style="display: flex; flex-direction: column;">
-                                            <div id="sdd-pricing-result-panel" style="flex: 1; display: flex; flex-direction: column; overflow: hidden; background: var(--bg-dark);">
-                                                <div id="sdd-pricing-markdown-container" class="markdown-body sdd-preview-content" style="padding: 16px; overflow-y: auto; flex: 1;">
-                                                    <div class="specs-empty-state"><span>Clique em "Gerar Estimativa" na barra lateral para analisar o projeto.</span></div>
-                                                </div>
-                                            </div>
-                                        </section>
-                                        <aside class="sdd-stage-aside">
-                                            <h5><i data-lucide="calculator"></i> Configuração</h5>
-                                            <p>Ajuste as métricas para o cálculo de custo e prazo. Esses valores são salvos no projeto.</p>
-                                            
-                                            <div class="form-group" style="margin-top: 16px;">
-                                                <label for="sdd-pricing-hourly-rate">Valor da Hora (R$):</label>
-                                                <input type="number" id="sdd-pricing-hourly-rate" class="text-input" placeholder="Ex: 150" value="150" step="1" min="1">
-                                            </div>
-                                            <div class="form-group">
-                                                <label for="sdd-pricing-daily-hours">Horas diárias dedicadas:</label>
-                                                <input type="number" id="sdd-pricing-daily-hours" class="text-input" placeholder="Ex: 8" value="8" step="1" min="1" max="24">
-                                            </div>
-                                            <hr style="border-top: 1px solid var(--flat-border); margin: 16px 0;">
-                                            <button class="btn btn-primary" id="btn-sdd-generate-pricing" style="width: 100%; justify-content: center;"><i data-lucide="zap"></i> Gerar Estimativa</button>
-                                        </aside>
                                     </div>
                                 </div>
                             </section>
@@ -2616,7 +2658,7 @@ REGRA INQUEBRÁVEL: antes de executar qualquer task, valide REQ, DRI e Task List
     </aside>
 
     <!-- Custom JavaScript -->
-    <script src="/static/app.js?v=88"></script>
+    <script src="/static/app.js?v=89"></script>
     <script src="/static/theme-toggle.js?v=1"></script>
 </body>
 </html>

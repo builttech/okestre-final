@@ -677,7 +677,11 @@ def sync_project_system_files(project_path: str) -> list[str]:
         estimativa_path = os.path.join(project_path, ".documents", "estimativa.md")
         if not os.path.exists(estimativa_path):
             with builtins.open(estimativa_path, "w", encoding="utf-8") as f:
-                f.write("# Estimativa Global\n\nClique em 'Gerar Estimativa' no painel Harness para analisar o projeto.")
+                f.write(
+                    "# Estimativa Global do Projeto\n\n"
+                    "Acesse **Estimativas** no menu principal e selecione **Gerar estimativa** "
+                    "para analisar REQs, RFs, Task List e Task Details."
+                )
 
         template_map = {
             "REQ-01-template.md": req_md,
@@ -4848,6 +4852,19 @@ def list_sdd_specs(project: Project = Depends(get_project_or_404)):
             pass
         return fallback
 
+    def classify_spec(rel_path: str, title: str, filename: str) -> str:
+        identity = f"{rel_path} {title} {filename}".replace("\\", "/")
+        basename = os.path.splitext(os.path.basename(filename))[0]
+        if (
+            "functional-requirements" in identity.lower()
+            or re.search(r"\bRF-\d{2,6}(?:-\d{1,4})?\b", identity, flags=re.IGNORECASE)
+            or re.match(r"^\s*RF[-_\[]", basename, flags=re.IGNORECASE)
+        ):
+            return "rf"
+        if re.search(r"\bREQ-\d{2,6}\b", identity, flags=re.IGNORECASE):
+            return "req"
+        return "other"
+
     def append_markdown_specs(directory: str, storage_type: str, filepath_prefix: str):
         if not os.path.exists(directory):
             return
@@ -4864,10 +4881,12 @@ def list_sdd_specs(project: Project = Depends(get_project_or_404)):
                 
                 stat = os.stat(filepath)
                 title = extract_markdown_title(filepath, filename)
+                kind = classify_spec(rel_path, title, filename)
                 specs.append({
                     "id": os.path.splitext(filename)[0],
                     "filename": rel_path,
                     "title": title,
+                    "kind": kind,
                     "size_bytes": stat.st_size,
                     "modified_at": datetime.fromtimestamp(stat.st_mtime).isoformat(),
                     "storage_type": storage_type,
@@ -4985,16 +5004,22 @@ def save_sdd_spec(
 
     legacy_specs_dir = os.path.join(_sdd_documents_dir(project), "specs")
     
+    basename = filename.split("/")[-1]
+
     # Se for um RF, salva em functional-requirements, senão em requirements
-    if filename.startswith("RF-") or "functional-requirements" in filename:
+    if (
+        "functional-requirements" in filename
+        or re.search(r"\bRF-\d{2,6}(?:-\d{1,4})?\b", filename, flags=re.IGNORECASE)
+        or re.match(r"^\s*RF[-_\[]", os.path.splitext(basename)[0], flags=re.IGNORECASE)
+    ):
         spec_dir = os.path.join(_sdd_documents_dir(project), "functional-requirements")
         # Remove a pasta do nome do arquivo se o frontend enviar para não aninhar
         if "/" in filename:
-            filename = filename.split("/")[-1]
+            filename = basename
     else:
         spec_dir = os.path.join(_sdd_documents_dir(project), "requirements")
         if "/" in filename:
-            filename = filename.split("/")[-1]
+            filename = basename
             
     os.makedirs(spec_dir, exist_ok=True)
     spec_path = os.path.join(spec_dir, filename)
@@ -6289,103 +6314,340 @@ class PricingConfigIn(BaseModel):
     hourly_rate: float
     daily_hours: int
 
+
+PRICING_DEFAULT_CONFIG = {"hourly_rate": 150.0, "daily_hours": 8}
+PRICING_TASK_PATTERN = re.compile(
+    r"^\s*-\s*\[([ xX])\]\s*(TASK-[A-Z0-9-]+)\s*:\s*-?\s*(.+?)\s*$",
+    re.MULTILINE,
+)
+
+
+def _pricing_config_path(project: Project) -> str:
+    return os.path.join(project.path, ".documents", "pricing_config.json")
+
+
+def _pricing_report_paths(project: Project) -> tuple:
+    documents_dir = os.path.join(project.path, ".documents")
+    return (
+        os.path.join(documents_dir, "estimativa.json"),
+        os.path.join(documents_dir, "estimativa.md"),
+    )
+
+
+def _load_pricing_config(project: Project) -> dict:
+    config = dict(PRICING_DEFAULT_CONFIG)
+    path = _pricing_config_path(project)
+    if os.path.exists(path):
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                saved = json.load(f)
+            config["hourly_rate"] = max(0.01, float(saved.get("hourly_rate", config["hourly_rate"])))
+            config["daily_hours"] = max(1, min(24, int(saved.get("daily_hours", config["daily_hours"]))))
+        except (OSError, ValueError, TypeError, json.JSONDecodeError):
+            pass
+    return config
+
+
+def _read_project_markdown(path: str, limit: int = 120000) -> str:
+    if not os.path.exists(path):
+        return ""
+    with open(path, "r", encoding="utf-8", errors="replace") as f:
+        return f.read(limit)
+
+
+def _pricing_task_details(details_content: str) -> dict:
+    headings = list(re.finditer(
+        r"^##\s+(?:Plano\s*[—-]\s*)?(TASK-[A-Z0-9-]+).*?$",
+        details_content or "",
+        flags=re.MULTILINE | re.IGNORECASE,
+    ))
+    details = {}
+    for index, match in enumerate(headings):
+        start = match.start()
+        end = headings[index + 1].start() if index + 1 < len(headings) else len(details_content)
+        details[match.group(1).upper()] = details_content[start:end].strip()[:5000]
+    return details
+
+
+def _collect_pricing_context(project: Project) -> tuple:
+    task_path = os.path.join(project.path, ".documents", "task", "task.md")
+    details_path = os.path.join(project.path, ".documents", "task", "task.details.md")
+    task_content = _read_project_markdown(task_path)
+    details_content = _read_project_markdown(details_path)
+    details_by_task = _pricing_task_details(details_content)
+
+    tasks = []
+    for match in PRICING_TASK_PATTERN.finditer(task_content):
+        task_id = match.group(2).upper()
+        tasks.append({
+            "id": task_id,
+            "title": match.group(3).strip().rstrip("."),
+            "completed": match.group(1).lower() == "x",
+            "details": details_by_task.get(task_id, ""),
+        })
+
+    reference_parts = []
+    reference_dirs = [
+        ("REQ", os.path.join(project.path, ".documents", "spec")),
+        ("RF", os.path.join(project.path, ".documents", "functional-requirements")),
+    ]
+    for label, directory in reference_dirs:
+        if not os.path.isdir(directory):
+            continue
+        for filename in sorted(os.listdir(directory)):
+            if not filename.lower().endswith(".md"):
+                continue
+            content = _read_project_markdown(os.path.join(directory, filename), limit=3500)
+            reference_parts.append(f"=== {label}: {filename} ===\n{content}")
+
+    reference_context = "\n\n".join(reference_parts)
+    return tasks, reference_context[:30000]
+
+
+def _fallback_task_estimate(task: dict) -> dict:
+    searchable = f"{task.get('title', '')}\n{task.get('details', '')}".lower()
+    complexity = "medium"
+    manual_hours = 8.0
+    if any(token in searchable for token in ["arquitetura", "migra", "autentica", "infra", "deploy", "integra", "banco", "seguran"]):
+        complexity, manual_hours = "high", 16.0
+    elif any(token in searchable for token in ["teste", "validar", "document", "ajuste visual", "layout", "copy", "texto"]):
+        complexity, manual_hours = "low", 4.0
+    if len(task.get("details") or "") > 1800:
+        manual_hours += 4.0
+        complexity = "high" if manual_hours >= 16 else complexity
+    ai_factor = 0.58 if complexity == "high" else 0.52 if complexity == "medium" else 0.62
+    return {
+        "id": task["id"],
+        "title": task["title"],
+        "complexity": complexity,
+        "manual_hours": round(manual_hours, 1),
+        "ai_hours": round(max(1.0, manual_hours * ai_factor), 1),
+        "rationale": "Estimativa técnica de contingência baseada no escopo e no detalhamento da tarefa.",
+        "source": "fallback",
+    }
+
+
+def _normalize_pricing_estimate(task: dict, candidate: Optional[dict]) -> dict:
+    fallback = _fallback_task_estimate(task)
+    if not isinstance(candidate, dict):
+        return fallback
+    try:
+        manual_hours = max(0.5, float(candidate.get("manual_hours")))
+        ai_hours = max(0.5, min(manual_hours, float(candidate.get("ai_hours"))))
+    except (TypeError, ValueError):
+        return fallback
+    complexity = str(candidate.get("complexity") or "medium").lower()
+    if complexity not in {"low", "medium", "high"}:
+        complexity = "medium"
+    return {
+        "id": task["id"],
+        "title": task["title"],
+        "complexity": complexity,
+        "manual_hours": round(manual_hours, 1),
+        "ai_hours": round(ai_hours, 1),
+        "rationale": str(candidate.get("rationale") or "Estimativa calculada pela IA a partir da tarefa e de seu plano técnico.").strip()[:500],
+        "source": "ai",
+    }
+
+
+def _pricing_totals(tasks: list, config: dict) -> dict:
+    manual_hours = round(sum(float(task["manual_hours"]) for task in tasks), 1)
+    ai_hours = round(sum(float(task["ai_hours"]) for task in tasks), 1)
+    daily_hours = max(1, int(config["daily_hours"]))
+    hourly_rate = float(config["hourly_rate"])
+    saved_hours = round(max(0, manual_hours - ai_hours), 1)
+    return {
+        "task_count": len(tasks),
+        "manual_hours": manual_hours,
+        "ai_hours": ai_hours,
+        "manual_days": round(manual_hours / daily_hours, 1),
+        "ai_days": round(ai_hours / daily_hours, 1),
+        "manual_cost": round(manual_hours * hourly_rate, 2),
+        "ai_cost": round(ai_hours * hourly_rate, 2),
+        "saved_hours": saved_hours,
+        "saved_cost": round(saved_hours * hourly_rate, 2),
+        "saving_percent": round((saved_hours / manual_hours * 100) if manual_hours else 0, 1),
+    }
+
+
+def _pricing_markdown(report: dict) -> str:
+    totals = report["totals"]
+    config = report["config"]
+    lines = [
+        "# Estimativa Global do Projeto",
+        "",
+        f"> Gerada em {report['generated_at']} com {totals['task_count']} tarefa(s), valor-hora de R$ {config['hourly_rate']:.2f} e {config['daily_hours']} hora(s) por dia.",
+        "",
+        "## Resumo Executivo",
+        "",
+        "| Cenário | Horas | Dias | Custo |",
+        "| --- | ---: | ---: | ---: |",
+        f"| Sem IA | {totals['manual_hours']:.1f}h | {totals['manual_days']:.1f} | R$ {totals['manual_cost']:.2f} |",
+        f"| Com IA | {totals['ai_hours']:.1f}h | {totals['ai_days']:.1f} | R$ {totals['ai_cost']:.2f} |",
+        f"| Economia estimada | {totals['saved_hours']:.1f}h | - | R$ {totals['saved_cost']:.2f} ({totals['saving_percent']:.1f}%) |",
+        "",
+        "## Estimativa por Tarefa",
+        "",
+        "| Tarefa | Título | Complexidade | Sem IA | Com IA | Economia |",
+        "| --- | --- | --- | ---: | ---: | ---: |",
+    ]
+    for task in report["tasks"]:
+        saving = max(0, float(task["manual_hours"]) - float(task["ai_hours"]))
+        title = str(task["title"]).replace("|", "\\|")
+        lines.append(
+            f"| {task['id']} | {title} | {task['complexity']} | {task['manual_hours']:.1f}h | {task['ai_hours']:.1f}h | {saving:.1f}h |"
+        )
+    lines.extend([
+        "",
+        "## Premissas",
+        "",
+        "- A estimativa considera o conteúdo atual de REQs, RFs, Task List e Task Details.",
+        "- O cenário com IA pressupõe uso contínuo do Act IA para análise, implementação, testes e documentação.",
+        "- Horas e custos devem ser revisados quando o escopo documental mudar.",
+    ])
+    if report.get("warning"):
+        lines.extend(["", f"> Atenção: {report['warning']}"])
+    return "\n".join(lines) + "\n"
+
 @app.get("/api/projects/{project_id}/pricing/config", tags=["Pricing"])
 def get_pricing_config(project: Project = Depends(get_project_or_404)):
-    config_path = os.path.join(project.path, ".documents", "pricing_config.json")
-    if os.path.exists(config_path):
-        import json
-        with open(config_path, "r", encoding="utf-8") as f:
-            return json.load(f)
-    return {"hourly_rate": 150, "daily_hours": 8}
+    return _load_pricing_config(project)
 
 @app.post("/api/projects/{project_id}/pricing/config", tags=["Pricing"])
 def save_pricing_config(config: PricingConfigIn, project: Project = Depends(get_project_or_404)):
-    config_path = os.path.join(project.path, ".documents", "pricing_config.json")
+    if config.hourly_rate <= 0 or config.daily_hours < 1 or config.daily_hours > 24:
+        raise HTTPException(status_code=400, detail="Informe valor-hora positivo e jornada entre 1 e 24 horas.")
+    config_path = _pricing_config_path(project)
     os.makedirs(os.path.dirname(config_path), exist_ok=True)
-    import json
     with open(config_path, "w", encoding="utf-8") as f:
-        json.dump(config.dict(), f, ensure_ascii=False, indent=4)
+        json.dump(config.model_dump(), f, ensure_ascii=False, indent=2)
     return {"status": "success"}
 
 @app.get("/api/projects/{project_id}/pricing/report", tags=["Pricing"])
 def get_pricing_report(project: Project = Depends(get_project_or_404)):
-    pricing_md_path = os.path.join(project.path, ".documents", "estimativa.md")
-    if os.path.exists(pricing_md_path):
-        with open(pricing_md_path, "r", encoding="utf-8") as f:
-            return {"markdown": f.read()}
-    return {"markdown": ""}
+    report_json_path, report_md_path = _pricing_report_paths(project)
+    report = None
+    if os.path.exists(report_json_path):
+        try:
+            with open(report_json_path, "r", encoding="utf-8") as f:
+                report = json.load(f)
+        except (OSError, json.JSONDecodeError):
+            report = None
+    markdown = _read_project_markdown(report_md_path)
+    return {"status": "success", "report": report, "markdown": markdown}
 
 @app.post("/api/projects/{project_id}/pricing/generate", tags=["Pricing"])
 def generate_pricing_report(project: Project = Depends(get_project_or_404)):
-    config_path = os.path.join(project.path, ".documents", "pricing_config.json")
-    hourly_rate = 150
-    daily_hours = 8
-    if os.path.exists(config_path):
-        import json
-        with open(config_path, "r", encoding="utf-8") as f:
-            data = json.load(f)
-            hourly_rate = data.get("hourly_rate", 150)
-            daily_hours = data.get("daily_hours", 8)
-            
-    # Read task.md and task.details.md
-    task_md_path = os.path.join(project.path, ".documents", "task", "task.md")
-    task_details_md_path = os.path.join(project.path, ".documents", "task", "task.details.md")
-    
-    task_content = ""
-    if os.path.exists(task_md_path):
-        with open(task_md_path, "r", encoding="utf-8") as f:
-            task_content += "=== task.md ===\n" + f.read() + "\n\n"
-            
-    if os.path.exists(task_details_md_path):
-        with open(task_details_md_path, "r", encoding="utf-8") as f:
-            task_content += "=== task.details.md ===\n" + f.read() + "\n\n"
-            
-    # Read RFs if they exist
-    rf_dir = os.path.join(project.path, ".documents", "functional-requirements")
-    rf_content = ""
-    if os.path.exists(rf_dir):
-        import os
-        for file in os.listdir(rf_dir):
-            if file.endswith(".md"):
-                with open(os.path.join(rf_dir, file), "r", encoding="utf-8") as f:
-                    rf_content += f"=== {file} ===\n" + f.read() + "\n\n"
-                    
-    context = task_content + rf_content
-    
-    if not task_content.strip():
-        raise HTTPException(status_code=400, detail="task.md está vazio ou não existe. Gere as tarefas primeiro.")
-        
+    config = _load_pricing_config(project)
+    tasks, reference_context = _collect_pricing_context(project)
+    if not tasks:
+        raise HTTPException(
+            status_code=400,
+            detail="Nenhuma tarefa válida foi encontrada em .documents/task/task.md. Use o formato TASK-REQ-NNNN-001: Título.",
+        )
+
+    llm_config = agent.load_agent_config()
+    provider = llm_config.get("provider")
+    model = llm_config.get("model")
+    api_key = llm_config.get("api_key") or ""
+    can_use_ai = bool(provider and model and (provider == "ollama" or api_key))
+    estimates_by_id = {}
+    warnings = []
+    response_schema = {
+        "type": "object",
+        "properties": {
+            "tasks": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "id": {"type": "string"},
+                        "complexity": {"type": "string", "enum": ["low", "medium", "high"]},
+                        "manual_hours": {"type": "number"},
+                        "ai_hours": {"type": "number"},
+                        "rationale": {"type": "string"},
+                    },
+                    "required": ["id", "complexity", "manual_hours", "ai_hours", "rationale"],
+                },
+            }
+        },
+        "required": ["tasks"],
+    }
     system_prompt = (
-        f"Você é um Especialista em Estimativas e Engenheiro de Software Sênior.\n"
-        f"O usuário deseja uma estimativa de prazo e custo baseada nas tarefas e requisitos do projeto.\n\n"
-        f"Métricas a considerar:\n"
-        f"- Valor da Hora: R$ {hourly_rate}\n"
-        f"- Horas dedicadas por dia: {daily_hours} horas\n\n"
-        f"Analise o contexto fornecido (lista de tarefas e RFs) e crie um relatório Markdown estruturado com:\n"
-        f"1. Uma tabela detalhada que liste cada Tarefa encontrada, com duas colunas de estimativa de tempo (em horas): "
-        f"'Tempo Manual' (programação 100% manual) e 'Tempo com IA' (usando copilot/assistentes avançados).\n"
-        f"2. Um resumo em formato de Cards ou painel visual (usando markdown e tabelas) com os TOTAIS de:\n"
-        f"   - Total de Horas (Manual vs IA)\n"
-        f"   - Total de Dias (baseado em {daily_hours} horas/dia) (Manual vs IA)\n"
-        f"   - Valor Total do Projeto (baseado em R$ {hourly_rate}/hora) (Manual vs IA)\n"
-        f"Retorne APENAS o Markdown limpo da estimativa, sem cabeçalhos de bloco de código adicionais. Foco em UX visual via Markdown."
+        "Você é um Engenheiro de Software Sênior especialista em estimativas de projetos. "
+        "Estime cada tarefa individualmente a partir do título, Task Details, REQs e RFs. "
+        "manual_hours representa execução por engenharia sem assistência de IA. "
+        "ai_hours representa o mesmo escopo usando o Act IA em análise, código, testes e documentação. "
+        "Considere complexidade, integrações, testes, riscos, retrabalho e validação. "
+        "Não omita tarefas, não altere IDs e nunca retorne ai_hours maior que manual_hours. "
+        "Responda exclusivamente com JSON compatível com o schema fornecido."
     )
-    
-    try:
-        from gitide_server.agent import call_llm
-        result = call_llm([
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": f"Contexto do projeto:\n\n{context}"}
-        ], temperature=0.3)
-        
-        # Save the result
-        pricing_md_path = os.path.join(project.path, ".documents", "estimativa.md")
-        with open(pricing_md_path, "w", encoding="utf-8") as f:
-            f.write(result)
-            
-        return {"status": "success", "markdown": result}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    if can_use_ai:
+        for start in range(0, len(tasks), 20):
+            batch = tasks[start:start + 20]
+            batch_payload = [{
+                "id": item["id"],
+                "title": item["title"],
+                "details": item["details"][:3500],
+            } for item in batch]
+            user_prompt = (
+                f"Contexto resumido de REQs e RFs:\n{reference_context[:12000]}\n\n"
+                f"Tarefas deste lote:\n{json.dumps(batch_payload, ensure_ascii=False)}"
+            )
+            try:
+                raw = agent.call_llm(
+                    provider,
+                    model,
+                    api_key,
+                    [{"role": "user", "content": user_prompt}],
+                    system_prompt,
+                    ollama_base_url=llm_config.get("ollama_base_url", "http://127.0.0.1:11434"),
+                    ollama_options={
+                        "num_ctx": max(4096, int(llm_config.get("ollama_num_ctx") or 4096)),
+                        "num_predict": max(1200, int(llm_config.get("ollama_num_predict") or 1200)),
+                    },
+                    response_schema=response_schema,
+                )
+                parsed = agent.extract_json(raw)
+                for candidate in parsed.get("tasks") or []:
+                    candidate_id = str(candidate.get("id") or "").upper()
+                    if candidate_id:
+                        estimates_by_id[candidate_id] = candidate
+            except Exception as exc:
+                warnings.append(f"Lote {start // 20 + 1} estimado por contingência: {str(exc)[:160]}")
+    else:
+        warnings.append("IA não configurada; foi aplicada a estimativa técnica de contingência.")
+
+    normalized_tasks = []
+    for task in tasks:
+        estimate = _normalize_pricing_estimate(task, estimates_by_id.get(task["id"]))
+        estimate["completed"] = bool(task.get("completed"))
+        estimate["saved_hours"] = round(max(0, estimate["manual_hours"] - estimate["ai_hours"]), 1)
+        estimate["saving_percent"] = round(
+            (estimate["saved_hours"] / estimate["manual_hours"] * 100) if estimate["manual_hours"] else 0,
+            1,
+        )
+        normalized_tasks.append(estimate)
+
+    report = {
+        "version": 1,
+        "generated_at": datetime.utcnow().replace(microsecond=0).isoformat() + "Z",
+        "project_id": project.id,
+        "project_name": project.name,
+        "config": config,
+        "totals": _pricing_totals(normalized_tasks, config),
+        "tasks": normalized_tasks,
+        "warning": " ".join(warnings),
+    }
+    markdown = _pricing_markdown(report)
+    report_json_path, report_md_path = _pricing_report_paths(project)
+    os.makedirs(os.path.dirname(report_json_path), exist_ok=True)
+    with open(report_json_path, "w", encoding="utf-8") as f:
+        json.dump(report, f, ensure_ascii=False, indent=2)
+    with open(report_md_path, "w", encoding="utf-8") as f:
+        f.write(markdown)
+
+    return {"status": "success", "report": report, "markdown": markdown}
 
 @app.get("/", response_class=HTMLResponse, tags=["Dashboard UI"])
 def get_dashboard():

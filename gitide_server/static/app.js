@@ -47,7 +47,11 @@ const state = {
     qaView: 'list',
 
     // Engineering Metrics
-    engineeringMetrics: null
+    engineeringMetrics: null,
+
+    // Project Estimation
+    estimationReport: null,
+    estimationMode: 'comparison'
 };
 
 const uiCanvasState = {
@@ -463,6 +467,8 @@ function switchTab(tabId) {
         } else if (tabId === 'tab-engineering-metrics') {
             loadEngineeringMetrics();
             loadEngineeringReports();
+        } else if (tabId === 'tab-estimation') {
+            loadEstimationPage();
         } else if (tabId === 'tab-agent') {
             loadAgentConfig();
         } else if (tabId === 'tab-database') {
@@ -5233,6 +5239,16 @@ function setupEventListeners() {
     document.getElementById('btn-qa-export-xlsx')?.addEventListener('click', () => exportQaAnnotations('xlsx'));
     document.getElementById('btn-engineering-metrics-refresh')?.addEventListener('click', loadEngineeringMetrics);
     document.getElementById('engineering-metrics-period')?.addEventListener('change', loadEngineeringMetrics);
+    document.getElementById('btn-estimation-generate')?.addEventListener('click', generateProjectEstimation);
+    document.getElementById('estimation-hourly-rate')?.addEventListener('change', () => saveEstimationConfig().catch(error => {
+        gitideNotify({ title: 'Configuração da estimativa', message: error.message, variant: 'danger' });
+    }));
+    document.getElementById('estimation-daily-hours')?.addEventListener('change', () => saveEstimationConfig().catch(error => {
+        gitideNotify({ title: 'Configuração da estimativa', message: error.message, variant: 'danger' });
+    }));
+    document.querySelectorAll('[data-estimation-mode]').forEach(btn => {
+        btn.addEventListener('click', () => applyEstimationMode(btn.dataset.estimationMode));
+    });
     document.querySelectorAll('.engineering-tab').forEach(btn => {
         btn.addEventListener('click', () => setEngineeringPanel(btn.dataset.engineeringPanel));
     });
@@ -9359,11 +9375,10 @@ function sddSwitchHarnessPanel(panelId) {
     if (panelId === 'harness-charter-panel') {
         sddLoadCharter();
     } else if (panelId === 'harness-specs-panel') {
+        sddSwitchTab('sdd-tab-preview');
         sddLoadSpecs(true);
     } else if (panelId === 'harness-tasks-panel') {
         sddLoadProjectTasks();
-    } else if (panelId === 'harness-pricing-panel') {
-        sddLoadPricingTab();
     }
 }
 
@@ -9549,6 +9564,7 @@ async function sddLoadProjectDocuments() {
 
 function sddRenderSpecList(specs) {
     const list = document.getElementById('sdd-specs-list');
+    const activeListTab = sddGetVisibleHarnessTab();
     if (!specs || specs.length === 0) {
         if (!sddState.isDraft) {
             sddResetWorkspaceEmpty();
@@ -9563,7 +9579,12 @@ function sddRenderSpecList(specs) {
     }
 
     let html = '';
+    const isRequirementParent = (spec) => sddGetSpecKind(spec) === 'req';
+    const isFunctionalRequirement = (spec) => sddGetSpecKind(spec) === 'rf';
     const renderSpecItem = (spec, isChild = false) => {
+        const kind = sddGetSpecKind(spec);
+        if (activeListTab === 'sdd-tab-preview' && kind !== 'req') return '';
+        if (activeListTab !== 'sdd-tab-preview' && kind !== 'rf') return '';
         const icon = isChild ? 'file-code' : 'file-text';
         return `
         <div class="spec-item ${sddState.activeFilename === spec.filename ? 'active' : ''}" 
@@ -9576,9 +9597,9 @@ function sddRenderSpecList(specs) {
         </div>`;
     };
 
-    if (sddState.activeTab === 'sdd-tab-preview') {
+    if (activeListTab === 'sdd-tab-preview') {
         // Aba 1 REQ: Mostrar apenas REQs Pai
-        const reqs = specs.filter(s => !s.filename.includes('functional-requirements'));
+        const reqs = specs.filter(isRequirementParent);
         if (reqs.length === 0) {
             html = `<div class="specs-empty-state"><span>Nenhum REQ Pai encontrado.</span></div>`;
         } else {
@@ -9594,9 +9615,10 @@ function sddRenderSpecList(specs) {
             const reqNum = reqNumMatch ? reqNumMatch[1] : reqId;
             
             const rfs = specs.filter(s => {
-                if (!s.filename.includes('functional-requirements')) return false;
+                if (!isFunctionalRequirement(s)) return false;
                 // Se for a estrutura aninhada antiga, o caminho contém o REQ ID inteiro
-                if (s.filename.toLowerCase().includes(reqId.toLowerCase())) return true;
+                const filepath = String(s.filepath || s.filename || '');
+                if (filepath.toLowerCase().includes(reqId.toLowerCase())) return true;
                 // Na nova estrutura achatada, o arquivo chama RF-<ID>-<SUBID>
                 const fname = s.filename.split('/').pop().toUpperCase();
                 return fname.startsWith(`RF-${reqNum}-`);
@@ -9613,6 +9635,49 @@ function sddRenderSpecList(specs) {
 
     list.innerHTML = html;
     if (window.lucide) lucide.createIcons();
+}
+
+function sddGetVisibleHarnessTab() {
+    const activeButton = document.querySelector('#sdd-workspace-nav-tabs .sdd-nav-btn.active');
+    if (activeButton?.dataset?.sddTab) return activeButton.dataset.sddTab;
+
+    const activePanel = document.querySelector('.sdd-tab-content.active');
+    if (activePanel?.id) return activePanel.id;
+
+    return sddState.activeTab || 'sdd-tab-preview';
+}
+
+function sddGetSpecIdentity(specOrFilename) {
+    if (typeof specOrFilename === 'string') return specOrFilename;
+    if (!specOrFilename) return '';
+    return `${specOrFilename.filename || ''} ${specOrFilename.filepath || ''} ${specOrFilename.title || ''} ${specOrFilename.id || ''}`;
+}
+
+function sddGetSpecKind(specOrFilename) {
+    const identity = sddGetSpecIdentity(specOrFilename).replace(/\\/g, '/');
+    const basename = identity.split('/').pop() || identity;
+    if (/\bfunctional-requirements\b/i.test(identity) || /\bRF-\d{2,6}(?:-\d{1,4})?\b/i.test(identity) || /^\s*RF[-_\[]/i.test(basename)) {
+        return 'rf';
+    }
+    if (/\bREQ-\d{2,6}\b/i.test(identity)) {
+        return 'req';
+    }
+    if (specOrFilename && typeof specOrFilename === 'object' && specOrFilename.kind) {
+        const kind = String(specOrFilename.kind).toLowerCase();
+        if (kind === 'req' || kind === 'rf') return kind;
+    }
+    return 'other';
+}
+
+function sddIsFunctionalRequirementFile(filename) {
+    return sddGetSpecKind(filename) === 'rf';
+}
+
+function sddExtractParentRequirementIdFromRf(specOrFilename) {
+    const identity = sddGetSpecIdentity(specOrFilename);
+    const rfMatch = identity.match(/\bRF-(\d{2,6})(?:-\d{1,4})?\b/i);
+    if (rfMatch) return `REQ-${rfMatch[1]}`;
+    return sddExtractRequirementId(identity);
 }
 
 // --- Select / Load a Spec ---
@@ -9641,13 +9706,13 @@ async function sddSelectSpec(filename) {
         sddSetActiveSpecHeader({ filename, content: sddState.activeContent });
         sddPopulatePreview(sddState.activeContent);
 
-        // Extract activeReqId from the filename
-        const match = filename.match(/(REQ-\d+)/i);
-        if (match) {
-            sddState.activeReqId = match[1].toUpperCase();
+        const isRf = sddIsFunctionalRequirementFile(filename);
+        const reqId = isRf ? sddExtractParentRequirementIdFromRf(filename) : sddExtractRequirementId(filename);
+        if (reqId) {
+            sddState.activeReqId = reqId.toUpperCase();
         }
 
-        if (filename.includes('functional-requirements')) {
+        if (isRf) {
             // It's an RF
             document.getElementById('sdd-rf-editor').value = sddState.activeContent;
             document.getElementById('sdd-edit-filename').value = filename;
@@ -9699,7 +9764,7 @@ function sddSetActiveSpecHeader({ title, filename, content }) {
     }
     
     // Atualizar títulos dos editores (REQ e RF)
-    const isRf = filename && filename.includes('functional-requirements');
+    const isRf = filename && sddIsFunctionalRequirementFile(filename);
     if (isRf) {
         const rfTitle = document.getElementById('sdd-stage-rf-title');
         const rfSubtitle = document.getElementById('sdd-stage-rf-subtitle');
@@ -9841,7 +9906,7 @@ function sddPopulateStageEditors(content) {
     const rfsTab = document.getElementById('sdd-tab-rfs');
     
     const hasContent = Boolean(sddState.activeFilename || content);
-    const isRf = Boolean(sddState.activeFilename && sddState.activeFilename.includes('functional-requirements'));
+    const isRf = Boolean(sddState.activeFilename && sddIsFunctionalRequirementFile(sddState.activeFilename));
 
     if (empty) empty.style.display = hasContent ? 'none' : 'flex';
     if (previewTab) previewTab.classList.toggle('has-content', hasContent);
@@ -9869,8 +9934,20 @@ function sddPopulatePreview(content) {
 
 // --- Workspace Sub-tab Switching ---
 function sddSwitchTab(tabId) {
+    if (tabId === 'sdd-tab-preview' && sddState.activeFilename && sddIsFunctionalRequirementFile(sddState.activeFilename)) {
+        const parentId = sddExtractParentRequirementIdFromRf(sddState.activeFilename);
+        const parentReq = (sddState.specs || []).find(spec => {
+            if (sddGetSpecKind(spec) !== 'req') return false;
+            const identity = sddGetSpecIdentity(spec).toLowerCase();
+            return parentId && identity.includes(parentId.toLowerCase());
+        });
+        if (parentReq) {
+            setTimeout(() => sddSelectSpec(parentReq.filename), 0);
+        } else {
+            sddResetWorkspaceEmpty();
+        }
+    }
     sddState.activeTab = tabId;
-    if (tabId === "sdd-tab-pricing") sddLoadPricingTab();
     document.querySelectorAll('.sdd-tab-content').forEach(t => t.classList.remove('active'));
     document.querySelectorAll('.sdd-nav-btn').forEach(b => b.classList.remove('active'));
     const tab = document.getElementById(tabId);
@@ -11467,85 +11544,165 @@ function setupChatMentions() {
     });
 }
 
-// PRICING TAB LOGIC
-async function sddLoadPricingTab() {
-    if (!currentProjectId) return;
+// PROJECT ESTIMATION
+function estimationCurrency(value) {
+    return new Intl.NumberFormat('pt-BR', {
+        style: 'currency',
+        currency: 'BRL',
+        maximumFractionDigits: 2
+    }).format(Number(value) || 0);
+}
+
+function estimationHours(value) {
+    return `${Number(value || 0).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}h`;
+}
+
+function estimationComplexityLabel(value) {
+    return ({ low: 'Baixa', medium: 'Média', high: 'Alta' })[value] || 'Média';
+}
+
+function setEstimationText(id, value) {
+    const element = document.getElementById(id);
+    if (element) element.textContent = value;
+}
+
+function renderEstimationEmpty(message = 'Gere a primeira estimativa para visualizar o painel.') {
+    state.estimationReport = null;
+    setEstimationText('estimation-task-count', '-');
+    setEstimationText('estimation-updated-at', 'Aguardando primeira análise');
+    setEstimationText('estimation-manual-hours', '-');
+    setEstimationText('estimation-manual-context', 'Horas, dias e custo');
+    setEstimationText('estimation-ai-hours', '-');
+    setEstimationText('estimation-ai-context', 'Horas, dias e custo');
+    setEstimationText('estimation-saving-percent', '-');
+    setEstimationText('estimation-saving-context', 'Economia de esforço e custo');
+    const body = document.getElementById('estimation-table-body');
+    if (body) {
+        body.innerHTML = `<tr><td colspan="6"><div class="estimation-empty"><i data-lucide="calculator"></i><span>${escapeHtml(message)}</span></div></td></tr>`;
+    }
+    const warning = document.getElementById('estimation-warning');
+    if (warning) warning.hidden = true;
+    if (window.lucide) lucide.createIcons();
+}
+
+function renderEstimationReport(report) {
+    if (!report || !Array.isArray(report.tasks) || !report.totals) {
+        renderEstimationEmpty();
+        return;
+    }
+    state.estimationReport = report;
+    const totals = report.totals;
+    const generatedAt = report.generated_at ? new Date(report.generated_at).toLocaleString('pt-BR') : 'Data não informada';
+
+    setEstimationText('estimation-task-count', totals.task_count ?? report.tasks.length);
+    setEstimationText('estimation-updated-at', `Atualizado em ${generatedAt}`);
+    setEstimationText('estimation-manual-hours', estimationHours(totals.manual_hours));
+    setEstimationText('estimation-manual-context', `${Number(totals.manual_days || 0).toLocaleString('pt-BR')} dias · ${estimationCurrency(totals.manual_cost)}`);
+    setEstimationText('estimation-ai-hours', estimationHours(totals.ai_hours));
+    setEstimationText('estimation-ai-context', `${Number(totals.ai_days || 0).toLocaleString('pt-BR')} dias · ${estimationCurrency(totals.ai_cost)}`);
+    setEstimationText('estimation-saving-percent', `${Number(totals.saving_percent || 0).toLocaleString('pt-BR')}%`);
+    setEstimationText('estimation-saving-context', `${estimationHours(totals.saved_hours)} · ${estimationCurrency(totals.saved_cost)}`);
+
+    const warning = document.getElementById('estimation-warning');
+    if (warning) {
+        warning.hidden = !report.warning;
+        warning.innerHTML = report.warning ? `<i data-lucide="triangle-alert"></i><span>${escapeHtml(report.warning)}</span>` : '';
+    }
+
+    const body = document.getElementById('estimation-table-body');
+    if (body) {
+        body.innerHTML = report.tasks.map((task) => `
+            <tr>
+                <td class="estimation-task-cell">
+                    <strong>${escapeHtml(task.id || '')}</strong>
+                    <span>${escapeHtml(task.title || '')}</span>
+                    <small>${escapeHtml(task.rationale || '')}</small>
+                </td>
+                <td><span class="estimation-complexity ${escapeHtml(task.complexity || 'medium')}">${estimationComplexityLabel(task.complexity)}</span></td>
+                <td class="estimation-col-manual"><strong>${estimationHours(task.manual_hours)}</strong></td>
+                <td class="estimation-col-ai"><strong>${estimationHours(task.ai_hours)}</strong></td>
+                <td class="estimation-col-saving"><strong>${estimationHours(task.saved_hours)}</strong><small>${Number(task.saving_percent || 0).toLocaleString('pt-BR')}%</small></td>
+                <td><span class="estimation-source ${task.source === 'ai' ? 'ai' : 'fallback'}">${task.source === 'ai' ? 'IA' : 'Base técnica'}</span></td>
+            </tr>
+        `).join('');
+    }
+    applyEstimationMode(state.estimationMode);
+    if (window.lucide) lucide.createIcons();
+}
+
+function applyEstimationMode(mode) {
+    state.estimationMode = ['ai', 'manual'].includes(mode) ? mode : 'comparison';
+    const table = document.getElementById('estimation-table');
+    if (table) table.dataset.mode = state.estimationMode;
+    document.querySelectorAll('[data-estimation-mode]').forEach(button => {
+        button.classList.toggle('active', button.dataset.estimationMode === state.estimationMode);
+    });
+}
+
+async function saveEstimationConfig() {
+    if (!state.activeProjectId) return;
+    const hourlyRate = Math.max(1, Number(document.getElementById('estimation-hourly-rate')?.value) || 150);
+    const dailyHours = Math.max(1, Math.min(24, Number(document.getElementById('estimation-daily-hours')?.value) || 8));
+    const response = await fetch(`/api/projects/${state.activeProjectId}/pricing/config`, {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify({ hourly_rate: hourlyRate, daily_hours: dailyHours })
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.detail || 'Não foi possível salvar a configuração.');
+}
+
+async function loadEstimationPage() {
+    if (!state.activeProjectId) return;
     try {
-        const configRes = await fetch(`/api/projects/${currentProjectId}/pricing/config`);
-        if (configRes.ok) {
-            const config = await configRes.json();
-            document.getElementById('sdd-pricing-hourly-rate').value = config.hourly_rate || 150;
-            document.getElementById('sdd-pricing-daily-hours').value = config.daily_hours || 8;
-        }
-        
-        const reportRes = await fetch(`/api/projects/${currentProjectId}/pricing/report`);
-        if (reportRes.ok) {
-            const report = await reportRes.json();
-            if (report.markdown) {
-                const container = document.getElementById('sdd-pricing-markdown-container');
-                container.innerHTML = window.marked ? marked.parse(report.markdown) : report.markdown;
-            }
-        }
-    } catch (e) {
-        console.error('Error loading pricing tab', e);
+        const [configResponse, reportResponse] = await Promise.all([
+            fetch(`/api/projects/${state.activeProjectId}/pricing/config`, { headers: getHeaders() }),
+            fetch(`/api/projects/${state.activeProjectId}/pricing/report`, { headers: getHeaders() })
+        ]);
+        const config = await configResponse.json();
+        const reportPayload = await reportResponse.json();
+        if (!configResponse.ok) throw new Error(config.detail || 'Erro ao carregar configuração.');
+        if (!reportResponse.ok) throw new Error(reportPayload.detail || 'Erro ao carregar estimativa.');
+        const rateInput = document.getElementById('estimation-hourly-rate');
+        const hoursInput = document.getElementById('estimation-daily-hours');
+        if (rateInput) rateInput.value = config.hourly_rate || 150;
+        if (hoursInput) hoursInput.value = config.daily_hours || 8;
+        renderEstimationReport(reportPayload.report);
+    } catch (error) {
+        renderEstimationEmpty(error.message || String(error));
     }
 }
 
-async function sddSavePricingConfig() {
-    if (!currentProjectId) return;
-    const rate = parseFloat(document.getElementById('sdd-pricing-hourly-rate').value) || 150;
-    const hours = parseInt(document.getElementById('sdd-pricing-daily-hours').value) || 8;
+async function generateProjectEstimation() {
+    if (!state.activeProjectId) return;
+    const button = document.getElementById('btn-estimation-generate');
+    const original = button?.innerHTML || '';
     try {
-        await fetch(`/api/projects/${currentProjectId}/pricing/config`, {
+        if (button) {
+            button.disabled = true;
+            button.innerHTML = '<i data-lucide="loader-circle" class="spin"></i> Analisando projeto';
+        }
+        if (window.lucide) lucide.createIcons();
+        await saveEstimationConfig();
+        const response = await fetch(`/api/projects/${state.activeProjectId}/pricing/generate`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ hourly_rate: rate, daily_hours: hours })
+            headers: getHeaders()
         });
-    } catch (e) {
-        console.error('Error saving pricing config', e);
-    }
-}
-
-async function sddGeneratePricing() {
-    if (!currentProjectId) return;
-    
-    await sddSavePricingConfig();
-    
-    const btn = document.getElementById('btn-sdd-generate-pricing');
-    const originalText = btn.innerHTML;
-    btn.disabled = true;
-    btn.innerHTML = '<i data-lucide="loader-2" style="animation:spin 1s linear infinite;"></i> Gerando estimativa...';
-    if (window.lucide) lucide.createIcons();
-    
-    const container = document.getElementById('sdd-pricing-markdown-container');
-    container.innerHTML = '<div class="specs-empty-state" style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;"> <i data-lucide="brain" style="width:48px;height:48px;color:var(--primary-color);margin-bottom:16px;animation:pulse 2s infinite;"></i> <span style="font-size:16px;color:var(--text-primary);margin-bottom:8px;">Agente analisando projeto...</span> <span style="font-size:12px;color:var(--text-muted);">Lendo tarefas e requisitos para calcular o esforço total.</span> </div>';
-    if (window.lucide) lucide.createIcons();
-
-    try {
-        const res = await fetch(`/api/projects/${currentProjectId}/pricing/generate`, { method: 'POST' });
-        const data = await res.json();
-        
-        if (res.ok && data.status === 'success') {
-            container.innerHTML = window.marked ? marked.parse(data.markdown) : data.markdown;
-            gitideNotify({ title: 'Estimativa gerada', message: 'Relatório salvo com sucesso em .documents/estimativa.md.', variant: 'success' });
-        } else {
-            container.innerHTML = `<div class="specs-empty-state"><span style="color:var(--danger-color)">Erro: ${data.detail || 'Desconhecido'}</span></div>`;
-        }
-    } catch (e) {
-        container.innerHTML = `<div class="specs-empty-state"><span style="color:var(--danger-color)">Erro de conexão: ${e.message}</span></div>`;
+        const data = await response.json();
+        if (!response.ok || data.status !== 'success') throw new Error(data.detail || 'Erro ao gerar estimativa.');
+        renderEstimationReport(data.report);
+        gitideNotify({
+            title: 'Estimativa atualizada',
+            message: 'Painel e documentos .documents/estimativa.json e estimativa.md foram atualizados.',
+            variant: 'success'
+        });
+    } catch (error) {
+        gitideNotify({ title: 'Erro na estimativa', message: error.message || String(error), variant: 'danger' });
     } finally {
-        btn.disabled = false;
-        btn.innerHTML = originalText;
+        if (button) {
+            button.disabled = false;
+            button.innerHTML = original;
+        }
         if (window.lucide) lucide.createIcons();
     }
 }
-
-document.addEventListener('DOMContentLoaded', () => {
-    const rateInput = document.getElementById('sdd-pricing-hourly-rate');
-    const hoursInput = document.getElementById('sdd-pricing-daily-hours');
-    if (rateInput) rateInput.addEventListener('change', sddSavePricingConfig);
-    if (hoursInput) hoursInput.addEventListener('change', sddSavePricingConfig);
-    
-    const btnGen = document.getElementById('btn-sdd-generate-pricing');
-    if (btnGen) btnGen.addEventListener('click', sddGeneratePricing);
-});
