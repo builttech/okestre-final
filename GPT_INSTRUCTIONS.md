@@ -456,6 +456,8 @@
 - Após aprovação, o agente deve executar as tasks de QA **uma por vez**, na ordem registrada em `.documents/task/task.md`.
 - O agente só pode marcar uma task de QA como concluída (`- [x]`) depois de executar, verificar tecnicamente e registrar a evidência ou validação aplicável.
 - Se uma task de QA falhar ou revelar impacto funcional, arquitetural, de dados, API, permissão ou regra de negócio, o agente deve interromper o fluxo reduzido, registrar o motivo e retomar o fluxo Harness completo para o item afetado.
+- O agente deve somente considerar QA com status em **Abertas.**
+
 
 ---
 
