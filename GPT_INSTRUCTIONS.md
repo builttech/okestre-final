@@ -10,7 +10,7 @@
 
 - O agente **não deve escrever código** antes de concluir a fase documental obrigatória.
 - O agente **não deve executar comandos de modificação** antes da aprovação única do pacote Harness.
-- O agente deve seguir obrigatoriamente o ciclo `Análise → TAP → REQs → RFs → Design → DRI → Task List → Task Details → Aprovação Única → Execução Sequencial → Verificação Final`.
+- O agente deve seguir obrigatoriamente o ciclo `Análise → TAP → REQs → RFs → Design → DRI → Task List → Task Details → Estimativa → Aprovação Única → Execução Sequencial → Verificação Final`.
 - O agente deve manter separação clara entre o que o projeto precisa resolver, o que o sistema deve fazer, como a solução será planejada tecnicamente, como a interface deve se comportar, quais tasks serão executadas, como cada task será executada, quando a execução está autorizada e como a validação final será realizada.
 - O agente **não pode implementar código, rodar comandos de modificação, criar arquivos técnicos fora do fluxo ou executar tasks** antes da aprovação única do pacote documental completo.
 - Após aprovação do pacote, o agente deve executar todas as tasks aprovadas em ordem, uma por vez, sem solicitar nova aprovação intermediária.
@@ -30,9 +30,10 @@
 6. DRI / Documento de Requisito de Interface
 7. Task List por RF
 8. Task Details / Detalhamento Vivo das Tasks
-9. Aprovação Única do Pacote Harness
-10. Execução Sequencial das Tasks
-11. QA, Evidências e Validação Final
+9. Estimativa Realista de Esforço
+10. Aprovação Única do Pacote Harness
+11. Execução Sequencial das Tasks
+12. QA, Evidências e Validação Final
 ```
 
 - A saída de uma etapa deve alimentar a próxima.
@@ -216,14 +217,79 @@
 - O agente não deve executar a task nesta etapa.
 - O agente não deve alterar código-fonte, banco de dados, migrations, APIs, layout ou executar comandos no terminal nesta etapa.
 - O agente não deve marcar tasks como concluídas em `.documents/task/task.md` nesta etapa.
-- Após detalhar todas as tasks, o agente deve encerrar com a frase: `Para autorizar a execução de todas as tasks planejadas, responda: **"Aprovado executar o pacote Harness"**.`.
+- Após detalhar todas as tasks, o agente deve seguir para a etapa de Estimativa Realista de Esforço.
 
 ---
 
-## 11. Etapa 9 — Aprovação Única do Pacote Harness
+## 11. Etapa 9 — Estimativa Realista de Esforço
 
-- Após concluir Task List e Task Details, o agente deve apresentar o pacote completo ao usuário.
-- O pacote deve incluir TAP revisada ou referência à TAP aprovada, REQs, RFs, Design, DRI quando aplicável, Task List, Task Details, pendências, lacunas e riscos relevantes.
+- Após concluir a Task List e o Task Details, o agente deve gerar ou revisar a estimativa do projeto antes de solicitar a aprovação única do pacote Harness.
+- A estimativa deve ser registrada em `.documents/estimativa.json` e `.documents/estimativa.md` quando a ferramenta suportar geração estruturada e relatório em Markdown.
+- A estimativa faz parte do pacote Harness e deve ser apresentada junto com TAP, REQs, RFs, Design, DRI, Task List e Task Details.
+- A estimativa deve considerar somente tasks abertas. Tasks concluídas (`- [x]`) não devem compor esforço restante, prazo restante ou custo restante.
+- Quando o agente gerar, revisar ou apoiar estimativas do projeto, ele deve analisar individualmente cada task registrada em `.documents/task/task.md`.
+- Para cada task, o agente deve ler obrigatoriamente sua seção correspondente em `.documents/task/task.details.md` antes de estimar esforço.
+- A estimativa deve considerar também REQs, RFs, Design e DRI relacionados quando existirem.
+- O agente não deve estimar com base apenas no título da task.
+- O agente não deve usar valores fixos, arbitrários ou padronizados por task.
+- É proibido atribuir automaticamente `4 horas`, `8 horas`, `1 dia` ou qualquer bloco fixo de tempo sem justificativa técnica específica daquela task.
+- O agente não deve assumir que cada task representa automaticamente um dia inteiro de trabalho.
+- A disponibilidade de `8 horas/dia`, por exemplo, não significa que uma task deva ser estimada em 8 horas.
+- Se uma task exigir realisticamente 15 minutos, 30 minutos, 1 hora, 2 horas ou qualquer outro esforço proporcional, esse deve ser o valor estimado.
+- A estimativa deve representar o esforço provável para executar o trabalho, e não preencher artificialmente a capacidade disponível.
+- A estimativa não deve gerar superfaturamento, superestimação, subestimação artificial ou compressão irrealista.
+
+### 11.1. Critérios obrigatórios por task
+
+- Para cada task, o agente deve considerar:
+  - escopo real da implementação;
+  - complexidade técnica;
+  - quantidade de arquivos, componentes, camadas ou serviços impactados;
+  - dependências e integrações;
+  - necessidade de análise, implementação, testes, revisão e validação;
+  - riscos e incertezas;
+  - esforço operacional do usuário;
+  - nível de autonomia possível com IA;
+  - ganho real de produtividade proporcionado pela IA;
+  - necessidade de interação humana para orientar, revisar, corrigir e aprovar.
+
+### 11.2. Cenários obrigatórios
+
+- Toda estimativa deve separar dois cenários:
+  - **Sem IA:** esforço estimado para execução manual da task por um profissional técnico.
+  - **Com IA:** esforço humano real necessário para orientar, revisar, validar, corrigir e aprovar a execução realizada com apoio da IA.
+- O cenário **Com IA** não pode ser calculado aplicando um percentual fixo de redução sobre o cenário **Sem IA**.
+- O ganho de produtividade deve ser estimado individualmente para cada task.
+- Uma task que exigiria várias horas manualmente pode demandar poucos minutos de interação humana com IA.
+- Uma task complexa pode exigir ciclos maiores de análise, revisão, correção, reteste e aprovação mesmo com IA.
+- Se o uso de IA gerar esforço adicional de revisão ou correção em determinada task, o agente deve registrar esse risco ou impacto em vez de ocultá-lo.
+
+### 11.3. Capacidade diária e cronograma
+
+- Quando o usuário informar capacidade em **Horas/dia**, o agente deve:
+  - estimar individualmente o esforço de cada task;
+  - considerar separadamente o cenário **Com IA** e **Sem IA**;
+  - calcular quantas tasks podem ser realisticamente executadas dentro da capacidade diária informada;
+  - respeitar sequência, dependências e possibilidade real de paralelismo;
+  - distribuir as tasks no cronograma sem inflar ou comprimir artificialmente as estimativas;
+  - apresentar capacidade não utilizada ou excedente quando a soma das tasks não coincidir exatamente com a capacidade diária.
+- O agente não deve ajustar o esforço de uma task apenas para fechar exatamente a jornada diária.
+- O cronograma deve refletir trabalho provável, dependências e cadência realista, não ocupação artificial da agenda.
+
+### 11.4. Justificativa obrigatória
+
+- Cada task estimada deve conter justificativa técnica clara.
+- A justificativa deve explicar por que o esforço **Sem IA** e **Com IA** foi estimado daquela forma.
+- A justificativa deve mencionar fatores relevantes de escopo, complexidade, risco, validação ou ganho de produtividade.
+- Quando a informação disponível for insuficiente, o agente deve registrar lacuna ou incerteza e indicar o impacto na estimativa.
+- O agente não deve usar contingência automática silenciosa para substituir a análise individual.
+
+---
+
+## 12. Etapa 10 — Aprovação Única do Pacote Harness
+
+- Após concluir Task List, Task Details e Estimativa Realista de Esforço, o agente deve apresentar o pacote completo ao usuário.
+- O pacote deve incluir TAP revisada ou referência à TAP aprovada, REQs, RFs, Design, DRI quando aplicável, Task List, Task Details, Estimativa, pendências, lacunas e riscos relevantes.
 - O agente deve solicitar uma única aprovação para executar o pacote.
 - A frase obrigatória de aprovação é `Aprovado executar o pacote Harness`.
 - Se o usuário solicitar ajustes, o agente deve atualizar somente os documentos necessários e reapresentar o pacote completo.
@@ -231,7 +297,7 @@
 
 ---
 
-## 12. Etapa 10 — Execução Sequencial das Tasks
+## 13. Etapa 11 — Execução Sequencial das Tasks
 
 - Após o usuário responder `Aprovado executar o pacote Harness`, o agente pode iniciar a execução.
 - O agente deve executar as tasks em ordem.
@@ -249,7 +315,7 @@
 
 ---
 
-## 13. Etapa 11 — QA, Evidências e Validação Final
+## 14. Etapa 12 — QA, Evidências e Validação Final
 
 - Após executar todas as tasks, o agente deve realizar verificação final consolidada.
 - A verificação final deve considerar sintaxe, build, testes, lint quando aplicável, regressão básica, status do Git, arquivos modificados, evidências e aderência aos critérios de aceite.
@@ -259,14 +325,14 @@
 
 ---
 
-## 14. Exceção Controlada — QA Visual / Layout
+## 15. Exceção Controlada — QA Visual / Layout
 
 - O agente pode usar fluxo reduzido apenas quando a demanda for claramente ajuste fino visual, layout, espaçamento, alinhamento, proporção, responsividade, cor, tipografia, microcopy visual ou correção estética capturada por anotação QA.
 - A exceção só é válida quando não houver alteração em regra de negócio, fluxo funcional, contrato de API, modelo de dados, permissão, arquitetura ou comportamento sistêmico.
 - O fluxo mínimo para QA visual é ler a anotação QA, entender o problema, criar ou atualizar task em `.documents/task/task.md`, usar o formato `- [ ] TASK-QA-<ID-DO-QA>-001: Título curto`, criar ou atualizar o plano em `.documents/task/task.details.md`, solicitar aprovação única do pacote QA, executar após aprovação, verificar, marcar a task como concluída somente após verificação e solicitar validação final do usuário.
 - Se durante a análise o ajuste visual revelar mudança funcional, arquitetural ou de regra de negócio, a exceção deve ser cancelada e o fluxo Harness completo deve ser retomado.
 
-### 14.1. Tratamento Obrigatório de QAs Levantados pelo Usuário
+### 15.1. Tratamento Obrigatório de QAs Levantados pelo Usuário
 
 - Quando o usuário informar uma lista de QAs, IDs de QA, anotações de QA ou pedir execução de QAs capturados pela ferramenta, o agente deve analisar obrigatoriamente **QA por QA**, sem agrupar problemas diferentes em uma única task genérica.
 - Cada QA deve gerar exatamente uma task própria em `.documents/task/task.md`, salvo quando o próprio usuário pedir explicitamente a consolidação.
@@ -283,7 +349,7 @@
 
 ---
 
-## 15. Separação Obrigatória de Responsabilidades
+## 16. Separação Obrigatória de Responsabilidades
 
 - TAP em `.documents/project-charter.md` define o contexto macro do projeto.
 - REQs em `.documents/requirements/` definem os requisitos macro.
@@ -292,11 +358,12 @@
 - DRI em `.documents/dri/dri.md` define como a interface deve se comportar.
 - Task List em `.documents/task/task.md` define quais tasks serão executadas.
 - Task Details em `.documents/task/task.details.md` define como cada task será executada.
+- Estimativa em `.documents/estimativa.json` e `.documents/estimativa.md` define esforço, prazo e custo provável das tasks abertas, separando cenários Com IA e Sem IA.
 - Execução ocorre somente após aprovação única do pacote.
 
 ---
 
-## 16. Padrões de Arquivos e IDs
+## 17. Padrões de Arquivos e IDs
 
 - TAP: `.documents/project-charter.md`.
 - REQ: `.documents/requirements/REQ-0001-titulo.md`.
@@ -305,6 +372,8 @@
 - DRI: `.documents/dri/dri.md`.
 - Task List: `.documents/task/task.md`.
 - Task Details: `.documents/task/task.details.md`.
+- Estimativa estruturada: `.documents/estimativa.json`.
+- Relatório de estimativa: `.documents/estimativa.md`.
 - Task por RF: `TASK-RF-0001-01-001`.
 - Task por QA visual: `TASK-QA-<ID-DO-QA>-001`.
 - Seção de Task Details: `# TASK-RF-0001-01-001 — Título da Task`.
@@ -312,14 +381,14 @@
 
 ---
 
-## 17. Frase Obrigatória para Aprovação
+## 18. Frase Obrigatória para Aprovação
 
 - O agente deve solicitar aprovação usando a frase: `Para autorizar a execução de todas as tasks planejadas, responda: **"Aprovado executar o pacote Harness"**.`.
 - O agente só pode executar após o usuário responder: `Aprovado executar o pacote Harness`.
 
 ---
 
-## 18. Mermaid — Fluxo E2E Atualizado
+## 19. Mermaid — Fluxo E2E Atualizado
 
 ```mermaid
 graph TD
@@ -336,18 +405,18 @@ graph TD
     H --> I["6. Criar/Revisar DRI em .documents/dri/dri.md quando aplicável"]
     I --> J["7. Criar Task List em .documents/task/task.md"]
     J --> K["8. Detalhar Tasks em .documents/task/task.details.md"]
-    K --> L{"9. Pacote Harness aprovado?"}
-    L -->|"Não"| M["Ajustar documentos necessários"]
-    M --> H
-    L -->|"Sim"| N["10. Executar tasks em ordem"]
-    N --> O["Verificar task"]
-    O --> P{"Task validada?"}
-    P -->|"Não"| N
-    P -->|"Sim"| Q["Marcar checkbox em task.md"]
-    Q --> R{"Há próxima task?"}
-    R -->|"Sim"| N
-    R -->|"Não"| S["11. Verificação final / QA / Evidências"]
-    S --> T["Solicitar validação final do usuário"]
+    K --> L["9. Gerar Estimativa Realista em .documents/estimativa.md"]
+    L --> M{"10. Pacote Harness aprovado?"}
+    M -->|"Não"| N["Ajustar documentos necessários"]
+    N --> H
+    M -->|"Sim"| O["11. Executar tasks em ordem"]
+    O --> P["Verificar task"]
+    P --> Q{"Task validada?"}
+    Q -->|"Não"| O
+    Q -->|"Sim"| R["Marcar checkbox em task.md"]
+    R --> S{"Há próxima task?"}
+    S -->|"Sim"| O
+    S -->|"Não"| T["12. Verificação final / QA / Evidências"]
+    T --> U["Solicitar validação final do usuário"]
 ```
 Importante: O usuário pode solicitar que se pule uma etapa sempre que necessário, mas isso deve ser feito apenas quando solicitado explicitamente.
-

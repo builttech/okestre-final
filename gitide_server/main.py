@@ -6572,29 +6572,6 @@ def _collect_pricing_context(project: Project) -> tuple:
     return tasks, reference_context[:30000]
 
 
-def _fallback_task_estimate(task: dict) -> dict:
-    searchable = f"{task.get('title', '')}\n{task.get('details', '')}".lower()
-    complexity = "medium"
-    manual_hours = 8.0
-    if any(token in searchable for token in ["arquitetura", "migra", "autentica", "infra", "deploy", "integra", "banco", "seguran"]):
-        complexity, manual_hours = "high", 16.0
-    elif any(token in searchable for token in ["teste", "validar", "document", "ajuste visual", "layout", "copy", "texto"]):
-        complexity, manual_hours = "low", 4.0
-    if len(task.get("details") or "") > 1800:
-        manual_hours += 4.0
-        complexity = "high" if manual_hours >= 16 else complexity
-    ai_factor = 0.58 if complexity == "high" else 0.52 if complexity == "medium" else 0.62
-    return {
-        "id": task["id"],
-        "title": task["title"],
-        "complexity": complexity,
-        "manual_hours": round(manual_hours, 1),
-        "ai_hours": round(max(1.0, manual_hours * ai_factor), 1),
-        "rationale": "Estimativa técnica de contingência baseada no escopo e no detalhamento da tarefa.",
-        "source": "fallback",
-    }
-
-
 def _infer_pricing_task_type(task: dict) -> str:
     searchable = f"{task.get('id', '')}\n{task.get('title', '')}\n{task.get('details', '')}\n{task.get('rationale', '')}".lower()
     if any(token in searchable for token in ["corrigir", "correção", "correcao", "bug", "erro", "falha", "quebrou", "fix"]):
@@ -6685,17 +6662,21 @@ def _enrich_pricing_task_classification(task: dict) -> dict:
 
 
 def _normalize_pricing_estimate(task: dict, candidate: Optional[dict]) -> dict:
-    fallback = _fallback_task_estimate(task)
     if not isinstance(candidate, dict):
-        return _enrich_pricing_task_classification(fallback)
+        raise ValueError(f"A IA não retornou estimativa para {task['id']}.")
     try:
-        manual_hours = max(0.5, float(candidate.get("manual_hours")))
-        ai_hours = max(0.5, min(manual_hours, float(candidate.get("ai_hours"))))
+        manual_hours = float(candidate.get("manual_hours"))
+        ai_hours = float(candidate.get("ai_hours"))
     except (TypeError, ValueError):
-        return _enrich_pricing_task_classification(fallback)
+        raise ValueError(f"A IA retornou horas inválidas para {task['id']}.")
+    if manual_hours <= 0 or ai_hours <= 0:
+        raise ValueError(f"A IA retornou horas zeradas ou negativas para {task['id']}.")
     complexity = str(candidate.get("complexity") or "medium").lower()
     if complexity not in {"low", "medium", "high"}:
-        complexity = "medium"
+        raise ValueError(f"A IA retornou complexidade inválida para {task['id']}.")
+    rationale = str(candidate.get("rationale") or "").strip()
+    if len(rationale) < 20:
+        raise ValueError(f"A IA retornou justificativa insuficiente para {task['id']}.")
     return _enrich_pricing_task_classification({
         "id": task["id"],
         "title": task["title"],
@@ -6704,7 +6685,7 @@ def _normalize_pricing_estimate(task: dict, candidate: Optional[dict]) -> dict:
         "ai_hours": round(ai_hours, 1),
         "task_type": candidate.get("task_type"),
         "technical_area": candidate.get("technical_area"),
-        "rationale": str(candidate.get("rationale") or "Estimativa calculada pela IA a partir da tarefa e de seu plano técnico.").strip()[:500],
+        "rationale": rationale[:700],
         "source": "ai",
     })
 
@@ -6714,7 +6695,7 @@ def _pricing_totals(tasks: list, config: dict) -> dict:
     ai_hours = round(sum(float(task["ai_hours"]) for task in tasks), 1)
     daily_hours = max(1, int(config["daily_hours"]))
     hourly_rate = float(config["hourly_rate"])
-    saved_hours = round(max(0, manual_hours - ai_hours), 1)
+    saved_hours = round(manual_hours - ai_hours, 1)
     return {
         "task_count": len(tasks),
         "manual_hours": manual_hours,
@@ -6762,8 +6743,12 @@ def _pricing_markdown(report: dict) -> str:
         "",
         "- A estimativa considera somente as tarefas em aberto de REQs, RFs, Task List e Task Details.",
         "- Tarefas concluídas (`[x]`) não entram no esforço, prazo ou custo projetado.",
-        "- O cenário com IA pressupõe uso contínuo do Act IA para análise, implementação, testes e documentação.",
-        "- Horas e custos devem ser revisados quando o escopo documental mudar.",
+        "- Cada task é estimada individualmente a partir do título, Task Details e documentos vinculados.",
+        "- A estimativa não usa valores fixos por task e não preenche artificialmente a capacidade diária disponível.",
+        "- O cenário Sem IA representa execução manual por profissional técnico.",
+        "- O cenário Com IA representa o esforço humano real para orientar, revisar, validar, corrigir e aprovar a execução com apoio do Act IA.",
+        "- O ganho com IA é estimado individualmente por task, sem aplicar percentual fixo de redução.",
+        "- Horas, custos, capacidade diária e sequência devem ser revisados quando o escopo documental mudar.",
     ])
     if report.get("warning"):
         lines.extend(["", f"> Atenção: {report['warning']}"])
@@ -6826,8 +6811,13 @@ def generate_pricing_report(project: Project = Depends(get_project_or_404)):
     model = llm_config.get("model")
     api_key = llm_config.get("api_key") or ""
     can_use_ai = bool(provider and model and (provider == "ollama" or api_key))
+    if not can_use_ai:
+        raise HTTPException(
+            status_code=400,
+            detail="Configure uma IA antes de gerar estimativas. A estimativa não usa contingência automática nem valores fixos por task.",
+        )
     estimates_by_id = {}
-    warnings = []
+    estimation_errors = []
     response_schema = {
         "type": "object",
         "properties": {
@@ -6853,55 +6843,69 @@ def generate_pricing_report(project: Project = Depends(get_project_or_404)):
     system_prompt = (
         "Você é um Engenheiro de Software Sênior especialista em estimativas de projetos. "
         "Estime cada tarefa individualmente a partir do título, Task Details, REQs e RFs. "
+        "É proibido usar valores fixos, arbitrários ou padrões como 4h, 8h ou 1 dia por tarefa sem justificativa técnica específica. "
+        "A estimativa deve refletir o esforço provável e proporcional à complexidade real da tarefa, sem inflar ou comprimir para preencher a capacidade diária. "
         "Classifique task_type como implementation, correction ou adjustment. "
         "Classifique technical_area como frontend, backend, fullstack, infra, qa, docs ou general. "
-        "manual_hours representa execução por engenharia sem assistência de IA. "
-        "ai_hours representa o mesmo escopo usando o Act IA em análise, código, testes e documentação. "
-        "Considere complexidade, integrações, testes, riscos, retrabalho e validação. "
-        "Não omita tarefas, não altere IDs e nunca retorne ai_hours maior que manual_hours. "
+        "manual_hours representa execução manual por um profissional, considerando análise, implementação, testes, validação e operação necessária. "
+        "ai_hours representa o esforço humano real para orientar, revisar, validar, corrigir e aprovar a execução realizada com apoio do Act IA. "
+        "Não calcule ai_hours aplicando percentual fixo sobre manual_hours; estime o ganho individualmente por tarefa. "
+        "Considere escopo real, complexidade técnica, arquivos/camadas impactadas, dependências, integrações, riscos, incertezas, validação e esforço operacional do usuário. "
+        "Considere também a capacidade diária informada, dependências, sequência e possibilidade de paralelismo, mas nunca ajuste horas para preencher artificialmente a jornada. "
+        "Não omita tarefas e não altere IDs. "
         "Responda exclusivamente com JSON compatível com o schema fornecido."
     )
-    if can_use_ai:
-        for start in range(0, len(tasks), 20):
-            batch = tasks[start:start + 20]
-            batch_payload = [{
-                "id": item["id"],
-                "title": item["title"],
-                "details": item["details"][:3500],
-            } for item in batch]
-            user_prompt = (
-                f"Contexto resumido de REQs e RFs:\n{reference_context[:12000]}\n\n"
-                f"Tarefas deste lote:\n{json.dumps(batch_payload, ensure_ascii=False)}"
+    for task in tasks:
+        task_payload = {
+            "id": task["id"],
+            "title": task["title"],
+            "details": task["details"][:7000],
+            "completed": bool(task.get("completed")),
+        }
+        user_prompt = (
+            f"Capacidade diária informada pelo usuário: {config['daily_hours']} hora(s)/dia.\n"
+            f"Valor-hora informado: R$ {float(config['hourly_rate']):.2f}.\n\n"
+            f"Contexto resumido de REQs e RFs:\n{reference_context[:12000]}\n\n"
+            "Estime exclusivamente a task abaixo. Analise título e Task Details antes de estimar.\n"
+            f"{json.dumps(task_payload, ensure_ascii=False)}"
+        )
+        try:
+            raw = agent.call_llm(
+                provider,
+                model,
+                api_key,
+                [{"role": "user", "content": user_prompt}],
+                system_prompt,
+                ollama_base_url=llm_config.get("ollama_base_url", "http://127.0.0.1:11434"),
+                ollama_options={
+                    "num_ctx": max(4096, int(llm_config.get("ollama_num_ctx") or 4096)),
+                    "num_predict": max(900, int(llm_config.get("ollama_num_predict") or 900)),
+                },
+                response_schema=response_schema,
             )
-            try:
-                raw = agent.call_llm(
-                    provider,
-                    model,
-                    api_key,
-                    [{"role": "user", "content": user_prompt}],
-                    system_prompt,
-                    ollama_base_url=llm_config.get("ollama_base_url", "http://127.0.0.1:11434"),
-                    ollama_options={
-                        "num_ctx": max(4096, int(llm_config.get("ollama_num_ctx") or 4096)),
-                        "num_predict": max(1200, int(llm_config.get("ollama_num_predict") or 1200)),
-                    },
-                    response_schema=response_schema,
-                )
-                parsed = agent.extract_json(raw)
-                for candidate in parsed.get("tasks") or []:
-                    candidate_id = str(candidate.get("id") or "").upper()
-                    if candidate_id:
-                        estimates_by_id[candidate_id] = candidate
-            except Exception as exc:
-                warnings.append(f"Lote {start // 20 + 1} estimado por contingência: {str(exc)[:160]}")
-    else:
-        warnings.append("IA não configurada; foi aplicada a estimativa técnica de contingência.")
+            parsed = agent.extract_json(raw)
+            candidates = parsed.get("tasks") or []
+            candidate = next(
+                (item for item in candidates if str(item.get("id") or "").upper() == task["id"]),
+                candidates[0] if len(candidates) == 1 else None,
+            )
+            estimate = _normalize_pricing_estimate(task, candidate)
+            estimates_by_id[task["id"]] = estimate
+        except Exception as exc:
+            estimation_errors.append(f"{task['id']}: {str(exc)[:220]}")
+
+    if estimation_errors:
+        raise HTTPException(
+            status_code=502,
+            detail="A IA não conseguiu gerar estimativas válidas para todas as tasks sem contingência automática. "
+            + " | ".join(estimation_errors[:8]),
+        )
 
     normalized_tasks = []
     for task in tasks:
         estimate = _normalize_pricing_estimate(task, estimates_by_id.get(task["id"]))
         estimate["completed"] = bool(task.get("completed"))
-        estimate["saved_hours"] = round(max(0, estimate["manual_hours"] - estimate["ai_hours"]), 1)
+        estimate["saved_hours"] = round(estimate["manual_hours"] - estimate["ai_hours"], 1)
         estimate["saving_percent"] = round(
             (estimate["saved_hours"] / estimate["manual_hours"] * 100) if estimate["manual_hours"] else 0,
             1,
@@ -6916,7 +6920,7 @@ def generate_pricing_report(project: Project = Depends(get_project_or_404)):
         "config": config,
         "totals": _pricing_totals(normalized_tasks, config),
         "tasks": normalized_tasks,
-        "warning": " ".join(warnings),
+        "warning": "",
     }
     markdown = _pricing_markdown(report)
     report_json_path, report_md_path = _pricing_report_paths(project)
