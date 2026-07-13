@@ -411,6 +411,24 @@
 - O agente deve informar tasks executadas, arquivos alterados, validações realizadas, pendências remanescentes, riscos residuais e resultado final.
 - A validação do usuário deve ser solicitada somente após a execução e verificação de todas as tasks planejadas.
 
+### 14.1. Validação Obrigatória em Projetos Executados em VM
+
+- O agente deve identificar onde o projeto realmente executa: ambiente local, container, VM remota ou outro runtime configurado no Act IA/Ops Infra.
+- Quando o projeto roda em VM, a ausência de ferramentas no ambiente local (`node`, `npm`, `pnpm`, `yarn`, `python`, `docker` ou similares) **não deve ser tratada automaticamente como falha da implementação**.
+- Se comandos locais como `npm run build`, `pnpm --version`, `yarn --version` ou `node --version` falharem por ferramenta ausente, o agente deve registrar que o runtime local não está disponível e buscar validação alternativa.
+- A ordem recomendada de validação deve ser:
+  1. Verificar sintaxe e consistência dos arquivos alterados no workspace.
+  2. Usar ferramentas locais somente se elas existirem.
+  3. Se a VM/Ops Infra estiver configurada, executar validações equivalentes na VM, no diretório real do app.
+  4. Quando houver Docker/Compose na VM, validar por `docker compose build`, `docker compose config`, `docker compose up`, `docker compose ps`, `docker compose logs` ou health check HTTP/HTTPS, conforme o caso.
+  5. Se nenhuma validação executável estiver disponível, registrar a limitação e entregar uma checklist objetiva de validação manual.
+- Antes de marcar qualquer task como concluída, o agente deve obrigatoriamente revisar os arquivos alterados para detectar erro de sintaxe, linha incompleta, string não fechada, chave/parêntese/colchete desbalanceado, import inválido, JSON inválido, Markdown estruturalmente quebrado ou alteração incompatível com o padrão do projeto.
+- Para arquivos JavaScript/TypeScript, quando `node` estiver disponível, o agente deve usar `node --check` para arquivos executáveis compatíveis ou outra verificação sintática equivalente.
+- Para arquivos Python, quando `python` estiver disponível, o agente deve usar `python -m py_compile` nos arquivos alterados.
+- Para JSON, YAML, TOML, Markdown e arquivos de configuração, o agente deve validar parsing, estrutura, indentação e campos obrigatórios quando houver ferramenta disponível; na ausência dela, deve fazer revisão técnica por leitura.
+- O agente não deve encerrar uma task apenas porque o build local não pôde rodar. Ele deve informar claramente: validação executada, validação não executada, motivo, ambiente correto de execução e risco residual.
+- O agente deve evitar repetir comandos locais indisponíveis em loop. Após uma falha por ferramenta inexistente, deve mudar de estratégia para VM/Ops Infra ou validação estática.
+
 ---
 
 ## 15. Exceção Controlada — QA Visual / Layout

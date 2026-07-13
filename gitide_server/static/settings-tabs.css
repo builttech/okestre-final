@@ -90,6 +90,62 @@
     padding: 22px !important;
 }
 
+.prompt-copy-template-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.prompt-copy-template {
+    min-height: 82px;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 13px;
+    border: 1px solid var(--frame-border, var(--border-color));
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.035);
+    color: var(--frame-text, var(--text-main));
+    cursor: pointer;
+    text-align: left;
+    transition: border-color 160ms ease, background 160ms ease, transform 160ms ease;
+}
+
+.prompt-copy-template:hover,
+.prompt-copy-template.is-active {
+    background: rgba(0, 153, 255, 0.08);
+    border-color: rgba(0, 153, 255, 0.42);
+}
+
+.prompt-copy-template:hover {
+    transform: translateY(-1px);
+}
+
+.prompt-copy-template .lucide {
+    width: 17px;
+    height: 17px;
+    margin-top: 2px;
+    color: var(--color-primary);
+    flex: 0 0 auto;
+}
+
+.prompt-copy-template span {
+    min-width: 0;
+    display: grid;
+    gap: 4px;
+}
+
+.prompt-copy-template strong {
+    font-size: 13px;
+    line-height: 1.25;
+}
+
+.prompt-copy-template small {
+    color: var(--frame-muted, var(--text-muted));
+    font-size: 12px;
+    line-height: 1.35;
+}
+
 .prompt-copy-preview {
     min-height: 180px;
     width: 100%;
@@ -129,5 +185,9 @@
 
     .settings-tabs-sidebar {
         position: static;
+    }
+
+    .prompt-copy-template-grid {
+        grid-template-columns: 1fr;
     }
 }

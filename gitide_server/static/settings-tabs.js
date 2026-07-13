@@ -11,7 +11,9 @@
     return { projectName, projectId, token };
   }
 
-  function buildPromptCopyText() {
+  let selectedPromptCopyTemplate = 'base';
+
+  function buildPromptContextHeader() {
     const { projectName, projectId, token } = activeProjectContext();
     return [
       `Projeto ativo: ${projectName}`,
@@ -20,13 +22,112 @@
       'Use sempre o ID de projeto acima em todas as chamadas de API do Act IA.',
       'Exemplo: /api/projects/' + (projectId || '{project_id}') + '/...',
       token ? `Token Act IA: ${token}` : '',
-      '',
-      '--- DIRETRIZES DO CUSTOM GPT ---',
+    ].filter(Boolean).join('\n');
+  }
+
+  function buildCommonExecutionRules() {
+    return [
+      '--- REGRAS OBRIGATÓRIAS ---',
       'Você é um Agente de Engenharia de Software conectado ao computador local do usuário via Act IA.',
       'Antes de realizar qualquer tarefa de leitura, escrita ou execução de comandos, você DEVE verificar se existe o arquivo \'GPT_INSTRUCTIONS.md\' na raiz do workspace do projeto atual (usando o endpoint de leitura de arquivos).',
       'Se o arquivo existir, leia e siga rigorosamente todas as diretrizes, fases de análise e o protocolo de execução contidos nele.',
-      'REGRA INQUEBRÁVEL: antes de executar qualquer task, valide REQ, DRI e Task List. Depois atualize o plano detalhado em .documents/task/task.details.md, aguarde a autorização explícita do usuário no formato "Aprovado executar TASK-REQ-0000-000" e só depois implemente. O plano detalhado não deve ficar somente no chat. Nunca sobrescreva task.details.md apagando seções anteriores; anexe nova seção ou atualize somente a seção da task atual.'
+      'Crie ou atualize o pacote Harness na sequência correta: TAP, REQs, RFs, Design, DRI, Task List, Task Details e Estimativa, quando aplicável ao escopo.',
+      'Depois de criar/revisar todo o pacote, solicite a aprovação única: "Aprovado executar o pacote Harness".',
+      'Após a aprovação única, execute todas as tasks aprovadas em ordem, uma por vez, sem pedir nova aprovação entre tasks.',
+      'Nunca sobrescreva task.details.md apagando seções anteriores; anexe nova seção ou atualize somente a seção da task atual.',
+      '',
+      '--- VALIDAÇÃO QUANDO O PROJETO RODA EM VM ---',
+      'Se comandos locais como npm, pnpm, yarn ou node não existirem, isso não é falha do código. Valide pelo ambiente real da VM/Ops Infra quando estiver configurado.',
+      'Quando não houver runtime local, faça validação por leitura técnica, checagem de sintaxe dos arquivos alterados, análise de imports, fechamento de chaves/parênteses/strings e consistência dos artefatos.',
+      'Antes de concluir qualquer task, verifique se não há erro de sintaxe evidente nos arquivos modificados. Se a validação executável não for possível, registre claramente a limitação e a validação alternativa feita.'
     ].filter(Boolean).join('\n');
+  }
+
+  const promptCopyTemplates = {
+    base: {
+      icon: 'clipboard-copy',
+      label: 'Base do agente',
+      description: 'Contexto padrão para conectar o GPT Action ou IA nativa ao projeto ativo.',
+      build: () => [
+        buildPromptContextHeader(),
+        '',
+        buildCommonExecutionRules()
+      ].join('\n')
+    },
+    newProject: {
+      icon: 'sparkles',
+      label: 'Projeto novo',
+      description: 'Use quando o projeto será iniciado do zero dentro do Act IA.',
+      build: () => [
+        buildPromptContextHeader(),
+        '',
+        '--- OBJETIVO ---',
+        'Iniciar um projeto novo do zero usando o fluxo Harness do Act IA.',
+        '',
+        'Conduza a descoberta inicial, documente o escopo e gere os artefatos na sequência:',
+        '1. TAP / Termo de Abertura do Projeto',
+        '2. REQs / Requirements macro',
+        '3. RFs / Requisitos Funcionais derivados dos REQs',
+        '4. Design / Planejamento técnico e arquitetura',
+        '5. DRI / Documento de Requisito de Interface, quando houver interface',
+        '6. Task List',
+        '7. Task Details',
+        '8. Estimativa realista de esforço com IA e sem IA',
+        '',
+        'Não implemente código antes da aprovação única do pacote Harness.',
+        '',
+        buildCommonExecutionRules()
+      ].join('\n')
+    },
+    existingProject: {
+      icon: 'folder-open',
+      label: 'Projeto existente',
+      description: 'Use quando já existe código, estrutura, documentação ou histórico no projeto.',
+      build: () => [
+        buildPromptContextHeader(),
+        '',
+        '--- OBJETIVO ---',
+        'Trabalhar em um projeto existente sem perder contexto, arquitetura, documentação ou decisões já tomadas.',
+        '',
+        'Antes de propor mudanças:',
+        '- leia a estrutura do projeto;',
+        '- identifique stack, arquitetura, scripts, documentos e artefatos Harness existentes;',
+        '- revise sempre .documents/design/design.md para confirmar se a arquitetura está atualizada;',
+        '- se o Design estiver desatualizado, atualize-o antes de gerar tasks;',
+        '- preserve padrões, nomes, módulos, tokens visuais e contratos existentes.',
+        '',
+        'Quando a solicitação for nova funcionalidade, ajuste relevante ou mudança sistêmica, atualize os documentos Harness antes da execução.',
+        '',
+        buildCommonExecutionRules()
+      ].join('\n')
+    },
+    qa: {
+      icon: 'bug',
+      label: 'Execução de QA',
+      description: 'Use quando houver IDs de QA, anotações ou evidências capturadas pela extensão.',
+      build: () => [
+        buildPromptContextHeader(),
+        '',
+        '--- OBJETIVO ---',
+        'Executar QAs levantados pelo usuário ou capturados pela extensão do navegador.',
+        '',
+        'Siga este protocolo:',
+        '1. Leia cada QA informado, um por vez.',
+        '2. Não agrupe QAs diferentes em uma task genérica.',
+        '3. Para cada QA, crie uma task em .documents/task/task.md no padrão TASK-QA-<ID-DO-QA>-001: Título curto.',
+        '4. Para cada QA, crie ou atualize a seção correspondente em .documents/task/task.details.md.',
+        '5. O detalhe deve conter QA de origem, URL/tela, seletor/elemento alvo, evidência, problema observado, comportamento esperado, escopo, fora do escopo, arquivos prováveis, plano, critérios de aceite, validação prevista e riscos.',
+        '6. Depois de montar todas as tasks de QA e detalhes, solicite aprovação única do pacote QA.',
+        '7. Após aprovação, execute as tasks uma por vez, na ordem registrada.',
+        '8. Marque cada QA como concluído somente depois de executar e verificar tecnicamente.',
+        '',
+        buildCommonExecutionRules()
+      ].join('\n')
+    }
+  };
+
+  function buildPromptCopyText() {
+    return (promptCopyTemplates[selectedPromptCopyTemplate] || promptCopyTemplates.base).build();
   }
 
   function copyText(text) {
@@ -46,6 +147,11 @@
   function updatePromptPreview() {
     const preview = document.getElementById('prompt-copy-preview');
     if (preview) preview.value = buildPromptCopyText();
+    document.querySelectorAll('[data-prompt-copy-template]').forEach((button) => {
+      const isActive = button.dataset.promptCopyTemplate === selectedPromptCopyTemplate;
+      button.classList.toggle('is-active', isActive);
+      button.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+    });
   }
 
   function setCopyStatus(message) {
@@ -104,6 +210,15 @@
 
   function createPromptCopyPanel() {
     const panel = createPanel('prompt-copy', true);
+    const templateButtons = Object.entries(promptCopyTemplates).map(([key, template]) => `
+      <button type="button" class="prompt-copy-template${key === selectedPromptCopyTemplate ? ' is-active' : ''}" data-prompt-copy-template="${key}" aria-pressed="${key === selectedPromptCopyTemplate ? 'true' : 'false'}">
+        <i data-lucide="${template.icon}" aria-hidden="true"></i>
+        <span>
+          <strong>${template.label}</strong>
+          <small>${template.description}</small>
+        </span>
+      </button>
+    `).join('');
     panel.innerHTML = `
       <div class="settings-card card prompt-copy-card">
         <div class="card-header">
@@ -111,6 +226,9 @@
         </div>
         <div class="card-body prompt-copy-grid">
           <p class="help-text">Copie rapidamente o contexto do workspace/projeto ativo para usar em conversas ou automações.</p>
+          <div class="prompt-copy-template-grid" aria-label="Modelos de prompt">
+            ${templateButtons}
+          </div>
           <textarea id="prompt-copy-preview" class="prompt-copy-preview" readonly></textarea>
           <div class="prompt-copy-actions">
             <button class="btn btn-primary" id="btn-copy-prompt-copy" type="button"><i data-lucide="copy"></i> Copiar Prompt</button>
@@ -127,6 +245,13 @@
 
   function wirePromptActions() {
     document.getElementById('btn-refresh-prompt-copy')?.addEventListener('click', updatePromptPreview);
+
+    document.querySelectorAll('[data-prompt-copy-template]').forEach((button) => {
+      button.addEventListener('click', () => {
+        selectedPromptCopyTemplate = button.dataset.promptCopyTemplate || 'base';
+        updatePromptPreview();
+      });
+    });
 
     document.getElementById('btn-copy-prompt-copy')?.addEventListener('click', () => {
       const preview = document.getElementById('prompt-copy-preview');
