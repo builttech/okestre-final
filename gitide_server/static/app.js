@@ -10062,15 +10062,33 @@ function sddExtractActiveReqCode() {
     return match ? match[0].toUpperCase() : '';
 }
 
+function sddNormalizeReqSequence(value = '') {
+    const match = String(value).match(/\d+/);
+    return match ? String(Number.parseInt(match[0], 10)) : '';
+}
+
+function sddTaskBelongsToReq(criterion, activeReq) {
+    const activeSequence = sddNormalizeReqSequence(activeReq);
+    if (!activeSequence) return true;
+
+    const taskCode = String(criterion?.code || '').toUpperCase();
+    const linkedReq = taskCode.match(/^TASK-REQ-(\d{2,6})-\d{3}$/i);
+    const linkedRf = taskCode.match(/^TASK-RF-(\d{2,6})-\d{1,4}-\d{3}$/i);
+    const linkedSequence = linkedReq?.[1] || linkedRf?.[1] || '';
+    if (linkedSequence) {
+        return sddNormalizeReqSequence(linkedSequence) === activeSequence;
+    }
+
+    const haystack = `${criterion?.code || ''} ${criterion?.text || ''} ${criterion?.title || ''}`.toUpperCase();
+    return haystack.includes(activeReq.toUpperCase());
+}
+
 function sddGetCurrentReqCriteria() {
     const criteria = sddState.allCriteria || [];
     const activeReq = sddExtractActiveReqCode();
     if (!activeReq) return criteria;
 
-    return criteria.filter(c => {
-        const haystack = `${c.code || ''} ${c.text || ''} ${c.title || ''}`.toUpperCase();
-        return haystack.includes(activeReq);
-    });
+    return criteria.filter(c => sddTaskBelongsToReq(c, activeReq));
 }
 
 function sddRenderCriteria() {
@@ -10228,14 +10246,17 @@ function sddSetProjectTaskFilter(filter) {
     sddRenderProjectTasks();
 }
 
+const SDD_TASK_ID_PATTERN = /\bTASK-(?:REQ-\d{2,6}|RF-\d{2,6}-\d{1,4}|QA-[A-Z0-9-]+)-\d{3}\b/i;
+
 function sddExtractTaskId(taskText = '') {
-    const match = taskText.match(/\bTASK-(?:REQ-\d{2,6}|QA-[A-Z0-9-]+)-\d{3}\b/i);
+    const match = taskText.match(SDD_TASK_ID_PATTERN);
     return match ? match[0].toUpperCase() : '';
 }
 
 function sddExtractTaskTitle(taskText = '') {
     return taskText
-        .replace(/\bTASK-(?:REQ-\d{2,6}|QA-[A-Z0-9-]+)-\d{3}\b:?\s*/i, '')
+        .replace(SDD_TASK_ID_PATTERN, '')
+        .replace(/^:?\s*/, '')
         .replace(/^\s*-\s*/, '')
         .trim();
 }

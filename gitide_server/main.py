@@ -4516,6 +4516,33 @@ def _sdd_project_document_path(project: Project, kind: str, create_dir: bool = F
         os.makedirs(doc_dir, exist_ok=True)
     return os.path.join(doc_dir, config["filename"])
 
+
+SDD_TASK_CODE_FRAGMENT = r"TASK-(?:REQ-\d{2,6}|RF-\d{2,6}-\d{1,4}|QA-[A-Z0-9-]+)-\d{3}"
+SDD_TASK_CODE_PATTERN = re.compile(rf"\b{SDD_TASK_CODE_FRAGMENT}\b", flags=re.IGNORECASE)
+SDD_TASK_LINE_PATTERN = re.compile(
+    rf"^({SDD_TASK_CODE_FRAGMENT})\s*:\s*-?\s*(.+)$",
+    flags=re.IGNORECASE,
+)
+
+
+def _parse_sdd_task_line(line: str, line_index: int) -> Optional[dict]:
+    checkbox_match = re.match(r"^\-\s*\[([ xX])\]\s*(.*)", (line or "").strip())
+    if not checkbox_match:
+        return None
+    task_match = SDD_TASK_LINE_PATTERN.match(checkbox_match.group(2).strip())
+    if not task_match:
+        return None
+    task_code = task_match.group(1).upper()
+    task_title = task_match.group(2).strip()
+    return {
+        "id": line_index,
+        "line_no": line_index + 1,
+        "code": task_code,
+        "title": task_title,
+        "text": f"{task_code}: - {task_title}",
+        "checked": checkbox_match.group(1).lower() == "x",
+    }
+
 def _default_sdd_project_document(project: Project, kind: str) -> str:
     config = SDD_PROJECT_DOCUMENTS.get(kind)
     if not config:
@@ -4927,24 +4954,10 @@ def get_sdd_spec_criteria(filename: str, project: Project = Depends(get_project_
         with open(task_path, "r", encoding="utf-8") as f:
             lines = f.readlines()
 
-        for i in range(0, len(lines)):
-            line_stripped = lines[i].strip()
-            checkbox_match = re.match(r"^\-\s*\[([ xX])\]\s*(.*)", line_stripped)
-            if checkbox_match:
-                raw_text = checkbox_match.group(2).strip()
-                task_match = re.match(r"^(TASK-(?:REQ-\d{2,6}|QA-[A-Z0-9-]+)-\d{3})\s*:\s*-?\s*(.+)$", raw_text, flags=re.IGNORECASE)
-                if not task_match:
-                    continue
-                task_code = task_match.group(1).upper()
-                task_title = task_match.group(2).strip()
-                criteria.append({
-                    "id": i,
-                    "line_no": i + 1,
-                    "code": task_code,
-                    "title": task_title,
-                    "text": f"{task_code}: - {task_title}",
-                    "checked": checkbox_match.group(1).lower() == "x"
-                })
+        for i, line in enumerate(lines):
+            criterion = _parse_sdd_task_line(line, i)
+            if criterion:
+                criteria.append(criterion)
         return {
             "filename": filename,
             "source_type": source_type,
@@ -5222,24 +5235,10 @@ def get_sdd_project_tasks(project: Project = Depends(get_project_or_404)):
         with open(task_path, "r", encoding="utf-8") as f:
             lines = f.readlines()
 
-        for i in range(0, len(lines)):
-            line_stripped = lines[i].strip()
-            checkbox_match = re.match(r"^\-\s*\[([ xX])\]\s*(.*)", line_stripped)
-            if checkbox_match:
-                raw_text = checkbox_match.group(2).strip()
-                task_match = re.match(r"^(TASK-(?:REQ-\d{2,6}|QA-[A-Z0-9-]+)-\d{3})\s*:\s*-?\s*(.+)$", raw_text, flags=re.IGNORECASE)
-                if not task_match:
-                    continue
-                task_code = task_match.group(1).upper()
-                task_title = task_match.group(2).strip()
-                criteria.append({
-                    "id": i,
-                    "line_no": i + 1,
-                    "code": task_code,
-                    "title": task_title,
-                    "text": f"{task_code}: - {task_title}",
-                    "checked": checkbox_match.group(1).lower() == "x"
-                })
+        for i, line in enumerate(lines):
+            criterion = _parse_sdd_task_line(line, i)
+            if criterion:
+                criteria.append(criterion)
         return {
             "source_type": source_type,
             "filepath": os.path.relpath(task_path, project.path).replace("\\", "/"),
@@ -5561,7 +5560,7 @@ def _native_agent_intent_context(project: Project, prompt: str) -> str:
                     "Regra: buscar com qa_get_annotation antes de qualquer outra ação. Se não encontrar, responda solicitando confirmar o ID. Nunca crie documento resumido para este QA."
                 )
 
-    task_ids = sorted(set(re.findall(r"\bTASK-(?:REQ-\d{2,6}|QA-[A-Z0-9-]+)-\d{3}\b", prompt_text, flags=re.IGNORECASE)))
+    task_ids = sorted({match.group(0).upper() for match in SDD_TASK_CODE_PATTERN.finditer(prompt_text)})
     for task_id in task_ids[:3]:
         context = _find_task_context(project, task_id)
         parts.append(
