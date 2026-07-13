@@ -6851,6 +6851,7 @@ def get_pricing_report(project: Project = Depends(get_project_or_404)):
         open_tasks, _ = _collect_pricing_context(project)
         open_tasks_by_id = {task["id"]: task for task in open_tasks}
         open_task_ids = set(open_tasks_by_id)
+        current_config = _load_pricing_config(project)
         report = dict(report)
         normalized_tasks = []
         for task in report.get("tasks", []):
@@ -6862,11 +6863,9 @@ def get_pricing_report(project: Project = Depends(get_project_or_404)):
             normalized_task = _normalize_saved_pricing_task(task, open_tasks_by_id[task_id])
             if normalized_task:
                 normalized_tasks.append(normalized_task)
+        report["config"] = current_config
         report["tasks"] = normalized_tasks
-        report["totals"] = _pricing_totals(
-            report["tasks"],
-            report.get("config") or _load_pricing_config(project),
-        )
+        report["totals"] = _pricing_totals(report["tasks"], current_config)
         markdown = _pricing_markdown(report)
     else:
         markdown = _read_project_markdown(report_md_path)

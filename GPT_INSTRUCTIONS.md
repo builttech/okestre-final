@@ -299,6 +299,9 @@
   - `totals`: objeto calculado.
   - `tasks`: lista de tasks abertas estimadas.
   - `warning`: texto opcional.
+- O objeto `config` deve conter:
+  - `hourly_rate`: valor/hora positivo. Nunca usar `0`.
+  - `daily_hours`: capacidade diária entre `1` e `24`. Nunca usar `0`.
 - O objeto `totals` deve conter obrigatoriamente:
   - `task_count`;
   - `manual_hours`;

@@ -5240,12 +5240,13 @@ function setupEventListeners() {
     document.getElementById('btn-engineering-metrics-refresh')?.addEventListener('click', loadEngineeringMetrics);
     document.getElementById('engineering-metrics-period')?.addEventListener('change', loadEngineeringMetrics);
     document.getElementById('btn-estimation-generate')?.addEventListener('click', generateProjectEstimation);
-    document.getElementById('estimation-hourly-rate')?.addEventListener('change', () => saveEstimationConfig().catch(error => {
-        gitideNotify({ title: 'Configuração da estimativa', message: error.message, variant: 'danger' });
-    }));
-    document.getElementById('estimation-daily-hours')?.addEventListener('change', () => saveEstimationConfig().catch(error => {
-        gitideNotify({ title: 'Configuração da estimativa', message: error.message, variant: 'danger' });
-    }));
+    const refreshEstimationConfig = () => saveEstimationConfig()
+        .then(loadEstimationPage)
+        .catch(error => {
+            gitideNotify({ title: 'Configuração da estimativa', message: error.message, variant: 'danger' });
+        });
+    document.getElementById('estimation-hourly-rate')?.addEventListener('change', refreshEstimationConfig);
+    document.getElementById('estimation-daily-hours')?.addEventListener('change', refreshEstimationConfig);
     document.querySelectorAll('[data-estimation-mode]').forEach(btn => {
         btn.addEventListener('click', () => applyEstimationMode(btn.dataset.estimationMode));
     });
