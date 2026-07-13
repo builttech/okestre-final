@@ -6950,13 +6950,14 @@ def get_pricing_report(project: Project = Depends(get_project_or_404)):
         except (OSError, json.JSONDecodeError):
             report = None
     if isinstance(report, dict):
+        saved_report = dict(report)
         open_tasks, _ = _collect_pricing_context(project)
         open_tasks_by_id = {task["id"]: task for task in open_tasks}
         open_task_ids = set(open_tasks_by_id)
         current_config = _load_pricing_config(project)
-        report = dict(report)
+        report = dict(saved_report)
         normalized_tasks = []
-        for task in report.get("tasks", []):
+        for task in saved_report.get("tasks", []):
             if not isinstance(task, dict):
                 continue
             task_id = str(task.get("id") or "").upper()
@@ -6968,7 +6969,7 @@ def get_pricing_report(project: Project = Depends(get_project_or_404)):
         report["config"] = current_config
         report["tasks"] = normalized_tasks
         report["totals"] = _pricing_totals(report["tasks"], current_config)
-        report["history"] = _pricing_closed_history(project, report, current_config)
+        report["history"] = _pricing_closed_history(project, saved_report, current_config)
         report["history_totals"] = _pricing_totals(report["history"], current_config)
         markdown = _pricing_markdown(report)
     else:
