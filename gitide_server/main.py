@@ -6579,7 +6579,7 @@ def _pricing_task_details(details_content: str) -> dict:
     return details
 
 
-def _collect_pricing_context(project: Project) -> tuple:
+def _collect_pricing_context(project: Project, include_completed: bool = False) -> tuple:
     task_path = os.path.join(project.path, ".documents", "task", "task.md")
     details_path = os.path.join(project.path, ".documents", "task", "task.details.md")
     task_content = _read_project_markdown(task_path)
@@ -6588,13 +6588,14 @@ def _collect_pricing_context(project: Project) -> tuple:
 
     tasks = []
     for match in PRICING_TASK_PATTERN.finditer(task_content):
-        if match.group(1).lower() == "x":
+        is_completed = match.group(1).lower() == "x"
+        if is_completed and not include_completed:
             continue
         task_id = match.group(2).upper()
         tasks.append({
             "id": task_id,
             "title": match.group(3).strip().rstrip("."),
-            "completed": False,
+            "completed": is_completed,
             "details": details_by_task.get(task_id, ""),
         })
 
@@ -6614,6 +6615,45 @@ def _collect_pricing_context(project: Project) -> tuple:
 
     reference_context = "\n\n".join(reference_parts)
     return tasks, reference_context[:30000]
+
+
+def _pricing_saved_task_candidates(report: Optional[dict]) -> list:
+    if not isinstance(report, dict):
+        return []
+    candidates = []
+    for key in ("history", "tasks"):
+        value = report.get(key)
+        if isinstance(value, list):
+            candidates.extend(item for item in value if isinstance(item, dict))
+    return candidates
+
+
+def _pricing_closed_history(project: Project, report: Optional[dict], config: dict) -> list:
+    all_tasks, _ = _collect_pricing_context(project, include_completed=True)
+    completed_tasks_by_id = {task["id"]: task for task in all_tasks if task.get("completed")}
+    if not completed_tasks_by_id:
+        return []
+
+    history_by_id = {}
+    for saved_task in _pricing_saved_task_candidates(report):
+        task_id = str(saved_task.get("id") or "").upper()
+        source_task = completed_tasks_by_id.get(task_id)
+        if not source_task:
+            continue
+        normalized_task = _normalize_saved_pricing_task(saved_task, source_task)
+        if not normalized_task:
+            continue
+        normalized_task["completed"] = True
+        normalized_task["closed"] = True
+        normalized_task["closed_at"] = (
+            saved_task.get("closed_at")
+            or saved_task.get("archived_at")
+            or saved_task.get("updated_at")
+            or datetime.utcnow().replace(microsecond=0).isoformat() + "Z"
+        )
+        history_by_id[task_id] = normalized_task
+
+    return [history_by_id[task_id] for task_id in completed_tasks_by_id if task_id in history_by_id]
 
 
 def _infer_pricing_task_type(task: dict) -> str:
@@ -6849,6 +6889,24 @@ def _pricing_markdown(report: dict) -> str:
         lines.append(
             f"| {task['id']} | {title} | {task.get('task_type', 'implementation')} | {task.get('technical_area', 'general')} | {task['complexity']} | {task['manual_hours']:.1f}h | {task['ai_hours']:.1f}h | {saving:.1f}h |"
         )
+    history = report.get("history") or []
+    if history:
+        history_totals = report.get("history_totals") or _pricing_totals(history, config)
+        lines.extend([
+            "",
+            "## Histórico de Tarefas Fechadas",
+            "",
+            f"> {history_totals['task_count']} tarefa(s) concluída(s) preservada(s) no histórico de estimativas.",
+            "",
+            "| Tarefa | Título | Tipo | Área | Complexidade | Sem IA | Com IA | Economia |",
+            "| --- | --- | --- | --- | --- | ---: | ---: | ---: |",
+        ])
+        for task in history:
+            saving = max(0, float(task["manual_hours"]) - float(task["ai_hours"]))
+            title = str(task["title"]).replace("|", "\\|")
+            lines.append(
+                f"| {task['id']} | {title} | {task.get('task_type', 'implementation')} | {task.get('technical_area', 'general')} | {task['complexity']} | {task['manual_hours']:.1f}h | {task['ai_hours']:.1f}h | {saving:.1f}h |"
+            )
     lines.extend([
         "",
         "## Premissas",
@@ -6910,6 +6968,8 @@ def get_pricing_report(project: Project = Depends(get_project_or_404)):
         report["config"] = current_config
         report["tasks"] = normalized_tasks
         report["totals"] = _pricing_totals(report["tasks"], current_config)
+        report["history"] = _pricing_closed_history(project, report, current_config)
+        report["history_totals"] = _pricing_totals(report["history"], current_config)
         markdown = _pricing_markdown(report)
     else:
         markdown = _read_project_markdown(report_md_path)
@@ -6919,7 +6979,37 @@ def get_pricing_report(project: Project = Depends(get_project_or_404)):
 def generate_pricing_report(project: Project = Depends(get_project_or_404)):
     config = _load_pricing_config(project)
     tasks, reference_context = _collect_pricing_context(project)
+    previous_report = None
+    previous_report_json_path, _ = _pricing_report_paths(project)
+    if os.path.exists(previous_report_json_path):
+        try:
+            with open(previous_report_json_path, "r", encoding="utf-8") as f:
+                previous_report = json.load(f)
+        except (OSError, json.JSONDecodeError):
+            previous_report = None
+    existing_history = _pricing_closed_history(project, previous_report, config)
     if not tasks:
+        if existing_history:
+            report = {
+                "version": 1,
+                "generated_at": datetime.utcnow().replace(microsecond=0).isoformat() + "Z",
+                "project_id": project.id,
+                "project_name": project.name,
+                "config": config,
+                "totals": _pricing_totals([], config),
+                "tasks": [],
+                "history": existing_history,
+                "history_totals": _pricing_totals(existing_history, config),
+                "warning": "",
+            }
+            markdown = _pricing_markdown(report)
+            report_json_path, report_md_path = _pricing_report_paths(project)
+            os.makedirs(os.path.dirname(report_json_path), exist_ok=True)
+            with open(report_json_path, "w", encoding="utf-8") as f:
+                json.dump(report, f, ensure_ascii=False, indent=2)
+            with open(report_md_path, "w", encoding="utf-8") as f:
+                f.write(markdown)
+            return {"status": "success", "report": report, "markdown": markdown}
         raise HTTPException(
             status_code=400,
             detail="Nenhuma tarefa em aberto foi encontrada em .documents/task/task.md. Use o formato - [ ] TASK-REQ-NNNN-001: Título.",
@@ -7039,8 +7129,10 @@ def generate_pricing_report(project: Project = Depends(get_project_or_404)):
         "config": config,
         "totals": _pricing_totals(normalized_tasks, config),
         "tasks": normalized_tasks,
+        "history": existing_history,
         "warning": "",
     }
+    report["history_totals"] = _pricing_totals(report["history"], config)
     markdown = _pricing_markdown(report)
     report_json_path, report_md_path = _pricing_report_paths(project)
     os.makedirs(os.path.dirname(report_json_path), exist_ok=True)

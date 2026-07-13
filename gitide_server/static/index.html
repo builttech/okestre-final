@@ -1291,9 +1291,20 @@ VALIDAÇÃO: quando o runtime real estiver em VM e comandos locais como npm/node
                             </div>
                         </header>
 
+                        <div class="estimation-view-tabs" role="tablist" aria-label="Visualização da estimativa">
+                            <button class="active" type="button" data-estimation-view="open">
+                                <i data-lucide="list-checks"></i>
+                                Tarefas abertas
+                            </button>
+                            <button type="button" data-estimation-view="history">
+                                <i data-lucide="history"></i>
+                                Histórico fechado
+                            </button>
+                        </div>
+
                         <section class="estimation-summary" aria-label="Resumo da estimativa">
                             <article class="estimation-card neutral">
-                                <span>Tarefas abertas analisadas</span>
+                                <span id="estimation-task-count-label">Tarefas abertas analisadas</span>
                                 <strong id="estimation-task-count">-</strong>
                                 <small id="estimation-updated-at">Aguardando primeira análise</small>
                             </article>
@@ -1317,8 +1328,8 @@ VALIDAÇÃO: quando o runtime real estiver em VM e comandos locais como npm/node
                         <section class="estimation-table-panel">
                             <div class="estimation-table-header">
                                 <div>
-                                    <h4>Estimativa por tarefa</h4>
-                                    <p>Compare o esforço previsto para a mesma entrega nos dois modos de execução.</p>
+                                    <h4 id="estimation-table-title">Estimativa por tarefa</h4>
+                                    <p id="estimation-table-subtitle">Compare o esforço previsto para a mesma entrega nos dois modos de execução.</p>
                                 </div>
                                 <div class="estimation-mode-filter" role="group" aria-label="Filtrar cenário da estimativa">
                                     <button class="active" type="button" data-estimation-mode="comparison">Comparativo</button>

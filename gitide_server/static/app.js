@@ -51,7 +51,8 @@ const state = {
 
     // Project Estimation
     estimationReport: null,
-    estimationMode: 'comparison'
+    estimationMode: 'comparison',
+    estimationView: 'open'
 };
 
 const uiCanvasState = {
@@ -5249,6 +5250,9 @@ function setupEventListeners() {
     document.getElementById('estimation-daily-hours')?.addEventListener('change', refreshEstimationConfig);
     document.querySelectorAll('[data-estimation-mode]').forEach(btn => {
         btn.addEventListener('click', () => applyEstimationMode(btn.dataset.estimationMode));
+    });
+    document.querySelectorAll('[data-estimation-view]').forEach(btn => {
+        btn.addEventListener('click', () => applyEstimationView(btn.dataset.estimationView));
     });
     document.querySelectorAll('.engineering-tab').forEach(btn => {
         btn.addEventListener('click', () => setEngineeringPanel(btn.dataset.engineeringPanel));
@@ -11844,8 +11848,21 @@ function setEstimationText(id, value) {
     if (element) element.textContent = value;
 }
 
+function setEstimationViewText(view) {
+    const isHistory = view === 'history';
+    setEstimationText('estimation-task-count-label', isHistory ? 'Tarefas fechadas estimadas' : 'Tarefas abertas analisadas');
+    setEstimationText('estimation-table-title', isHistory ? 'Histórico de estimativas fechadas' : 'Estimativa por tarefa');
+    setEstimationText(
+        'estimation-table-subtitle',
+        isHistory
+            ? 'Preserva o esforço estimado das tasks concluídas, sem misturar com o backlog aberto.'
+            : 'Compare o esforço previsto para a mesma entrega nos dois modos de execução.'
+    );
+}
+
 function renderEstimationEmpty(message = 'Gere a primeira estimativa para visualizar o painel.') {
     state.estimationReport = null;
+    setEstimationViewText(state.estimationView || 'open');
     setEstimationText('estimation-task-count', '-');
     setEstimationText('estimation-updated-at', 'Aguardando primeira análise');
     setEstimationText('estimation-manual-hours', '-');
@@ -11869,11 +11886,36 @@ function renderEstimationReport(report) {
         return;
     }
     state.estimationReport = report;
-    const totals = report.totals;
+    renderCurrentEstimationView();
+}
+
+function renderCurrentEstimationView() {
+    const report = state.estimationReport;
+    if (!report || !Array.isArray(report.tasks) || !report.totals) {
+        renderEstimationEmpty();
+        return;
+    }
+    const view = state.estimationView === 'history' ? 'history' : 'open';
+    setEstimationViewText(view);
+    const tasks = view === 'history' ? (report.history || []) : report.tasks;
+    const totals = view === 'history'
+        ? (report.history_totals || {
+            task_count: tasks.length,
+            manual_hours: 0,
+            ai_hours: 0,
+            manual_days: 0,
+            ai_days: 0,
+            manual_cost: 0,
+            ai_cost: 0,
+            saved_hours: 0,
+            saved_cost: 0,
+            saving_percent: 0
+        })
+        : report.totals;
     const generatedAt = report.generated_at ? new Date(report.generated_at).toLocaleString('pt-BR') : 'Data não informada';
 
-    setEstimationText('estimation-task-count', totals.task_count ?? report.tasks.length);
-    setEstimationText('estimation-updated-at', `Atualizado em ${generatedAt}`);
+    setEstimationText('estimation-task-count', totals.task_count ?? tasks.length);
+    setEstimationText('estimation-updated-at', view === 'history' ? `Histórico preservado em ${generatedAt}` : `Atualizado em ${generatedAt}`);
     setEstimationText('estimation-manual-hours', estimationHours(totals.manual_hours));
     setEstimationText('estimation-manual-context', `${Number(totals.manual_days || 0).toLocaleString('pt-BR')} dias · ${estimationCurrency(totals.manual_cost)}`);
     setEstimationText('estimation-ai-hours', estimationHours(totals.ai_hours));
@@ -11883,13 +11925,20 @@ function renderEstimationReport(report) {
 
     const warning = document.getElementById('estimation-warning');
     if (warning) {
-        warning.hidden = !report.warning;
-        warning.innerHTML = report.warning ? `<i data-lucide="triangle-alert"></i><span>${escapeHtml(report.warning)}</span>` : '';
+        const warningText = view === 'open' ? report.warning : '';
+        warning.hidden = !warningText;
+        warning.innerHTML = warningText ? `<i data-lucide="triangle-alert"></i><span>${escapeHtml(warningText)}</span>` : '';
     }
 
     const body = document.getElementById('estimation-table-body');
     if (body) {
-        body.innerHTML = report.tasks.map((task) => `
+        if (!tasks.length) {
+            const emptyMessage = view === 'history'
+                ? 'Nenhuma task fechada com estimativa preservada ainda.'
+                : 'Nenhuma task aberta encontrada para a estimativa atual.';
+            body.innerHTML = `<tr><td colspan="8"><div class="estimation-empty"><i data-lucide="${view === 'history' ? 'history' : 'calculator'}"></i><span>${escapeHtml(emptyMessage)}</span></div></td></tr>`;
+        } else {
+            body.innerHTML = tasks.map((task) => `
             <tr>
                 <td class="estimation-task-cell">
                     <strong>${escapeHtml(task.id || '')}</strong>
@@ -11904,10 +11953,23 @@ function renderEstimationReport(report) {
                 <td class="estimation-col-saving"><strong>${estimationHours(task.saved_hours)}</strong><small>${Number(task.saving_percent || 0).toLocaleString('pt-BR')}%</small></td>
                 <td><span class="estimation-source ${task.source === 'ai' ? 'ai' : 'fallback'}">${task.source === 'ai' ? 'IA' : 'Base técnica'}</span></td>
             </tr>
-        `).join('');
+            `).join('');
+        }
     }
     applyEstimationMode(state.estimationMode);
     if (window.lucide) lucide.createIcons();
+}
+
+function applyEstimationView(view) {
+    state.estimationView = view === 'history' ? 'history' : 'open';
+    document.querySelectorAll('[data-estimation-view]').forEach(button => {
+        button.classList.toggle('active', button.dataset.estimationView === state.estimationView);
+    });
+    if (state.estimationReport) {
+        renderCurrentEstimationView();
+    } else {
+        renderEstimationEmpty();
+    }
 }
 
 function applyEstimationMode(mode) {
