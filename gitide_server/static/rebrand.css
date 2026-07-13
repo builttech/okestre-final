@@ -6586,6 +6586,11 @@ input[type="checkbox"]:focus-visible{
     transition: all 0.15s ease;
 }
 
+.sdd-criteria-row.is-selected {
+    border-color: rgba(248,113,113,.26);
+    background: rgba(248,113,113,.025);
+}
+
 @media (max-width: 960px) {
     .sdd-checklist-header {
         align-items: stretch;
@@ -6647,6 +6652,74 @@ input[type="checkbox"]:focus-visible{
     color:var(--text-main);
 }
 
+.sdd-task-bulk-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border: 1px solid var(--flat-border-soft);
+    border-radius: 12px;
+    background: rgba(255,255,255,.018);
+}
+
+.sdd-task-bulk-select,
+.sdd-task-bulk-delete {
+    min-height: 32px;
+    border-radius: 10px;
+    border: 1px solid var(--flat-border-soft, var(--border-color));
+    background: rgba(255,255,255,.028);
+    color: var(--text-main);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 0 12px;
+    font-size: 12px;
+    font-weight: 750;
+    cursor: pointer;
+    transition: background .16s ease, border-color .16s ease, color .16s ease, opacity .16s ease;
+}
+
+.sdd-task-bulk-select:hover,
+.sdd-task-bulk-select.is-active {
+    border-color: rgba(52,211,153,.42);
+    background: rgba(52,211,153,.08);
+}
+
+.sdd-task-bulk-delete {
+    margin-left: auto;
+    color: #f87171;
+}
+
+.sdd-task-bulk-delete:hover:not(:disabled),
+.sdd-task-bulk-delete:focus-visible:not(:disabled) {
+    border-color: rgba(248,113,113,.45);
+    background: rgba(248,113,113,.09);
+    outline: none;
+}
+
+.sdd-task-bulk-delete:disabled {
+    opacity: .42;
+    cursor: not-allowed;
+}
+
+.sdd-task-bulk-delete.is-loading {
+    opacity: .58;
+    pointer-events: none;
+}
+
+.sdd-task-bulk-count {
+    color: var(--text-muted);
+    font-size: 12px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.sdd-task-bulk-toolbar svg {
+    width: 15px;
+    height: 15px;
+}
+
 @media (max-width: 860px){
     .harness-task-controls{
         width:100%;
@@ -6662,6 +6735,44 @@ input[type="checkbox"]:focus-visible{
     .harness-task-filter button{
         flex:1;
     }
+
+    .sdd-task-bulk-toolbar{
+        align-items:stretch;
+        flex-direction:column;
+    }
+
+    .sdd-task-bulk-delete{
+        margin-left:0;
+    }
+}
+
+.sdd-task-row-select {
+    width: 28px;
+    height: 28px;
+    min-width: 28px;
+    border: 1px solid var(--flat-border-soft, var(--border-color));
+    border-radius: 8px;
+    background: rgba(255,255,255,.018);
+    color: var(--text-muted);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    cursor: pointer;
+    flex: 0 0 28px;
+    transition: background .15s ease, border-color .15s ease, color .15s ease;
+}
+
+.sdd-task-row-select:hover,
+.sdd-task-row-select.is-selected {
+    border-color: rgba(248,113,113,.45);
+    background: rgba(248,113,113,.08);
+    color: #f87171;
+}
+
+.sdd-task-row-select svg {
+    width: 15px;
+    height: 15px;
 }
 
 .sdd-task-toggle {

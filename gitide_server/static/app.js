@@ -9284,6 +9284,10 @@ const sddState = {
     allCriteria: [],
     projectCriteria: [],
     projectTaskFilter: 'all',
+    taskSelection: {
+        current: new Set(),
+        project: new Set()
+    },
     specs: [],
     executeTask: null,
     charterLoaded: false,
@@ -10091,11 +10095,88 @@ function sddGetCurrentReqCriteria() {
     return criteria.filter(c => sddTaskBelongsToReq(c, activeReq));
 }
 
+function sddGetTaskSelection(source = 'current') {
+    const key = source === 'project' ? 'project' : 'current';
+    if (!sddState.taskSelection) {
+        sddState.taskSelection = { current: new Set(), project: new Set() };
+    }
+    if (!(sddState.taskSelection[key] instanceof Set)) {
+        sddState.taskSelection[key] = new Set(sddState.taskSelection[key] || []);
+    }
+    return sddState.taskSelection[key];
+}
+
+function sddPruneTaskSelection(source, criteria = []) {
+    const selection = sddGetTaskSelection(source);
+    const validLines = new Set(criteria.map(c => Number(c.line_no)));
+    Array.from(selection).forEach(lineNo => {
+        if (!validLines.has(Number(lineNo))) selection.delete(lineNo);
+    });
+}
+
+function sddGetFilteredProjectCriteria() {
+    const criteria = sddState.projectCriteria || [];
+    const filter = sddState.projectTaskFilter || 'all';
+    return criteria.filter(c => {
+        if (filter === 'open') return !c.checked;
+        if (filter === 'done') return c.checked;
+        return true;
+    });
+}
+
+function sddToggleTaskSelection(lineNo, source = 'current', checked = true) {
+    const selection = sddGetTaskSelection(source);
+    const normalizedLine = Number(lineNo);
+    if (checked) selection.add(normalizedLine);
+    else selection.delete(normalizedLine);
+    if (source === 'project') sddRenderProjectTasks();
+    else sddRenderCriteria();
+}
+
+function sddToggleAllTaskSelection(source = 'current', checked = true) {
+    const visibleCriteria = source === 'project' ? sddGetFilteredProjectCriteria() : sddGetCurrentReqCriteria();
+    const selection = sddGetTaskSelection(source);
+    visibleCriteria.forEach(c => {
+        const lineNo = Number(c.line_no);
+        if (checked) selection.add(lineNo);
+        else selection.delete(lineNo);
+    });
+    if (source === 'project') sddRenderProjectTasks();
+    else sddRenderCriteria();
+}
+
+function sddRenderTaskBulkToolbar(criteria = [], source = 'current') {
+    const selection = sddGetTaskSelection(source);
+    const selectedCount = criteria.filter(c => selection.has(Number(c.line_no))).length;
+    const allSelected = criteria.length > 0 && selectedCount === criteria.length;
+    const sourceAttr = source === 'project' ? 'project' : 'current';
+    return `
+        <div class="sdd-task-bulk-toolbar">
+            <button type="button"
+                    class="sdd-task-bulk-select ${allSelected ? 'is-active' : ''}"
+                    aria-pressed="${allSelected ? 'true' : 'false'}"
+                    onclick="sddToggleAllTaskSelection('${sourceAttr}', ${allSelected ? 'false' : 'true'})">
+                <i data-lucide="${allSelected ? 'check-square' : 'square'}"></i>
+                <span>${allSelected ? 'Limpar seleção' : 'Selecionar todas'}</span>
+            </button>
+            <span class="sdd-task-bulk-count">${selectedCount}/${criteria.length} selecionadas</span>
+            <button type="button"
+                    class="sdd-task-bulk-delete"
+                    ${selectedCount ? '' : 'disabled'}
+                    onclick="sddDeleteSelectedTasks('${sourceAttr}')">
+                <i data-lucide="trash-2"></i>
+                <span>Excluir selecionadas</span>
+            </button>
+        </div>
+    `;
+}
+
 function sddRenderCriteria() {
     const container = document.getElementById('sdd-criteria-checklist-container');
     const progressText = document.getElementById('sdd-checklist-progress-text');
     const progressFill = document.getElementById('sdd-progress-fill');
     const criteria = sddGetCurrentReqCriteria();
+    sddPruneTaskSelection('current', criteria);
 
     if (!criteria.length) {
         const activeReq = sddExtractActiveReqCode();
@@ -10120,8 +10201,21 @@ function sddRenderCriteria() {
     progressText.textContent = `${done}/${total} concluídos (${pct}%)`;
     progressFill.style.width = `${pct}%`;
 
-    container.innerHTML = criteria.map(c => `
-        <div class="sdd-criteria-row ${c.checked ? 'checked' : ''}" data-line="${c.line_no}">
+    const selection = sddGetTaskSelection('current');
+    container.innerHTML = `
+        ${sddRenderTaskBulkToolbar(criteria, 'current')}
+        ${criteria.map(c => {
+            const selected = selection.has(Number(c.line_no));
+            return `
+        <div class="sdd-criteria-row ${c.checked ? 'checked' : ''} ${selected ? 'is-selected' : ''}" data-line="${c.line_no}">
+            <button type="button"
+                    class="sdd-task-row-select ${selected ? 'is-selected' : ''}"
+                    role="checkbox"
+                    aria-checked="${selected ? 'true' : 'false'}"
+                    aria-label="${selected ? 'Remover task da seleção' : 'Selecionar task para exclusão em massa'}"
+                    onclick="sddToggleTaskSelection(${c.line_no}, 'current', ${selected ? 'false' : 'true'})">
+                <i data-lucide="${selected ? 'check-square' : 'square'}"></i>
+            </button>
             <button type="button"
                     class="sdd-task-toggle ${c.checked ? 'is-checked' : ''}"
                     role="checkbox"
@@ -10154,7 +10248,9 @@ function sddRenderCriteria() {
                     <i data-lucide="trash-2"></i>
                 </button>
             </div>
-        </div>`).join('');
+        </div>`;
+        }).join('')}
+    `;
     if (window.lucide) lucide.createIcons();
 }
 
@@ -10185,6 +10281,7 @@ function sddRenderProjectTasks() {
     const criteria = sddState.projectCriteria || [];
     const filter = sddState.projectTaskFilter || 'all';
     if (!container) return;
+    sddPruneTaskSelection('project', criteria);
 
     document.querySelectorAll('[data-sdd-task-filter]').forEach(button => {
         const isActive = button.dataset.sddTaskFilter === filter;
@@ -10210,11 +10307,7 @@ function sddRenderProjectTasks() {
     if (progressText) progressText.textContent = `${done}/${total} concluídos (${pct}%)`;
     if (progressFill) progressFill.style.width = `${pct}%`;
 
-    const filteredCriteria = criteria.filter(c => {
-        if (filter === 'open') return !c.checked;
-        if (filter === 'done') return c.checked;
-        return true;
-    });
+    const filteredCriteria = sddGetFilteredProjectCriteria();
 
     if (!filteredCriteria.length) {
         const label = filter === 'open' ? 'abertas' : filter === 'done' ? 'concluídas' : 'cadastradas';
@@ -10227,8 +10320,21 @@ function sddRenderProjectTasks() {
         return;
     }
 
-    container.innerHTML = filteredCriteria.map(c => `
-        <div class="sdd-criteria-row ${c.checked ? 'checked' : ''}" data-line="${c.line_no}">
+    const selection = sddGetTaskSelection('project');
+    container.innerHTML = `
+        ${sddRenderTaskBulkToolbar(filteredCriteria, 'project')}
+        ${filteredCriteria.map(c => {
+            const selected = selection.has(Number(c.line_no));
+            return `
+        <div class="sdd-criteria-row ${c.checked ? 'checked' : ''} ${selected ? 'is-selected' : ''}" data-line="${c.line_no}">
+            <button type="button"
+                    class="sdd-task-row-select ${selected ? 'is-selected' : ''}"
+                    role="checkbox"
+                    aria-checked="${selected ? 'true' : 'false'}"
+                    aria-label="${selected ? 'Remover task da seleção' : 'Selecionar task para exclusão em massa'}"
+                    onclick="sddToggleTaskSelection(${c.line_no}, 'project', ${selected ? 'false' : 'true'})">
+                <i data-lucide="${selected ? 'check-square' : 'square'}"></i>
+            </button>
             <button type="button"
                     class="sdd-task-toggle ${c.checked ? 'is-checked' : ''}"
                     role="checkbox"
@@ -10261,12 +10367,15 @@ function sddRenderProjectTasks() {
                     <i data-lucide="trash-2"></i>
                 </button>
             </div>
-        </div>`).join('');
+        </div>`;
+        }).join('')}
+    `;
     if (window.lucide) lucide.createIcons();
 }
 
 function sddSetProjectTaskFilter(filter) {
     sddState.projectTaskFilter = ['all', 'open', 'done'].includes(filter) ? filter : 'all';
+    sddGetTaskSelection('project').clear();
     sddRenderProjectTasks();
 }
 
@@ -10480,6 +10589,55 @@ async function sddDeleteTask(lineNo, source = 'current') {
             deleteButton.classList.remove('is-loading');
         }
         gitideNotify({ title: 'Falha ao excluir task', message: error.message, variant: 'danger' });
+    }
+}
+
+async function sddDeleteSelectedTasks(source = 'current') {
+    if (!state.activeProjectId) return;
+    const selection = sddGetTaskSelection(source);
+    const lineNos = Array.from(selection).map(Number).filter(Boolean);
+    if (!lineNos.length) return;
+
+    const confirmed = await gitideConfirm({
+        title: 'Excluir tasks selecionadas',
+        kicker: 'Task List',
+        message: `Tem certeza que deseja excluir <strong>${lineNos.length} task(s)</strong>?<br><small>As tasks e seus tópicos correspondentes em task.details.md serão removidos.</small>`,
+        confirmText: 'Excluir selecionadas',
+        variant: 'danger'
+    });
+    if (!confirmed) return;
+
+    document.querySelectorAll('.sdd-task-bulk-delete').forEach(button => {
+        button.disabled = true;
+        button.classList.add('is-loading');
+    });
+
+    try {
+        const res = await fetch(`/api/projects/${state.activeProjectId}/sdd/tasks/bulk`, {
+            method: 'DELETE',
+            headers: { ...getHeaders(), 'Content-Type': 'application/json' },
+            body: JSON.stringify({ line_nos: lineNos })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || 'Erro ao excluir tasks');
+
+        selection.clear();
+        sddGetTaskSelection(source === 'project' ? 'current' : 'project').clear();
+        sddCloseTaskDetail();
+        gitideNotify({
+            title: 'Tasks excluídas',
+            message: `${data.tasks?.length || lineNos.length} task(s) removidas da Task List.`,
+            variant: 'success'
+        });
+        await sddLoadProjectTasks();
+        if (sddState.activeFilename) await sddLoadCriteria();
+        await sddLoadProjectDocuments();
+    } catch (error) {
+        document.querySelectorAll('.sdd-task-bulk-delete').forEach(button => {
+            button.disabled = false;
+            button.classList.remove('is-loading');
+        });
+        gitideNotify({ title: 'Falha ao excluir tasks', message: error.message, variant: 'danger' });
     }
 }
 

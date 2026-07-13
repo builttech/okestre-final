@@ -391,6 +391,9 @@ class SddCriteriaItem(BaseModel):
 class SddCriteriaUpdateRequest(BaseModel):
     criteria: List[SddCriteriaItem] = Field(..., description="Lista de critérios a serem atualizados")
 
+class SddTaskBulkDeleteRequest(BaseModel):
+    line_nos: List[int] = Field(..., min_length=1, description="Linhas (1-indexed) das tasks a excluir")
+
 class SddTestGenerateRequest(BaseModel):
     filename: str = Field(..., description="Nome do arquivo de especificação (.md)")
     framework: str = Field(..., description="Framework de teste (ex: pytest, jest, phpunit, mocha)")
@@ -5387,6 +5390,78 @@ def update_sdd_project_tasks(
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro ao atualizar tarefas: {str(e)}")
+
+
+@app.delete("/api/projects/{project_id}/sdd/tasks/bulk", tags=["Spec-Driven Development"])
+def delete_sdd_project_tasks_bulk(
+    req: SddTaskBulkDeleteRequest,
+    project: Project = Depends(get_project_or_404),
+    db: Session = Depends(get_db),
+    _ = Depends(get_api_key),
+):
+    """Remove múltiplas tarefas do task.md e suas seções correspondentes do task.details.md."""
+    line_nos = sorted({line_no for line_no in req.line_nos if line_no >= 1}, reverse=True)
+    if not line_nos:
+        raise HTTPException(status_code=400, detail="Nenhuma linha de tarefa válida foi informada.")
+
+    task_path = _sdd_project_document_path(project, "task")
+    if not os.path.exists(task_path):
+        raise HTTPException(status_code=404, detail="Documento de tarefas não encontrado.")
+
+    try:
+        with open(task_path, "r", encoding="utf-8") as f:
+            lines = f.readlines()
+
+        removed_tasks = []
+        invalid_lines = []
+        for line_no in line_nos:
+            line_index = line_no - 1
+            if line_index >= len(lines):
+                invalid_lines.append(line_no)
+                continue
+            criterion = _parse_sdd_task_line(lines[line_index], line_index)
+            if not criterion:
+                invalid_lines.append(line_no)
+                continue
+            removed_tasks.append(criterion)
+            del lines[line_index]
+
+        if invalid_lines:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Linhas inválidas ou sem task: {', '.join(map(str, sorted(invalid_lines)))}",
+            )
+        if not removed_tasks:
+            raise HTTPException(status_code=400, detail="Nenhuma tarefa válida foi encontrada para exclusão.")
+
+        with open(task_path, "w", encoding="utf-8") as f:
+            f.writelines(lines)
+
+        details_path = _sdd_project_document_path(project, "task_details")
+        removed_details = []
+        for task in removed_tasks:
+            if _remove_sdd_task_detail_section(details_path, task["code"]):
+                removed_details.append(task["code"])
+
+        rel_path = os.path.relpath(task_path, project.path).replace("\\", "/")
+        removed_codes = [task["code"] for task in sorted(removed_tasks, key=lambda item: item["line_no"])]
+        db.add(ActivityLog(
+            project_id=project.id,
+            action_type="SDD_TASKS_BULK_DELETED",
+            details=f"{len(removed_codes)} tasks removidas de {rel_path}: {', '.join(removed_codes)}",
+        ))
+        db.commit()
+        return {
+            "status": "success",
+            "message": "Tarefas excluídas com sucesso.",
+            "tasks": removed_codes,
+            "details_removed": removed_details,
+            "filepath": rel_path,
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao excluir tarefas: {str(e)}")
 
 
 @app.delete("/api/projects/{project_id}/sdd/tasks/{line_no}", tags=["Spec-Driven Development"])
