@@ -1,4 +1,6 @@
 (function () {
+  const PROMPT_COPY_CONFIG_PATH = '.gitide/prompt-copy.json';
+
   function activeProjectContext() {
     const appState = window.gitideAppState || {};
     const selector = document.getElementById('project-selector');
@@ -22,6 +24,96 @@
   }
 
   let selectedPromptCopyTemplate = 'base';
+  let promptCopyConfig = { version: 1, templates: {} };
+  let promptCopyConfigProjectId = null;
+  let promptCopyDirty = false;
+
+  function promptRequestHeaders(json = false) {
+    const headers = {};
+    const apiKey = window.gitideAppState?.apiKey || '';
+    if (apiKey) headers.Authorization = `Bearer ${apiKey}`;
+    if (json) headers['Content-Type'] = 'application/json';
+    return headers;
+  }
+
+  function sanitizePromptContent(text) {
+    return String(text || '')
+      .replace(/^\s*Token\s+Act\s+IA\s*:\s*.*$/gmi, '')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim();
+  }
+
+  function getPromptTemplate(key = selectedPromptCopyTemplate) {
+    return promptCopyTemplates[key] || promptCopyTemplates.base;
+  }
+
+  function getSavedPromptContent(key = selectedPromptCopyTemplate) {
+    const saved = promptCopyConfig?.templates?.[key];
+    if (typeof saved === 'string') return sanitizePromptContent(saved);
+    if (saved && typeof saved.content === 'string') return sanitizePromptContent(saved.content);
+    return '';
+  }
+
+  async function loadPromptCopyConfig(force = false) {
+    const { projectId } = activeProjectContext();
+    if (!projectId) {
+      promptCopyConfig = { version: 1, templates: {} };
+      promptCopyConfigProjectId = null;
+      return;
+    }
+
+    if (!force && promptCopyConfigProjectId === String(projectId)) return;
+
+    promptCopyConfigProjectId = String(projectId);
+    promptCopyConfig = { version: 1, templates: {} };
+
+    try {
+      const response = await fetch(`/api/projects/${projectId}/files/read?filepath=${encodeURIComponent(PROMPT_COPY_CONFIG_PATH)}`, {
+        headers: promptRequestHeaders()
+      });
+
+      if (response.status === 404) return;
+      if (!response.ok) throw new Error('Falha ao carregar prompts salvos.');
+
+      const data = await response.json();
+      const parsed = JSON.parse(data.content || '{}');
+      promptCopyConfig = {
+        version: 1,
+        ...parsed,
+        templates: parsed.templates && typeof parsed.templates === 'object' ? parsed.templates : {}
+      };
+    } catch (error) {
+      console.warn('[Prompt Copy] Não foi possível carregar prompts salvos:', error);
+      setCopyStatus('Prompts salvos indisponíveis. Usando padrão.');
+    }
+  }
+
+  async function savePromptCopyConfig() {
+    const { projectId } = activeProjectContext();
+    if (!projectId) throw new Error('Nenhum projeto ativo selecionado.');
+
+    const payload = {
+      version: 1,
+      updated_at: new Date().toISOString(),
+      templates: promptCopyConfig.templates || {}
+    };
+
+    const response = await fetch(`/api/projects/${projectId}/files/write`, {
+      method: 'POST',
+      headers: promptRequestHeaders(true),
+      body: JSON.stringify({
+        filepath: PROMPT_COPY_CONFIG_PATH,
+        content: JSON.stringify(payload, null, 2)
+      })
+    });
+
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      throw new Error(data.detail || 'Falha ao salvar prompt.');
+    }
+
+    promptCopyConfig = payload;
+  }
 
   function buildPromptContextHeader() {
     const { projectName, projectId } = activeProjectContext();
@@ -142,8 +234,12 @@
     }
   };
 
-  function buildPromptCopyText() {
-    return (promptCopyTemplates[selectedPromptCopyTemplate] || promptCopyTemplates.base).build();
+  function buildPromptCopyText(useDefault = false) {
+    if (!useDefault) {
+      const saved = getSavedPromptContent();
+      if (saved) return saved;
+    }
+    return sanitizePromptContent(getPromptTemplate().build());
   }
 
   function copyText(text) {
@@ -160,9 +256,12 @@
     return Promise.resolve();
   }
 
-  function updatePromptPreview() {
+  function updatePromptPreview(options = {}) {
     const preview = document.getElementById('prompt-copy-preview');
-    if (preview) preview.value = buildPromptCopyText();
+    if (preview && !options.keepEditorValue) {
+      preview.value = buildPromptCopyText(Boolean(options.useDefault));
+      promptCopyDirty = false;
+    }
     const counter = document.getElementById('prompt-copy-counter');
     if (counter) {
       const text = preview?.value || buildPromptCopyText();
@@ -170,13 +269,27 @@
     }
     const selectedLabel = document.getElementById('prompt-copy-selected-label');
     if (selectedLabel) {
-      selectedLabel.textContent = (promptCopyTemplates[selectedPromptCopyTemplate] || promptCopyTemplates.base).label;
+      selectedLabel.textContent = getPromptTemplate().label;
+    }
+    const saveButton = document.getElementById('btn-save-prompt-copy');
+    if (saveButton) saveButton.disabled = !promptCopyDirty;
+    const resetButton = document.getElementById('btn-reset-prompt-copy');
+    if (resetButton) resetButton.disabled = !getSavedPromptContent();
+    const source = document.getElementById('prompt-copy-source');
+    if (source) {
+      source.textContent = getSavedPromptContent() ? 'Editado pelo usuário' : 'Padrão do sistema';
     }
     document.querySelectorAll('[data-prompt-copy-template]').forEach((button) => {
       const isActive = button.dataset.promptCopyTemplate === selectedPromptCopyTemplate;
       button.classList.toggle('is-active', isActive);
       button.setAttribute('aria-pressed', isActive ? 'true' : 'false');
     });
+  }
+
+  function refreshPromptCopyFromProject(force = false) {
+    return loadPromptCopyConfig(force)
+      .then(() => updatePromptPreview())
+      .catch(() => updatePromptPreview());
   }
 
   function setCopyStatus(message) {
@@ -200,7 +313,7 @@
     });
 
     
-    if (tabName === 'prompt-copy') updatePromptPreview();
+    if (tabName === 'prompt-copy') refreshPromptCopyFromProject();
     if (tabName === 'parametrization') {
        if (!paramEditor) setTimeout(initParamEditor, 50);
        else setTimeout(() => paramEditor.refresh(), 50);
@@ -274,16 +387,19 @@
                 <div>
                   <span>Preview do prompt</span>
                   <strong id="prompt-copy-selected-label">${promptCopyTemplates[selectedPromptCopyTemplate].label}</strong>
+                  <small id="prompt-copy-source">Padrão do sistema</small>
                 </div>
                 <small id="prompt-copy-counter">0 caracteres</small>
               </div>
-              <textarea id="prompt-copy-preview" class="prompt-copy-preview" readonly></textarea>
+              <textarea id="prompt-copy-preview" class="prompt-copy-preview" spellcheck="false"></textarea>
             </section>
           </div>
 
           <div class="prompt-copy-actions">
             <div class="prompt-copy-main-actions">
               <button class="btn btn-primary" id="btn-copy-prompt-copy" type="button"><i data-lucide="copy"></i> Copiar Prompt</button>
+              <button class="btn btn-secondary" id="btn-save-prompt-copy" type="button" disabled><i data-lucide="save"></i> Salvar Prompt</button>
+              <button class="btn btn-secondary" id="btn-reset-prompt-copy" type="button" disabled><i data-lucide="rotate-ccw"></i> Restaurar padrão</button>
               <button class="btn btn-secondary" id="btn-copy-project-context" type="button"><i data-lucide="file-text"></i> Copiar Contexto</button>
               <button class="btn btn-secondary" id="btn-refresh-prompt-copy" type="button"><i data-lucide="refresh-cw"></i> Atualizar</button>
             </div>
@@ -297,7 +413,17 @@
   }
 
   function wirePromptActions() {
-    document.getElementById('btn-refresh-prompt-copy')?.addEventListener('click', updatePromptPreview);
+    document.getElementById('btn-refresh-prompt-copy')?.addEventListener('click', () => {
+      loadPromptCopyConfig(true).then(() => {
+        updatePromptPreview();
+        setCopyStatus('Prompt atualizado.');
+      });
+    });
+
+    document.getElementById('prompt-copy-preview')?.addEventListener('input', () => {
+      promptCopyDirty = true;
+      updatePromptPreview({ keepEditorValue: true });
+    });
 
     document.querySelectorAll('[data-prompt-copy-template]').forEach((button) => {
       button.addEventListener('click', () => {
@@ -311,6 +437,44 @@
       copyText(preview?.value || buildPromptCopyText())
         .then(() => setCopyStatus('Prompt copiado.'))
         .catch(() => setCopyStatus('Não foi possível copiar.'));
+    });
+
+    document.getElementById('btn-save-prompt-copy')?.addEventListener('click', async () => {
+      const preview = document.getElementById('prompt-copy-preview');
+      const content = sanitizePromptContent(preview?.value || '');
+      if (!content) {
+        setCopyStatus('Prompt vazio não foi salvo.');
+        return;
+      }
+
+      promptCopyConfig.templates = promptCopyConfig.templates || {};
+      promptCopyConfig.templates[selectedPromptCopyTemplate] = {
+        content,
+        updated_at: new Date().toISOString()
+      };
+
+      try {
+        await savePromptCopyConfig();
+        if (preview) preview.value = content;
+        promptCopyDirty = false;
+        updatePromptPreview({ keepEditorValue: true });
+        setCopyStatus('Prompt salvo no projeto.');
+      } catch (error) {
+        setCopyStatus(error.message || 'Não foi possível salvar.');
+      }
+    });
+
+    document.getElementById('btn-reset-prompt-copy')?.addEventListener('click', async () => {
+      promptCopyConfig.templates = promptCopyConfig.templates || {};
+      delete promptCopyConfig.templates[selectedPromptCopyTemplate];
+
+      try {
+        await savePromptCopyConfig();
+        updatePromptPreview({ useDefault: true });
+        setCopyStatus('Modelo restaurado para o padrão.');
+      } catch (error) {
+        setCopyStatus(error.message || 'Não foi possível restaurar.');
+      }
     });
 
     document.getElementById('btn-copy-project-context')?.addEventListener('click', () => {
@@ -534,10 +698,10 @@
     wirePromptActions();
     wireParametrization();
 
-    document.getElementById('project-selector')?.addEventListener('change', updatePromptPreview);
-    window.addEventListener('gitide:active-project-changed', updatePromptPreview);
-    window.addEventListener('gitide:projects-loaded', updatePromptPreview);
-    updatePromptPreview();
+    document.getElementById('project-selector')?.addEventListener('change', () => refreshPromptCopyFromProject(true));
+    window.addEventListener('gitide:active-project-changed', () => refreshPromptCopyFromProject(true));
+    window.addEventListener('gitide:projects-loaded', () => refreshPromptCopyFromProject(true));
+    refreshPromptCopyFromProject();
 
     if (typeof window.refreshLucideIcons === 'function') window.refreshLucideIcons();
   }
