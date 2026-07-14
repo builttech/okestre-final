@@ -1,0 +1,120 @@
+{
+    "title": "Termo de Abertura do Projeto",
+    "sections": [
+        {
+            "heading": "Project Charter (TAP)",
+            "text": "",
+            "type": "paragraph"
+        },
+        {
+            "heading": "1. Identificação do Projeto",
+            "text": "- **Nome do Projeto:** [Nome]\n- **Patrocinador:** [Nome]\n- **Gerente de Projeto:** [Nome]",
+            "type": "paragraph"
+        },
+        {
+            "heading": "2. Histórico de Versão",
+            "text": "- **Versão:** 1.0\n- **Data:** [Data]\n- **Alteração:** Criação inicial",
+            "type": "paragraph"
+        },
+        {
+            "heading": "3. Sumário Executivo",
+            "text": "[Resumo do projeto]",
+            "type": "paragraph"
+        },
+        {
+            "heading": "4. Contexto e Justificativa",
+            "text": "[Por que este projeto está sendo feito?]",
+            "type": "paragraph"
+        },
+        {
+            "heading": "5. Problema ou Oportunidade",
+            "text": "[Qual problema o projeto resolve?]",
+            "type": "paragraph"
+        },
+        {
+            "heading": "6. Objetivos",
+            "text": "[Metas SMART do projeto]",
+            "type": "paragraph"
+        },
+        {
+            "heading": "7. Escopo",
+            "text": "[O que faz parte do projeto]",
+            "type": "paragraph"
+        },
+        {
+            "heading": "8. Fora do Escopo",
+            "text": "[O que não faz parte do projeto]",
+            "type": "paragraph"
+        },
+        {
+            "heading": "9. Stakeholders",
+            "text": "- [Nome do Stakeholder e Papel]",
+            "type": "paragraph"
+        },
+        {
+            "heading": "10. Premissas",
+            "text": "- [Premissas assumidas]",
+            "type": "paragraph"
+        },
+        {
+            "heading": "11. Restrições",
+            "text": "- [Restrições de tempo, custo, tecnologia]",
+            "type": "paragraph"
+        },
+        {
+            "heading": "12. Benefícios Esperados",
+            "text": "- [ROI, métricas, melhorias]",
+            "type": "paragraph"
+        },
+        {
+            "heading": "13. Regras de Negócio Globais",
+            "text": "- [Regras de negócio que afetam todo o projeto]",
+            "type": "paragraph"
+        },
+        {
+            "heading": "14. Fluxo Principal",
+            "text": "[Visão macro de como o sistema deve funcionar]",
+            "type": "paragraph"
+        },
+        {
+            "heading": "15. Integrações",
+            "text": "[Sistemas externos mapeados]",
+            "type": "paragraph"
+        },
+        {
+            "heading": "16. Relatórios e Indicadores",
+            "text": "[Painéis e relatórios esperados]",
+            "type": "paragraph"
+        },
+        {
+            "heading": "17. Cenários",
+            "text": "[Cenários de uso mapeados]",
+            "type": "paragraph"
+        },
+        {
+            "heading": "18. Entregáveis",
+            "text": "- [O que será entregue]",
+            "type": "paragraph"
+        },
+        {
+            "heading": "19. Critérios de Aceite",
+            "text": "- [Como validaremos o projeto]",
+            "type": "paragraph"
+        },
+        {
+            "heading": "20. Riscos",
+            "text": "- [Risco e Mitigação]",
+            "type": "paragraph"
+        },
+        {
+            "heading": "21. Próximos Passos",
+            "text": "- [Próximas etapas pós-aprovação da TAP]",
+            "type": "paragraph"
+        },
+        {
+            "heading": "22. Rastreabilidade",
+            "text": "- [Fontes de referência]",
+            "type": "paragraph"
+        }
+    ]
+}

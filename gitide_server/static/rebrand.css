@@ -15639,6 +15639,658 @@ pre.engineering-report-table-line {
     }
 }
 
+/* White theme: full application skin driven by the existing theme selector. */
+html[data-theme="light"] {
+    color-scheme: light;
+
+    --console-bg: #ffffff;
+    --console-bg-2: #ffffff;
+    --console-panel: #ffffff;
+    --console-panel-2: #f7f7f8;
+    --console-panel-3: #f1f3f5;
+    --console-line: rgba(15, 23, 42, 0.10);
+    --console-line-strong: rgba(15, 23, 42, 0.20);
+    --console-line-soft: rgba(15, 23, 42, 0.065);
+    --console-text: #0f172a;
+    --console-text-soft: #334155;
+    --console-muted: #64748b;
+    --console-dim: #94a3b8;
+    --console-green: #111827;
+    --console-green-soft: rgba(15, 23, 42, 0.075);
+    --console-red: #dc2626;
+    --console-red-soft: rgba(220, 38, 38, 0.10);
+    --console-amber: #b45309;
+    --console-focus: 0 0 0 1px rgba(15, 23, 42, 0.36), 0 0 0 4px rgba(15, 23, 42, 0.08);
+
+    --dayact-bg: #ffffff;
+    --dayact-bg-secondary: #f8fafc;
+    --dayact-bg-muted: #f1f5f9;
+    --dayact-surface: #ffffff;
+    --dayact-surface-alt: #f8fafc;
+    --dayact-text: #0f172a;
+    --dayact-text-secondary: #475569;
+    --dayact-text-muted: #94a3b8;
+    --dayact-accent: #111827;
+    --dayact-accent-2: #64748b;
+    --dayact-border: rgba(15, 23, 42, 0.22);
+    --dayact-border-soft: rgba(15, 23, 42, 0.14);
+    --dayact-border-muted: rgba(15, 23, 42, 0.09);
+    --dayact-shadow-soft: rgba(15, 23, 42, 0.08) 0 1px 2px;
+    --dayact-shadow-panel: rgba(15, 23, 42, 0.08) 0 18px 44px;
+
+    --ds-bg: var(--console-bg);
+    --ds-surface: var(--console-panel-2);
+    --ds-surface-elevated: var(--console-panel);
+    --ds-surface-muted: var(--console-panel-3);
+    --ds-text: var(--console-text);
+    --ds-text-secondary: var(--console-muted);
+    --ds-text-muted: var(--console-dim);
+    --ds-border: var(--console-line);
+    --ds-border-strong: var(--console-line-strong);
+    --ds-primary: var(--console-green);
+    --ds-primary-soft: var(--console-green-soft);
+    --ds-secondary: var(--console-muted);
+    --ds-info: var(--console-text-soft);
+    --ds-purple: var(--console-muted);
+    --ds-success: #166534;
+    --ds-warning: var(--console-amber);
+    --ds-danger: var(--console-red);
+
+    --frame-bg: var(--console-bg);
+    --frame-canvas: var(--console-bg);
+    --frame-panel: var(--console-panel);
+    --frame-panel-solid: var(--console-panel);
+    --frame-panel-hover: rgba(15, 23, 42, 0.04);
+    --frame-border: var(--console-line);
+    --frame-border-strong: var(--console-line-strong);
+    --frame-blue: var(--console-green);
+    --frame-blue-soft: var(--console-green-soft);
+    --frame-text: var(--console-text);
+    --frame-muted: var(--console-muted);
+    --frame-subtle: var(--console-dim);
+    --frame-shadow: var(--dayact-shadow-panel);
+
+    --bg-base: var(--console-bg);
+    --bg-canvas: var(--console-bg);
+    --bg-surface: var(--console-panel-2);
+    --bg-surface-glass: var(--console-panel);
+    --bg-surface-hover: rgba(15, 23, 42, 0.04);
+    --bg-elevated: var(--console-panel);
+    --border-color: var(--console-line);
+    --border-color-strong: var(--console-line-strong);
+    --border-color-glow: rgba(15, 23, 42, 0.28);
+    --color-primary: var(--console-green);
+    --color-primary-glow: var(--console-green-soft);
+    --color-secondary: var(--console-muted);
+    --color-success: #166534;
+    --color-success-glow: rgba(22, 101, 52, 0.12);
+    --color-warning: var(--console-amber);
+    --color-danger: var(--console-red);
+    --color-danger-glow: var(--console-red-soft);
+    --text-main: var(--console-text);
+    --text-muted: var(--console-muted);
+    --text-dark: var(--console-dim);
+    --text-light: var(--console-text);
+}
+
+html[data-theme="light"],
+html[data-theme="light"] body {
+    background: var(--console-bg) !important;
+    color: var(--console-text) !important;
+}
+
+html[data-theme="light"] body::before {
+    display: block !important;
+    background:
+        linear-gradient(rgba(15, 23, 42, 0.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(15, 23, 42, 0.035) 1px, transparent 1px) !important;
+    background-size: 24px 24px !important;
+    opacity: 0.46 !important;
+}
+
+html[data-theme="light"] .topbar,
+html[data-theme="light"] .sidebar,
+html[data-theme="light"] .content-area,
+html[data-theme="light"] .tab-content,
+html[data-theme="light"] .tab-pane,
+html[data-theme="light"] .modal-card,
+html[data-theme="light"] .workspace-account-popover,
+html[data-theme="light"] .workspace-account-org-submenu,
+html[data-theme="light"] .workspace-switcher-menu {
+    background: var(--console-bg) !important;
+    color: var(--console-text) !important;
+}
+
+html[data-theme="light"] .card,
+html[data-theme="light"] .settings-card,
+html[data-theme="light"] .git-status-card,
+html[data-theme="light"] .git-operations-card,
+html[data-theme="light"] .git-console-card,
+html[data-theme="light"] .agent-main-panel,
+html[data-theme="light"] .tokens-content-panel,
+html[data-theme="light"] .tokens-sidebar-card,
+html[data-theme="light"] .file-tree-panel,
+html[data-theme="light"] .editor-panel,
+html[data-theme="light"] .db-editor-panel,
+html[data-theme="light"] .db-results-panel,
+html[data-theme="light"] .db-explorer-sidebar,
+html[data-theme="light"] .qa-card,
+html[data-theme="light"] .qa-detail-drawer,
+html[data-theme="light"] .estimation-card,
+html[data-theme="light"] .estimation-table-panel,
+html[data-theme="light"] .discovery-card,
+html[data-theme="light"] .discovery-results-card {
+    background: rgba(255, 255, 255, 0.92) !important;
+    border-color: var(--console-line) !important;
+    color: var(--console-text) !important;
+    box-shadow: none !important;
+}
+
+html[data-theme="light"] .workspace-switcher-trigger,
+html[data-theme="light"] .workspace-account-mode-row,
+html[data-theme="light"] .workspace-switcher-avatar,
+html[data-theme="light"] .select-input,
+html[data-theme="light"] .text-input,
+html[data-theme="light"] textarea,
+html[data-theme="light"] input,
+html[data-theme="light"] select,
+html[data-theme="light"] .terminal-output,
+html[data-theme="light"] .code-box,
+html[data-theme="light"] pre,
+html[data-theme="light"] .ops-infra-console,
+html[data-theme="light"] .prod-validator-preview,
+html[data-theme="light"] .security-rules-preview,
+html[data-theme="light"] .markdown-render,
+html[data-theme="light"] .sdd-markdown-preview,
+html[data-theme="light"] .sdd-task-detail-markdown {
+    background: var(--console-panel-2) !important;
+    border-color: var(--console-line) !important;
+    color: var(--console-text) !important;
+}
+
+html[data-theme="light"] .workspace-switcher-trigger:hover,
+html[data-theme="light"] .workspace-switcher.is-open .workspace-switcher-trigger,
+html[data-theme="light"] .workspace-account-mode-btn:hover,
+html[data-theme="light"] .workspace-account-mode-btn.is-active,
+html[data-theme="light"] .workspace-account-org-row:hover,
+html[data-theme="light"] .workspace-account-org-row[aria-expanded="true"],
+html[data-theme="light"] .workspace-account-item:hover,
+html[data-theme="light"] .workspace-switcher-option:hover,
+html[data-theme="light"] .workspace-switcher-option.is-selected,
+html[data-theme="light"] .workspace-switcher-create:hover,
+html[data-theme="light"] .nav-item:hover,
+html[data-theme="light"] .nav-item.active,
+html[data-theme="light"] .btn-secondary:hover,
+html[data-theme="light"] .btn-icon:hover,
+html[data-theme="light"] .btn-icon-sm:hover {
+    background: rgba(15, 23, 42, 0.055) !important;
+    border-color: var(--console-line-strong) !important;
+    color: var(--console-text) !important;
+}
+
+html[data-theme="light"] .btn-primary {
+    background: #0f172a !important;
+    border-color: #0f172a !important;
+    color: #ffffff !important;
+}
+
+html[data-theme="light"] .btn-secondary,
+html[data-theme="light"] .btn-icon,
+html[data-theme="light"] .btn-icon-sm,
+html[data-theme="light"] .workspace-account-mode-btn {
+    background: transparent !important;
+    border-color: var(--console-line) !important;
+    color: var(--console-text) !important;
+}
+
+html[data-theme="light"] .workspace-switcher-subtitle,
+html[data-theme="light"] .workspace-switcher-copy span,
+html[data-theme="light"] .sidebar-category-title,
+html[data-theme="light"] .section-header h3,
+html[data-theme="light"] .text-muted,
+html[data-theme="light"] .placeholder-text {
+    color: var(--console-muted) !important;
+}
+
+html[data-theme="light"] .CodeMirror {
+    background: var(--console-panel) !important;
+    color: var(--console-text) !important;
+}
+
+html[data-theme="light"] .CodeMirror-gutters {
+    background: var(--console-panel-2) !important;
+    border-color: var(--console-line) !important;
+}
+
+html[data-theme="light"] .CodeMirror-linenumber,
+html[data-theme="light"] .CodeMirror-guttermarker-subtle {
+    color: var(--console-dim) !important;
+}
+
+html[data-theme="light"] .CodeMirror-cursor {
+    border-left-color: var(--console-text) !important;
+}
+
+html[data-theme="light"] .app-container,
+html[data-theme="light"] .main-layout,
+html[data-theme="light"] .main-content,
+html[data-theme="light"] .brand-panel,
+html[data-theme="light"] .topbar-left,
+html[data-theme="light"] .topbar-right,
+html[data-theme="light"] .workspace-shell,
+html[data-theme="light"] .workspace-content,
+html[data-theme="light"] .view-container,
+html[data-theme="light"] .page-shell,
+html[data-theme="light"] .page-content {
+    background: #ffffff !important;
+    color: var(--console-text) !important;
+}
+
+html[data-theme="light"] .topbar,
+html[data-theme="light"] .sidebar {
+    background: rgba(255, 255, 255, 0.98) !important;
+    border-color: var(--console-line) !important;
+    box-shadow: none !important;
+}
+
+html[data-theme="light"] .sidebar .nav-item,
+html[data-theme="light"] .sidebar .nav-link,
+html[data-theme="light"] .sidebar .sidebar-item,
+html[data-theme="light"] .sidebar .sidebar-category-title,
+html[data-theme="light"] .sidebar .nav-label,
+html[data-theme="light"] .sidebar .nav-icon,
+html[data-theme="light"] .sidebar a,
+html[data-theme="light"] .brand-name,
+html[data-theme="light"] .brand-title {
+    color: var(--console-muted) !important;
+}
+
+html[data-theme="light"] .sidebar .nav-item.active,
+html[data-theme="light"] .sidebar .nav-item:hover,
+html[data-theme="light"] .sidebar .nav-link.active,
+html[data-theme="light"] .sidebar .nav-link:hover,
+html[data-theme="light"] .sidebar .sidebar-item.active,
+html[data-theme="light"] .sidebar .sidebar-item:hover {
+    background: rgba(15, 23, 42, 0.055) !important;
+    border-color: var(--console-line) !important;
+    color: var(--console-text) !important;
+}
+
+html[data-theme="light"] .sidebar .nav-item.active *,
+html[data-theme="light"] .sidebar .nav-item:hover *,
+html[data-theme="light"] .sidebar .nav-link.active *,
+html[data-theme="light"] .sidebar .nav-link:hover *,
+html[data-theme="light"] .sidebar .sidebar-item.active *,
+html[data-theme="light"] .sidebar .sidebar-item:hover * {
+    color: var(--console-text) !important;
+    stroke: currentColor !important;
+}
+
+html[data-theme="light"] .workspace-account-popover,
+html[data-theme="light"] .workspace-switcher-menu,
+html[data-theme="light"] .workspace-account-org-submenu {
+    background: #ffffff !important;
+    border-color: var(--console-line-strong) !important;
+    box-shadow: 0 18px 44px rgba(15, 23, 42, 0.14) !important;
+}
+
+html[data-theme="light"] .workspace-account-divider {
+    background: var(--console-line) !important;
+}
+
+html[data-theme="light"] .workspace-account-item,
+html[data-theme="light"] .workspace-account-org-row,
+html[data-theme="light"] .workspace-switcher-option,
+html[data-theme="light"] .workspace-switcher-create {
+    color: var(--console-text) !important;
+}
+
+html[data-theme="light"] .workspace-account-item *,
+html[data-theme="light"] .workspace-account-org-row *,
+html[data-theme="light"] .workspace-switcher-option *,
+html[data-theme="light"] .workspace-switcher-create * {
+    color: inherit !important;
+    stroke: currentColor !important;
+}
+
+html[data-theme="light"] .qa-layout,
+html[data-theme="light"] .qa-main,
+html[data-theme="light"] .qa-side,
+html[data-theme="light"] .qa-summary-item,
+html[data-theme="light"] .qa-toolbar,
+html[data-theme="light"] .qa-status-group,
+html[data-theme="light"] .qa-status-group-items,
+html[data-theme="light"] .qa-card,
+html[data-theme="light"] .qa-kanban-column,
+html[data-theme="light"] .qa-extension-box {
+    background: rgba(255, 255, 255, 0.96) !important;
+    border-color: var(--console-line) !important;
+    color: var(--console-text) !important;
+}
+
+html[data-theme="light"] .qa-kicker,
+html[data-theme="light"] .qa-main p,
+html[data-theme="light"] .qa-side p,
+html[data-theme="light"] .qa-card-meta,
+html[data-theme="light"] .qa-card-meta *,
+html[data-theme="light"] .qa-id,
+html[data-theme="light"] .qa-status-group-title,
+html[data-theme="light"] .qa-status-group-title *,
+html[data-theme="light"] .qa-empty-state,
+html[data-theme="light"] .qa-empty-state * {
+    color: var(--console-muted) !important;
+}
+
+html[data-theme="light"] .qa-main h1,
+html[data-theme="light"] .qa-main h2,
+html[data-theme="light"] .qa-main h3,
+html[data-theme="light"] .qa-main h4,
+html[data-theme="light"] .qa-main h5,
+html[data-theme="light"] .qa-side h1,
+html[data-theme="light"] .qa-side h2,
+html[data-theme="light"] .qa-side h3,
+html[data-theme="light"] .qa-side h4,
+html[data-theme="light"] .qa-side h5,
+html[data-theme="light"] .qa-summary-item strong,
+html[data-theme="light"] .qa-card-title,
+html[data-theme="light"] .qa-card h4 {
+    color: var(--console-text) !important;
+}
+
+html[data-theme="light"] .qa-view-tabs,
+html[data-theme="light"] .qa-view-tab,
+html[data-theme="light"] .qa-id-filter,
+html[data-theme="light"] .qa-id-filter input,
+html[data-theme="light"] #qa-status-filter,
+html[data-theme="light"] .qa-status-select,
+html[data-theme="light"] select.select-input,
+html[data-theme="light"] input.text-input {
+    background: #ffffff !important;
+    border-color: var(--console-line) !important;
+    color: var(--console-text) !important;
+}
+
+html[data-theme="light"] .qa-view-tab.active,
+html[data-theme="light"] .qa-view-tab:hover,
+html[data-theme="light"] select.select-input:hover,
+html[data-theme="light"] input.text-input:hover,
+html[data-theme="light"] select.select-input:focus,
+html[data-theme="light"] input.text-input:focus {
+    background: rgba(15, 23, 42, 0.055) !important;
+    border-color: var(--console-line-strong) !important;
+    color: var(--console-text) !important;
+}
+
+html[data-theme="light"] select option {
+    background: #ffffff !important;
+    color: #0f172a !important;
+}
+
+html[data-theme="light"] .qa-export-actions .btn,
+html[data-theme="light"] .qa-card-actions .btn-icon,
+html[data-theme="light"] .qa-detail-button,
+html[data-theme="light"] .qa-delete-button {
+    background: #ffffff !important;
+    border-color: var(--console-line) !important;
+    color: var(--console-text) !important;
+}
+
+html[data-theme="light"] .qa-export-actions .btn:hover,
+html[data-theme="light"] .qa-card-actions .btn-icon:hover,
+html[data-theme="light"] .qa-detail-button:hover,
+html[data-theme="light"] .qa-delete-button:hover {
+    background: rgba(15, 23, 42, 0.055) !important;
+    border-color: var(--console-line-strong) !important;
+}
+
+html[data-theme="light"] .qa-pill {
+    background: rgba(15, 23, 42, 0.055) !important;
+    border-color: var(--console-line) !important;
+}
+
+html[data-theme="light"] .qa-card-shot,
+html[data-theme="light"] .qa-detail-shot {
+    background: #ffffff !important;
+    border-color: var(--console-line) !important;
+}
+
+html[data-theme="light"] ::placeholder {
+    color: var(--console-dim) !important;
+    opacity: 1 !important;
+}
+
+/* Light theme: Files page */
+html[data-theme="light"] #tab-files,
+html[data-theme="light"] #tab-files .files-layout {
+    background: #ffffff !important;
+    color: var(--console-text) !important;
+}
+
+html[data-theme="light"] #tab-files .file-tree-panel,
+html[data-theme="light"] #tab-files .editor-panel {
+    background: rgba(255, 255, 255, 0.96) !important;
+    border-color: rgba(15, 23, 42, 0.16) !important;
+    color: var(--console-text) !important;
+    box-shadow: none !important;
+}
+
+html[data-theme="light"] #tab-files .panel-header,
+html[data-theme="light"] #tab-files #editor-header {
+    background: rgba(255, 255, 255, 0.88) !important;
+    border-color: rgba(15, 23, 42, 0.10) !important;
+    color: var(--console-text) !important;
+}
+
+html[data-theme="light"] #tab-files .panel-header h4,
+html[data-theme="light"] #tab-files .active-file-title,
+html[data-theme="light"] #tab-files .active-file-title i {
+    color: var(--console-text) !important;
+}
+
+html[data-theme="light"] #tab-files .file-tree-container {
+    background: #ffffff !important;
+    color: var(--console-text) !important;
+}
+
+html[data-theme="light"] #tab-files .tree-item,
+html[data-theme="light"] #tab-files .file-node,
+html[data-theme="light"] #tab-files .file-node-main,
+html[data-theme="light"] #tab-files .file-node-main span {
+    color: var(--console-text-soft) !important;
+}
+
+html[data-theme="light"] #tab-files .file-node:hover,
+html[data-theme="light"] #tab-files .file-node:focus-within {
+    background: rgba(15, 23, 42, 0.055) !important;
+    color: var(--console-text) !important;
+}
+
+html[data-theme="light"] #tab-files .file-node.active {
+    background: rgba(15, 23, 42, 0.075) !important;
+    border-left-color: rgba(15, 23, 42, 0.72) !important;
+    color: var(--console-text) !important;
+}
+
+html[data-theme="light"] #tab-files .file-node.active *,
+html[data-theme="light"] #tab-files .file-node:hover *,
+html[data-theme="light"] #tab-files .file-node:focus-within * {
+    color: var(--console-text) !important;
+}
+
+html[data-theme="light"] #tab-files .fa-folder,
+html[data-theme="light"] #tab-files .fa-folder-open {
+    color: #b45309 !important;
+}
+
+html[data-theme="light"] #tab-files .file-node.file-doc i,
+html[data-theme="light"] #tab-files .file-node.file-img i {
+    color: var(--console-text-soft) !important;
+}
+
+html[data-theme="light"] #tab-files .file-tree-actions .btn-icon,
+html[data-theme="light"] #tab-files .editor-actions .btn,
+html[data-theme="light"] #tab-files .workspace-tree-delete {
+    background: #ffffff !important;
+    border: 1px solid rgba(15, 23, 42, 0.14) !important;
+    color: var(--console-text) !important;
+}
+
+html[data-theme="light"] #tab-files .file-tree-actions .btn-icon:hover,
+html[data-theme="light"] #tab-files .editor-actions .btn:hover,
+html[data-theme="light"] #tab-files .workspace-tree-delete:hover {
+    background: rgba(15, 23, 42, 0.055) !important;
+    border-color: rgba(15, 23, 42, 0.24) !important;
+}
+
+html[data-theme="light"] #tab-files .editor-body-wrapper,
+html[data-theme="light"] #tab-files .editor-container,
+html[data-theme="light"] #tab-files #file-editor-textarea,
+html[data-theme="light"] #tab-files .CodeMirror,
+html[data-theme="light"] #tab-files .CodeMirror-scroll,
+html[data-theme="light"] #tab-files .CodeMirror-sizer,
+html[data-theme="light"] #tab-files .CodeMirror-lines,
+html[data-theme="light"] #tab-files .CodeMirror-code,
+html[data-theme="light"] #tab-files .CodeMirror pre {
+    background: #ffffff !important;
+    color: #0f172a !important;
+}
+
+html[data-theme="light"] #tab-files .editor-container {
+    border-color: rgba(15, 23, 42, 0.12) !important;
+}
+
+html[data-theme="light"] #tab-files .editor-gutter,
+html[data-theme="light"] #tab-files .CodeMirror-gutters {
+    background: #f8fafc !important;
+    border-color: rgba(15, 23, 42, 0.10) !important;
+    color: var(--console-dim) !important;
+}
+
+html[data-theme="light"] #tab-files .CodeMirror-linenumber,
+html[data-theme="light"] #tab-files .CodeMirror-guttermarker-subtle {
+    color: var(--console-dim) !important;
+}
+
+html[data-theme="light"] #tab-files .CodeMirror-cursor {
+    border-left-color: #0f172a !important;
+}
+
+html[data-theme="light"] #tab-files .CodeMirror-selected,
+html[data-theme="light"] #tab-files .CodeMirror-activeline-background {
+    background: rgba(15, 23, 42, 0.08) !important;
+}
+
+html[data-theme="light"] #tab-files .editor-meta,
+html[data-theme="light"] #tab-files .file-snapshots-drawer,
+html[data-theme="light"] #tab-files .snapshots-timeline {
+    background: #ffffff !important;
+    border-color: rgba(15, 23, 42, 0.10) !important;
+    color: var(--console-text-soft) !important;
+}
+
+html[data-theme="light"] #tab-files .loading-spinner {
+    color: var(--console-muted) !important;
+}
+
+/* Light theme: Files page contrast pass */
+html[data-theme="light"] .topbar,
+html[data-theme="light"] .topbar *,
+html[data-theme="light"] .brand,
+html[data-theme="light"] .brand *,
+html[data-theme="light"] .sidebar,
+html[data-theme="light"] .sidebar * {
+    opacity: 1 !important;
+}
+
+html[data-theme="light"] .brand-text h1,
+html[data-theme="light"] .brand-name,
+html[data-theme="light"] .brand-title {
+    color: #0f172a !important;
+}
+
+html[data-theme="light"] .brand-text span,
+html[data-theme="light"] .sidebar-category-title,
+html[data-theme="light"] .sidebar-footer,
+html[data-theme="light"] .sidebar-meta-row {
+    color: #64748b !important;
+}
+
+html[data-theme="light"] .sidebar .nav-item,
+html[data-theme="light"] .sidebar .nav-link,
+html[data-theme="light"] .sidebar .sidebar-item {
+    color: #334155 !important;
+}
+
+html[data-theme="light"] .sidebar .nav-item i,
+html[data-theme="light"] .sidebar .nav-item svg,
+html[data-theme="light"] .sidebar .nav-link i,
+html[data-theme="light"] .sidebar .nav-link svg,
+html[data-theme="light"] .sidebar .sidebar-item i,
+html[data-theme="light"] .sidebar .sidebar-item svg {
+    color: #475569 !important;
+    stroke: currentColor !important;
+}
+
+html[data-theme="light"] .sidebar .nav-item.active,
+html[data-theme="light"] .sidebar .nav-link.active,
+html[data-theme="light"] .sidebar .sidebar-item.active {
+    background: rgba(15, 23, 42, 0.075) !important;
+    border-color: rgba(15, 23, 42, 0.18) !important;
+    color: #0f172a !important;
+}
+
+html[data-theme="light"] #tab-files .panel-header h4,
+html[data-theme="light"] #tab-files .active-file-title {
+    opacity: 1 !important;
+    color: #0f172a !important;
+    font-weight: 700 !important;
+}
+
+html[data-theme="light"] #tab-files .file-tree-actions .btn-icon,
+html[data-theme="light"] #tab-files .editor-actions .btn {
+    opacity: 1 !important;
+}
+
+html[data-theme="light"] #tab-files .editor-actions .btn:disabled,
+html[data-theme="light"] #tab-files .editor-actions .btn[disabled] {
+    background: #f8fafc !important;
+    border-color: rgba(15, 23, 42, 0.12) !important;
+    color: #94a3b8 !important;
+    opacity: 0.72 !important;
+}
+
+html[data-theme="light"] #tab-files .file-tree-container,
+html[data-theme="light"] #tab-files .file-tree-container *,
+html[data-theme="light"] #tab-files .editor-container,
+html[data-theme="light"] #tab-files .editor-container * {
+    opacity: 1 !important;
+}
+
+html[data-theme="light"] #tab-files .file-node {
+    color: #334155 !important;
+    font-weight: 500 !important;
+}
+
+html[data-theme="light"] #tab-files .file-node-main span {
+    color: inherit !important;
+}
+
+html[data-theme="light"] #tab-files .file-node i:not(.fa-folder):not(.fa-folder-open),
+html[data-theme="light"] #tab-files .file-node svg {
+    color: #64748b !important;
+    stroke: currentColor !important;
+}
+
+html[data-theme="light"] #tab-files .file-node:hover,
+html[data-theme="light"] #tab-files .file-node.active {
+    color: #0f172a !important;
+}
+
+html[data-theme="light"] #tab-files .CodeMirror-placeholder,
+html[data-theme="light"] #tab-files #file-editor-textarea::placeholder {
+    color: #94a3b8 !important;
+}
+
 /* =========================================================
    END SECTION: official visual system
    ========================================================= */

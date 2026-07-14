@@ -167,6 +167,21 @@
       gap: 8px;
     }
 
+    .related-qa-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 40px;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .field-hint {
+      display: block;
+      margin-top: 6px;
+      color: #71717a;
+      font-size: 11px;
+      line-height: 1.35;
+    }
+
     .checkline {
       display: flex;
       align-items: center;
@@ -234,6 +249,14 @@
         <button id="generateTitle" type="button" class="inline-action icon-only" title="Gerar título curto pela descrição">✦</button>
       </div>
       <input id="title" type="text" placeholder="Ex: botão salvar não responde">
+      <label for="relatedQa">QA relacionado</label>
+      <div class="related-qa-row">
+        <select id="relatedQa">
+          <option value="">Nenhum QA relacionado</option>
+        </select>
+        <button id="refreshRelatedQas" type="button" class="inline-action icon-only" title="Atualizar QAs">↻</button>
+      </div>
+      <small class="field-hint">Selecione um QA para inserir o ID automaticamente na descrição.</small>
       <div class="field-header">
         <label for="description">Descrição</label>
         <button id="polishDescription" type="button" class="inline-action" title="Reescrever a descrição com mais clareza">IA</button>

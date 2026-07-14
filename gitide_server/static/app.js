@@ -327,6 +327,77 @@ function notifyActiveProjectChanged() {
     }));
 }
 
+function resetProjectScopedState() {
+    state.activeFilepath = null;
+    state.gridActiveTable = null;
+    state.gridCurrentPage = 1;
+    state.gridTotalRows = 0;
+    state.gridColumns = [];
+    state.gitConflicts = [];
+    state.gitConflictActiveFile = null;
+    state.gitConflictBlocks = [];
+    state.agentChatMessages = [];
+    state.agentWorkflowEvents = [];
+    state.agentHistoryLoadedProjectId = null;
+    state.qaAnnotations = [];
+    state.engineeringMetrics = null;
+    state.estimationReport = null;
+
+    if (typeof uiCanvasState !== 'undefined') {
+        uiCanvasState.files = [];
+        uiCanvasState.filepath = '';
+        uiCanvasState.doc = null;
+        uiCanvasState.selectedLayerId = null;
+        uiCanvasState.mode = 'select';
+    }
+
+    if (typeof sddState !== 'undefined') {
+        sddState.activeFilename = null;
+        sddState.activeContent = '';
+        sddState.activeStorageType = null;
+        sddState.activeFilepath = null;
+        sddState.projectDocuments = { design: '', dri: '', task: '', task_details: '' };
+        sddState.taskFilepath = '.documents/task/task.md';
+        sddState.allCriteria = [];
+        sddState.projectCriteria = [];
+        sddState.taskSelection = { current: new Set(), project: new Set() };
+        sddState.specs = [];
+        sddState.executeTask = null;
+        sddState.charterLoaded = false;
+        sddState.charterProjectId = null;
+        sddState.isDraft = false;
+        sddState.activeReqId = null;
+    }
+
+    const fileTree = document.getElementById('file-tree');
+    if (fileTree) fileTree.innerHTML = '';
+
+    const activeFileName = document.getElementById('active-file-name');
+    if (activeFileName) {
+        activeFileName.innerHTML = '<i class="fa-solid fa-code"></i> Selecione um arquivo para visualizar';
+    }
+
+    const textarea = document.getElementById('file-editor-textarea');
+    if (textarea) {
+        textarea.value = '';
+        textarea.disabled = true;
+    }
+
+    if (window.cmEditor) {
+        window.cmEditor.setValue('');
+        window.cmEditor.setOption('readOnly', true);
+    }
+
+    const saveFileButton = document.getElementById('btn-save-file');
+    if (saveFileButton) saveFileButton.disabled = true;
+
+    const editorMeta = document.getElementById('editor-meta');
+    if (editorMeta) editorMeta.style.display = 'none';
+
+    const snapshotsDrawer = document.getElementById('file-snapshots-drawer');
+    if (snapshotsDrawer) snapshotsDrawer.style.display = 'none';
+}
+
 // --- PROJETOS ---
 async function loadProjects() {
     const res = await fetch('/api/projects');
@@ -356,42 +427,67 @@ async function loadProjects() {
 }
 
 function selectProject(projectId) {
-    if (!projectId) {
+    const normalizedProjectId = projectId ? String(projectId) : '';
+    const previousProjectId = state.activeProjectId ? String(state.activeProjectId) : '';
+    const nextProject = normalizedProjectId
+        ? state.projects.find(p => String(p.id) === normalizedProjectId)
+        : null;
+
+    if (!normalizedProjectId) {
+        resetProjectScopedState();
         state.activeProjectId = null;
         state.activeProject = null;
         localStorage.removeItem('gitide_active_project_id');
-        document.getElementById('btn-delete-project').style.display = 'none';
-        document.getElementById('btn-copy-project-gpt-info').style.display = 'none';
-        document.getElementById('no-project-state').classList.add('active');
+        document.getElementById('btn-delete-project')?.style.setProperty('display', 'none');
+        document.getElementById('btn-copy-project-gpt-info')?.style.setProperty('display', 'none');
+        document.getElementById('no-project-state')?.classList.add('active');
         // Oculta todas as abas
         document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
         notifyActiveProjectChanged();
         return;
     }
+
+    if (!nextProject) {
+        localStorage.removeItem('gitide_active_project_id');
+        const selector = document.getElementById('project-selector');
+        if (selector) selector.value = '';
+        gitideNotify({
+            title: 'Projeto indisponível',
+            message: 'O projeto selecionado não está mais na lista atual. Atualize a lista e tente novamente.',
+            variant: 'warning'
+        });
+        return;
+    }
+
+    if (previousProjectId && previousProjectId !== normalizedProjectId) {
+        resetProjectScopedState();
+    }
     
-    state.activeProjectId = parseInt(projectId);
-    state.activeProject = state.projects.find(p => p.id === state.activeProjectId);
-    localStorage.setItem('gitide_active_project_id', projectId);
+    state.activeProjectId = Number(nextProject.id);
+    state.activeProject = nextProject;
+    localStorage.setItem('gitide_active_project_id', String(nextProject.id));
     
     // Exibe botão de exclusão de projeto
-    document.getElementById('btn-delete-project').style.display = 'inline-flex';
-    document.getElementById('btn-copy-project-gpt-info').style.display = 'inline-flex';
+    document.getElementById('btn-delete-project')?.style.setProperty('display', 'inline-flex');
+    document.getElementById('btn-copy-project-gpt-info')?.style.setProperty('display', 'inline-flex');
     
     // Oculta painel de "nenhum selecionado"
-    document.getElementById('no-project-state').classList.remove('active');
+    document.getElementById('no-project-state')?.classList.remove('active');
     
     // Atualiza prompt do Terminal com o caminho do projeto
-    document.getElementById('terminal-prompt').textContent = `${state.activeProject.path}>`;
+    const terminalPrompt = document.getElementById('terminal-prompt');
+    if (terminalPrompt) terminalPrompt.textContent = `${state.activeProject.path}>`;
     
     // Sincroniza o valor do dropdown selector
-    document.getElementById('project-selector').value = projectId;
+    const selector = document.getElementById('project-selector');
+    if (selector) selector.value = String(nextProject.id);
     loadProdReadinessValidator();
     loadSecurityRulesPrompt();
     
     // Carrega configurações de banco de dados do projeto de localStorage
-    const savedDbType = localStorage.getItem(`gitide_project_${projectId}_db_type`);
-    const savedDbConn = localStorage.getItem(`gitide_project_${projectId}_db_conn`);
-    const savedDbSql = localStorage.getItem(`gitide_project_${projectId}_db_sql`);
+    const savedDbType = localStorage.getItem(`gitide_project_${state.activeProjectId}_db_type`);
+    const savedDbConn = localStorage.getItem(`gitide_project_${state.activeProjectId}_db_conn`);
+    const savedDbSql = localStorage.getItem(`gitide_project_${state.activeProjectId}_db_sql`);
     
     const dbTypeSelect = document.getElementById('db-type-select');
     const dbConnInput = document.getElementById('db-conn-input');
@@ -429,6 +525,8 @@ function selectProject(projectId) {
     switchTab(state.activeTab);
     notifyActiveProjectChanged();
 }
+
+window.gitideSelectProject = selectProject;
 
 // --- ABAS ---
 function switchTab(tabId) {

@@ -1,0 +1,39 @@
+{
+  "version": 2,
+  "generated_at": "2026-07-14T20:36:24Z",
+  "project_id": 8,
+  "project_name": "git-ide",
+  "config": {
+    "hourly_rate": 150.0,
+    "daily_hours": 8
+  },
+  "totals": {
+    "task_count": 0,
+    "manual_hours": 0,
+    "ai_hours": 0,
+    "manual_days": 0.0,
+    "ai_days": 0.0,
+    "manual_cost": 0.0,
+    "ai_cost": 0.0,
+    "saved_hours": 0,
+    "saved_cost": 0.0,
+    "saving_percent": 0
+  },
+  "tasks": [],
+  "history": [],
+  "history_totals": {
+    "task_count": 0,
+    "manual_hours": 0,
+    "ai_hours": 0,
+    "manual_days": 0.0,
+    "ai_days": 0.0,
+    "manual_cost": 0.0,
+    "ai_cost": 0.0,
+    "saved_hours": 0,
+    "saved_cost": 0.0,
+    "saving_percent": 0
+  },
+  "warning": "",
+  "items": {},
+  "closed_snapshots": {}
+}

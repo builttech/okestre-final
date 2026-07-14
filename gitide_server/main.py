@@ -7170,7 +7170,7 @@ def get_pricing_report(project: Project = Depends(get_project_or_404)):
     store = _load_pricing_store(project)
     report, next_store, changed = _pricing_report_from_store(project, store, config)
     markdown = _pricing_markdown(report)
-    if changed or store.get("version") != 2:
+    if changed or store.get("version") != 2 or not os.path.exists(_pricing_store_path(project)):
         _save_pricing_store(project, next_store, report, markdown)
     return {"status": "success", "report": report, "markdown": markdown}
 

@@ -59,9 +59,9 @@
       </button>
       <div class="workspace-switcher-menu workspace-account-popover" role="menu">
         <div class="workspace-account-mode-row" aria-label="Preferências rápidas">
-          <button class="workspace-account-mode-btn is-active" type="button" title="Modo desktop"><i data-lucide="monitor"></i></button>
-          <button class="workspace-account-mode-btn" type="button" title="Tema claro"><i data-lucide="sun"></i></button>
-          <button class="workspace-account-mode-btn" type="button" title="Tema escuro"><i data-lucide="moon"></i></button>
+          <button class="workspace-account-mode-btn is-active" type="button" data-theme-choice="system" title="Usar tema do sistema" aria-label="Usar tema do sistema"><i data-lucide="monitor"></i></button>
+          <button class="workspace-account-mode-btn" type="button" data-theme-choice="light" title="Tema claro" aria-label="Tema claro"><i data-lucide="sun"></i></button>
+          <button class="workspace-account-mode-btn" type="button" data-theme-choice="dark" title="Tema escuro" aria-label="Tema escuro"><i data-lucide="moon"></i></button>
         </div>
 
         <div class="workspace-account-divider"></div>
@@ -218,7 +218,11 @@
           event.stopPropagation();
           select.value = option.value;
           Array.from(select.options).forEach((opt) => { opt.selected = opt.value === option.value; });
-          select.dispatchEvent(new Event('change', { bubbles: true }));
+          if (typeof window.gitideSelectProject === 'function') {
+            window.gitideSelectProject(option.value);
+          } else {
+            select.dispatchEvent(new Event('change', { bubbles: true }));
+          }
           syncTitle();
           renderOptions();
           closeMenu(root);
