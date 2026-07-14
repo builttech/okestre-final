@@ -149,6 +149,15 @@
   function updatePromptPreview() {
     const preview = document.getElementById('prompt-copy-preview');
     if (preview) preview.value = buildPromptCopyText();
+    const counter = document.getElementById('prompt-copy-counter');
+    if (counter) {
+      const text = preview?.value || buildPromptCopyText();
+      counter.textContent = `${text.length.toLocaleString('pt-BR')} caracteres`;
+    }
+    const selectedLabel = document.getElementById('prompt-copy-selected-label');
+    if (selectedLabel) {
+      selectedLabel.textContent = (promptCopyTemplates[selectedPromptCopyTemplate] || promptCopyTemplates.base).label;
+    }
     document.querySelectorAll('[data-prompt-copy-template]').forEach((button) => {
       const isActive = button.dataset.promptCopyTemplate === selectedPromptCopyTemplate;
       button.classList.toggle('is-active', isActive);
@@ -214,10 +223,9 @@
     const panel = createPanel('prompt-copy', true);
     const templateButtons = Object.entries(promptCopyTemplates).map(([key, template]) => `
       <button type="button" class="prompt-copy-template${key === selectedPromptCopyTemplate ? ' is-active' : ''}" data-prompt-copy-template="${key}" aria-pressed="${key === selectedPromptCopyTemplate ? 'true' : 'false'}">
-        <i data-lucide="${template.icon}" aria-hidden="true"></i>
+        <span class="prompt-copy-template-icon"><i data-lucide="${template.icon}" aria-hidden="true"></i></span>
         <span>
           <strong>${template.label}</strong>
-          <small>${template.description}</small>
         </span>
       </button>
     `).join('');
@@ -227,16 +235,45 @@
           <h4><i data-lucide="clipboard-copy"></i> Prompt Copy</h4>
         </div>
         <div class="card-body prompt-copy-grid">
-          <p class="help-text">Copie rapidamente o contexto do workspace/projeto ativo para usar em conversas ou automações.</p>
-          <div class="prompt-copy-template-grid" aria-label="Modelos de prompt">
-            ${templateButtons}
+          <section class="prompt-copy-hero">
+            <div class="prompt-copy-hero-icon"><i data-lucide="wand-sparkles"></i></div>
+            <div>
+              <span>Contexto pronto para IA</span>
+              <h3>Prompts operacionais do projeto</h3>
+              <p>Escolha o cenário, revise o conteúdo gerado e copie o prompt para o GPT Action ou para a IA nativa.</p>
+            </div>
+          </section>
+
+          <div class="prompt-copy-layout">
+            <aside class="prompt-copy-picker">
+              <div class="prompt-copy-section-title">
+                <span>Modelos</span>
+                <small>Selecione o objetivo</small>
+              </div>
+              <div class="prompt-copy-template-grid" aria-label="Modelos de prompt">
+                ${templateButtons}
+              </div>
+            </aside>
+
+            <section class="prompt-copy-preview-panel">
+              <div class="prompt-copy-preview-header">
+                <div>
+                  <span>Preview do prompt</span>
+                  <strong id="prompt-copy-selected-label">${promptCopyTemplates[selectedPromptCopyTemplate].label}</strong>
+                </div>
+                <small id="prompt-copy-counter">0 caracteres</small>
+              </div>
+              <textarea id="prompt-copy-preview" class="prompt-copy-preview" readonly></textarea>
+            </section>
           </div>
-          <textarea id="prompt-copy-preview" class="prompt-copy-preview" readonly></textarea>
+
           <div class="prompt-copy-actions">
-            <button class="btn btn-primary" id="btn-copy-prompt-copy" type="button"><i data-lucide="copy"></i> Copiar Prompt</button>
-            <button class="btn btn-secondary" id="btn-copy-project-context" type="button"><i data-lucide="file-text"></i> Copiar Contexto</button>
-            <button class="btn btn-secondary" id="btn-refresh-prompt-copy" type="button"><i data-lucide="refresh-cw"></i> Atualizar</button>
-            <button class="btn btn-danger" id="btn-settings-delete-project" type="button"><i data-lucide="trash-2"></i> Deletar Projeto</button>
+            <div class="prompt-copy-main-actions">
+              <button class="btn btn-primary" id="btn-copy-prompt-copy" type="button"><i data-lucide="copy"></i> Copiar Prompt</button>
+              <button class="btn btn-secondary" id="btn-copy-project-context" type="button"><i data-lucide="file-text"></i> Copiar Contexto</button>
+              <button class="btn btn-secondary" id="btn-refresh-prompt-copy" type="button"><i data-lucide="refresh-cw"></i> Atualizar</button>
+            </div>
+            <button class="btn btn-danger prompt-copy-danger" id="btn-settings-delete-project" type="button"><i data-lucide="trash-2"></i> Deletar Projeto</button>
             <span class="prompt-copy-status" id="prompt-copy-status"></span>
           </div>
         </div>
