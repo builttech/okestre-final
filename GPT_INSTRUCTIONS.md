@@ -11,6 +11,7 @@
 - O agente **não deve escrever código** antes de concluir a fase documental obrigatória.
 - O agente **não deve executar comandos de modificação** antes da aprovação única do pacote Harness.
 - O agente deve seguir obrigatoriamente o ciclo `Análise → TAP → REQs → RFs → Design → DRI → Task List → Task Details → Estimativa → Aprovação Única → Execução Sequencial → Verificação Final`.
+- A etapa **Estimativa Realista de Esforço** é obrigatória no fluxo principal e não pode ser pulada antes da aprovação única.
 - O agente deve manter separação clara entre o que o projeto precisa resolver, o que o sistema deve fazer, como a solução será planejada tecnicamente, como a interface deve se comportar, quais tasks serão executadas, como cada task será executada, quando a execução está autorizada e como a validação final será realizada.
 - O agente **não pode implementar código, rodar comandos de modificação, criar arquivos técnicos fora do fluxo ou executar tasks** antes da aprovação única do pacote documental completo.
 - Após aprovação do pacote, o agente deve executar todas as tasks aprovadas em ordem, uma por vez, sem solicitar nova aprovação intermediária.
@@ -37,6 +38,8 @@
 ```
 
 - A saída de uma etapa deve alimentar a próxima.
+- O agente deve criar ou revisar os artefatos documentais em sequência, sem solicitar aprovação isolada entre TAP, REQs, RFs, Design, DRI, Task List, Task Details e Estimativa.
+- A aprovação do usuário deve ser solicitada somente depois que o pacote documental completo estiver criado ou revisado.
 - Nenhuma etapa documental deve ser ignorada quando houver impacto funcional, técnico, arquitetural, de dados, interface, integração, permissão ou regra de negócio.
 - O agente só pode usar a exceção de QA visual quando a demanda for exclusivamente estética e não alterar comportamento sistêmico.
 
@@ -71,20 +74,20 @@
 - O agente não deve inventar informações que não estejam nos artefatos ou que não tenham sido validadas pelo usuário.
 - Caso existam lacunas, dúvidas ou informações ausentes, o agente deve registrar como premissa, pendência, risco, ponto de validação ou item em aberto.
 - A TAP deve consolidar identificação do projeto, histórico de versão, sumário executivo, contexto e justificativa, problema ou oportunidade, objetivos, escopo, fora do escopo, stakeholders, premissas, restrições, benefícios esperados, regras de negócio, fluxo principal, integrações, relatórios, indicadores, cenários, entregáveis, critérios de aceite, riscos, próximos passos e rastreabilidade.
-- Após concluir `.documents/project-charter.md`, o agente deve solicitar revisão do usuário.
-- O fluxo só pode avançar para REQs após aprovação explícita da TAP pelo usuário.
+- Após concluir `.documents/project-charter.md`, o agente deve seguir para REQs sem solicitar aprovação isolada da TAP.
+- A TAP será validada junto com o pacote Harness completo na etapa de aprovação única.
 
 ---
 
 ## 5. Etapa 3 — REQs / Requirements
 
-- Após aprovação da TAP, o agente pode iniciar a criação dos REQs.
+- Após criar ou revisar a TAP, o agente deve iniciar a criação dos REQs.
 - Os REQs devem ser criados com base no arquivo `.documents/project-charter.md`.
 - O arquivo `.documents/project-charter.md` é a fonte principal para derivação dos REQs.
-- O agente deve analisar a TAP aprovada e identificar todos os requisitos macro necessários.
+- O agente deve analisar a TAP criada ou revisada e identificar todos os requisitos macro necessários.
 - O agente deve criar todos os REQs de uma só vez.
 - O agente não deve solicitar aprovação individual para cada REQ.
-- A aprovação deve ocorrer em lote, após a geração de todos os REQs.
+- A validação dos REQs deve ocorrer junto com o pacote Harness completo, após Estimativa.
 - Cada REQ deve representar uma necessidade macro do projeto.
 - Cada REQ deve ser rastreável à TAP.
 - O agente não deve criar REQs sem base no conteúdo da TAP.
@@ -94,17 +97,17 @@
 - Exemplo em linha: `.documents/requirements/REQ-0001-cadastro-competencia-apuracao.md`.
 - Todos os REQs devem seguir o template oficial de REQ.
 - Cada REQ deve conter identificação, objetivo, contexto de negócio, escopo macro, RFs vinculados quando conhecidos ou previstos, regras gerais, fontes de dados, dados necessários, critérios de aceite macro, dependências, premissas, restrições, fora do escopo, riscos, rastreabilidade, histórico de alterações e checklist de qualidade.
-- Após criar todos os REQs, o agente deve solicitar aprovação do usuário.
+- Após criar todos os REQs, o agente deve seguir para RFs sem solicitar aprovação isolada dos REQs.
 - Se o usuário solicitar ajustes, o agente deve corrigir somente os REQs e seções indicadas.
 - O agente não deve recriar todos os REQs sem necessidade.
-- A próxima etapa só pode iniciar após aprovação explícita dos REQs.
+- Os REQs serão validados junto com o pacote Harness completo na etapa de aprovação única.
 
 ---
 
 ## 6. Etapa 4 — RFs / Requisitos Funcionais
 
-- Após aprovação dos REQs, o agente pode criar os RFs.
-- Os RFs devem ser criados a partir dos REQs aprovados em `.documents/requirements/`.
+- Após criar ou revisar os REQs, o agente deve criar os RFs.
+- Os RFs devem ser criados a partir dos REQs documentados em `.documents/requirements/`.
 - O agente deve analisar cada REQ individualmente.
 - Cada REQ deve possuir seus respectivos RFs.
 - Se o projeto possuir 10 REQs, o agente deve avaliar os 10 REQs e criar os RFs correspondentes para cada um deles.
@@ -114,21 +117,21 @@
 - Cada RF deve estar obrigatoriamente vinculado a um REQ pai.
 - O agente deve elaborar todos os RFs de uma só vez.
 - O agente não deve solicitar aprovação individual para cada RF.
-- A aprovação dos RFs deve ocorrer em lote.
+- A validação dos RFs deve ocorrer junto com o pacote Harness completo, após Estimativa.
 - Os RFs devem ser salvos no diretório `.documents/functional-requirements/`.
 - O padrão de nome dos arquivos deve seguir `.documents/functional-requirements/RF-0001-01-titulo.md`.
 - O padrão de ID deve seguir `RF-0001-01`, onde `0001` representa o REQ pai e `01` representa o RF dentro daquele REQ.
 - Exemplo em linha: `.documents/functional-requirements/RF-0001-01-cadastrar-competencia-apuracao.md`.
 - Todos os RFs devem seguir o template oficial de RF.
 - Cada RF deve conter identificação, REQ pai, objetivo, contexto funcional, história do usuário, descrição funcional, fluxo funcional, regras de negócio, validações funcionais, dados necessários, permissões quando aplicável, integrações quando aplicável, critérios de aceite, mensagens quando aplicável, fora do escopo, dependências, riscos, pendências, referências visuais quando aplicável, rastreabilidade, próximos artefatos, histórico e checklist de qualidade.
-- Após criar todos os RFs, o agente deve solicitar aprovação do usuário.
-- A próxima etapa só pode iniciar após aprovação explícita dos RFs.
+- Após criar todos os RFs, o agente deve seguir para Design sem solicitar aprovação isolada dos RFs.
+- Os RFs serão validados junto com o pacote Harness completo na etapa de aprovação única.
 
 ---
 
 ## 7. Etapa 5 — Design / Planejamento Técnico do Projeto
 
-- Após aprovação dos RFs, o agente deve revisar ou atualizar o Design vivo do projeto.
+- Após criar ou revisar os RFs, o agente deve revisar ou atualizar o Design vivo do projeto.
 - O Design deve ser registrado exclusivamente em `.documents/design/design.md`.
 - O arquivo `.documents/design/design.md` é único, vivo, acumulativo e representa o planejamento técnico do projeto.
 - O agente não deve criar outro arquivo de Design.
@@ -166,11 +169,11 @@
 ## 9. Etapa 7 — Task List por RF
 
 - Após Design e DRI, quando aplicável, o agente pode criar a Task List por RF.
-- A Task List deve ser criada a partir dos RFs aprovados em `.documents/functional-requirements/`.
+- A Task List deve ser criada a partir dos RFs documentados em `.documents/functional-requirements/`.
 - O agente deve considerar também `.documents/design/design.md` e `.documents/dri/dri.md` quando houver impacto técnico ou de interface.
 - O agente deve analisar cada RF individualmente.
 - Cada RF deve gerar suas próprias tasks executáveis.
-- O agente deve garantir que toda task tenha vínculo direto com um RF aprovado.
+- O agente deve garantir que toda task tenha vínculo direto com um RF documentado e rastreável.
 - O agente não deve criar tasks genéricas, duplicadas ou sem rastreabilidade funcional.
 - O agente não deve inventar tasks que não estejam justificadas pelo conteúdo dos RFs.
 - O agente deve criar todas as tasks de uma só vez.
@@ -226,7 +229,9 @@
 - Após concluir a Task List e o Task Details, o agente deve gerar ou revisar a estimativa do projeto antes de solicitar a aprovação única do pacote Harness.
 - A estimativa deve ser registrada em `.documents/estimativa.json` e `.documents/estimativa.md` quando a ferramenta suportar geração estruturada e relatório em Markdown.
 - A estimativa faz parte do pacote Harness e deve ser apresentada junto com TAP, REQs, RFs, Design, DRI, Task List e Task Details.
+- A estimativa é etapa obrigatória para qualquer pacote Harness criado ou revisado pelo agente.
 - A estimativa deve considerar somente tasks abertas. Tasks concluídas (`- [x]`) não devem compor esforço restante, prazo restante ou custo restante.
+- Antes de qualquer nova estimativa, o agente deve reler obrigatoriamente `GPT_INSTRUCTIONS.md`, `.documents/task/task.md`, `.documents/task/task.details.md`, `.documents/estimativa.json` e `.documents/estimativa.md` quando existirem.
 - O arquivo `.documents/estimativa.json` deve seguir exatamente o contrato consumido pela tela **Estimativas**. O agente não deve criar chaves alternativas em português para os campos estruturados.
 - Quando o agente gerar, revisar ou apoiar estimativas do projeto, ele deve analisar individualmente cada task registrada em `.documents/task/task.md`.
 - Para cada task, o agente deve ler obrigatoriamente sua seção correspondente em `.documents/task/task.details.md` antes de estimar esforço.
@@ -288,6 +293,12 @@
 ### 11.5. Contrato obrigatório do arquivo `.documents/estimativa.json`
 
 - O agente deve salvar `.documents/estimativa.json` como JSON válido, indentado e compatível com a tela de Estimativas.
+- `.documents/estimativa.json` é arquivo único, vivo, acumulativo e rastreável.
+- O agente não deve sobrescrever `.documents/estimativa.json` apagando histórico, pacotes anteriores ou estimativas já registradas.
+- Antes de gravar uma nova estimativa, o agente deve ler o conteúdo completo atual de `.documents/estimativa.json`, preservar os campos existentes compatíveis com a UI e atualizar somente os campos da estimativa ativa ou a seção histórica necessária.
+- A estimativa ativa pode ser recalculada para tasks abertas, mas o histórico anterior deve permanecer registrado no mesmo arquivo.
+- O JSON deve manter rastreabilidade histórica dentro do próprio arquivo, usando campos compatíveis com a UI, como `history`, `closed_history`, `snapshots`, `packages` ou campo equivalente já existente.
+- Se a tela exigir campos top-level específicos para renderizar, o agente deve preservar esses campos top-level e adicionar histórico em campos adicionais compatíveis, sem quebrar a UI.
 - O agente não deve salvar apenas Markdown no `.json`.
 - O agente não deve usar `sem_ia_horas`, `com_ia_horas_humanas`, `totais`, `totais_por_req` ou outros nomes livres como substitutos do contrato abaixo.
 - O objeto raiz deve conter obrigatoriamente:
@@ -370,14 +381,18 @@
 }
 ```
 
+- O arquivo `.documents/estimativa.md` é único, vivo, acumulativo e rastreável.
+- O agente não deve sobrescrever `.documents/estimativa.md` apagando histórico, pacotes anteriores, justificativas ou estimativas já registradas.
+- Antes de gravar nova estimativa em Markdown, o agente deve ler o arquivo completo atual e anexar/atualizar somente a seção necessária.
 - O arquivo `.documents/estimativa.md` pode ter seções executivas, tabelas por REQ/RF e justificativas detalhadas, mas deve refletir os mesmos dados do `.documents/estimativa.json`.
+- Quando uma nova estimativa substituir a estimativa ativa, o agente deve preservar o histórico anterior em seção própria de histórico ou snapshot.
 
 ---
 
 ## 12. Etapa 10 — Aprovação Única do Pacote Harness
 
 - Após concluir Task List, Task Details e Estimativa Realista de Esforço, o agente deve apresentar o pacote completo ao usuário.
-- O pacote deve incluir TAP revisada ou referência à TAP aprovada, REQs, RFs, Design, DRI quando aplicável, Task List, Task Details, Estimativa, pendências, lacunas e riscos relevantes.
+- O pacote deve incluir TAP, REQs, RFs, Design, DRI quando aplicável, Task List, Task Details, Estimativa, pendências, lacunas e riscos relevantes.
 - O agente deve solicitar uma única aprovação para executar o pacote.
 - A frase obrigatória de aprovação é `Aprovado executar o pacote Harness`.
 - Se o usuário solicitar ajustes, o agente deve atualizar somente os documentos necessários e reapresentar o pacote completo.
@@ -435,7 +450,7 @@
 
 - O agente pode usar fluxo reduzido apenas quando a demanda for claramente ajuste fino visual, layout, espaçamento, alinhamento, proporção, responsividade, cor, tipografia, microcopy visual ou correção estética capturada por anotação QA.
 - A exceção só é válida quando não houver alteração em regra de negócio, fluxo funcional, contrato de API, modelo de dados, permissão, arquitetura ou comportamento sistêmico.
-- O fluxo mínimo para QA visual é ler a anotação QA, entender o problema, criar ou atualizar task em `.documents/task/task.md`, usar o formato `- [ ] TASK-QA-<ID-DO-QA>-001: Título curto`, criar ou atualizar o plano em `.documents/task/task.details.md`, solicitar aprovação única do pacote QA, executar após aprovação, verificar, marcar a task como concluída somente após verificação e solicitar validação final do usuário.
+- O fluxo mínimo para QA visual é ler a anotação QA, entender o problema, criar ou atualizar task em `.documents/task/task.md`, usar o formato `- [ ] TASK-QA-<ID-DO-QA>-001: Título curto`, criar ou atualizar o plano em `.documents/task/task.details.md`, gerar ou atualizar a Estimativa em `.documents/estimativa.json` e `.documents/estimativa.md`, solicitar aprovação única do pacote QA, executar após aprovação, verificar, marcar a task como concluída somente após verificação e solicitar validação final do usuário.
 - Se durante a análise o ajuste visual revelar mudança funcional, arquitetural ou de regra de negócio, a exceção deve ser cancelada e o fluxo Harness completo deve ser retomado.
 
 ### 15.1. Tratamento Obrigatório de QAs Levantados pelo Usuário
@@ -452,7 +467,10 @@
 - A seção de detalhe deve iniciar com o mesmo ID da task, no formato `# TASK-QA-<ID-DO-QA>-001 — Título da Task`.
 - O detalhe da task deve registrar o QA de origem, URL ou tela afetada quando existir, seletor/elemento alvo quando existir, evidência visual ou textual, problema observado, comportamento esperado, escopo, fora do escopo, arquivos/componentes prováveis, plano de execução, critérios de aceite, validação prevista e riscos.
 - O agente deve preservar integralmente as seções existentes em `.documents/task/task.details.md` e atualizar somente a seção do QA correspondente quando ela já existir.
-- Após criar ou revisar todas as tasks e detalhes dos QAs informados, o agente deve apresentar o pacote QA ao usuário e solicitar autorização de execução.
+- Após criar ou revisar todas as tasks e detalhes dos QAs informados, o agente deve obrigatoriamente gerar ou atualizar a estimativa considerando as tasks QA abertas.
+- O fluxo de QA deve seguir a sequência mínima obrigatória `QA aberto → Task → Task Details → Estimativa → Aprovação Única → Execução → Verificação Final`.
+- A estimativa de QA deve preservar o histórico existente em `.documents/estimativa.json` e `.documents/estimativa.md`, sem sobrescrever estimativas anteriores.
+- Após criar ou revisar todas as tasks, detalhes e estimativa dos QAs informados, o agente deve apresentar o pacote QA ao usuário e solicitar autorização de execução.
 - Após aprovação, o agente deve executar as tasks de QA **uma por vez**, na ordem registrada em `.documents/task/task.md`.
 - O agente só pode marcar uma task de QA como concluída (`- [x]`) depois de executar, verificar tecnicamente e registrar a evidência ou validação aplicável.
 - Se uma task de QA falhar ou revelar impacto funcional, arquitetural, de dados, API, permissão ou regra de negócio, o agente deve interromper o fluxo reduzido, registrar o motivo e retomar o fluxo Harness completo para o item afetado.
@@ -505,30 +523,24 @@
 ```mermaid
 graph TD
     A["1. Discovery / Análise dos Artefatos"] --> B["2. TAP em .documents/project-charter.md"]
-    B --> C{"TAP aprovada?"}
-    C -->|"Não"| B
-    C -->|"Sim"| D["3. Criar REQs em .documents/requirements/"]
-    D --> E{"REQs aprovados?"}
-    E -->|"Não"| D
-    E -->|"Sim"| F["4. Criar RFs em .documents/functional-requirements/"]
-    F --> G{"RFs aprovados?"}
-    G -->|"Não"| F
-    G -->|"Sim"| H["5. Revisar/Atualizar Design em .documents/design/design.md"]
-    H --> I["6. Criar/Revisar DRI em .documents/dri/dri.md quando aplicável"]
-    I --> J["7. Criar Task List em .documents/task/task.md"]
-    J --> K["8. Detalhar Tasks em .documents/task/task.details.md"]
-    K --> L["9. Gerar Estimativa Realista em .documents/estimativa.md"]
-    L --> M{"10. Pacote Harness aprovado?"}
-    M -->|"Não"| N["Ajustar documentos necessários"]
-    N --> H
-    M -->|"Sim"| O["11. Executar tasks em ordem"]
-    O --> P["Verificar task"]
-    P --> Q{"Task validada?"}
-    Q -->|"Não"| O
-    Q -->|"Sim"| R["Marcar checkbox em task.md"]
-    R --> S{"Há próxima task?"}
-    S -->|"Sim"| O
-    S -->|"Não"| T["12. Verificação final / QA / Evidências"]
-    T --> U["Solicitar validação final do usuário"]
+    B --> C["3. Criar REQs em .documents/requirements/"]
+    C --> D["4. Criar RFs em .documents/functional-requirements/"]
+    D --> E["5. Revisar/Atualizar Design em .documents/design/design.md"]
+    E --> F["6. Criar/Revisar DRI em .documents/dri/dri.md quando aplicável"]
+    F --> G["7. Criar Task List em .documents/task/task.md"]
+    G --> H["8. Detalhar Tasks em .documents/task/task.details.md"]
+    H --> I["9. Gerar Estimativa Realista em .documents/estimativa.json e .documents/estimativa.md"]
+    I --> J{"10. Pacote Harness aprovado?"}
+    J -->|"Não"| K["Ajustar documentos necessários"]
+    K --> B
+    J -->|"Sim"| L["11. Executar tasks em ordem"]
+    L --> M["Verificar task"]
+    M --> N{"Task validada?"}
+    N -->|"Não"| L
+    N -->|"Sim"| O["Marcar checkbox em task.md"]
+    O --> P{"Há próxima task?"}
+    P -->|"Sim"| L
+    P -->|"Não"| Q["12. Verificação final / QA / Evidências"]
+    Q --> R["Solicitar validação final do usuário"]
 ```
 Importante: O usuário pode solicitar que se pule uma etapa sempre que necessário, mas isso deve ser feito apenas quando solicitado explicitamente.
