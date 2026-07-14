@@ -55,6 +55,8 @@ const state = {
     estimationView: 'open'
 };
 
+window.gitideAppState = state;
+
 const uiCanvasState = {
     files: [],
     filepath: '',
@@ -310,6 +312,21 @@ function getHeaders() {
     };
 }
 
+function notifyActiveProjectChanged() {
+    const selector = document.getElementById('project-selector');
+    if (selector) {
+        selector.value = state.activeProjectId ? String(state.activeProjectId) : '';
+    }
+
+    window.dispatchEvent(new CustomEvent('gitide:active-project-changed', {
+        detail: {
+            projectId: state.activeProjectId,
+            project: state.activeProject,
+            projects: state.projects
+        }
+    }));
+}
+
 // --- PROJETOS ---
 async function loadProjects() {
     const res = await fetch('/api/projects');
@@ -328,6 +345,14 @@ async function loadProjects() {
     if (state.activeProjectId) {
         selector.value = state.activeProjectId;
     }
+
+    window.dispatchEvent(new CustomEvent('gitide:projects-loaded', {
+        detail: {
+            projectId: state.activeProjectId,
+            project: state.activeProject,
+            projects: state.projects
+        }
+    }));
 }
 
 function selectProject(projectId) {
@@ -340,6 +365,7 @@ function selectProject(projectId) {
         document.getElementById('no-project-state').classList.add('active');
         // Oculta todas as abas
         document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+        notifyActiveProjectChanged();
         return;
     }
     
@@ -401,6 +427,7 @@ function selectProject(projectId) {
     
     // Altera para a aba ativa e carrega dados correspondentes
     switchTab(state.activeTab);
+    notifyActiveProjectChanged();
 }
 
 // --- ABAS ---
@@ -5366,15 +5393,25 @@ function setupEventListeners() {
     // 3.7. Deletar/Remover Projeto Ativo
     document.getElementById('btn-delete-project').addEventListener('click', async () => {
         if (!state.activeProjectId) return;
+        const projectName = state.activeProject?.name || 'projeto selecionado';
+        const projectPath = state.activeProject?.path || 'caminho não informado';
         
         const confirmed = await showCustomConfirm(
-            'Remover Projeto',
-            `Tem certeza que deseja remover o projeto "${state.activeProject.name}" do Act IA?<br><br>Isso apenas apagará o registro no Act IA e os logs, os seus arquivos locais no disco NÃO serão excluídos.`,
-            'Remover',
+            'Excluir Projeto',
+            `Tem certeza que deseja excluir o projeto "${escapeHtml(projectName)}"?<br><br>Essa ação removerá o cadastro, logs e todos os arquivos da pasta do projeto na máquina:<br><strong>${escapeHtml(projectPath)}</strong>`,
+            'Continuar',
             true
         );
         
         if (confirmed) {
+            const finalConfirmed = await showCustomConfirm(
+                'Confirmação final',
+                `Esta é a última confirmação. Ao continuar, a pasta do projeto "${escapeHtml(projectName)}" será excluída completamente do disco e não ficará resquício local do workspace.`,
+                'Excluir tudo',
+                true
+            );
+            if (!finalConfirmed) return;
+
             try {
                 const res = await fetch(`/api/projects/${state.activeProjectId}`, {
                     method: 'DELETE'
@@ -5387,7 +5424,7 @@ function setupEventListeners() {
                     await loadProjects();
                     selectProject(null);
                 } else {
-                    alert(`Erro ao remover projeto: ${data.detail || 'Tente novamente.'}`);
+                    alert(`Erro ao excluir projeto: ${data.detail || 'Tente novamente.'}`);
                 }
             } catch (err) {
                 alert(`Falha na conexão: ${err.message}`);

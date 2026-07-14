@@ -148,6 +148,16 @@
 
     function getActiveOption() {
       const options = Array.from(select.options);
+      const appState = window.gitideAppState || {};
+      const stateProjectId = appState.activeProjectId ? String(appState.activeProjectId) : '';
+      const savedProjectId = localStorage.getItem('gitide_active_project_id') || '';
+      const targetValue = stateProjectId || savedProjectId || select.value || '';
+      const stateMatch = options.find((option) => option.value && option.value === targetValue);
+      if (stateMatch) {
+        select.value = stateMatch.value;
+        return stateMatch;
+      }
+
       const valueMatch = options.find((option) => option.value && option.value === select.value);
       if (valueMatch) return valueMatch;
 
@@ -303,6 +313,16 @@
     });
 
     select.addEventListener('change', () => {
+      syncTitle();
+      renderOptions();
+    });
+
+    window.addEventListener('gitide:active-project-changed', () => {
+      syncTitle();
+      renderOptions();
+    });
+
+    window.addEventListener('gitide:projects-loaded', () => {
       syncTitle();
       renderOptions();
     });

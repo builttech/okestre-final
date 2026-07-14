@@ -474,6 +474,42 @@ def get_project_or_404(project_id: int, db: Session = Depends(get_db)) -> Projec
         raise HTTPException(status_code=404, detail=f"Projeto com ID {project_id} não encontrado.")
     return project
 
+def resolve_project_delete_path(project_path: str) -> str:
+    """Resolve e valida o diretório antes de permitir exclusão física."""
+    if not project_path or not str(project_path).strip():
+        raise HTTPException(status_code=400, detail="Caminho do projeto está vazio.")
+
+    resolved = os.path.realpath(os.path.abspath(project_path))
+    home_dir = os.path.realpath(os.path.expanduser("~"))
+    workspace_dir = os.path.realpath(os.path.join(home_dir, ".workspace"))
+    app_data_dir = os.path.realpath(CONFIG_DIR)
+
+    blocked_paths = {
+        os.path.realpath(os.path.abspath(os.sep)),
+        home_dir,
+        workspace_dir,
+        app_data_dir,
+    }
+
+    if os.name == "nt":
+        drive, _ = os.path.splitdrive(resolved)
+        if drive:
+            blocked_paths.add(os.path.realpath(f"{drive}\\"))
+
+    if resolved in blocked_paths:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Exclusão bloqueada por segurança. O caminho '{resolved}' é amplo demais para ser removido como projeto."
+        )
+
+    if len(os.path.normpath(resolved).split(os.sep)) < 3:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Exclusão bloqueada por segurança. O caminho '{resolved}' não parece ser uma pasta de projeto."
+        )
+
+    return resolved
+
 # --- ENDPOINTS DA API PARA O GPT / DASHBOARD ---
 
 @app.get("/login", response_class=HTMLResponse, tags=["Autenticação"])
@@ -839,13 +875,35 @@ def create_project(project_in: ProjectCreate, db: Session = Depends(get_db)):
 
 @app.delete("/api/projects/{project_id}", tags=["Projetos"])
 def delete_project(project_id: int, db: Session = Depends(get_db)):
-    """Remove o cadastro do projeto do Act IA (não apaga os arquivos do computador)."""
+    """Remove o projeto do Act IA e exclui completamente a pasta física do workspace."""
     project = db.query(Project).filter(Project.id == project_id).first()
     if not project:
         raise HTTPException(status_code=404, detail="Projeto não encontrado")
+
+    project_path = resolve_project_delete_path(project.path)
+    path_removed = False
+
+    if os.path.exists(project_path):
+        try:
+            if os.path.islink(project_path) or os.path.isfile(project_path):
+                os.unlink(project_path)
+            else:
+                shutil.rmtree(project_path)
+            path_removed = True
+        except Exception as e:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Falha ao excluir os arquivos do projeto em '{project_path}': {str(e)}"
+            )
+
     db.delete(project)
     db.commit()
-    return {"status": "success", "message": "Projeto descadastrado com sucesso"}
+    return {
+        "status": "success",
+        "message": "Projeto removido completamente",
+        "deleted_path": project_path,
+        "path_removed": path_removed
+    }
 
 # Arquivos (Protegidos por API Key para chamadas da GPT Action)
 @app.get("/api/projects/{project_id}/files", tags=["Arquivos"])

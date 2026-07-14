@@ -1,9 +1,23 @@
 (function () {
   function activeProjectContext() {
+    const appState = window.gitideAppState || {};
     const selector = document.getElementById('project-selector');
-    const selected = selector?.selectedOptions?.[0];
-    const projectName = (selected?.textContent || selector?.value || 'Projeto ativo').trim();
-    const projectId = selector?.value || '';
+    const stateProjectId = appState.activeProjectId ? String(appState.activeProjectId) : '';
+    const projectId = stateProjectId || selector?.value || localStorage.getItem('gitide_active_project_id') || '';
+    const projectFromState = appState.activeProject && String(appState.activeProject.id) === String(projectId)
+      ? appState.activeProject
+      : null;
+    const projectFromList = Array.isArray(appState.projects)
+      ? appState.projects.find((project) => String(project.id) === String(projectId))
+      : null;
+    const selected = Array.from(selector?.options || []).find((option) => option.value === String(projectId))
+      || selector?.selectedOptions?.[0];
+    const projectName = (
+      projectFromState?.name
+      || projectFromList?.name
+      || selected?.textContent
+      || (projectId ? `Projeto ${projectId}` : 'Projeto ativo não selecionado')
+    ).trim();
     const token = document.getElementById('api-token-full-view')?.value
       || document.getElementById('api-token-preview')?.textContent
       || '';
@@ -521,6 +535,8 @@
     wireParametrization();
 
     document.getElementById('project-selector')?.addEventListener('change', updatePromptPreview);
+    window.addEventListener('gitide:active-project-changed', updatePromptPreview);
+    window.addEventListener('gitide:projects-loaded', updatePromptPreview);
     updatePromptPreview();
 
     if (typeof window.refreshLucideIcons === 'function') window.refreshLucideIcons();
