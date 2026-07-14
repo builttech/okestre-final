@@ -9117,9 +9117,9 @@ Primeiro mantenha os arquivos vivos do Harness Engineering atualizados:
 - DRI: .documents/dri/dri.md
 - Task List: .documents/task/task.md
 - Task Details: .documents/task/task.details.md
-- Estimativa: .documents/estimativa.md e .documents/estimativa.json
+- Estimativa: store canônico .documents/estimativa/estimativas.json, com espelhos .documents/estimativa.json e .documents/estimativa.md
 
-Nunca sobrescreva ou apague o histórico/conteúdo vivo de .documents/estimativa.md e .documents/estimativa.json para gerar o Word. A aba Documentos (Word) deve apenas ler esses arquivos e derivar o .docx oficial.
+Nunca sobrescreva ou apague o histórico/conteúdo vivo da estimativa para gerar o Word. A aba Documentos (Word) deve apenas ler esses arquivos e derivar o .docx oficial.
 
 Depois, use a aba Documentos (Word) do Act IA para gerar/atualizar os .docx oficiais:
 - Termo de Abertura do Projeto
@@ -12234,7 +12234,7 @@ async function generateProjectEstimation() {
         renderEstimationReport(data.report);
         gitideNotify({
             title: 'Estimativa atualizada',
-            message: 'Painel e documentos .documents/estimativa.json e estimativa.md foram atualizados.',
+            message: 'Painel, histórico e documentos de estimativa foram atualizados.',
             variant: 'success'
         });
     } catch (error) {

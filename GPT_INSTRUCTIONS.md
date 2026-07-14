@@ -227,11 +227,12 @@
 ## 11. Etapa 9 — Estimativa Realista de Esforço
 
 - Após concluir a Task List e o Task Details, o agente deve gerar ou revisar a estimativa do projeto antes de solicitar a aprovação única do pacote Harness.
-- A estimativa deve ser registrada em `.documents/estimativa.json` e `.documents/estimativa.md` quando a ferramenta suportar geração estruturada e relatório em Markdown.
+- A estimativa deve ser registrada pelo Act IA no store canônico `.documents/estimativa/estimativas.json`, com espelhos de compatibilidade em `.documents/estimativa.json` e `.documents/estimativa.md` quando a ferramenta suportar geração estruturada e relatório em Markdown.
 - A estimativa faz parte do pacote Harness e deve ser apresentada junto com TAP, REQs, RFs, Design, DRI, Task List e Task Details.
 - A estimativa é etapa obrigatória para qualquer pacote Harness criado ou revisado pelo agente.
 - A estimativa deve considerar somente tasks abertas. Tasks concluídas (`- [x]`) não devem compor esforço restante, prazo restante ou custo restante.
-- Antes de qualquer nova estimativa, o agente deve reler obrigatoriamente `GPT_INSTRUCTIONS.md`, `.documents/task/task.md`, `.documents/task/task.details.md`, `.documents/estimativa.json` e `.documents/estimativa.md` quando existirem.
+- Antes de qualquer nova estimativa, o agente deve reler obrigatoriamente `GPT_INSTRUCTIONS.md`, `.documents/task/task.md`, `.documents/task/task.details.md`, `.documents/estimativa/estimativas.json`, `.documents/estimativa.json` e `.documents/estimativa.md` quando existirem.
+- O agente deve preferir a geração/persistência pela própria ferramenta Act IA. A IA deve estimar as tasks; a aplicação deve calcular totais, custos, dias, histórico, snapshots e separação entre tasks abertas e concluídas.
 - O arquivo `.documents/estimativa.json` deve seguir exatamente o contrato consumido pela tela **Estimativas**. O agente não deve criar chaves alternativas em português para os campos estruturados.
 - Quando o agente gerar, revisar ou apoiar estimativas do projeto, ele deve analisar individualmente cada task registrada em `.documents/task/task.md`.
 - Para cada task, o agente deve ler obrigatoriamente sua seção correspondente em `.documents/task/task.details.md` antes de estimar esforço.
@@ -290,58 +291,94 @@
 - Quando a informação disponível for insuficiente, o agente deve registrar lacuna ou incerteza e indicar o impacto na estimativa.
 - O agente não deve usar contingência automática silenciosa para substituir a análise individual.
 
-### 11.5. Contrato obrigatório do arquivo `.documents/estimativa.json`
+### 11.5. Contrato obrigatório de persistência da estimativa
 
-- O agente deve salvar `.documents/estimativa.json` como JSON válido, indentado e compatível com a tela de Estimativas.
-- `.documents/estimativa.json` é arquivo único, vivo, acumulativo e rastreável.
-- O agente não deve sobrescrever `.documents/estimativa.json` apagando histórico, pacotes anteriores ou estimativas já registradas.
-- Antes de gravar uma nova estimativa, o agente deve ler o conteúdo completo atual de `.documents/estimativa.json`, preservar os campos existentes compatíveis com a UI e atualizar somente os campos da estimativa ativa ou a seção histórica necessária.
-- A estimativa ativa pode ser recalculada para tasks abertas, mas o histórico anterior deve permanecer registrado no mesmo arquivo.
-- O JSON deve manter rastreabilidade histórica dentro do próprio arquivo, usando campos compatíveis com a UI, como `history`, `closed_history`, `snapshots`, `packages` ou campo equivalente já existente.
-- Se a tela exigir campos top-level específicos para renderizar, o agente deve preservar esses campos top-level e adicionar histórico em campos adicionais compatíveis, sem quebrar a UI.
+- A IA **não deve ser responsável por preservar histórico, mover task fechada para histórico, recalcular totais globais ou decidir o que aparece na aba Histórico**.
+- A responsabilidade da IA é estimar cada task aberta individualmente, retornando somente os campos técnicos necessários por task.
+- A responsabilidade do Act IA é:
+  - ler `.documents/task/task.md`;
+  - identificar tasks abertas (`- [ ]`) e concluídas (`- [x]`);
+  - renderizar somente tasks abertas na estimativa ativa;
+  - criar snapshot automático quando uma task estimada for marcada como concluída;
+  - preservar snapshots históricos de tasks fechadas;
+  - calcular `totals`, `history_totals`, dias, custos e economia;
+  - espelhar os arquivos `.documents/estimativa.json` e `.documents/estimativa.md`.
+- O store canônico de persistência é `.documents/estimativa/estimativas.json`.
+- `.documents/estimativa.json` é espelho compatível com a tela e APIs legadas.
+- `.documents/estimativa.md` é relatório Markdown derivado dos mesmos dados.
+- Os três arquivos são únicos, vivos, acumulativos e rastreáveis.
+- O agente não deve sobrescrever nenhum desses arquivos apagando histórico, pacotes anteriores ou estimativas já registradas.
+- Antes de gravar ou apoiar uma nova estimativa, o agente deve ler o conteúdo completo atual de `.documents/estimativa/estimativas.json` quando existir.
+- Quando a ferramenta Act IA estiver disponível, o agente deve usar a geração de estimativa da ferramenta em vez de escrever manualmente o JSON.
+- Se for inevitável escrever manualmente, o agente deve preservar `items`, `closed_snapshots`, `runs`, `history` e qualquer campo compatível já existente.
+- A estimativa ativa pode ser recalculada para tasks abertas, mas o histórico anterior deve permanecer registrado no mesmo store.
 - O agente não deve salvar apenas Markdown no `.json`.
 - O agente não deve usar `sem_ia_horas`, `com_ia_horas_humanas`, `totais`, `totais_por_req` ou outros nomes livres como substitutos do contrato abaixo.
-- O objeto raiz deve conter obrigatoriamente:
-  - `version`: número da versão do relatório.
-  - `generated_at`: data/hora ISO em UTC.
-  - `project_id`: ID do projeto no Act IA.
-  - `project_name`: nome do projeto.
-  - `config`: objeto com `hourly_rate` e `daily_hours`.
-  - `totals`: objeto calculado.
-  - `tasks`: lista de tasks abertas estimadas.
-  - `warning`: texto opcional.
-- O objeto `config` deve conter:
-  - `hourly_rate`: valor/hora positivo. Nunca usar `0`.
-  - `daily_hours`: capacidade diária entre `1` e `24`. Nunca usar `0`.
-- O objeto `totals` deve conter obrigatoriamente:
-  - `task_count`;
-  - `manual_hours`;
-  - `ai_hours`;
-  - `manual_days`;
-  - `ai_days`;
-  - `manual_cost`;
-  - `ai_cost`;
-  - `saved_hours`;
-  - `saved_cost`;
-  - `saving_percent`.
-- Cada item de `tasks` deve conter obrigatoriamente:
+
+#### 11.5.1. Formato da resposta da IA por task
+
+- Para cada task aberta, a IA deve retornar estimativas com estes campos:
   - `id`: mesmo ID da task em `.documents/task/task.md`;
-  - `title`: título curto da task;
+  - `complexity`: `low`, `medium` ou `high`;
   - `task_type`: `implementation`, `correction` ou `adjustment`;
   - `technical_area`: `frontend`, `backend`, `fullstack`, `infra`, `qa`, `docs` ou `general`;
-  - `complexity`: `low`, `medium` ou `high`;
   - `manual_hours`: esforço sem IA;
   - `ai_hours`: esforço humano com IA;
-  - `saved_hours`: diferença entre `manual_hours` e `ai_hours`;
-  - `saving_percent`: percentual de economia;
-  - `rationale`: justificativa técnica objetiva;
-  - `source`: `ai`;
-  - `completed`: sempre `false` para tasks abertas.
-- Exemplo mínimo válido:
+  - `rationale`: justificativa técnica objetiva.
+- A IA não precisa retornar `totals`, `manual_days`, `ai_days`, `manual_cost`, `ai_cost`, `saved_hours`, `saved_cost` ou `saving_percent`; esses valores devem ser calculados pela ferramenta.
+
+#### 11.5.2. Formato canônico do store `.documents/estimativa/estimativas.json`
+
+- O objeto raiz do store deve conter:
+  - `version`: `2`;
+  - `project_id`: ID do projeto no Act IA;
+  - `project_name`: nome do projeto;
+  - `updated_at`: data/hora ISO em UTC;
+  - `items`: objeto indexado por ID da task com as estimativas conhecidas;
+  - `closed_snapshots`: objeto indexado por ID da task com snapshots preservados de tasks concluídas;
+  - `runs`: lista curta com execuções recentes da estimativa.
+- Cada item em `items` ou `closed_snapshots` deve conter:
+  - `id`;
+  - `title`;
+  - `task_type`;
+  - `technical_area`;
+  - `complexity`;
+  - `manual_hours`;
+  - `ai_hours`;
+  - `saved_hours`;
+  - `saving_percent`;
+  - `rationale`;
+  - `source`;
+  - `completed`.
+- `closed_snapshots` também deve conter `closed: true`, `closed_at` e `title_at_close`.
+
+#### 11.5.3. Formato do espelho `.documents/estimativa.json`
+
+- O espelho `.documents/estimativa.json` deve manter campos top-level compatíveis com a tela:
+  - `version`;
+  - `generated_at`;
+  - `project_id`;
+  - `project_name`;
+  - `config`;
+  - `totals`;
+  - `tasks`;
+  - `history`;
+  - `history_totals`;
+  - `warning`;
+  - `items`;
+  - `closed_snapshots`.
+- `tasks` deve conter somente tasks abertas estimadas.
+- `history` deve conter somente snapshots preservados de tasks concluídas.
+- `totals` deve ser calculado somente sobre `tasks`.
+- `history_totals` deve ser calculado somente sobre `history`.
+- O objeto `config` deve conter:
+  - `hourly_rate`: valor/hora positivo. Nunca usar `0`;
+  - `daily_hours`: capacidade diária entre `1` e `24`. Nunca usar `0`.
+- Exemplo mínimo válido do espelho:
 
 ```json
 {
-  "version": 1,
+  "version": 2,
   "generated_at": "2026-07-13T22:00:00Z",
   "project_id": 1,
   "project_name": "Nome do Projeto",
@@ -377,13 +414,28 @@
       "completed": false
     }
   ],
-  "warning": ""
+  "history": [],
+  "history_totals": {
+    "task_count": 0,
+    "manual_hours": 0,
+    "ai_hours": 0,
+    "manual_days": 0,
+    "ai_days": 0,
+    "manual_cost": 0,
+    "ai_cost": 0,
+    "saved_hours": 0,
+    "saved_cost": 0,
+    "saving_percent": 0
+  },
+  "warning": "",
+  "items": {},
+  "closed_snapshots": {}
 }
 ```
 
 - O arquivo `.documents/estimativa.md` é único, vivo, acumulativo e rastreável.
-- O agente não deve sobrescrever `.documents/estimativa.md` apagando histórico, pacotes anteriores, justificativas ou estimativas já registradas.
-- Antes de gravar nova estimativa em Markdown, o agente deve ler o arquivo completo atual e anexar/atualizar somente a seção necessária.
+- O agente não deve sobrescrever `.documents/estimativa.md` apagando histórico, pacotes anteriores, justificativas ou estimativas já registradas quando estiver escrevendo manualmente.
+- Quando a ferramenta gerar o Markdown, o agente deve tratar `.documents/estimativa.md` como relatório derivado do store canônico.
 - O arquivo `.documents/estimativa.md` pode ter seções executivas, tabelas por REQ/RF e justificativas detalhadas, mas deve refletir os mesmos dados do `.documents/estimativa.json`.
 - Quando uma nova estimativa substituir a estimativa ativa, o agente deve preservar o histórico anterior em seção própria de histórico ou snapshot.
 
@@ -450,7 +502,7 @@
 
 - O agente pode usar fluxo reduzido apenas quando a demanda for claramente ajuste fino visual, layout, espaçamento, alinhamento, proporção, responsividade, cor, tipografia, microcopy visual ou correção estética capturada por anotação QA.
 - A exceção só é válida quando não houver alteração em regra de negócio, fluxo funcional, contrato de API, modelo de dados, permissão, arquitetura ou comportamento sistêmico.
-- O fluxo mínimo para QA visual é ler a anotação QA, entender o problema, criar ou atualizar task em `.documents/task/task.md`, usar o formato `- [ ] TASK-QA-<ID-DO-QA>-001: Título curto`, criar ou atualizar o plano em `.documents/task/task.details.md`, gerar ou atualizar a Estimativa em `.documents/estimativa.json` e `.documents/estimativa.md`, solicitar aprovação única do pacote QA, executar após aprovação, verificar, marcar a task como concluída somente após verificação e solicitar validação final do usuário.
+- O fluxo mínimo para QA visual é ler a anotação QA, entender o problema, criar ou atualizar task em `.documents/task/task.md`, usar o formato `- [ ] TASK-QA-<ID-DO-QA>-001: Título curto`, criar ou atualizar o plano em `.documents/task/task.details.md`, gerar ou atualizar a Estimativa pelo Act IA com store canônico em `.documents/estimativa/estimativas.json` e espelhos `.documents/estimativa.json`/`.documents/estimativa.md`, solicitar aprovação única do pacote QA, executar após aprovação, verificar, marcar a task como concluída somente após verificação e solicitar validação final do usuário.
 - Se durante a análise o ajuste visual revelar mudança funcional, arquitetural ou de regra de negócio, a exceção deve ser cancelada e o fluxo Harness completo deve ser retomado.
 
 ### 15.1. Tratamento Obrigatório de QAs Levantados pelo Usuário
@@ -469,7 +521,7 @@
 - O agente deve preservar integralmente as seções existentes em `.documents/task/task.details.md` e atualizar somente a seção do QA correspondente quando ela já existir.
 - Após criar ou revisar todas as tasks e detalhes dos QAs informados, o agente deve obrigatoriamente gerar ou atualizar a estimativa considerando as tasks QA abertas.
 - O fluxo de QA deve seguir a sequência mínima obrigatória `QA aberto → Task → Task Details → Estimativa → Aprovação Única → Execução → Verificação Final`.
-- A estimativa de QA deve preservar o histórico existente em `.documents/estimativa.json` e `.documents/estimativa.md`, sem sobrescrever estimativas anteriores.
+- A estimativa de QA deve preservar o histórico existente em `.documents/estimativa/estimativas.json`, `.documents/estimativa.json` e `.documents/estimativa.md`, sem sobrescrever estimativas anteriores.
 - Após criar ou revisar todas as tasks, detalhes e estimativa dos QAs informados, o agente deve apresentar o pacote QA ao usuário e solicitar autorização de execução.
 - Após aprovação, o agente deve executar as tasks de QA **uma por vez**, na ordem registrada em `.documents/task/task.md`.
 - O agente só pode marcar uma task de QA como concluída (`- [x]`) depois de executar, verificar tecnicamente e registrar a evidência ou validação aplicável.
@@ -488,7 +540,7 @@
 - DRI em `.documents/dri/dri.md` define como a interface deve se comportar.
 - Task List em `.documents/task/task.md` define quais tasks serão executadas.
 - Task Details em `.documents/task/task.details.md` define como cada task será executada.
-- Estimativa em `.documents/estimativa.json` e `.documents/estimativa.md` define esforço, prazo e custo provável das tasks abertas, separando cenários Com IA e Sem IA.
+- Estimativa em `.documents/estimativa/estimativas.json`, com espelhos `.documents/estimativa.json` e `.documents/estimativa.md`, define esforço, prazo e custo provável das tasks abertas, separando cenários Com IA e Sem IA.
 - Execução ocorre somente após aprovação única do pacote.
 
 ---
@@ -502,7 +554,8 @@
 - DRI: `.documents/dri/dri.md`.
 - Task List: `.documents/task/task.md`.
 - Task Details: `.documents/task/task.details.md`.
-- Estimativa estruturada: `.documents/estimativa.json`.
+- Estimativa estruturada canônica: `.documents/estimativa/estimativas.json`.
+- Espelho estruturado para UI/legado: `.documents/estimativa.json`.
 - Relatório de estimativa: `.documents/estimativa.md`.
 - Task por RF: `TASK-RF-0001-01-001`.
 - Task por QA visual: `TASK-QA-<ID-DO-QA>-001`.
@@ -529,7 +582,7 @@ graph TD
     E --> F["6. Criar/Revisar DRI em .documents/dri/dri.md quando aplicável"]
     F --> G["7. Criar Task List em .documents/task/task.md"]
     G --> H["8. Detalhar Tasks em .documents/task/task.details.md"]
-    H --> I["9. Gerar Estimativa Realista em .documents/estimativa.json e .documents/estimativa.md"]
+    H --> I["9. Gerar Estimativa Realista no store canônico e espelhos"]
     I --> J{"10. Pacote Harness aprovado?"}
     J -->|"Não"| K["Ajustar documentos necessários"]
     K --> B

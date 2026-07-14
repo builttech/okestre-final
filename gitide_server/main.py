@@ -6602,6 +6602,91 @@ def _pricing_report_paths(project: Project) -> tuple:
     )
 
 
+def _pricing_store_path(project: Project) -> str:
+    return os.path.join(project.path, ".documents", "estimativa", "estimativas.json")
+
+
+def _empty_pricing_store(project: Project) -> dict:
+    return {
+        "version": 2,
+        "project_id": project.id,
+        "project_name": project.name,
+        "updated_at": None,
+        "items": {},
+        "closed_snapshots": {},
+        "runs": [],
+    }
+
+
+def _safe_pricing_task_id(value: object) -> str:
+    return str(value or "").strip().upper()
+
+
+def _pricing_items_from_value(value: object) -> dict:
+    if isinstance(value, dict):
+        return {
+            _safe_pricing_task_id(key): item
+            for key, item in value.items()
+            if _safe_pricing_task_id(key) and isinstance(item, dict)
+        }
+    if isinstance(value, list):
+        return {
+            _safe_pricing_task_id(item.get("id")): item
+            for item in value
+            if isinstance(item, dict) and _safe_pricing_task_id(item.get("id"))
+        }
+    return {}
+
+
+def _pricing_store_from_legacy_report(project: Project, report: Optional[dict]) -> dict:
+    store = _empty_pricing_store(project)
+    if not isinstance(report, dict):
+        return store
+
+    store["updated_at"] = report.get("generated_at") or report.get("updated_at")
+    store["items"].update(_pricing_items_from_value(report.get("items")))
+    store["items"].update(_pricing_items_from_value(report.get("tasks")))
+    store["closed_snapshots"].update(_pricing_items_from_value(report.get("closed_snapshots")))
+    store["closed_snapshots"].update(_pricing_items_from_value(report.get("history")))
+
+    runs = report.get("runs")
+    if isinstance(runs, list):
+        store["runs"] = [run for run in runs if isinstance(run, dict)][-20:]
+    elif report.get("generated_at"):
+        store["runs"] = [{
+            "generated_at": report.get("generated_at"),
+            "task_count": len(store["items"]),
+            "source": "legacy_migration",
+        }]
+    return store
+
+
+def _load_pricing_store(project: Project) -> dict:
+    store_path = _pricing_store_path(project)
+    if os.path.exists(store_path):
+        try:
+            with open(store_path, "r", encoding="utf-8") as f:
+                saved = json.load(f)
+            if isinstance(saved, dict):
+                store = _empty_pricing_store(project)
+                store.update({key: saved.get(key, store[key]) for key in store.keys() if key in saved})
+                store["items"] = _pricing_items_from_value(saved.get("items"))
+                store["closed_snapshots"] = _pricing_items_from_value(saved.get("closed_snapshots"))
+                store["runs"] = [run for run in saved.get("runs", []) if isinstance(run, dict)][-20:] if isinstance(saved.get("runs"), list) else []
+                return store
+        except (OSError, json.JSONDecodeError):
+            pass
+
+    legacy_json_path, _ = _pricing_report_paths(project)
+    if os.path.exists(legacy_json_path):
+        try:
+            with open(legacy_json_path, "r", encoding="utf-8") as f:
+                return _pricing_store_from_legacy_report(project, json.load(f))
+        except (OSError, json.JSONDecodeError):
+            pass
+    return _empty_pricing_store(project)
+
+
 def _load_pricing_config(project: Project) -> dict:
     config = dict(PRICING_DEFAULT_CONFIG)
     path = _pricing_config_path(project)
@@ -6673,45 +6758,6 @@ def _collect_pricing_context(project: Project, include_completed: bool = False) 
 
     reference_context = "\n\n".join(reference_parts)
     return tasks, reference_context[:30000]
-
-
-def _pricing_saved_task_candidates(report: Optional[dict]) -> list:
-    if not isinstance(report, dict):
-        return []
-    candidates = []
-    for key in ("history", "tasks"):
-        value = report.get(key)
-        if isinstance(value, list):
-            candidates.extend(item for item in value if isinstance(item, dict))
-    return candidates
-
-
-def _pricing_closed_history(project: Project, report: Optional[dict], config: dict) -> list:
-    all_tasks, _ = _collect_pricing_context(project, include_completed=True)
-    completed_tasks_by_id = {task["id"]: task for task in all_tasks if task.get("completed")}
-    if not completed_tasks_by_id:
-        return []
-
-    history_by_id = {}
-    for saved_task in _pricing_saved_task_candidates(report):
-        task_id = str(saved_task.get("id") or "").upper()
-        source_task = completed_tasks_by_id.get(task_id)
-        if not source_task:
-            continue
-        normalized_task = _normalize_saved_pricing_task(saved_task, source_task)
-        if not normalized_task:
-            continue
-        normalized_task["completed"] = True
-        normalized_task["closed"] = True
-        normalized_task["closed_at"] = (
-            saved_task.get("closed_at")
-            or saved_task.get("archived_at")
-            or saved_task.get("updated_at")
-            or datetime.utcnow().replace(microsecond=0).isoformat() + "Z"
-        )
-        history_by_id[task_id] = normalized_task
-
-    return [history_by_id[task_id] for task_id in completed_tasks_by_id if task_id in history_by_id]
 
 
 def _infer_pricing_task_type(task: dict) -> str:
@@ -6920,6 +6966,128 @@ def _pricing_totals(tasks: list, config: dict) -> dict:
     }
 
 
+def _pricing_snapshot_from_task(task: dict) -> dict:
+    snapshot = dict(task)
+    now = datetime.utcnow().replace(microsecond=0).isoformat() + "Z"
+    snapshot["completed"] = True
+    snapshot["closed"] = True
+    snapshot["closed_at"] = snapshot.get("closed_at") or now
+    snapshot["title_at_close"] = snapshot.get("title_at_close") or snapshot.get("title") or ""
+    snapshot["saved_hours"] = round(float(snapshot.get("manual_hours") or 0) - float(snapshot.get("ai_hours") or 0), 1)
+    snapshot["saving_percent"] = round(
+        (snapshot["saved_hours"] / float(snapshot.get("manual_hours") or 1) * 100) if float(snapshot.get("manual_hours") or 0) else 0,
+        1,
+    )
+    return snapshot
+
+
+def _pricing_source_task_from_estimate(task_id: str, estimate: dict) -> dict:
+    return {
+        "id": task_id,
+        "title": str(estimate.get("title") or estimate.get("title_at_close") or task_id).strip(),
+        "completed": bool(estimate.get("completed") or estimate.get("closed")),
+        "details": "",
+    }
+
+
+def _pricing_report_from_store(project: Project, store: dict, config: dict) -> tuple:
+    all_tasks, _ = _collect_pricing_context(project, include_completed=True)
+    source_by_id = {task["id"]: task for task in all_tasks}
+    open_source_ids = [task["id"] for task in all_tasks if not task.get("completed")]
+    completed_source_ids = [task["id"] for task in all_tasks if task.get("completed")]
+
+    items = _pricing_items_from_value(store.get("items"))
+    snapshots = _pricing_items_from_value(store.get("closed_snapshots"))
+    normalized_items = {}
+    normalized_snapshots = {}
+    changed = False
+
+    for task_id, raw_estimate in items.items():
+        source_task = source_by_id.get(task_id) or _pricing_source_task_from_estimate(task_id, raw_estimate)
+        normalized = _normalize_saved_pricing_task(raw_estimate, source_task)
+        if normalized:
+            normalized["completed"] = bool(source_task.get("completed"))
+            normalized_items[task_id] = normalized
+        else:
+            changed = True
+
+    for task_id, raw_snapshot in snapshots.items():
+        source_task = source_by_id.get(task_id) or _pricing_source_task_from_estimate(task_id, raw_snapshot)
+        normalized = _normalize_saved_pricing_task(raw_snapshot, source_task)
+        if normalized:
+            normalized_snapshots[task_id] = _pricing_snapshot_from_task({**raw_snapshot, **normalized})
+        else:
+            changed = True
+
+    for task_id in completed_source_ids:
+        if task_id not in normalized_snapshots and task_id in normalized_items:
+            normalized_snapshots[task_id] = _pricing_snapshot_from_task(normalized_items[task_id])
+            changed = True
+
+    open_tasks = [
+        normalized_items[task_id]
+        for task_id in open_source_ids
+        if task_id in normalized_items
+    ]
+
+    history_ids = [task_id for task_id in completed_source_ids if task_id in normalized_snapshots]
+    orphan_snapshot_ids = [
+        task_id
+        for task_id in normalized_snapshots
+        if task_id not in source_by_id
+    ]
+    history = [normalized_snapshots[task_id] for task_id in history_ids + orphan_snapshot_ids]
+
+    generated_at = store.get("updated_at") or datetime.utcnow().replace(microsecond=0).isoformat() + "Z"
+    report = {
+        "version": 2,
+        "generated_at": generated_at,
+        "project_id": project.id,
+        "project_name": project.name,
+        "config": config,
+        "totals": _pricing_totals(open_tasks, config),
+        "tasks": open_tasks,
+        "history": history,
+        "history_totals": _pricing_totals(history, config),
+        "warning": store.get("warning") or "",
+    }
+
+    next_store = _empty_pricing_store(project)
+    next_store["updated_at"] = generated_at
+    next_store["items"] = normalized_items
+    next_store["closed_snapshots"] = normalized_snapshots
+    next_store["runs"] = [run for run in store.get("runs", []) if isinstance(run, dict)][-20:] if isinstance(store.get("runs"), list) else []
+    return report, next_store, changed or next_store["closed_snapshots"] != _pricing_items_from_value(store.get("closed_snapshots"))
+
+
+def _save_pricing_store(project: Project, store: dict, report: dict, markdown: str) -> None:
+    now = datetime.utcnow().replace(microsecond=0).isoformat() + "Z"
+    store_to_save = _empty_pricing_store(project)
+    store_to_save.update({
+        "updated_at": store.get("updated_at") or report.get("generated_at") or now,
+        "items": _pricing_items_from_value(store.get("items")),
+        "closed_snapshots": _pricing_items_from_value(store.get("closed_snapshots")),
+        "runs": [run for run in store.get("runs", []) if isinstance(run, dict)][-20:] if isinstance(store.get("runs"), list) else [],
+    })
+
+    store_path = _pricing_store_path(project)
+    legacy_json_path, report_md_path = _pricing_report_paths(project)
+    os.makedirs(os.path.dirname(store_path), exist_ok=True)
+    os.makedirs(os.path.dirname(legacy_json_path), exist_ok=True)
+
+    with open(store_path, "w", encoding="utf-8") as f:
+        json.dump(store_to_save, f, ensure_ascii=False, indent=2)
+
+    legacy_report = dict(report)
+    legacy_report["items"] = store_to_save["items"]
+    legacy_report["closed_snapshots"] = store_to_save["closed_snapshots"]
+    with open(legacy_json_path, "w", encoding="utf-8") as f:
+        json.dump(legacy_report, f, ensure_ascii=False, indent=2)
+
+    with open(report_md_path, "w", encoding="utf-8") as f:
+        f.write(markdown)
+
+
 def _pricing_markdown(report: dict) -> str:
     totals = report["totals"]
     config = report["config"]
@@ -6998,81 +7166,29 @@ def save_pricing_config(config: PricingConfigIn, project: Project = Depends(get_
 
 @app.get("/api/projects/{project_id}/pricing/report", tags=["Pricing"])
 def get_pricing_report(project: Project = Depends(get_project_or_404)):
-    report_json_path, report_md_path = _pricing_report_paths(project)
-    report = None
-    markdown = ""
-    if os.path.exists(report_json_path):
-        try:
-            with open(report_json_path, "r", encoding="utf-8") as f:
-                report = json.load(f)
-        except (OSError, json.JSONDecodeError):
-            report = None
-    if isinstance(report, dict):
-        saved_report = dict(report)
-        open_tasks, _ = _collect_pricing_context(project)
-        open_tasks_by_id = {task["id"]: task for task in open_tasks}
-        open_task_ids = set(open_tasks_by_id)
-        current_config = _load_pricing_config(project)
-        report = dict(saved_report)
-        normalized_tasks = []
-        for task in saved_report.get("tasks", []):
-            if not isinstance(task, dict):
-                continue
-            task_id = str(task.get("id") or "").upper()
-            if task_id not in open_task_ids:
-                continue
-            normalized_task = _normalize_saved_pricing_task(task, open_tasks_by_id[task_id])
-            if normalized_task:
-                normalized_tasks.append(normalized_task)
-        report["config"] = current_config
-        report["tasks"] = normalized_tasks
-        report["totals"] = _pricing_totals(report["tasks"], current_config)
-        report["history"] = _pricing_closed_history(project, saved_report, current_config)
-        report["history_totals"] = _pricing_totals(report["history"], current_config)
-        markdown = _pricing_markdown(report)
-    else:
-        markdown = _read_project_markdown(report_md_path)
+    config = _load_pricing_config(project)
+    store = _load_pricing_store(project)
+    report, next_store, changed = _pricing_report_from_store(project, store, config)
+    markdown = _pricing_markdown(report)
+    if changed or store.get("version") != 2:
+        _save_pricing_store(project, next_store, report, markdown)
     return {"status": "success", "report": report, "markdown": markdown}
 
 @app.post("/api/projects/{project_id}/pricing/generate", tags=["Pricing"])
 def generate_pricing_report(project: Project = Depends(get_project_or_404)):
     config = _load_pricing_config(project)
     tasks, reference_context = _collect_pricing_context(project)
-    previous_report = None
-    previous_report_json_path, _ = _pricing_report_paths(project)
-    if os.path.exists(previous_report_json_path):
-        try:
-            with open(previous_report_json_path, "r", encoding="utf-8") as f:
-                previous_report = json.load(f)
-        except (OSError, json.JSONDecodeError):
-            previous_report = None
-    existing_history = _pricing_closed_history(project, previous_report, config)
+    store = _load_pricing_store(project)
+    current_report, synced_store, _ = _pricing_report_from_store(project, store, config)
+    existing_history = current_report.get("history") or []
     if not tasks:
-        if existing_history:
-            report = {
-                "version": 1,
-                "generated_at": datetime.utcnow().replace(microsecond=0).isoformat() + "Z",
-                "project_id": project.id,
-                "project_name": project.name,
-                "config": config,
-                "totals": _pricing_totals([], config),
-                "tasks": [],
-                "history": existing_history,
-                "history_totals": _pricing_totals(existing_history, config),
-                "warning": "",
-            }
-            markdown = _pricing_markdown(report)
-            report_json_path, report_md_path = _pricing_report_paths(project)
-            os.makedirs(os.path.dirname(report_json_path), exist_ok=True)
-            with open(report_json_path, "w", encoding="utf-8") as f:
-                json.dump(report, f, ensure_ascii=False, indent=2)
-            with open(report_md_path, "w", encoding="utf-8") as f:
-                f.write(markdown)
-            return {"status": "success", "report": report, "markdown": markdown}
-        raise HTTPException(
-            status_code=400,
-            detail="Nenhuma tarefa em aberto foi encontrada em .documents/task/task.md. Use o formato - [ ] TASK-REQ-NNNN-001: Título.",
-        )
+        current_report["generated_at"] = datetime.utcnow().replace(microsecond=0).isoformat() + "Z"
+        current_report["history"] = existing_history
+        current_report["history_totals"] = _pricing_totals(existing_history, config)
+        markdown = _pricing_markdown(current_report)
+        synced_store["updated_at"] = current_report["generated_at"]
+        _save_pricing_store(project, synced_store, current_report, markdown)
+        return {"status": "success", "report": current_report, "markdown": markdown}
 
     llm_config = agent.load_agent_config()
     provider = llm_config.get("provider")
@@ -7180,9 +7296,23 @@ def generate_pricing_report(project: Project = Depends(get_project_or_404)):
         )
         normalized_tasks.append(estimate)
 
+    now = datetime.utcnow().replace(microsecond=0).isoformat() + "Z"
+    store_items = _pricing_items_from_value(synced_store.get("items"))
+    for estimate in normalized_tasks:
+        store_items[estimate["id"]] = estimate
+    synced_store["items"] = store_items
+    synced_store["updated_at"] = now
+    synced_store["runs"] = ([run for run in synced_store.get("runs", []) if isinstance(run, dict)] + [{
+        "generated_at": now,
+        "task_count": len(normalized_tasks),
+        "open_task_count": len(tasks),
+        "closed_task_count": len(existing_history),
+        "source": "ai",
+    }])[-20:]
+
     report = {
-        "version": 1,
-        "generated_at": datetime.utcnow().replace(microsecond=0).isoformat() + "Z",
+        "version": 2,
+        "generated_at": now,
         "project_id": project.id,
         "project_name": project.name,
         "config": config,
@@ -7193,12 +7323,7 @@ def generate_pricing_report(project: Project = Depends(get_project_or_404)):
     }
     report["history_totals"] = _pricing_totals(report["history"], config)
     markdown = _pricing_markdown(report)
-    report_json_path, report_md_path = _pricing_report_paths(project)
-    os.makedirs(os.path.dirname(report_json_path), exist_ok=True)
-    with open(report_json_path, "w", encoding="utf-8") as f:
-        json.dump(report, f, ensure_ascii=False, indent=2)
-    with open(report_md_path, "w", encoding="utf-8") as f:
-        f.write(markdown)
+    _save_pricing_store(project, synced_store, report, markdown)
 
     return {"status": "success", "report": report, "markdown": markdown}
 
