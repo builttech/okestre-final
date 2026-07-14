@@ -5613,6 +5613,7 @@ function setupEventListeners() {
     
     // 7.5. Ações do Design System (Tokens)
     document.getElementById('btn-add-token-set').addEventListener('click', openCreateSetModal);
+    document.getElementById('btn-add-token-theme')?.addEventListener('click', openCreateThemeModal);
     
     // Theme Editor Close
     document.querySelectorAll('.theme-editor-close').forEach(btn => {
@@ -6661,6 +6662,62 @@ async function runGitMerge() {
 
 // --- DESIGN SYSTEM (TOKENS) MANAGER ---
 
+const COMPONENT_STATE_FIELDS = {
+    hover: [
+        { key: 'background', label: 'Background', placeholder: 'ex: rgba(255,255,255,.04)' },
+        { key: 'border', label: 'Border', placeholder: 'ex: rgba(255,255,255,.16)' },
+        { key: 'text', label: 'Text', placeholder: 'ex: #ffffff' },
+        { key: 'shadow', label: 'Shadow', placeholder: 'ex: 0 8px 24px rgba(0,0,0,.18)' }
+    ],
+    focus: [
+        { key: 'outline', label: 'Outline', placeholder: 'ex: none' },
+        { key: 'ring', label: 'Ring', placeholder: 'ex: rgba(255,255,255,.42)' },
+        { key: 'ringWidth', label: 'Ring width', placeholder: 'ex: 1px' },
+        { key: 'offset', label: 'Offset', placeholder: 'ex: 2px' }
+    ],
+    active: [
+        { key: 'background', label: 'Background', placeholder: 'ex: rgba(255,255,255,.08)' },
+        { key: 'border', label: 'Border', placeholder: 'ex: rgba(255,255,255,.22)' },
+        { key: 'text', label: 'Text', placeholder: 'ex: #ffffff' },
+        { key: 'scale', label: 'Scale', placeholder: 'ex: .98' }
+    ],
+    disabled: [
+        { key: 'opacity', label: 'Opacity', placeholder: 'ex: .45' },
+        { key: 'cursor', label: 'Cursor', placeholder: 'ex: not-allowed' },
+        { key: 'background', label: 'Background', placeholder: 'ex: rgba(255,255,255,.02)' },
+        { key: 'text', label: 'Text', placeholder: 'ex: rgba(255,255,255,.38)' }
+    ]
+};
+
+function createDefaultComponentStates() {
+    return {
+        hover: { background: 'rgba(255,255,255,.04)', border: 'rgba(255,255,255,.16)', text: '#ffffff', shadow: 'none' },
+        focus: { outline: 'none', ring: 'rgba(255,255,255,.42)', ringWidth: '1px', offset: '2px' },
+        active: { background: 'rgba(255,255,255,.08)', border: 'rgba(255,255,255,.22)', text: '#ffffff', scale: '.98' },
+        disabled: { opacity: '.45', cursor: 'not-allowed', background: 'rgba(255,255,255,.02)', text: 'rgba(255,255,255,.38)' }
+    };
+}
+
+function createDefaultGlobalTokenSet() {
+    return {
+        $componentStates: createDefaultComponentStates()
+    };
+}
+
+function ensureGlobalComponentStates() {
+    if (!state.designTokens) return;
+    if (!state.designTokens.global) {
+        state.designTokens.global = createDefaultGlobalTokenSet();
+        return;
+    }
+    const defaults = createDefaultComponentStates();
+    const current = state.designTokens.global.$componentStates || {};
+    Object.keys(defaults).forEach(stateName => {
+        current[stateName] = { ...defaults[stateName], ...(current[stateName] || {}) };
+    });
+    state.designTokens.global.$componentStates = current;
+}
+
 async function loadDesignTokens() {
     if (!state.activeProjectId) return;
     
@@ -6677,7 +6734,7 @@ async function loadDesignTokens() {
         if (res.status === 404) {
             // Se tokens.json não existe, inicializa um objeto padrão
             state.designTokens = {
-                "global": {},
+                "global": createDefaultGlobalTokenSet(),
                 "$themes": [
                     {
                         "id": "default-theme-id",
@@ -6709,6 +6766,12 @@ async function loadDesignTokens() {
             
             // Determina a primeira set válida
             const setOrder = state.designTokens.$metadata?.tokenSetOrder || [];
+            if (!state.designTokens.global) {
+                state.designTokens.global = createDefaultGlobalTokenSet();
+            } else {
+                ensureGlobalComponentStates();
+            }
+
             if (setOrder.length > 0) {
                 if (!setOrder.includes(state.activeTokenSet)) {
                     state.activeTokenSet = setOrder[0];
@@ -6787,10 +6850,10 @@ function renderTokensThemes() {
     
     container.innerHTML = `
         <div class="theme-select-row">
-            <select id="select-active-theme" class="select-input" style="flex: 1; padding: 6px 10px; font-size: 13px;">
+            <select id="select-active-theme" class="select-input">
                 ${options}
             </select>
-            <button class="btn btn-secondary btn-sm" id="btn-edit-active-theme" style="padding: 6px 12px; font-size: 12px; white-space: nowrap;">EDITAR</button>
+            <button class="btn btn-secondary btn-sm" id="btn-edit-active-theme">EDITAR</button>
         </div>
     `;
     
@@ -6945,7 +7008,7 @@ function renderTokensList() {
         }
     });
     
-    let html = '';
+    let html = activeSet === 'global' ? renderGlobalComponentStatesPanel() : '';
     Object.keys(TOKEN_TYPES_CONFIG).forEach(type => {
         const cfg = TOKEN_TYPES_CONFIG[type];
         const list = groupedTokens[type] || [];
@@ -6999,20 +7062,23 @@ function renderTokensList() {
     });
     
     container.innerHTML = html;
+    bindGlobalComponentStatesPanel(container);
     
     container.querySelectorAll('.tokens-category-header').forEach(header => {
         header.addEventListener('click', (e) => {
-            if (e.target.closest('.btn-add-token-inline')) return;
+            if (e.target.closest('button, input, select, textarea, a')) return;
             
             const type = header.getAttribute('data-type');
-            const card = document.getElementById(`cat-card-${type}`);
+            const card = type
+                ? document.getElementById(`cat-card-${type}`)
+                : header.closest('.tokens-category-card');
             if (card) {
                 card.classList.toggle('expanded');
             }
         });
     });
     
-    container.querySelectorAll('.btn-add-token-inline').forEach(btn => {
+    container.querySelectorAll('.btn-add-token-inline[data-type]').forEach(btn => {
         btn.addEventListener('click', (e) => {
             e.stopPropagation();
             const type = btn.getAttribute('data-type');
@@ -7030,6 +7096,93 @@ function renderTokensList() {
             const val = tokenData ? tokenData.$value : '';
             openEditTokenModal(name, type, val, desc);
         });
+    });
+}
+
+function renderGlobalComponentStatesPanel() {
+    ensureGlobalComponentStates();
+    const states = state.designTokens?.global?.$componentStates || createDefaultComponentStates();
+    const labels = {
+        hover: 'Hover',
+        focus: 'Focus',
+        active: 'Active',
+        disabled: 'Disabled'
+    };
+
+    const cards = Object.keys(COMPONENT_STATE_FIELDS).map(stateName => {
+        const fields = COMPONENT_STATE_FIELDS[stateName];
+        const inputs = fields.map(field => {
+            const value = states[stateName]?.[field.key] || '';
+            return `
+                <label class="component-state-field">
+                    <span>${escapeHtml(field.label)}</span>
+                    <input class="text-input component-state-input"
+                        data-state="${escapeHtml(stateName)}"
+                        data-key="${escapeHtml(field.key)}"
+                        value="${escapeHtml(value)}"
+                        placeholder="${escapeHtml(field.placeholder)}">
+                </label>
+            `;
+        }).join('');
+
+        return `
+            <section class="component-state-row">
+                <div class="component-state-row-title">
+                    <span class="component-state-dot"></span>
+                    <strong>${labels[stateName]}</strong>
+                </div>
+                <div class="component-state-fields">
+                    ${inputs}
+                </div>
+            </section>
+        `;
+    }).join('');
+
+    return `
+        <div class="tokens-category-card expanded component-states-panel" id="cat-card-component-states">
+            <div class="tokens-category-header" data-component-state-header>
+                <div class="tokens-category-header-left">
+                    <i class="fa-solid fa-arrow-pointer"></i>
+                    <span>Pseudoclasses globais</span>
+                </div>
+                <div class="tokens-category-header-right">
+                    <span class="tokens-category-count">4</span>
+                    <button type="button" class="component-state-save" id="btn-save-component-states" title="Salvar estados">
+                        <i class="fa-solid fa-floppy-disk"></i>
+                    </button>
+                    <i class="fa-solid fa-chevron-down tokens-category-chevron"></i>
+                </div>
+            </div>
+            <div class="tokens-category-body">
+                <div class="component-state-list">
+                    ${cards}
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function bindGlobalComponentStatesPanel(container) {
+    const saveBtn = container.querySelector('#btn-save-component-states');
+    if (!saveBtn) return;
+
+    saveBtn.addEventListener('click', async () => {
+        ensureGlobalComponentStates();
+        container.querySelectorAll('.component-state-input').forEach(input => {
+            const stateName = input.getAttribute('data-state');
+            const key = input.getAttribute('data-key');
+            if (!state.designTokens.global.$componentStates[stateName]) {
+                state.designTokens.global.$componentStates[stateName] = {};
+            }
+            state.designTokens.global.$componentStates[stateName][key] = input.value.trim();
+        });
+        await saveDesignTokens();
+        saveBtn.classList.add('is-saved');
+        saveBtn.innerHTML = '<i class="fa-solid fa-check"></i>';
+        setTimeout(() => {
+            saveBtn.classList.remove('is-saved');
+            saveBtn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i>';
+        }, 1400);
     });
 }
 
@@ -7054,7 +7207,13 @@ function openCreateThemeModal() {
     document.getElementById('theme-editor-name').value = '';
     document.getElementById('theme-editor-desc').value = '';
     
-    renderThemeEditorSetsCheckboxes({});
+    const defaultSets = {};
+    const activeSets = state.designTokens?.$metadata?.activeSets || ['global'];
+    activeSets.forEach(setName => {
+        defaultSets[setName] = 'enabled';
+    });
+    if (!Object.keys(defaultSets).length) defaultSets.global = 'enabled';
+    renderThemeEditorSetsCheckboxes(defaultSets);
     
     openCustomModal('modal-theme-editor');
 }
@@ -7120,6 +7279,9 @@ async function saveThemeFromModal() {
             selectedSets[setName] = 'enabled';
         }
     });
+    if (!Object.keys(selectedSets).length && state.designTokens.global) {
+        selectedSets.global = 'enabled';
+    }
     
     if (id) {
         const theme = state.designTokens.$themes.find(t => t.id === id);

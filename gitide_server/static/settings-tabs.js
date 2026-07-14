@@ -468,17 +468,18 @@
 
     layout.dataset.settingsTabsReady = 'true';
     layout.classList.add('gitide-settings-tabs-ready');
+    layout.removeAttribute('style');
 
     const sidebar = document.createElement('nav');
     sidebar.className = 'settings-tabs-sidebar';
     sidebar.setAttribute('role', 'tablist');
     sidebar.innerHTML = '<div class="settings-tabs-title">Settings</div>';
     
-    sidebar.appendChild(createTabButton('prompt-copy', 'clipboard-copy', 'Prompt Copy', true));
+    sidebar.appendChild(createTabButton('prompt-copy', 'clipboard-copy', 'Prompts', true));
     sidebar.appendChild(createTabButton('parametrization', 'file-edit', 'Parametrização', false));
 
-    sidebar.appendChild(createTabButton('agent-config', 'bot', 'Configurações do Agente', false));
-    sidebar.appendChild(createTabButton('gpt-action', 'rocket', 'Configurações do GPT Action', false));
+    sidebar.appendChild(createTabButton('agent-config', 'bot', 'API Agents', false));
+    sidebar.appendChild(createTabButton('gpt-action', 'rocket', 'GPT Action', false));
     if (prodValidatorCard) {
       sidebar.appendChild(createTabButton('prod-validator', 'shield-check', 'Prod-Ready Validator', false));
     }
