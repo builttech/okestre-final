@@ -6332,7 +6332,7 @@ def browse_directories(path: Optional[str] = None):
         dirs = []
         for entry in entries:
             try:
-                if entry.is_dir() and not entry.name.startswith('.'):
+                if entry.is_dir():
                     dirs.append(entry.name)
             except OSError:
                 continue
