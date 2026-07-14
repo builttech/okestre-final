@@ -18,12 +18,6 @@
     }
   }
 
-  function getTokenPreview() {
-    const fullToken = document.getElementById('api-token-full-view')?.value || '';
-    const previewToken = document.getElementById('api-token-preview')?.textContent || '';
-    return (fullToken && !fullToken.includes('Carregando')) ? fullToken : previewToken;
-  }
-
   function activateTab(tabId) {
     if (typeof window.gitideActivateTab === 'function') {
       window.gitideActivateTab(tabId);
@@ -179,7 +173,7 @@
       orgTitle.textContent = text;
       avatar.textContent = initials(text);
       root.querySelector('.workspace-account-org-row .workspace-switcher-avatar').textContent = initials(text);
-      if (emailLabel) emailLabel.textContent = getTokenPreview() || 'Act IA Workspace';
+      if (emailLabel) emailLabel.textContent = 'Act IA Workspace';
     }
 
     function runCopyAction() {

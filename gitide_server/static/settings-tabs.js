@@ -18,24 +18,20 @@
       || selected?.textContent
       || (projectId ? `Projeto ${projectId}` : 'Projeto ativo não selecionado')
     ).trim();
-    const token = document.getElementById('api-token-full-view')?.value
-      || document.getElementById('api-token-preview')?.textContent
-      || '';
-
-    return { projectName, projectId, token };
+    return { projectName, projectId };
   }
 
   let selectedPromptCopyTemplate = 'base';
 
   function buildPromptContextHeader() {
-    const { projectName, projectId, token } = activeProjectContext();
+    const { projectName, projectId } = activeProjectContext();
     return [
       `Projeto ativo: ${projectName}`,
       projectId ? `ID do projeto: ${projectId}` : 'ID do projeto: não selecionado',
       '',
       'Use sempre o ID de projeto acima em todas as chamadas de API do Act IA.',
       'Exemplo: /api/projects/' + (projectId || '{project_id}') + '/...',
-      token ? `Token Act IA: ${token}` : '',
+      'Autenticação: use a autenticação configurada na GPT Action ou na IA nativa. Nunca inclua tokens, senhas ou chaves neste prompt.',
     ].filter(Boolean).join('\n');
   }
 
