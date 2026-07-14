@@ -1880,46 +1880,46 @@ VALIDAÇÃO: quando o runtime real estiver em VM e comandos locais como npm/node
 
                 <!-- TAB: DISCOVERY (MARKITDOWN) -->
                 <div id="tab-discovery" class="tab-pane">
-                    <div class="discovery-layout" style="display: flex; gap: 20px; height: 100%; padding: 20px;">
+                    <div class="discovery-layout">
                         <!-- Coluna 1: Upload / Input -->
-                        <div class="discovery-input-panel" style="flex: 1; display: flex; flex-direction: column; gap: 20px; max-width: 50%;">
-                            <div class="card" style="padding: 20px;">
-                                <h3><i data-lucide="file-up"></i> Extrair de Arquivo</h3>
-                                <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 16px;">
+                        <div class="discovery-input-panel">
+                            <div class="card discovery-card">
+                                <h3 class="discovery-card-title"><i data-lucide="file-up"></i> Extrair de Arquivo</h3>
+                                <p class="discovery-card-description">
                                     Formatos suportados: PDF, Word (docx), PowerPoint (pptx), Excel (xlsx), ZIP, CSV, JSON, Imagens e Áudios.
                                 </p>
-                                <div id="discovery-dropzone" style="border: 2px dashed var(--border-color); border-radius: 8px; padding: 40px 20px; text-align: center; cursor: pointer; transition: all 0.3s; background: rgba(0,0,0,0.2);">
-                                    <i data-lucide="upload-cloud" style="width: 48px; height: 48px; color: var(--color-primary); margin-bottom: 12px;"></i>
-                                    <div style="font-weight: 500; margin-bottom: 8px;">Arraste um arquivo ou clique para selecionar</div>
+                                <div id="discovery-dropzone" class="discovery-dropzone">
+                                    <i data-lucide="upload-cloud"></i>
+                                    <div class="discovery-dropzone-title">Arraste um arquivo ou clique para selecionar</div>
                                     <input type="file" id="discovery-file-input" style="display: none;">
                                 </div>
                             </div>
                             
-                            <div class="card" style="padding: 20px;">
-                                <h3><i data-lucide="link"></i> Extrair de URL (Youtube, etc)</h3>
-                                <div style="display: flex; gap: 10px; margin-top: 16px;">
-                                    <input type="text" id="discovery-url-input" class="text-input" style="flex: 1;" placeholder="https://www.youtube.com/watch?v=...">
+                            <div class="card discovery-card">
+                                <h3 class="discovery-card-title"><i data-lucide="link"></i> Extrair de URL</h3>
+                                <div class="discovery-url-row">
+                                    <input type="text" id="discovery-url-input" class="text-input" placeholder="https://www.youtube.com/watch?v=...">
                                     <button class="btn btn-primary" id="btn-discovery-url"><i class="fa-solid fa-wand-magic-sparkles"></i> Extrair</button>
                                 </div>
                             </div>
 
-                            <div class="card" style="padding: 20px; flex: 1;">
-                                <h3><i data-lucide="terminal"></i> Status da Conversão</h3>
-                                <div id="discovery-log" style="background: rgba(0,0,0,0.5); padding: 12px; border-radius: 6px; font-family: monospace; font-size: 12px; height: 150px; overflow-y: auto; margin-top: 16px; color: var(--text-muted);">
+                            <div class="card discovery-card discovery-status-card">
+                                <h3 class="discovery-card-title"><i data-lucide="terminal"></i> Status da Conversão</h3>
+                                <div id="discovery-log" class="discovery-log">
                                     <div>Aguardando arquivos...</div>
                                 </div>
                             </div>
                         </div>
 
                         <!-- Coluna 2: Resultados -->
-                        <div class="discovery-results-panel" style="flex: 1; display: flex; flex-direction: column;">
-                            <div class="card" style="flex: 1; display: flex; flex-direction: column;">
-                                <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; padding: 16px;">
-                                    <h3 style="margin: 0;"><i data-lucide="folder-search"></i> Arquivos Convertidos (.md)</h3>
+                        <div class="discovery-results-panel">
+                            <div class="card discovery-results-card">
+                                <div class="card-header discovery-results-header">
+                                    <h3><i data-lucide="folder-search"></i> Arquivos Convertidos (.md)</h3>
                                     <button class="btn-icon" id="btn-discovery-refresh" title="Atualizar lista"><i class="fa-solid fa-rotate"></i></button>
                                 </div>
-                                <div id="discovery-files-list" style="padding: 16px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 8px;">
-                                    <div style="color: var(--text-muted); text-align: center; padding: 40px;">Nenhum arquivo convertido ainda.</div>
+                                <div id="discovery-files-list" class="discovery-files-list">
+                                    <div class="discovery-empty">Nenhum arquivo convertido ainda.</div>
                                 </div>
                             </div>
                         </div>
@@ -1948,10 +1948,6 @@ VALIDAÇÃO: quando o runtime real estiver em VM e comandos locais como npm/node
                             </div>
 
                             <div class="ops-flow-panel active" data-ops-flow-panel="vm">
-                                <div class="ops-info-band">
-                                    <i data-lucide="info"></i>
-                                    <span>o Act IA não cria a VM. Crie a máquina no provedor de sua escolha e informe aqui os dados de acesso SSH.</span>
-                                </div>
                                 <div class="ops-infra-field">
                                     <label for="ops-vm-host">IP ou host da VM</label>
                                     <input type="text" id="ops-vm-host" class="text-input" placeholder="ex: 203.0.113.10">
@@ -2122,12 +2118,12 @@ VALIDAÇÃO: quando o runtime real estiver em VM e comandos locais como npm/node
                                 <h4><i data-lucide="terminal"></i> Deploy na VM</h4>
                             </div>
                             <div class="ops-command-grid">
-                                <button class="btn btn-secondary" data-ops-command="build">Build</button>
-                                <button class="btn btn-secondary" data-ops-command="up">Up -d</button>
-                                <button class="btn btn-secondary" data-ops-command="restart">Restart</button>
-                                <button class="btn btn-secondary" data-ops-command="ps">Status</button>
-                                <button class="btn btn-secondary" data-ops-command="logs">Logs</button>
-                                <button class="btn btn-secondary git-danger-action" data-ops-command="down">Down</button>
+                                <button class="btn btn-secondary ops-command-btn" data-ops-command="build" title="Build" aria-label="Build"><i data-lucide="hammer"></i></button>
+                                <button class="btn btn-secondary ops-command-btn" data-ops-command="up" title="Subir containers" aria-label="Subir containers"><i data-lucide="upload-cloud"></i></button>
+                                <button class="btn btn-secondary ops-command-btn" data-ops-command="restart" title="Reiniciar" aria-label="Reiniciar"><i data-lucide="rotate-cw"></i></button>
+                                <button class="btn btn-secondary ops-command-btn" data-ops-command="ps" title="Status" aria-label="Status"><i data-lucide="activity"></i></button>
+                                <button class="btn btn-secondary ops-command-btn" data-ops-command="logs" title="Logs" aria-label="Logs"><i data-lucide="scroll-text"></i></button>
+                                <button class="btn btn-secondary git-danger-action ops-command-btn" data-ops-command="down" title="Desligar containers" aria-label="Desligar containers"><i data-lucide="power"></i></button>
                             </div>
                             <pre class="ops-infra-console" id="ops-console-output">Aguardando ação...</pre>
                             <div class="ops-ai-card">
