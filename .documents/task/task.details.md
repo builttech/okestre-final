@@ -746,3 +746,241 @@ Ao selecionar qualquer frame no Design Canvas, a aba Design deve exibir uma seç
 - [x] Evidência textual registrada.
 - [x] Escopo delimitado.
 - [x] Critérios de aceite definidos.
+
+# TASK-RF-0002-01-001 — Implementar estado de viewport e conversões Screen/World
+
+## Identificação da task
+
+- ID: `TASK-RF-0002-01-001`
+- RF: `RF-0002-01`
+- Tipo: implementação frontend
+- Status final: concluída
+
+## Objetivo
+
+Adicionar estado central de viewport e funções de conversão entre Screen Space e World Space no Design Canvas.
+
+## Escopo executado
+
+- Criado `VIEWPORT_STORAGE_KEY`.
+- Adicionado `state.viewport` com `x`, `y`, `scale`, `minScale`, `maxScale`, estados de pan/zoom e touch.
+- Criadas funções `normalizeViewport`, `screenToWorld`, `worldToScreen`, `getViewportCenterScreen`, `getPointerScreenPosition` e `getPointer` em World Space.
+- Stage inicializado pelo tamanho visível do container.
+- Criação de nós passou a usar coordenada global calculada pelo viewport.
+
+## Arquivos impactados
+
+- `gitide_server/static/konva-designer.js`
+- `.documents/design/design.md`
+- `.documents/task/task.md`
+- `.documents/task/task.details.md`
+
+## Evidências
+
+- Revisão técnica por leitura nos trechos de inicialização do stage e helpers de viewport.
+- Verificado que pan/zoom não alteram `state.doc.nodes` diretamente.
+- Verificado que `getPointer()` converte ponto de tela para World Space.
+
+## Validação
+
+- Validação por leitura técnica, conforme orientação de VM sem depender de Node local.
+- Não foi identificado erro evidente de sintaxe em funções, objetos, strings ou chaves dos trechos alterados.
+
+## Critérios de aceite
+
+- [x] Estado de viewport existe e é normalizado.
+- [x] Conversões Screen/World foram implementadas.
+- [x] Objetos continuam em World Space.
+
+# TASK-RF-0002-02-001 — Implementar zoom relativo ao cursor, botões e atalhos de zoom
+
+## Identificação da task
+
+- ID: `TASK-RF-0002-02-001`
+- RF: `RF-0002-02`
+- Tipo: implementação frontend
+- Status final: concluída
+
+## Objetivo
+
+Implementar zoom relativo ao cursor, limites, botões, atalhos e ações de recuperação visual.
+
+## Escopo executado
+
+- Criadas funções `zoomAtScreenPoint`, `zoomByFactor`, `resetZoom`, `fitAllObjects`, `fitSelection`, `centerContent` e `focusBounds`.
+- Implementado `Ctrl/Cmd + Wheel` para zoom no ponto do cursor.
+- Implementados botões `+`, `-`, `100%`, ajustar todos, ajustar seleção e centralizar.
+- Implementados atalhos `+`, `-`, `0`, `1` e `2`.
+- Indicadores `#konva-zoom-label` e `#konva-right-zoom` atualizam pelo viewport real.
+
+## Arquivos impactados
+
+- `gitide_server/static/konva-designer.html`
+- `gitide_server/static/konva-designer.js`
+- `gitide_server/static/rebrand.css`
+
+## Evidências
+
+- HTML revisado com novos controles da toolbar.
+- JS revisado com cálculo focal de zoom e limites `0.05` a `64`.
+- CSS revisado para botão textual `100%` e estados de botão.
+
+## Validação
+
+- Validação por leitura técnica de handlers, atalhos e fechamento dos templates/strings.
+- Não foi executado `node --check` porque a instrução do projeto orienta validação por leitura em VM quando runtime local não existe.
+
+## Critérios de aceite
+
+- [x] Zoom relativo ao cursor implementado.
+- [x] Botões e atalhos implementados.
+- [x] Indicador de zoom atualizado.
+- [x] Limites mínimo/máximo respeitados pela função de clamp.
+
+# TASK-RF-0002-03-001 — Implementar pan por wheel, trackpad, botão central, Hand e Space Drag
+
+## Identificação da task
+
+- ID: `TASK-RF-0002-03-001`
+- RF: `RF-0002-03`
+- Tipo: implementação frontend
+- Status final: concluída
+
+## Objetivo
+
+Adicionar pan do viewport por wheel, trackpad, botão central, Hand Tool e `Space + Drag` sem mover objetos.
+
+## Escopo executado
+
+- Criadas funções `startViewportPan`, `moveViewportPan`, `endViewportPan`, `panBy` e `handleViewportWheel`.
+- Implementado wheel vertical e Shift+Wheel horizontal.
+- Implementado pan por `deltaX/deltaY` para trackpad.
+- Implementado botão central + drag.
+- Implementada ferramenta Hand com cursor `grab/grabbing`.
+- Implementado `Space + Drag` temporário.
+- Adicionado estado `panJustEnded` para evitar que o clique final do pan limpe a seleção.
+- Corrigido conflito em `wireNode` para impedir que a ferramenta `hand` tente criar objeto.
+
+## Arquivos impactados
+
+- `gitide_server/static/konva-designer.html`
+- `gitide_server/static/konva-designer.js`
+- `gitide_server/static/rebrand.css`
+
+## Evidências
+
+- Revisado `wireNode` para bloquear drag de objeto durante Hand/Space/pan.
+- Revisado handler do stage para preservar seleção após pan.
+- Verificado que pan não chama `pushHistory()`.
+
+## Validação
+
+- Validação por leitura técnica de fluxo de pointer/wheel/keyboard.
+- Não foi identificado erro evidente de sintaxe nos handlers adicionados.
+
+## Critérios de aceite
+
+- [x] Wheel e Shift+Wheel ligados ao viewport.
+- [x] Botão central + drag ligado ao viewport.
+- [x] Hand Tool e Space+Drag implementados.
+- [x] Seleção preservada durante pan.
+
+# TASK-RF-0002-04-001 — Implementar stage responsivo, touch/pinch e grid dinâmico
+
+## Identificação da task
+
+- ID: `TASK-RF-0002-04-001`
+- RF: `RF-0002-04`
+- Tipo: implementação frontend
+- Status final: concluída
+
+## Objetivo
+
+Tornar o stage responsivo, adicionar suporte touch/pinch e substituir o grid fixo por grid dinâmico em World Space.
+
+## Escopo executado
+
+- Criada função `resizeStageToContainer`.
+- Stage agora usa tamanho visível de `.konva-stage-scroll`.
+- CSS de `#konva-stage` passou para `width: 100%` e `height: 100%`.
+- `.konva-stage-scroll` passou a usar `overflow: hidden` e `touch-action: none`.
+- `drawGrid()` reescrito para bounds visíveis em World Space.
+- Criados helpers `getVisibleWorldBounds`, `getGridStep`, `getTouchPoint`, `touchDistance`, `touchMidpoint`, `handleTouchStart`, `handleTouchMove` e `handleTouchEnd`.
+
+## Arquivos impactados
+
+- `gitide_server/static/konva-designer.js`
+- `gitide_server/static/rebrand.css`
+
+## Evidências
+
+- Revisado cálculo do grid dinâmico por bounds visíveis.
+- Revisado resize do stage e preservação do viewport.
+- Revisados handlers touch/pinch por leitura técnica.
+
+## Validação
+
+- Validação por leitura técnica.
+- Touch/pinch ainda requer validação visual em dispositivo ou emulador compatível.
+
+## Critérios de aceite
+
+- [x] Stage responsivo implementado.
+- [x] Grid dinâmico em World Space implementado.
+- [x] Touch pan e pinch-to-zoom implementados em handlers.
+
+# TASK-RF-0002-05-001 — Persistir viewport por página e validar performance/acessibilidade
+
+## Identificação da task
+
+- ID: `TASK-RF-0002-05-001`
+- RF: `RF-0002-05`
+- Tipo: implementação frontend e QA
+- Status final: concluída
+
+## Objetivo
+
+Persistir viewport por página, manter pan/zoom fora do export JSON e do undo/redo, e validar a entrega por leitura técnica.
+
+## Escopo executado
+
+- Criadas funções `getViewportStorage`, `persistViewport` e `loadViewportForPage`.
+- Viewport persistido por `pageId` em `localStorage` separado do documento.
+- `navigatePage` e `startRenamePage` restauram viewport da página ativa.
+- Atalhos ignoram campos editáveis via `isEditableTarget`.
+- Casos de teste oficiais atualizados de `TC-059` a `TC-082`.
+- Cache busting atualizado para `rebrand.css?v=86` e `konva-designer.js?v=7`.
+
+## Arquivos impactados
+
+- `gitide_server/static/konva-designer.html`
+- `gitide_server/static/konva-designer.js`
+- `gitide_server/static/rebrand.css`
+- `.documents/casos/test_cases.json`
+- `.documents/casos/test_cases.md`
+- `.documents/task/task.md`
+- `.documents/task/task.details.md`
+- `.documents/estimativa/estimativas.json`
+- `.documents/estimativa.json`
+- `.documents/estimativa.md`
+
+## Evidências
+
+- Revisão técnica por leitura dos arquivos HTML, JS e CSS alterados.
+- Revisão de fechamento do JSON oficial de casos de teste até `TC-082`.
+- Confirmado que viewport usa `localStorage` separado e não entra em `exportJson()`.
+- Confirmado que pan/zoom não chamam `pushHistory()`.
+
+## Validação
+
+- Validação por leitura técnica em ambiente de VM.
+- Verificados trechos de inicialização, conversão de coordenadas, pan, zoom, touch, grid, persistência, toolbar e cache busting.
+- Não foi identificado erro evidente de sintaxe em chaves, parênteses, strings ou templates dos trechos alterados.
+
+## Critérios de aceite
+
+- [x] Viewport persistido por página.
+- [x] Atalhos ignoram campos editáveis.
+- [x] Export JSON não inclui viewport local.
+- [x] Casos de teste atualizados.
+- [x] Validação técnica registrada.

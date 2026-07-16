@@ -17,7 +17,7 @@
 
 ## Histórico de Tarefas Fechadas
 
-> 5 tarefa(s) concluída(s) preservada(s) no histórico de estimativas.
+> 10 tarefa(s) concluída(s) preservada(s) no histórico de estimativas.
 
 | Tarefa | Título | Tipo | Área | Complexidade | Sem IA | Com IA | Economia |
 | --- | --- | --- | --- | --- | ---: | ---: | ---: |
@@ -26,6 +26,11 @@
 | TASK-RF-0001-02-001 | Implementar motor Flex Layout para frames no Konva | implementation | frontend | high | 4.5h | 1.4h | 3.1h |
 | TASK-RF-0001-03-001 | Criar controles de Auto Layout no inspector da aba Design | implementation | frontend | medium | 2.5h | 0.8h | 1.7h |
 | TASK-RF-0001-04-001 | Implementar persistência, undo/redo e validação da feature Auto Layout | implementation | frontend | medium | 1.5h | 0.5h | 1.0h |
+| TASK-RF-0002-01-001 | Implementar estado de viewport e conversões Screen/World | implementation | frontend | medium | 2.0h | 0.7h | 1.3h |
+| TASK-RF-0002-02-001 | Implementar zoom relativo ao cursor, botões e atalhos de zoom | implementation | frontend | medium | 2.5h | 0.8h | 1.7h |
+| TASK-RF-0002-03-001 | Implementar pan por wheel, trackpad, botão central, Hand e Space Drag | implementation | frontend | medium | 2.5h | 0.8h | 1.7h |
+| TASK-RF-0002-04-001 | Implementar stage responsivo, touch/pinch e grid dinâmico | implementation | frontend | high | 3.0h | 1.0h | 2.0h |
+| TASK-RF-0002-05-001 | Persistir viewport por página e validar performance/acessibilidade | implementation | frontend | medium | 1.5h | 0.5h | 1.0h |
 
 ## Premissas
 

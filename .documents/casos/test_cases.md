@@ -1,6 +1,6 @@
 # Casos de Teste
 
-## Suíte — Auto Layout Flexível na Aba Design
+## Suítes — Auto Layout Flexível e Canvas Infinito no Design Canvas
 
 - Projeto: `act-ide-teste`
 - ID do projeto: `22`
@@ -14,6 +14,12 @@
 - `.documents/functional-requirements/RF-0001-02-calcular-flex-layout-konva.md`
 - `.documents/functional-requirements/RF-0001-03-controles-auto-layout-aba-design.md`
 - `.documents/functional-requirements/RF-0001-04-persistir-historico-auto-layout.md`
+- `.documents/requirements/REQ-0002-navegacao-zoom-pan-canvas-infinito.md`
+- `.documents/functional-requirements/RF-0002-01-modelo-viewport-coordenadas-canvas-infinito.md`
+- `.documents/functional-requirements/RF-0002-02-zoom-relativo-cursor-limites.md`
+- `.documents/functional-requirements/RF-0002-03-pan-scroll-hand-tool.md`
+- `.documents/functional-requirements/RF-0002-04-responsividade-touch-grid-dinamico.md`
+- `.documents/functional-requirements/RF-0002-05-persistencia-performance-acessibilidade.md`
 
 ## Observação
 
@@ -427,6 +433,176 @@ A raiz direta do workspace não contém arquivos `REQ-*` ou `RF-*`. A suíte foi
 - **Passos:** 1. Procurar handles específicos de gap no canvas; 2. Tentar alterar gap diretamente arrastando no canvas; 3. Alterar gap pelo inspector.
 - **Resultado esperado:** Manipulação direta de gap no canvas não é exigida; gap deve ser alterável pelo inspector.
 
+## Suíte — Navegação, Zoom e Pan em Canvas Infinito
+
+### TC-059 — Inicializar viewport do Canvas Infinito com escala 100%
+
+- **Origem:** REQ-0002, RF-0002-01
+- **Pré-condições:** Documento aberto em `/design-canvas` sem viewport salvo para a página ativa.
+- **Passos:** 1. Abrir `/design-canvas`; 2. Observar o indicador de zoom; 3. Inspecionar visualmente o canvas inicial.
+- **Resultado esperado:** O viewport inicia com `scale=1`, indicador `100%`, `x/y` normalizados e objetos preservados em World Space.
+
+### TC-060 — Converter Screen Space para World Space após pan e zoom
+
+- **Origem:** RF-0002-01
+- **Pré-condições:** Canvas aberto com viewport alterado por pan e zoom.
+- **Passos:** 1. Aplicar zoom; 2. Aplicar pan; 3. Criar um novo objeto no ponto visível do cursor; 4. Verificar a posição visual e o JSON.
+- **Resultado esperado:** O objeto é criado no ponto visual correto e suas coordenadas persistidas correspondem ao World Space calculado.
+
+### TC-061 — Pan e zoom não alteram coordenadas persistidas dos objetos
+
+- **Origem:** REQ-0002, RF-0002-01
+- **Pré-condições:** Existe pelo menos um frame no canvas com coordenadas conhecidas.
+- **Passos:** 1. Anotar `x/y` do frame no JSON; 2. Aplicar pan; 3. Aplicar zoom; 4. Conferir novamente `x/y` no JSON.
+- **Resultado esperado:** As coordenadas `x/y` do frame permanecem iguais após pan e zoom.
+
+### TC-062 — Aplicar zoom relativo ao cursor com Ctrl ou Command + Wheel
+
+- **Origem:** REQ-0002, RF-0002-02
+- **Pré-condições:** Canvas aberto; cursor posicionado sobre um ponto visível do canvas.
+- **Passos:** 1. Posicionar cursor sobre um objeto; 2. Usar `Ctrl+Wheel` ou `Command+Wheel`; 3. Observar o ponto sob o cursor.
+- **Resultado esperado:** O zoom aproxima ou afasta mantendo o ponto sob o cursor visualmente estável.
+
+### TC-063 — Respeitar limite mínimo de zoom
+
+- **Origem:** RF-0002-02
+- **Pré-condições:** Canvas aberto.
+- **Passos:** 1. Aplicar zoom out repetidamente; 2. Observar indicador de zoom e canvas.
+- **Resultado esperado:** A escala não fica abaixo de 5% e o viewport não apresenta salto visual ao atingir o limite.
+
+### TC-064 — Respeitar limite máximo de zoom
+
+- **Origem:** RF-0002-02
+- **Pré-condições:** Canvas aberto.
+- **Passos:** 1. Aplicar zoom in repetidamente; 2. Observar indicador de zoom e canvas.
+- **Resultado esperado:** A escala não ultrapassa 6400% e o viewport não apresenta salto visual ao atingir o limite.
+
+### TC-065 — Executar atalhos de zoom +, -, 0, 1 e 2 fora de campos editáveis
+
+- **Origem:** RF-0002-02, RF-0002-05
+- **Pré-condições:** Canvas aberto com pelo menos um objeto e uma seleção possível.
+- **Passos:** 1. Pressionar `+`; 2. Pressionar `-`; 3. Pressionar `0`; 4. Pressionar `1`; 5. Selecionar um objeto e pressionar `2`.
+- **Resultado esperado:** `+` aproxima, `-` afasta, `0` restaura 100%, `1` ajusta todos e `2` ajusta a seleção.
+
+### TC-066 — Ignorar atalhos de viewport em campos editáveis
+
+- **Origem:** RF-0002-02, RF-0002-03, RF-0002-05
+- **Pré-condições:** Inspector aberto com um input, select ou textarea em foco.
+- **Passos:** 1. Focar um campo editável; 2. Pressionar `+`, `-`, `0`, `1`, `2` e `Space`; 3. Observar viewport e campo.
+- **Resultado esperado:** Atalhos de viewport não são executados enquanto o foco está em campo editável.
+
+### TC-067 — Mover viewport verticalmente com Wheel sem modificadores
+
+- **Origem:** RF-0002-03
+- **Pré-condições:** Canvas aberto com conteúdo visível.
+- **Passos:** 1. Usar a roda do mouse sem `Ctrl/Command/Shift`; 2. Observar o deslocamento do canvas.
+- **Resultado esperado:** O viewport se desloca verticalmente sem alterar objetos ou seleção.
+
+### TC-068 — Mover viewport horizontalmente com Shift + Wheel
+
+- **Origem:** RF-0002-03
+- **Pré-condições:** Canvas aberto com conteúdo visível.
+- **Passos:** 1. Pressionar `Shift`; 2. Usar a roda do mouse; 3. Observar o deslocamento do canvas.
+- **Resultado esperado:** O viewport se desloca horizontalmente sem alterar objetos ou seleção.
+
+### TC-069 — Mover viewport por trackpad com deltaX e deltaY
+
+- **Origem:** RF-0002-03
+- **Pré-condições:** Canvas aberto em dispositivo com trackpad.
+- **Passos:** 1. Deslizar dois dedos horizontalmente; 2. Deslizar dois dedos verticalmente; 3. Observar o viewport.
+- **Resultado esperado:** O viewport responde aos eixos horizontal e vertical do trackpad sem zoom indevido quando `Ctrl/Command` não estiver ativo.
+
+### TC-070 — Executar pan com botão central do mouse
+
+- **Origem:** REQ-0002, RF-0002-03
+- **Pré-condições:** Canvas aberto com seleção opcional existente.
+- **Passos:** 1. Pressionar o botão central do mouse sobre o canvas; 2. Arrastar; 3. Soltar o botão.
+- **Resultado esperado:** O viewport se move durante o arraste e a seleção anterior permanece preservada.
+
+### TC-071 — Executar pan temporário com Space + Drag
+
+- **Origem:** REQ-0002, RF-0002-03
+- **Pré-condições:** Canvas aberto com pelo menos um objeto selecionável.
+- **Passos:** 1. Selecionar um objeto; 2. Pressionar `Space`; 3. Arrastar o canvas; 4. Soltar `Space`.
+- **Resultado esperado:** O viewport se move, o objeto não é arrastado e a seleção permanece preservada.
+
+### TC-072 — Executar pan fixo com Hand Tool
+
+- **Origem:** RF-0002-03, RF-0002-05
+- **Pré-condições:** Canvas aberto.
+- **Passos:** 1. Clicar na ferramenta Mão; 2. Arrastar o canvas; 3. Clicar sobre um objeto; 4. Voltar para a ferramenta Selecionar.
+- **Resultado esperado:** A ferramenta Mão move o viewport, usa cursor `grab/grabbing`, não cria objetos e não altera seleção.
+
+### TC-073 — Redimensionar stage conforme o container visível
+
+- **Origem:** RF-0002-04
+- **Pré-condições:** Canvas aberto em janela redimensionável.
+- **Passos:** 1. Alterar o tamanho da janela; 2. Observar a área do stage; 3. Verificar objetos após o resize.
+- **Resultado esperado:** O stage acompanha o container visível, preserva viewport e não move objetos persistidos.
+
+### TC-074 — Renderizar grid dinâmico em World Space durante pan e zoom
+
+- **Origem:** RF-0002-04
+- **Pré-condições:** Canvas aberto com grid visível.
+- **Passos:** 1. Aplicar pan em múltiplas direções; 2. Aplicar zoom in/out; 3. Observar alinhamento do grid.
+- **Resultado esperado:** O grid acompanha World Space, mantém alinhamento global e não apresenta saltos perceptíveis.
+
+### TC-075 — Aplicar pinch-to-zoom em dispositivo touch
+
+- **Origem:** RF-0002-04
+- **Pré-condições:** Canvas aberto em dispositivo ou emulação com suporte a touch.
+- **Passos:** 1. Tocar o canvas com dois dedos; 2. Aproximar ou afastar os dedos; 3. Observar o ponto médio do gesto.
+- **Resultado esperado:** O zoom é aplicado pelo ponto médio do gesto e o scroll nativo da página não interfere dentro do canvas.
+
+### TC-076 — Executar pan touch com um dedo no canvas
+
+- **Origem:** RF-0002-04
+- **Pré-condições:** Canvas aberto em dispositivo ou emulação com suporte a touch.
+- **Passos:** 1. Tocar e arrastar com um dedo sobre o canvas; 2. Observar o deslocamento do viewport.
+- **Resultado esperado:** O viewport se move com o gesto de um dedo sem acionar scroll nativo da página dentro do canvas.
+
+### TC-077 — Persistir viewport por página após reload
+
+- **Origem:** REQ-0002, RF-0002-05
+- **Pré-condições:** Canvas aberto com página ativa.
+- **Passos:** 1. Aplicar pan e zoom; 2. Recarregar a página; 3. Observar o viewport restaurado.
+- **Resultado esperado:** O viewport da página ativa é restaurado a partir de `localStorage`.
+
+### TC-078 — Restaurar viewport diferente ao alternar páginas
+
+- **Origem:** RF-0002-05
+- **Pré-condições:** Documento com pelo menos duas páginas.
+- **Passos:** 1. Aplicar viewport diferente na página 1; 2. Alternar para página 2 e aplicar outro viewport; 3. Retornar para página 1.
+- **Resultado esperado:** Cada página restaura seu próprio `x`, `y` e `scale` salvos localmente.
+
+### TC-079 — Não incluir viewport no export JSON do documento
+
+- **Origem:** RF-0002-05
+- **Pré-condições:** Canvas com viewport alterado por pan e zoom.
+- **Passos:** 1. Aplicar pan e zoom; 2. Exportar JSON; 3. Inspecionar o conteúdo exportado.
+- **Resultado esperado:** O JSON exportado contém o documento e nós, mas não transforma o viewport local em conteúdo colaborativo do documento.
+
+### TC-080 — Pan e zoom não criam snapshots de undo/redo de objetos
+
+- **Origem:** RF-0002-05
+- **Pré-condições:** Canvas aberto com histórico de edição disponível.
+- **Passos:** 1. Aplicar pan e zoom; 2. Pressionar `Ctrl/Cmd+Z`; 3. Observar documento e viewport.
+- **Resultado esperado:** Undo não desfaz pan/zoom como edição de objeto; histórico de conteúdo permanece dedicado a alterações do documento.
+
+### TC-081 — Atualizar indicador textual de zoom em tempo real
+
+- **Origem:** RF-0002-02, RF-0002-05
+- **Pré-condições:** Canvas aberto.
+- **Passos:** 1. Aplicar zoom por botão; 2. Aplicar zoom por wheel; 3. Aplicar reset 100%; 4. Observar os indicadores de zoom.
+- **Resultado esperado:** Os indicadores de zoom no topo e no painel direito refletem o percentual real do viewport.
+
+### TC-082 — Preservar seleção, transformer e overlays durante pan e zoom
+
+- **Origem:** REQ-0002, RF-0002-03, RF-0002-04
+- **Pré-condições:** Existe um frame selecionado com transformer e metadados visíveis.
+- **Passos:** 1. Selecionar um frame; 2. Aplicar pan; 3. Aplicar zoom; 4. Observar seleção, transformer, labels e metadados.
+- **Resultado esperado:** Seleção, transformer, labels e overlays permanecem sincronizados visualmente com o objeto selecionado.
+
 ## Checklist de cobertura
 
 - [x] Ativação e remoção de Auto Layout.
@@ -442,5 +618,10 @@ A raiz direta do workspace não contém arquivos `REQ-*` ou `RF-*`. A suíte foi
 - [x] Filhos absolutos fora do fluxo.
 - [x] Auto Layout aninhado.
 - [x] Persistência local, export JSON e undo/redo.
+- [x] Canvas Infinito com Screen Space, World Space e Viewport Transform.
+- [x] Zoom relativo ao cursor, limites, botões e atalhos.
+- [x] Pan por wheel, trackpad, botão central, Hand Tool e Space + Drag.
+- [x] Stage responsivo, touch/pinch e grid dinâmico.
+- [x] Viewport persistido por página e fora do export JSON.
 - [x] Restrições: sem Grid Layout, sem backend novo, sem estilos inline novos e sem persistência remota.
 - [x] Regressão básica de canvas, seleção, layers e inspector.

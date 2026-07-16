@@ -28,3 +28,23 @@ act-ide-teste
 ## RF-0001-04 — Persistir layout, histórico e estados operacionais
 
 - [x] TASK-RF-0001-04-001: Implementar persistência, undo/redo e validação da feature Auto Layout.
+
+## RF-0002-01 — Modelar viewport e coordenadas do Canvas Infinito
+
+- [x] TASK-RF-0002-01-001: Implementar estado de viewport e conversões Screen/World.
+
+## RF-0002-02 — Implementar zoom relativo ao cursor com limites e atalhos
+
+- [x] TASK-RF-0002-02-001: Implementar zoom relativo ao cursor, botões e atalhos de zoom.
+
+## RF-0002-03 — Implementar pan, scroll e Hand Tool
+
+- [x] TASK-RF-0002-03-001: Implementar pan por wheel, trackpad, botão central, Hand e Space Drag.
+
+## RF-0002-04 — Implementar responsividade, touch/pinch e grid dinâmico
+
+- [x] TASK-RF-0002-04-001: Implementar stage responsivo, touch/pinch e grid dinâmico.
+
+## RF-0002-05 — Persistir viewport, preservar performance e acessibilidade
+
+- [x] TASK-RF-0002-05-001: Persistir viewport por página e validar performance/acessibilidade.
