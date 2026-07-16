@@ -32,6 +32,28 @@ EXCLUDE_DIRS = {
     ".turbo",
 }
 EXCLUDE_FILES = {".DS_Store", "Thumbs.db"}
+EXCLUDE_DIRS_LOWER = {item.lower() for item in EXCLUDE_DIRS}
+EXCLUDE_FILES_LOWER = {item.lower() for item in EXCLUDE_FILES}
+SECRET_ALLOWED_FILES = {".env.example", ".env.sample", ".env.template"}
+SECRET_DIRS = {".gitide", ".secrets", "secrets"}
+SECRET_FILE_NAMES = {
+    ".env",
+    ".env.local",
+    ".env.development",
+    ".env.production",
+    ".env.test",
+    ".env.staging",
+    ".npmrc",
+    ".pypirc",
+    ".netrc",
+    "authorized_keys",
+    "known_hosts",
+    "id_dsa",
+    "id_ecdsa",
+    "id_ed25519",
+    "id_rsa",
+}
+SECRET_FILE_SUFFIXES = (".age", ".kdbx", ".key", ".p12", ".pem", ".pfx", ".ppk")
 
 
 def normalize_server_url(server: str) -> str:
@@ -117,8 +139,25 @@ def download_project_zip(server: str, token: str | None, project_id: int, target
         return filename
 
 
+def is_secret_path(path: Path) -> bool:
+    name = path.name.lower()
+    if name in SECRET_ALLOWED_FILES:
+        return False
+    parts = [part.lower() for part in path.parts]
+    return (
+        any(part in SECRET_DIRS for part in parts)
+        or name in SECRET_FILE_NAMES
+        or any(name.endswith(suffix) for suffix in SECRET_FILE_SUFFIXES)
+    )
+
+
 def should_skip_path(path: Path) -> bool:
-    return any(part in EXCLUDE_DIRS for part in path.parts) or path.name in EXCLUDE_FILES
+    parts = [part.lower() for part in path.parts]
+    return (
+        any(part in EXCLUDE_DIRS_LOWER for part in parts)
+        or path.name.lower() in EXCLUDE_FILES_LOWER
+        or is_secret_path(path)
+    )
 
 
 def create_project_zip(source: Path, target_zip: Path) -> int:
@@ -141,7 +180,7 @@ def create_project_zip(source: Path, target_zip: Path) -> int:
     return count
 
 
-def upload_project_zip(server: str, token: str | None, project_id: int, zip_path: Path) -> dict:
+def upload_project_zip(server: str, token: str | None, project_id: int, zip_path: Path, dry_run: bool = False) -> dict:
     boundary = f"----gitide-sync-{os.urandom(12).hex()}"
     file_bytes = zip_path.read_bytes()
     body = (
@@ -155,8 +194,11 @@ def upload_project_zip(server: str, token: str | None, project_id: int, zip_path
         "Content-Type": f"multipart/form-data; boundary={boundary}",
         "Content-Length": str(len(body)),
     })
+    endpoint = f"/api/projects/{project_id}/files/import.zip"
+    if dry_run:
+        endpoint += "?dry_run=true"
     request = Request(
-        urljoin(server, f"/api/projects/{project_id}/files/import.zip"),
+        urljoin(server, endpoint),
         data=body,
         headers=headers,
         method="POST",
@@ -251,14 +293,21 @@ def command_push(args: argparse.Namespace) -> int:
         zip_path = Path(temp_dir) / "workspace-upload.zip"
         local_files = create_project_zip(source, zip_path)
         zip_size = zip_path.stat().st_size
-        result = upload_project_zip(server, token, int(project["id"]), zip_path)
+        dry_run_result = upload_project_zip(server, token, int(project["id"]), zip_path, dry_run=True)
+        result = dry_run_result
+        if not args.dry_run:
+            result = upload_project_zip(server, token, int(project["id"]), zip_path, dry_run=False)
 
     print(f"Projeto: {project.get('name')} (ID {project.get('id')})")
     print(f"Destino: {server}")
     print(f"Origem local: {source}")
     print(f"Arquivos enviados: {local_files}")
     print(f"Tamanho do pacote: {zip_size} bytes")
-    print(json.dumps(result, indent=2, ensure_ascii=False))
+    print(json.dumps({
+        "dry_run_only": bool(args.dry_run),
+        "dry_run": dry_run_result,
+        "remote": result,
+    }, indent=2, ensure_ascii=False))
     return 0
 
 
@@ -331,6 +380,7 @@ SYNC_UI_HTML = r"""<!doctype html>
         </label>
       </div>
       <label class="checkbox"><input id="clean" type="checkbox"> Limpar pasta local antes de extrair</label>
+      <label class="checkbox" id="dryRunLabel" style="display:none"><input id="dryRun" type="checkbox"> Simular envio sem gravar na VM</label>
       <div class="row actions">
         <button class="primary" id="run">Puxar para minha maquina</button>
       </div>
@@ -374,12 +424,20 @@ SYNC_UI_HTML = r"""<!doctype html>
       $('modePush').classList.toggle('active', mode === 'push');
       $('pathLabel').firstChild.textContent = mode === 'pull' ? 'Pasta local de destino' : 'Pasta local de origem';
       $('clean').closest('label').style.display = mode === 'pull' ? 'flex' : 'none';
+      $('dryRunLabel').style.display = mode === 'push' ? 'flex' : 'none';
       $('run').textContent = mode === 'pull' ? 'Puxar para minha maquina' : 'Enviar para a VM';
       $('destination').placeholder = mode === 'pull' ? 'C:\\Users\\augus\\.workspace\\meu-projeto' : 'C:\\Users\\augus\\.workspace\\act\\git-ide';
       log(mode === 'pull' ? 'Modo pull selecionado.' : 'Modo push selecionado.');
     }
     async function runSync() {
-      const payload = { server: $('server').value, token: $('token').value, project_id: Number($('project').value), to: $('destination').value, clean: $('clean').checked };
+      const payload = {
+        server: $('server').value,
+        token: $('token').value,
+        project_id: Number($('project').value),
+        to: $('destination').value,
+        clean: $('clean').checked,
+        dry_run: mode === 'push' ? $('dryRun').checked : false
+      };
       if (!payload.project_id) return log('Selecione um projeto.');
       if (!payload.to) return log(mode === 'pull' ? 'Informe a pasta local de destino.' : 'Informe a pasta local de origem.');
       $('run').disabled = true;
@@ -389,7 +447,10 @@ SYNC_UI_HTML = r"""<!doctype html>
         if (mode === 'pull') {
           log(`Concluido.\nProjeto: ${data.project_name} (ID ${data.project_id})\nPacote: ${data.filename}\nDestino: ${data.destination}\nArquivos sincronizados: ${data.files}`);
         } else {
-          log(`Concluido.\nProjeto: ${data.project_name} (ID ${data.project_id})\nOrigem: ${data.source}\nArquivos enviados: ${data.local_files}\nTamanho do pacote: ${data.zip_size} bytes\nImportados na VM: ${data.remote?.files_imported ?? 'n/a'}`);
+          const dryRun = data.dry_run || {};
+          const remote = data.remote || {};
+          const finalResult = data.dry_run_only ? dryRun : remote;
+          log(`Concluido.\nProjeto: ${data.project_name} (ID ${data.project_id})\nModo: ${data.dry_run_only ? 'dry run' : 'envio real'}\nOrigem: ${data.source}\nArquivos no pacote: ${data.local_files}\nTamanho do pacote: ${data.zip_size} bytes\nPlanejados na VM: ${dryRun.files_planned ?? 'n/a'}\nCriados na VM: ${finalResult.files_created ?? 0}\nSobrescritos na VM: ${finalResult.files_overwritten ?? 0}\nIgnorados/bloqueados: ${finalResult.files_skipped ?? dryRun.files_skipped ?? 0}\nBackup: ${finalResult.backup_path || 'n/a'}\nManifest: ${finalResult.manifest_path || 'n/a'}`);
         }
       } catch (err) {
         log(`Erro: ${err.message}`);
@@ -447,7 +508,7 @@ def perform_pull(server: str, token: str | None, project_id: int, destination: s
     }
 
 
-def perform_push(server: str, token: str | None, project_id: int, source: str) -> dict:
+def perform_push(server: str, token: str | None, project_id: int, source: str, dry_run_only: bool = False) -> dict:
     server = normalize_server_url(server)
     projects = list_projects(server, token)
     project = next((item for item in projects if int(item.get("id", -1)) == int(project_id)), None)
@@ -459,15 +520,20 @@ def perform_push(server: str, token: str | None, project_id: int, source: str) -
         zip_path = Path(temp_dir) / "workspace-upload.zip"
         local_files = create_project_zip(source_path, zip_path)
         zip_size = zip_path.stat().st_size
-        remote_result = upload_project_zip(server, token, int(project["id"]), zip_path)
+        dry_run_result = upload_project_zip(server, token, int(project["id"]), zip_path, dry_run=True)
+        remote_result = dry_run_result
+        if not dry_run_only:
+            remote_result = upload_project_zip(server, token, int(project["id"]), zip_path, dry_run=False)
 
     return {
         "status": "success",
+        "dry_run_only": bool(dry_run_only),
         "project_id": project.get("id"),
         "project_name": project.get("name"),
         "source": str(source_path),
         "local_files": local_files,
         "zip_size": zip_size,
+        "dry_run": dry_run_result,
         "remote": remote_result,
     }
 
@@ -537,6 +603,7 @@ def make_ui_handler():
                         payload.get("token") or config.get("token"),
                         int(payload.get("project_id")),
                         payload.get("to") or "",
+                        dry_run_only=bool(payload.get("dry_run")),
                     )
                     json_response(self, 200, result)
                     return
@@ -602,6 +669,7 @@ def build_parser() -> argparse.ArgumentParser:
     push_target.add_argument("--project-id", type=int, help="ID do projeto no GitIDE remoto.")
     push_target.add_argument("--project", help="Nome exato do projeto no GitIDE remoto.")
     push.add_argument("--from", dest="source", required=True, help="Pasta local de origem.")
+    push.add_argument("--dry-run", action="store_true", help="Simula o envio na VM sem gravar arquivos.")
     push.set_defaults(func=command_push)
 
     ui = subparsers.add_parser("ui", help="Abre uma interface local para sincronizar projetos.")

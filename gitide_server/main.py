@@ -945,13 +945,52 @@ def export_project_zip(project: Project = Depends(get_project_or_404)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+IMPORT_BLOCKED_DIRS = {".git", ".gitide", ".venv", "venv", "env", "node_modules", "__pycache__"}
+IMPORT_SECRET_ALLOWED_FILES = {".env.example", ".env.sample", ".env.template"}
+IMPORT_SECRET_DIRS = {".secrets", "secrets"}
+IMPORT_SECRET_FILE_NAMES = {
+    ".env",
+    ".env.local",
+    ".env.development",
+    ".env.production",
+    ".env.staging",
+    ".env.test",
+    ".netrc",
+    ".npmrc",
+    ".pypirc",
+    "authorized_keys",
+    "id_dsa",
+    "id_ecdsa",
+    "id_ed25519",
+    "id_rsa",
+    "known_hosts",
+}
+IMPORT_SECRET_FILE_SUFFIXES = (".age", ".kdbx", ".key", ".p12", ".pem", ".pfx", ".ppk")
+IMPORT_RESPONSE_ITEM_LIMIT = 500
+
+
+def is_sensitive_import_path(member_name: str) -> bool:
+    path_parts = [part.lower() for part in member_name.replace("\\", "/").split("/") if part]
+    name = path_parts[-1] if path_parts else ""
+    if name in IMPORT_SECRET_ALLOWED_FILES:
+        return False
+    return (
+        any(part in IMPORT_SECRET_DIRS for part in path_parts)
+        or name in IMPORT_SECRET_FILE_NAMES
+        or any(name.endswith(suffix) for suffix in IMPORT_SECRET_FILE_SUFFIXES)
+    )
+
+
 @app.post("/api/projects/{project_id}/files/import.zip", tags=["Arquivos"])
-async def import_project_zip(file: UploadFile = File(...), project: Project = Depends(get_project_or_404)):
+async def import_project_zip(
+    file: UploadFile = File(...),
+    dry_run: bool = Query(False, description="Simula a importação sem gravar arquivos."),
+    project: Project = Depends(get_project_or_404),
+):
     """Importa um .zip enviado pelo GitIDE Local Sync para dentro do projeto."""
     if not file.filename or not file.filename.lower().endswith(".zip"):
         raise HTTPException(status_code=400, detail="Envie um arquivo .zip válido.")
 
-    blocked_dirs = {".git", ".venv", "venv", "env", "node_modules", "__pycache__"}
     skipped = []
     temp_file = tempfile.NamedTemporaryFile(prefix="gitide-import-", suffix=".zip", delete=False)
 
@@ -965,7 +1004,8 @@ async def import_project_zip(file: UploadFile = File(...), project: Project = De
             temp_file.write(chunk)
         temp_file.close()
 
-        imported = 0
+        planned = []
+        secret_blocked = 0
         with zipfile.ZipFile(temp_file.name, "r") as archive:
             for member in archive.infolist():
                 member_name = member.filename.replace("\\", "/").lstrip("/")
@@ -973,28 +1013,116 @@ async def import_project_zip(file: UploadFile = File(...), project: Project = De
                     continue
 
                 path_parts = [part for part in member_name.split("/") if part]
-                if any(part in blocked_dirs for part in path_parts):
-                    skipped.append(member_name)
+                if any(part.lower() in IMPORT_BLOCKED_DIRS for part in path_parts):
+                    skipped.append({"path": member_name, "reason": "blocked_dir"})
+                    continue
+                if is_sensitive_import_path(member_name):
+                    secret_blocked += 1
+                    skipped.append({"path": member_name, "reason": "secret"})
                     continue
 
                 try:
                     full_path = vcs.get_safe_path(project.path, member_name)
                 except ValueError:
-                    skipped.append(member_name)
+                    skipped.append({"path": member_name, "reason": "unsafe_path"})
                     continue
 
-                os.makedirs(os.path.dirname(full_path), exist_ok=True)
-                with archive.open(member, "r") as source, open(full_path, "wb") as output:
-                    shutil.copyfileobj(source, output)
-                imported += 1
+                planned.append({
+                    "zip_name": member.filename,
+                    "path": member_name,
+                    "full_path": full_path,
+                    "action": "overwrite" if os.path.exists(full_path) else "create",
+                    "size": member.file_size,
+                })
+
+        files_created = sum(1 for item in planned if item["action"] == "create")
+        files_overwritten = sum(1 for item in planned if item["action"] == "overwrite")
+
+        if dry_run:
+            return {
+                "status": "dry_run",
+                "dry_run": True,
+                "project_id": project.id,
+                "project_name": project.name,
+                "files_planned": len(planned),
+                "files_created": files_created,
+                "files_overwritten": files_overwritten,
+                "files_skipped": len(skipped),
+                "secret_blocked": secret_blocked,
+                "bytes": total_bytes,
+                "planned": [
+                    {key: value for key, value in item.items() if key not in {"full_path", "zip_name"}}
+                    for item in planned[:IMPORT_RESPONSE_ITEM_LIMIT]
+                ],
+                "skipped": skipped[:IMPORT_RESPONSE_ITEM_LIMIT],
+            }
+
+        timestamp = datetime.utcnow().strftime("%Y%m%d-%H%M%S")
+        backup_dir = os.path.join(project.path, ".gitide", "backups")
+        manifest_dir = os.path.join(project.path, ".gitide", "imports")
+        os.makedirs(backup_dir, exist_ok=True)
+        os.makedirs(manifest_dir, exist_ok=True)
+
+        backup_file = os.path.join(backup_dir, f"import-{timestamp}.zip")
+        manifest_file = os.path.join(manifest_dir, f"import-{timestamp}.json")
+        backup_files = 0
+        imported = 0
+
+        with zipfile.ZipFile(temp_file.name, "r") as archive:
+            backup_archive = zipfile.ZipFile(backup_file, "w", compression=zipfile.ZIP_DEFLATED)
+            try:
+                for item in planned:
+                    if item["action"] == "overwrite" and os.path.isfile(item["full_path"]):
+                        backup_archive.write(item["full_path"], arcname=item["path"])
+                        backup_files += 1
+
+                    os.makedirs(os.path.dirname(item["full_path"]), exist_ok=True)
+                    with archive.open(item["zip_name"], "r") as source, open(item["full_path"], "wb") as output:
+                        shutil.copyfileobj(source, output)
+                    imported += 1
+            finally:
+                backup_archive.close()
+
+        backup_rel_path = f".gitide/backups/{os.path.basename(backup_file)}" if backup_files else None
+        if not backup_files and os.path.exists(backup_file):
+            os.remove(backup_file)
+
+        manifest = {
+            "type": "gitide-local-sync-import",
+            "created_at": datetime.utcnow().isoformat() + "Z",
+            "project_id": project.id,
+            "project_name": project.name,
+            "dry_run": False,
+            "files_imported": imported,
+            "files_created": files_created,
+            "files_overwritten": files_overwritten,
+            "files_skipped": len(skipped),
+            "secret_blocked": secret_blocked,
+            "backup_path": backup_rel_path,
+            "backup_files": backup_files,
+            "items": [
+                {key: value for key, value in item.items() if key not in {"full_path", "zip_name"}}
+                for item in planned
+            ],
+            "skipped": skipped,
+        }
+        with open(manifest_file, "w", encoding="utf-8") as manifest_handle:
+            json.dump(manifest, manifest_handle, indent=2, ensure_ascii=False)
 
         return {
             "status": "success",
+            "dry_run": False,
             "project_id": project.id,
             "project_name": project.name,
             "files_imported": imported,
+            "files_created": files_created,
+            "files_overwritten": files_overwritten,
             "files_skipped": len(skipped),
+            "secret_blocked": secret_blocked,
             "bytes": total_bytes,
+            "backup_path": backup_rel_path,
+            "backup_files": backup_files,
+            "manifest_path": f".gitide/imports/{os.path.basename(manifest_file)}",
         }
     except zipfile.BadZipFile:
         raise HTTPException(status_code=400, detail="Arquivo .zip inválido.")

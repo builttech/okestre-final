@@ -58,6 +58,14 @@ Ela permite configurar servidor, token, selecionar o projeto remoto, informar a 
 .\gitide-sync.bat push --project-id 1 --from C:\Users\augus\.workspace\act\git-ide
 ```
 
+## Simular envio antes de gravar
+
+Use o dry run para validar o pacote e ver quantos arquivos seriam criados, sobrescritos ou bloqueados na VM sem gravar nada no projeto remoto.
+
+```powershell
+.\gitide-sync.bat push --project git-ide --from C:\Users\augus\.workspace\act\git-ide --dry-run
+```
+
 ## Limpar a pasta local antes de extrair
 
 Use somente quando quiser que a pasta local fique igual ao pacote exportado pela VM.
@@ -69,7 +77,10 @@ Use somente quando quiser que a pasta local fique igual ao pacote exportado pela
 ## Observacoes
 
 - O modo Puxar usa o endpoint `/api/projects/{id}/files/export.zip`.
-- O modo Enviar compacta a pasta local e usa o endpoint `/api/projects/{id}/files/import.zip`.
+- O modo Enviar compacta a pasta local, roda um dry run primeiro e depois usa o endpoint `/api/projects/{id}/files/import.zip`.
+- O envio real cria backup automatico dos arquivos sobrescritos em `.gitide/backups/`.
+- Cada envio real gera um manifest de auditoria em `.gitide/imports/` com arquivos criados, sobrescritos, ignorados e bloqueados.
 - A extracao e a importacao bloqueiam caminhos inseguros dentro do zip.
 - O envio ignora `.git`, `node_modules`, `dist`, `build`, `.venv`, `.next`, caches e arquivos temporarios comuns.
+- O envio bloqueia secrets por seguranca, incluindo `.env`, `.env.local`, `.npmrc`, `.pypirc`, `.netrc`, chaves privadas e arquivos `.pem`, `.key`, `.p12`, `.pfx`, `.ppk`, `.kdbx` e `.age`. Arquivos de exemplo como `.env.example` continuam permitidos.
 - Arquivos ignorados pela arvore do GitIDE tambem nao entram no pacote exportado, como `.git`, `node_modules`, `dist`, `build`, `.venv` e arquivos `.zip`.
