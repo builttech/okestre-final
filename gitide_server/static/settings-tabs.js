@@ -205,7 +205,28 @@
         buildCommonExecutionRules()
       ].join('\n')
     },
-    qa: {
+    
+      testCases: {
+        icon: 'test-tube',
+        label: 'Criação de Casos de Teste',
+        description: 'Use quando for criar a suíte de casos de teste com base na especificação atual.',
+        build: () => [
+          buildPromptContextHeader(),
+          '',
+          '--- OBJETIVO ---',
+          'Criar e mapear de forma completa e exaustiva a suíte de casos de teste para o sistema baseado nos REQs e RFs.',
+          '',
+          'Siga este protocolo:',
+          '1. Leia obrigatoriamente todos os arquivos iniciados por REQ- ou RF- na raiz do workspace.',
+          '2. Compreenda os fluxos normais, alternativos e de exceção descritos.',
+          '3. Crie casos de teste (TC) cobrindo 100% das regras mapeadas.',
+          '4. Um bom Caso de Teste deve conter: Identificador (ex: TC-01), Título, Origem (o ID do REQ/RF), Pré-condições, Passos detalhados e Resultado Esperado claro.',
+          '5. Registre a suíte final formatada na documentação ou gere o arquivo JSON correspondente, sem agrupar de forma genérica.',
+          '',
+          buildCommonExecutionRules()
+        ].join('\n')
+      },
+      qa: {
       icon: 'bug',
       label: 'Execução de QA',
       description: 'Use quando houver IDs de QA, anotações ou evidências capturadas pela extensão.',
