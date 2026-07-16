@@ -6400,33 +6400,59 @@ def _ensure_discovery_dirs(project: Project):
     os.makedirs(saida, exist_ok=True)
     return entrega, saida
 
+_DISCOVERY_TEXT_EXTENSIONS = {".md", ".markdown", ".txt", ".json", ".csv", ".yaml", ".yml", ".log"}
+
+def _load_markitdown():
+    try:
+        from markitdown import MarkItDown
+        return MarkItDown
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Biblioteca markitdown não disponível neste runtime: {exc}",
+        )
+
+def _read_discovery_text_file(file_path: str) -> Optional[str]:
+    if os.path.splitext(file_path)[1].lower() not in _DISCOVERY_TEXT_EXTENSIONS:
+        return None
+
+    for encoding in ("utf-8-sig", "utf-8", "latin-1"):
+        try:
+            with open(file_path, "r", encoding=encoding) as src:
+                return src.read()
+        except UnicodeDecodeError:
+            continue
+    return None
+
 @app.post("/api/projects/{project_id}/discovery/upload", tags=["Discovery"])
 async def discovery_upload(
     project_id: int, 
     file: UploadFile = File(...), 
     project: Project = Depends(get_project_or_404)
 ):
-    try:
-        from markitdown import MarkItDown
-    except ImportError:
-        raise HTTPException(status_code=500, detail="Biblioteca markitdown não instalada.")
-        
     entrega_dir, saida_dir = _ensure_discovery_dirs(project)
     
     # Save original
     original_path = os.path.join(entrega_dir, file.filename)
     with open(original_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
-        
-    # Convert sem LLM para evitar travamentos e crashes com Ollama local
-    md = MarkItDown()
-    client = None
-    model = None
-    try:
-        # Pede para não truncar as imagens para podermos enviá-las ao LLM
-        result = md.convert(original_path, keep_data_uris=True)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erro na conversão: {str(e)}")
+
+    text_content = _read_discovery_text_file(original_path)
+    if text_content is None:
+        MarkItDown = _load_markitdown()
+        # Convert sem LLM para evitar travamentos e crashes com Ollama local
+        md = MarkItDown()
+        client = None
+        model = None
+        try:
+            # Pede para não truncar as imagens para podermos enviá-las ao LLM
+            result = md.convert(original_path, keep_data_uris=True)
+            text_content = result.text_content
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Erro na conversão: {str(e)}")
+    else:
+        client = None
+        model = None
         
     import re
     if 'client' in locals() and client:
@@ -6477,10 +6503,7 @@ def discovery_url(
     payload: DiscoveryUrlInput,
     project: Project = Depends(get_project_or_404)
 ):
-    try:
-        from markitdown import MarkItDown
-    except ImportError:
-        raise HTTPException(status_code=500, detail="Biblioteca markitdown não instalada.")
+    MarkItDown = _load_markitdown()
         
     entrega_dir, saida_dir = _ensure_discovery_dirs(project)
     
