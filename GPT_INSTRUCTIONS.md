@@ -605,3 +605,20 @@ Importante: O usuário pode solicitar que se pule uma etapa sempre que necessár
 - Os casos de teste devem ser salvos nos arquivos `.documents/casos/test_cases.json` e `.documents/casos/test_cases.md`.
 - Esses arquivos são únicos e vivos. O agente NÃO deve sobrescrevê-os apagando o histórico; deve adicionar ou atualizar mantendo o histórico das baterias anteriores.
 - A criação de casos de teste conclui a entrega do pacote.
+
+- O arquivo `.documents/casos/test_cases.json` DEVE seguir obrigatoriamente a seguinte estrutura para ser renderizado corretamente na interface:
+```json
+{
+  "test_cases": [
+    {
+      "id": "TC-001",
+      "origem": "REQ-0001",
+      "titulo": "Título do Caso de Teste",
+      "pre_condicoes": "O usuário deve estar logado",
+      "passos": "1. Clique em X\n2. Faça Y",
+      "resultado_esperado": "O sistema deve exibir a tela Z"
+    }
+  ],
+  "updated_at": "YYYY-MM-DDTHH:MM:SSZ"
+}
+```
