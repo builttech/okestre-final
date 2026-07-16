@@ -693,10 +693,14 @@ def sync_project_system_files(project_path: str) -> list[str]:
     try:
         casos_dir = os.path.join(project_path, ".documents", "casos")
         if os.path.exists(casos_dir):
-            gitkeep_path = os.path.join(casos_dir, ".gitkeep")
-            if not os.path.exists(gitkeep_path):
-                with open(gitkeep_path, "w") as f:
-                    f.write("")
+            json_path = os.path.join(casos_dir, "test_cases.json")
+            if not os.path.exists(json_path):
+                with open(json_path, "w", encoding="utf-8") as f:
+                    f.write('{\n  "test_cases": []\n}')
+            md_path = os.path.join(casos_dir, "test_cases.md")
+            if not os.path.exists(md_path):
+                with open(md_path, "w", encoding="utf-8") as f:
+                    f.write('# Casos de Teste\n\n')
     except Exception as e:
         print(f"Erro ao criar .gitkeep em casos: {str(e)}")
 
