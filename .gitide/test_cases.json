@@ -1,0 +1,29 @@
+{
+  "test_cases": [
+    {
+      "id": "TC-01",
+      "origem": "RF-01-01",
+      "titulo": "Login com sucesso",
+      "pre_condicoes": "Usuário deve estar cadastrado no banco de dados com credenciais válidas.",
+      "passos": "1. Acessar a página de login.\n2. Inserir email e senha corretos.\n3. Clicar no botão 'Entrar'.",
+      "resultado_esperado": "O sistema autentica o usuário, cria o cookie de sessão e redirecionada para o dashboard principal."
+    },
+    {
+      "id": "TC-02",
+      "origem": "RF-02-03",
+      "titulo": "Recuperação de senha - Email inválido",
+      "pre_condicoes": "Nenhuma.",
+      "passos": "1. Acessar a tela de esqueci minha senha.\n2. Inserir um formato de email incorreto (ex: 'usuario.com').\n3. Clicar em enviar.",
+      "resultado_esperado": "A interface exibe um erro de validação 'Formato de email inválido' sem disparar a requisição."
+    },
+    {
+      "id": "TC-03",
+      "origem": "REQ-15",
+      "titulo": "Geração do PDF de Relatório Anual",
+      "pre_condicoes": "Usuário logado e com permissão de administrador. Devem existir dados no ano passado.",
+      "passos": "1. Ir para Relatórios > Anual.\n2. Selecionar o ano vigente.\n3. Clicar em 'Exportar PDF'.",
+      "resultado_esperado": "O download de um arquivo '.pdf' inicia automaticamente, e seu conteúdo apresenta o cabeçalho oficial e tabela de receitas consolidada."
+    }
+  ],
+  "updated_at": "2026-07-16T11:27:00.000Z"
+}

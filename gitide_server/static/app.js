@@ -12624,8 +12624,31 @@ function renderTestCasesTable(data) {
                 <td style="white-space:pre-wrap;font-size:0.85em;color:var(--text-muted)">${escapeHtml(tc.pre_condicoes || '')}</td>
                 <td style="white-space:pre-wrap;font-size:0.85em;color:var(--text-muted)">${escapeHtml(tc.passos || '')}</td>
                 <td style="white-space:pre-wrap;font-size:0.85em;color:var(--text-muted)">${escapeHtml(tc.resultado_esperado || '')}</td>
+                <td style="text-align:center;">
+                    <button class="btn btn-icon btn-sm text-danger" onclick="deleteTestCase('${tc.id}')" title="Excluir"><i data-lucide="trash-2"></i></button>
+                </td>
             </tr>
         `;
     });
     tbody.innerHTML = html;
+}
+
+async function deleteTestCase(tcId) {
+    if (!state.activeProjectId) return;
+    if (!confirm(`Tem certeza que deseja excluir o caso de teste ${tcId}?`)) return;
+    try {
+        const response = await fetch(`/api/projects/${state.activeProjectId}/test-cases/${tcId}`, {
+            method: 'DELETE',
+            headers: getHeaders()
+        });
+        if (response.ok) {
+            gitideNotify({ title: 'Excluído', message: `O caso de teste ${tcId} foi removido.`, variant: 'success' });
+            loadTestCases();
+        } else {
+            const data = await response.json();
+            throw new Error(data.detail || 'Erro ao excluir.');
+        }
+    } catch(err) {
+        gitideNotify({ title: 'Erro', message: err.message, variant: 'danger' });
+    }
 }

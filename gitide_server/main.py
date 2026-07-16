@@ -683,11 +683,23 @@ def sync_project_system_files(project_path: str) -> list[str]:
         os.path.join(".documents", "functional-requirements"),
         os.path.join(".documents", "spec"),
         os.path.join(".documents", "task"),
+        os.path.join(".documents", "casos"),
     ):
         try:
             os.makedirs(os.path.join(project_path, rel_dir), exist_ok=True)
         except Exception as e:
             print(f"Erro ao criar diretório {rel_dir} no workspace: {str(e)}")
+
+    try:
+        casos_dir = os.path.join(project_path, ".documents", "casos")
+        if os.path.exists(casos_dir):
+            gitkeep_path = os.path.join(casos_dir, ".gitkeep")
+            if not os.path.exists(gitkeep_path):
+                with open(gitkeep_path, "w") as f:
+                    f.write("")
+    except Exception as e:
+        print(f"Erro ao criar .gitkeep em casos: {str(e)}")
+
 
     try:
         task_dir = os.path.join(project_path, ".documents", "task")
@@ -7705,6 +7717,20 @@ def generate_test_cases(project: Project = Depends(get_project_or_404)):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/projects/{project_id}/test-cases/export.xlsx", tags=["Test Cases"])
+
+@app.delete("/api/projects/{project_id}/test-cases/{tc_id}", tags=["Test Cases"])
+def delete_test_case(tc_id: str, project: Project = Depends(get_project_or_404)):
+    store = _load_testcases_store(project)
+    cases = store.get("test_cases", [])
+    initial_len = len(cases)
+    cases = [c for c in cases if c.get("id") != tc_id]
+    if len(cases) == initial_len:
+        raise HTTPException(status_code=404, detail="Caso de teste não encontrado.")
+    
+    store["test_cases"] = cases
+    _save_testcases_store(project, store)
+    return {"status": "success"}
+
 def export_testcases_xlsx(project: Project = Depends(get_project_or_404)):
     store = _load_testcases_store(project)
     cases = store.get("test_cases", [])
