@@ -6,7 +6,7 @@
     "url": "http://127.0.0.1:8000/design-canvas",
     "category": "functional",
     "severity": "medium",
-    "status": "open",
+    "status": "resolved",
     "selector": "html > body.konva-designer-page > main.konva-designer-shell > aside.konva-designer-right:nth-of-type(2)",
     "viewport": {
       "width": 1920,
@@ -27,6 +27,6 @@
       "selectedText": "AL\n53%\nDESIGN\nPROTÓTIPO\nINSPECIONAR\nSelecione um elemento\nUse o canvas para editar posição, tamanho, aparência e texto.\nFRAME\nFrame\nX\nY\nW\nH\nFILL\nSTROKE\nRADIUS\nOPACITY\nTEXTO\nFONT SIZE\nWEIGHT\nNormal\nBold\nDUPLICAR\nEXCLUIR"
     },
     "created_at": "2026-07-16T14:12:45.910012Z",
-    "updated_at": "2026-07-16T14:12:45.910012Z"
+    "updated_at": "2026-07-16T17:14:43.784027Z"
   }
 ]
