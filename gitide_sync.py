@@ -3,9 +3,11 @@ import json
 import os
 import shutil
 import sys
+import requests
 import tempfile
 import webbrowser
 import zipfile
+import uuid
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.error import HTTPError, URLError
@@ -98,46 +100,46 @@ def download_project_zip(server: str, token: str | None, project_id: int, target
                     break
                 if chunk:
                     handle.write(chunk)
-        return filename
+    return filename
 
 
-def safe_extract(zip_path: Path, destination: Path, clean: bool = False) -> int:
-    destination = destination.resolve()
-    destination.mkdir(parents=True, exist_ok=True)
-
+def safe_extract(zip_path: Path, dest_dir: Path, clean: bool = False) -> int:
+    dest_dir.mkdir(parents=True, exist_ok=True)
     if clean:
-        for item in destination.iterdir():
+        for item in dest_dir.iterdir():
+            if item.name == ".git":
+                continue
             if item.is_dir():
                 shutil.rmtree(item)
             else:
                 item.unlink()
 
-    extracted = 0
+    total = 0
     with zipfile.ZipFile(zip_path, "r") as archive:
         for member in archive.infolist():
-            member_name = member.filename.replace("\\", "/")
-            if not member_name or member_name.endswith("/"):
+            if member.is_dir():
+                continue
+            if member.filename.startswith(".git/") or "/.git/" in member.filename:
                 continue
 
-            target = (destination / member_name).resolve()
-            if not str(target).startswith(str(destination)):
-                raise RuntimeError(f"Arquivo inseguro bloqueado no zip: {member.filename}")
+            target_path = (dest_dir / member.filename).resolve()
+            if not str(target_path).startswith(str(dest_dir)):
+                raise RuntimeError(f"Tentativa de path traversal detectada no arquivo zip: {member.filename}")
 
-            target.parent.mkdir(parents=True, exist_ok=True)
-            with archive.open(member, "r") as source, target.open("wb") as output:
-                shutil.copyfileobj(source, output)
-            extracted += 1
-    return extracted
+            target_path.parent.mkdir(parents=True, exist_ok=True)
+            with archive.open(member) as source, target_path.open("wb") as target:
+                shutil.copyfileobj(source, target)
+            total += 1
+    return total
 
 
 def command_login(args: argparse.Namespace) -> int:
-    server = normalize_server_url(args.server)
     config = load_config()
-    config["server"] = server
+    config["server"] = normalize_server_url(args.server)
     if args.token:
         config["token"] = args.token
     save_config(config)
-    print(f"GitIDE Sync configurado para {server}")
+    print("Configuração salva com sucesso em", CONFIG_PATH)
     return 0
 
 
@@ -149,9 +151,9 @@ def command_projects(args: argparse.Namespace) -> int:
     if not projects:
         print("Nenhum projeto encontrado.")
         return 0
-
+    print(f"Encontrados {len(projects)} projeto(s):")
     for project in projects:
-        print(f"{project.get('id')}\t{project.get('name')}\t{project.get('path')}")
+        print(f" - ID: {project.get('id'):<3} | {project.get('name')}")
     return 0
 
 
@@ -159,62 +161,73 @@ def command_pull(args: argparse.Namespace) -> int:
     config = load_config()
     server = normalize_server_url(args.server or config.get("server", ""))
     token = args.token or config.get("token")
+
+    print(f"Conectando ao GitIDE em {server}...")
     project = find_project(server, token, args.project_id, args.project)
-    destination = Path(args.to).expanduser().resolve()
+    print(f"Projeto selecionado: {project.get('name')} (ID {project.get('id')})")
+
+    dest_dir = Path(args.to).expanduser().resolve()
+    print(f"Destino local: {dest_dir}")
+    if args.clean:
+        print("Atenção: Limpeza da pasta de destino ativada (exceto .git).")
 
     with tempfile.TemporaryDirectory(prefix="gitide-sync-") as temp_dir:
         zip_path = Path(temp_dir) / "workspace.zip"
+        print("Baixando arquivos...")
         filename = download_project_zip(server, token, int(project["id"]), zip_path)
-        total = safe_extract(zip_path, destination, clean=args.clean)
+        print(f"Pacote {filename} baixado ({zip_path.stat().st_size / 1024 / 1024:.2f} MB).")
 
-    print(f"Projeto: {project.get('name')} (ID {project.get('id')})")
-    print(f"Origem: {server}")
-    print(f"Pacote: {filename}")
-    print(f"Destino: {destination}")
-    print(f"Arquivos sincronizados: {total}")
+        print("Extraindo...")
+        total = safe_extract(zip_path, dest_dir, clean=args.clean)
+        print(f"Concluído! {total} arquivos extraídos para {dest_dir}")
+
     return 0
 
 
-SYNC_UI_HTML = r"""<!doctype html>
+SYNC_UI_HTML = """<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="UTF-8">
   <title>GitIDE Local Sync</title>
   <style>
-    :root { color-scheme: dark; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
-    * { box-sizing: border-box; }
-    body { margin: 0; min-height: 100vh; background: #0b0b0c; color: #f4f4f5; display: grid; place-items: center; padding: 28px; }
-    main { width: min(860px, 100%); border: 1px solid rgba(255,255,255,.1); border-radius: 22px; background: #111113; box-shadow: 0 28px 80px rgba(0,0,0,.45); overflow: hidden; }
-    header { padding: 22px 24px; border-bottom: 1px solid rgba(255,255,255,.08); display: flex; justify-content: space-between; gap: 16px; align-items: center; }
-    h1 { margin: 0; font-size: 18px; letter-spacing: -.03em; }
-    header p { margin: 4px 0 0; color: #a1a1aa; font-size: 13px; }
-    .body { padding: 22px 24px 24px; display: grid; gap: 16px; }
-    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-    label { display: grid; gap: 7px; color: #a1a1aa; font-size: 12px; font-weight: 650; }
-    input, select { width: 100%; height: 42px; border: 1px solid rgba(255,255,255,.1); border-radius: 12px; background: #18181b; color: #fff; padding: 0 12px; font: inherit; outline: none; }
-    input:focus, select:focus { border-color: #fb7185; box-shadow: 0 0 0 3px rgba(251,113,133,.14); }
-    .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-    .actions { justify-content: flex-end; padding-top: 4px; }
-    button { height: 42px; border: 1px solid rgba(255,255,255,.1); border-radius: 12px; background: #1f1f23; color: #fff; padding: 0 14px; font: inherit; font-weight: 700; cursor: pointer; }
-    button.primary { background: #fff; color: #111; border-color: #fff; }
-    button:hover { border-color: rgba(255,255,255,.24); }
-    button:disabled { opacity: .55; cursor: not-allowed; }
-    .checkbox { display: flex; align-items: center; gap: 9px; color: #d4d4d8; font-size: 13px; }
-    .checkbox input { width: 16px; height: 16px; }
-    pre { margin: 0; min-height: 128px; max-height: 260px; overflow: auto; border: 1px solid rgba(255,255,255,.08); border-radius: 14px; background: #080809; padding: 14px; color: #d4d4d8; font: 12px/1.55 "Fira Code", Consolas, monospace; white-space: pre-wrap; }
-    .pill { color: #a1a1aa; border: 1px solid rgba(255,255,255,.1); border-radius: 999px; padding: 7px 10px; font-size: 12px; }
-    @media (max-width: 720px) { body { padding: 14px; } .grid { grid-template-columns: 1fr; } header { align-items: flex-start; flex-direction: column; } }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: #0a0a0a; color: #fff; margin: 0; padding: 2rem; display: flex; justify-content: center; }
+    main { background: #141414; border: 1px solid #262626; border-radius: 12px; width: 100%; max-width: 800px; overflow: hidden; box-shadow: 0 16px 40px -12px rgba(0,0,0,0.5); }
+    header { padding: 1.5rem 2rem; border-bottom: 1px solid #262626; display: flex; justify-content: space-between; align-items: center; }
+    header h2 { margin: 0; font-size: 1.25rem; font-weight: 600; }
+    header p { margin: 0.25rem 0 0 0; color: #a1a1aa; font-size: 0.875rem; }
+    .tabs { display: flex; gap: 0.5rem; background: #000; padding: 0.25rem; border-radius: 8px; border: 1px solid #262626; }
+    .tabs button { background: transparent; color: #a1a1aa; border: none; padding: 0.5rem 1rem; border-radius: 6px; font-size: 0.875rem; cursor: pointer; transition: all 0.2s; }
+    .tabs button.active { background: #262626; color: #fff; }
+    .body { padding: 2rem; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem; }
+    label { display: flex; flex-direction: column; gap: 0.5rem; font-size: 0.875rem; font-weight: 500; color: #e4e4e7; }
+    input, select { background: #000; border: 1px solid #3f3f46; color: #fff; padding: 0.75rem 1rem; border-radius: 8px; font-size: 0.875rem; transition: border-color 0.2s; outline: none; }
+    input:focus, select:focus { border-color: #00d084; }
+    .row { display: flex; gap: 1rem; }
+    button { background: #262626; color: #fff; border: 1px solid #3f3f46; padding: 0.75rem 1.5rem; border-radius: 8px; font-size: 0.875rem; font-weight: 500; cursor: pointer; transition: all 0.2s; }
+    button:hover { background: #3f3f46; }
+    button.primary { background: #fff; color: #000; border: none; font-weight: 600; }
+    button.primary:hover { background: #e4e4e7; transform: translateY(-1px); }
+    button.primary.push-mode { background: #00d084; color: #000; }
+    button.primary.push-mode:hover { background: #00f0a3; }
+    .actions { justify-content: flex-end; margin-top: 2rem; }
+    .checkbox { flex-direction: row; align-items: center; cursor: pointer; }
+    .checkbox input { width: auto; cursor: pointer; margin: 0; accent-color: #00d084; }
+    pre { background: #000; padding: 1rem; border-radius: 8px; font-size: 0.75rem; color: #a1a1aa; overflow-x: auto; border: 1px solid #262626; margin-top: 2rem; white-space: pre-wrap; }
+    .hidden { display: none !important; }
   </style>
 </head>
 <body>
   <main>
     <header>
       <div>
-        <h1>GitIDE Local Sync</h1>
-        <p>Puxe projetos da VM GitIDE para esta maquina.</p>
+        <h2>GitIDE Local Sync</h2>
+        <p id="desc">Sincronize projetos entre a VM GitIDE e esta maquina.</p>
       </div>
-      <span class="pill">Somente pull</span>
+      <div class="tabs">
+        <button id="tabPull" class="active">Puxar (VM -&#62; Local)</button>
+        <button id="tabPush">Enviar (Local -&#62; VM)</button>
+      </div>
     </header>
     <section class="body">
       <div class="grid">
@@ -229,69 +242,144 @@ SYNC_UI_HTML = r"""<!doctype html>
         <button id="save">Salvar config</button>
         <button id="loadProjects">Carregar projetos</button>
       </div>
+      <br>
       <div class="grid">
         <label>Projeto remoto
           <select id="project"><option value="">Carregue os projetos...</option></select>
         </label>
-        <label>Pasta local de destino
-          <input id="destination" placeholder="C:\Users\augus\.workspace\meu-projeto">
+        <label>Pasta local
+          <input id="destination" placeholder="C:\\Users\\augus\\.workspace\\meu-projeto">
         </label>
       </div>
-      <label class="checkbox"><input id="clean" type="checkbox"> Limpar pasta local antes de extrair</label>
+      <label class="checkbox" id="cleanLabel"><input id="clean" type="checkbox"> Limpar pasta local antes de extrair</label>
       <div class="row actions">
-        <button class="primary" id="pull">Puxar para minha maquina</button>
+        <button class="primary" id="actionBtn">Puxar para minha maquina</button>
       </div>
       <pre id="log">Pronto.</pre>
     </section>
   </main>
   <script>
-    const $ = (id) => document.getElementById(id);
-    const log = (text) => { $('log').textContent = text; };
-    async function api(path, options = {}) {
-      const res = await fetch(path, { headers: { 'content-type': 'application/json' }, ...options });
+    const $ = id => document.getElementById(id);
+    const log = msg => $('log').textContent = msg;
+    
+    async function req(url, payload) {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
       const data = await res.json();
-      if (!res.ok || data.status === 'error') throw new Error(data.detail || 'Erro desconhecido.');
+      if (!res.ok || data.status === 'error') {
+        throw new Error(data.detail || `Erro HTTP ${res.status}`);
+      }
       return data;
     }
+
     async function loadConfig() {
-      const data = await api('/api/config');
-      $('server').value = data.server || '';
-      $('token').value = data.token || '';
+      const res = await fetch('/api/config');
+      const data = await res.json();
+      if (data.server) $('server').value = data.server;
+      if (data.token) $('token').value = data.token;
+      if (data.server) await loadProjects();
     }
+
     async function saveConfig() {
-      await api('/api/config', { method: 'POST', body: JSON.stringify({ server: $('server').value, token: $('token').value }) });
-      log('Configuracao salva.');
-    }
-    async function loadProjects() {
-      log('Carregando projetos...');
-      const data = await api('/api/projects', { method: 'POST', body: JSON.stringify({ server: $('server').value, token: $('token').value }) });
-      $('project').innerHTML = '';
-      for (const project of data.projects) {
-        const option = document.createElement('option');
-        option.value = project.id;
-        option.textContent = `${project.name} - ID ${project.id}`;
-        $('project').appendChild(option);
-      }
-      log(`${data.projects.length} projeto(s) carregado(s).`);
-    }
-    async function pullProject() {
-      const payload = { server: $('server').value, token: $('token').value, project_id: Number($('project').value), to: $('destination').value, clean: $('clean').checked };
-      if (!payload.project_id) return log('Selecione um projeto.');
-      if (!payload.to) return log('Informe a pasta local de destino.');
-      $('pull').disabled = true;
-      log('Baixando e extraindo projeto...');
       try {
-        const data = await api('/api/pull', { method: 'POST', body: JSON.stringify(payload) });
-        log(`Concluido.\nProjeto: ${data.project_name} (ID ${data.project_id})\nPacote: ${data.filename}\nDestino: ${data.destination}\nArquivos sincronizados: ${data.files}`);
+        await req('/api/config', { server: $('server').value, token: $('token').value });
+        log("Configuracao salva com sucesso.");
       } catch (err) {
-        log(`Erro: ${err.message}`);
-      } finally {
-        $('pull').disabled = false;
+        log(`Erro ao salvar: ${err.message}`);
       }
     }
+
+    async function loadProjects() {
+      const btn = $('loadProjects');
+      btn.disabled = true;
+      btn.textContent = "Carregando...";
+      try {
+        const data = await req('/api/projects', { server: $('server').value, token: $('token').value });
+        const select = $('project');
+        select.innerHTML = '<option value="">Selecione...</option>';
+        data.projects.forEach(p => {
+          const opt = document.createElement('option');
+          opt.value = p.id;
+          opt.textContent = `${p.id}: ${p.name}`;
+          select.appendChild(opt);
+        });
+        log(`${data.projects.length} projetos carregados.`);
+      } catch (err) {
+        log(`Falha ao carregar projetos: ${err.message}`);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Carregar projetos";
+      }
+    }
+
+    let mode = 'pull';
+
+    $('tabPull').addEventListener('click', () => {
+      mode = 'pull';
+      $('tabPull').classList.add('active');
+      $('tabPush').classList.remove('active');
+      $('cleanLabel').classList.remove('hidden');
+      const btn = $('actionBtn');
+      btn.textContent = "Puxar para minha maquina";
+      btn.classList.remove('push-mode');
+    });
+
+    $('tabPush').addEventListener('click', () => {
+      mode = 'push';
+      $('tabPush').classList.add('active');
+      $('tabPull').classList.remove('active');
+      $('cleanLabel').classList.add('hidden');
+      const btn = $('actionBtn');
+      btn.textContent = "Enviar para a VM";
+      btn.classList.add('push-mode');
+    });
+
+    async function doAction() {
+      const btn = $('actionBtn');
+      const payload = {
+        server: $('server').value,
+        token: $('token').value,
+        project_id: $('project').value,
+        to: $('destination').value,
+        clean: $('clean').checked
+      };
+      if (!payload.project_id || !payload.to) {
+        log("Selecione um projeto e informe a pasta local.");
+        return;
+      }
+      btn.disabled = true;
+      
+      if (mode === 'pull') {
+        btn.textContent = "Puxando...";
+        try {
+          const data = await req('/api/pull', payload);
+          log(`Concluido (Pull).\\nProjeto: ${data.project_name} (ID ${data.project_id})\\nPacote: ${data.filename}\\nDestino: ${data.destination}\\nArquivos extraidos: ${data.files}`);
+        } catch (err) {
+          log(`Falha no pull: ${err.message}`);
+        } finally {
+          btn.disabled = false;
+          btn.textContent = "Puxar para minha maquina";
+        }
+      } else {
+        btn.textContent = "Enviando...";
+        try {
+          const data = await req('/api/push', payload);
+          log(`Concluido (Push).\\nProjeto remoto atualizado.\\nOrigem: ${data.source}\\nArquivos enviados e extraidos: ${data.remote_extracted}`);
+        } catch (err) {
+          log(`Falha no push: ${err.message}`);
+        } finally {
+          btn.disabled = false;
+          btn.textContent = "Enviar para a VM";
+        }
+      }
+    }
+
     $('save').addEventListener('click', saveConfig);
     $('loadProjects').addEventListener('click', loadProjects);
-    $('pull').addEventListener('click', pullProject);
+    $('actionBtn').addEventListener('click', doAction);
     loadConfig().catch((err) => log(`Erro ao carregar config: ${err.message}`));
   </script>
 </body>
@@ -312,6 +400,55 @@ def read_json_body(handler: BaseHTTPRequestHandler) -> dict:
     if length <= 0:
         return {}
     return json.loads(handler.rfile.read(length).decode("utf-8"))
+
+
+def perform_push(server: str, token: str | None, project_id: int, source: str) -> dict:
+    server = normalize_server_url(server)
+    source_path = Path(source).expanduser().resolve()
+    if not source_path.exists() or not source_path.is_dir():
+        raise RuntimeError("Pasta local de origem não encontrada.")
+
+    with tempfile.NamedTemporaryFile(prefix="gitide-sync-", suffix=".zip", delete=False) as temp_zip:
+        temp_zip_name = temp_zip.name
+    
+    total_files = 0
+    with zipfile.ZipFile(temp_zip_name, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+        for root, dirs, files in os.walk(source_path):
+            dirs[:] = [d for d in dirs if d not in (".git", "node_modules", "__pycache__", ".venv")]
+            for file in files:
+                file_path = Path(root) / file
+                archive.write(file_path, file_path.relative_to(source_path))
+                total_files += 1
+
+    url = urljoin(server, f"/api/projects/{project_id}/files/import.zip")
+    headers = auth_headers(token)
+    
+    try:
+        with open(temp_zip_name, "rb") as f:
+            files_data = {"file": ("upload.zip", f, "application/zip")}
+            response = requests.post(url, headers=headers, files=files_data, timeout=120)
+        
+        response.raise_for_status()
+        res_data = response.json()
+    except requests.exceptions.HTTPError as exc:
+        try:
+            detail = exc.response.json().get("detail", "")
+        except Exception:
+            detail = exc.response.text
+        raise RuntimeError(f"Erro HTTP {exc.response.status_code}: {detail}")
+    except Exception as exc:
+        raise RuntimeError(str(exc))
+    finally:
+        if os.path.exists(temp_zip_name):
+            os.remove(temp_zip_name)
+
+    return {
+        "status": "success",
+        "project_id": project_id,
+        "source": str(source_path),
+        "files_zipped": total_files,
+        "remote_extracted": res_data.get("extracted", 0)
+    }
 
 
 def perform_pull(server: str, token: str | None, project_id: int, destination: str, clean: bool) -> dict:
@@ -394,6 +531,17 @@ def make_ui_handler():
                     )
                     json_response(self, 200, result)
                     return
+                
+                if self.path == "/api/push":
+                    config = load_config()
+                    result = perform_push(
+                        payload.get("server") or config.get("server", ""),
+                        payload.get("token") or config.get("token"),
+                        int(payload.get("project_id")),
+                        payload.get("to") or ""
+                    )
+                    json_response(self, 200, result)
+                    return
 
                 json_response(self, 404, {"status": "error", "detail": "Rota não encontrada."})
             except HTTPError as exc:
@@ -428,7 +576,7 @@ def command_ui(args: argparse.Namespace) -> int:
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="gitide-sync",
-        description="Puxa projetos de uma VM GitIDE para uma pasta local.",
+        description="Sincroniza projetos entre uma VM GitIDE e uma pasta local.",
     )
     parser.add_argument("--server", help="URL do GitIDE remoto. Ex: https://ide.builtt.com.br")
     parser.add_argument("--token", help="Token Bearer do GitIDE, quando exigido.")
@@ -468,7 +616,6 @@ def main() -> int:
     except HTTPError as exc:
         try:
             import json
-
             detail = json.loads(exc.read().decode("utf-8")).get("detail", "")
         except Exception:
             detail = str(exc)

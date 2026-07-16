@@ -945,6 +945,44 @@ def export_project_zip(project: Project = Depends(get_project_or_404)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.post("/api/projects/{project_id}/files/import.zip", tags=["Arquivos"])
+async def import_project_zip(
+    project_id: int,
+    file: UploadFile = File(...),
+    project: Project = Depends(get_project_or_404)
+):
+    """Importa um arquivo .zip e extrai no projeto ativo, substituindo os arquivos locais."""
+    if not file.filename.endswith('.zip'):
+        raise HTTPException(status_code=400, detail="Somente arquivos .zip são aceitos.")
+
+    try:
+        temp_file = tempfile.NamedTemporaryFile(prefix="gitide-import-", suffix=".zip", delete=False)
+        temp_file.close()
+
+        with builtins.open(temp_file.name, "wb") as f:
+            content = await file.read()
+            f.write(content)
+
+        extracted_files = []
+        with zipfile.ZipFile(temp_file.name, "r") as archive:
+            for member in archive.infolist():
+                if member.is_dir():
+                    continue
+                # Proteção contra path traversal na extração
+                target_path = vcs.get_safe_path(project.path, member.filename)
+                os.makedirs(os.path.dirname(target_path), exist_ok=True)
+                with archive.open(member, 'r') as source, builtins.open(target_path, 'wb') as target:
+                    shutil.copyfileobj(source, target)
+                extracted_files.append(member.filename)
+                
+        os.remove(temp_file.name)
+        return {"status": "success", "extracted": len(extracted_files), "message": "Arquivos extraídos com sucesso."}
+
+    except Exception as e:
+        if os.path.exists(temp_file.name):
+            os.remove(temp_file.name)
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.get("/api/projects/{project_id}/files/read", tags=["Arquivos"])
 def read_file(filepath: str = Query(..., description="Caminho relativo do arquivo"), 
               start_line: Optional[int] = Query(None, description="Linha inicial (1-indexed) para leitura parcial"),
