@@ -16294,3 +16294,714 @@ html[data-theme="light"] #tab-files #file-editor-textarea::placeholder {
 /* =========================================================
    END SECTION: official visual system
    ========================================================= */
+
+/* =========================================================
+   SECTION: Konva Design Canvas
+   ========================================================= */
+
+body.konva-designer-page {
+    margin: 0;
+    overflow: hidden;
+    background: #111318;
+    color: #dbe7ef;
+    font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.konva-designer-page button,
+.konva-designer-page input,
+.konva-designer-page select,
+.konva-designer-page textarea {
+    font: inherit;
+}
+
+.konva-designer-shell {
+    display: grid;
+    grid-template-columns: 320px minmax(720px, 1fr) 320px;
+    width: 100vw;
+    height: 100vh;
+    background: #111318;
+}
+
+.konva-designer-left,
+.konva-designer-right {
+    background: #17191d;
+    border-color: rgba(173, 190, 210, 0.12);
+    color: #9dafc0;
+    min-width: 0;
+    overflow: hidden;
+}
+
+.konva-designer-left {
+    border-right: 1px solid rgba(173, 190, 210, 0.12);
+}
+
+.konva-designer-right {
+    border-left: 1px solid rgba(173, 190, 210, 0.12);
+}
+
+.konva-file-header,
+.konva-right-top {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 52px;
+    padding: 12px;
+}
+
+.konva-file-header {
+    border-bottom: 1px solid rgba(173, 190, 210, 0.12);
+}
+
+.konva-file-header span,
+.konva-section-header span,
+.konva-inspector-heading span,
+.konva-token-control label {
+    display: block;
+    color: #8ea4b8;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.konva-file-header strong {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 2px;
+    color: #f8fafc;
+    font-size: 14px;
+}
+
+.konva-file-mark {
+    width: 28px;
+    height: 34px;
+    border: 2px solid #dbe7ef;
+    border-radius: 5px;
+    box-shadow: inset 0 0 0 2px #17191d;
+}
+
+.konva-live-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 999px;
+    background: #6ff7e8;
+}
+
+.konva-icon-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border: 1px solid rgba(173, 190, 210, 0.14);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.03);
+    color: #9dafc0;
+    cursor: pointer;
+}
+
+.konva-icon-button:hover,
+.konva-icon-button.is-saved {
+    border-color: rgba(255, 255, 255, 0.34);
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.konva-file-header .konva-icon-button {
+    margin-left: auto;
+}
+
+.konva-tabs {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0;
+    padding: 6px;
+    background: #050607;
+    border-radius: 8px;
+    margin: 8px 12px 12px;
+}
+
+.konva-tabs button {
+    height: 34px;
+    border: 0;
+    border-radius: 7px;
+    background: transparent;
+    color: #8ea4b8;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    cursor: pointer;
+}
+
+.konva-tabs button.is-active {
+    background: rgba(111, 247, 232, 0.16);
+    color: #80fff0;
+}
+
+.konva-left-pane,
+.konva-right-pane {
+    display: none;
+    position: relative;
+}
+
+.konva-left-pane.is-active,
+.konva-right-pane.is-active {
+    display: block;
+}
+
+.konva-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 14px;
+}
+
+.konva-layer-row,
+.konva-assets-list button,
+.konva-token-list button {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 10px;
+    width: 100%;
+    min-height: 36px;
+    border: 0;
+    background: transparent;
+    color: #90a2b5;
+    text-align: left;
+    cursor: pointer;
+}
+
+.konva-page-list {
+    display: grid;
+    gap: 4px;
+    padding: 4px 12px 0;
+}
+
+.konva-page-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    width: 100%;
+    min-height: 34px;
+    border: 1px solid transparent;
+    border-radius: 0;
+    background: transparent;
+    color: #90a2b5;
+    cursor: pointer;
+    padding: 0 8px;
+    transition: background 140ms ease, border-color 140ms ease, color 140ms ease;
+}
+
+.konva-page-item:hover {
+    border-color: rgba(111, 247, 232, 0.24);
+    background: rgba(148, 163, 184, 0.08);
+    color: #d8e8f4;
+}
+
+.konva-page-item:focus-visible {
+    border-color: #79f3e6;
+    outline: none;
+}
+
+.konva-page-item.is-active,
+.konva-layer-row.is-active {
+    background: rgba(111, 247, 232, 0.14);
+    color: #80fff0;
+}
+
+.konva-page-item.is-renaming {
+    border-color: #79f3e6;
+    background: rgba(0, 212, 199, 0.08);
+}
+
+.konva-page-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+}
+
+.konva-page-label span {
+    display: block;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.konva-page-delete {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border: 0;
+    border-radius: 4px;
+    background: transparent;
+    color: #7f8fa1;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 140ms ease, background 140ms ease, color 140ms ease;
+}
+
+.konva-page-item:hover .konva-page-delete,
+.konva-page-item:focus-within .konva-page-delete {
+    opacity: 1;
+}
+
+.konva-page-delete:hover {
+    background: rgba(255, 85, 110, 0.14);
+    color: #ff6b82;
+}
+
+.konva-page-name-input {
+    width: 100%;
+    min-width: 0;
+    height: 26px;
+    border: 0;
+    background: transparent;
+    color: #ffffff;
+    font: inherit;
+    outline: none;
+}
+
+.konva-page-menu {
+    position: absolute;
+    z-index: 40;
+    width: 210px;
+    border: 1px solid rgba(173, 190, 210, 0.18);
+    border-radius: 8px;
+    background: #111418;
+    box-shadow: 0 18px 48px rgba(0, 0, 0, 0.42);
+    padding: 6px;
+}
+
+.konva-page-menu[hidden] {
+    display: none;
+}
+
+.konva-page-menu button {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    height: 34px;
+    border: 0;
+    border-radius: 5px;
+    background: transparent;
+    color: #d8e8f4;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 700;
+    text-align: left;
+}
+
+.konva-page-menu button:hover {
+    background: rgba(255, 255, 255, 0.07);
+}
+
+.konva-page-menu button.is-danger {
+    color: #ff6b82;
+}
+
+.konva-layer-panel {
+    margin-top: 24px;
+    border-top: 1px solid rgba(173, 190, 210, 0.12);
+}
+
+.konva-layer-tree {
+    max-height: calc(100vh - 310px);
+    overflow: auto;
+    padding: 4px 0 16px;
+}
+
+.konva-layer-row {
+    padding: 8px 18px 8px 28px;
+    font-size: 13px;
+    text-align: left;
+}
+
+.konva-layer-row[data-depth="1"] {
+    padding-left: 46px;
+}
+
+.konva-layer-row[data-depth="2"] {
+    padding-left: 64px;
+}
+
+.konva-layer-row[data-depth="3"] {
+    padding-left: 82px;
+}
+
+.konva-layer-row[data-depth="4"] {
+    padding-left: 100px;
+}
+
+.konva-layer-row[data-depth="5"] {
+    padding-left: 118px;
+}
+
+.konva-layer-row[data-depth="6"] {
+    padding-left: 136px;
+}
+
+.konva-layer-row i {
+    flex: 0 0 auto;
+}
+
+.konva-layer-row span {
+    display: block;
+    min-width: 0;
+    overflow: hidden;
+    text-align: left;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.konva-primary-wide {
+    width: calc(100% - 24px);
+    height: 34px;
+    margin: 0 12px 10px;
+    border: 0;
+    border-radius: 7px;
+    background: #72efe2;
+    color: #051012;
+    font-size: 12px;
+    font-weight: 800;
+    text-transform: uppercase;
+    cursor: pointer;
+}
+
+.konva-search {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 12px 22px;
+    padding: 0 10px;
+    height: 34px;
+    border-radius: 7px;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.konva-search input,
+.konva-token-control select,
+.konva-token-control button,
+.konva-inspector input,
+.konva-inspector select,
+.konva-inspector textarea {
+    width: 100%;
+    border: 1px solid rgba(173, 190, 210, 0.12);
+    border-radius: 7px;
+    background: #101215;
+    color: #f8fafc;
+    outline: 0;
+}
+
+.konva-search input {
+    border: 0;
+    background: transparent;
+}
+
+.konva-assets-list,
+.konva-token-list {
+    padding: 8px 14px;
+}
+
+.konva-assets-list button,
+.konva-token-list button {
+    justify-content: flex-start;
+    padding: 10px 4px;
+    border-bottom: 1px solid rgba(173, 190, 210, 0.08);
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.konva-assets-list small,
+.konva-token-list button svg:last-child {
+    margin-left: auto;
+}
+
+.konva-token-control {
+    padding: 12px 16px;
+}
+
+.konva-inline-control {
+    display: grid;
+    grid-template-columns: 1fr 72px;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.konva-designer-center {
+    position: relative;
+    min-width: 0;
+    overflow: hidden;
+    background: #dfe2e6;
+}
+
+.konva-stage-scroll {
+    position: absolute;
+    inset: 30px 0 0 30px;
+    overflow: auto;
+}
+
+#konva-stage {
+    width: 2700px;
+    height: 1500px;
+}
+
+.konva-ruler-top,
+.konva-ruler-left {
+    position: absolute;
+    z-index: 4;
+    background: #121519;
+    color: #8da4bc;
+    font-family: "Fira Code", monospace;
+    font-size: 12px;
+}
+
+.konva-ruler-top {
+    top: 0;
+    left: 30px;
+    right: 0;
+    height: 30px;
+    border-bottom: 1px solid rgba(173, 190, 210, 0.16);
+}
+
+.konva-ruler-top span {
+    position: absolute;
+    top: 7px;
+}
+
+.konva-ruler-left {
+    left: 0;
+    top: 30px;
+    bottom: 0;
+    width: 30px;
+    border-right: 1px solid rgba(173, 190, 210, 0.16);
+}
+
+.konva-ruler-left span {
+    position: absolute;
+    left: -2px;
+    transform: rotate(-90deg);
+    transform-origin: left top;
+}
+
+.konva-floating-toolbar {
+    position: absolute;
+    z-index: 10;
+    top: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 8px;
+    background: #17191d;
+    box-shadow: 0 16px 44px rgba(0, 0, 0, 0.3);
+}
+
+.konva-floating-toolbar button,
+.konva-mini-toolbar button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border: 0;
+    border-radius: 7px;
+    background: transparent;
+    color: #90a2b5;
+    cursor: pointer;
+}
+
+.konva-floating-toolbar button:hover,
+.konva-floating-toolbar button.is-active,
+.konva-mini-toolbar button:hover {
+    background: rgba(111, 247, 232, 0.16);
+    color: #80fff0;
+}
+
+.konva-top-actions {
+    position: absolute;
+    top: 10px;
+    right: 14px;
+    z-index: 11;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #263446;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.konva-top-actions .konva-icon-button {
+    background: rgba(255, 255, 255, 0.55);
+    border-color: rgba(15, 23, 42, 0.12);
+    color: #334155;
+}
+
+.konva-mini-toolbar {
+    position: absolute;
+    z-index: 10;
+    left: 38px;
+    bottom: 10px;
+    display: flex;
+    flex-direction: column;
+    padding: 8px;
+    border: 2px solid rgba(219, 231, 239, 0.7);
+    border-radius: 8px;
+    background: #17191d;
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.22);
+}
+
+.konva-right-top {
+    justify-content: flex-end;
+    border-bottom: 1px solid rgba(173, 190, 210, 0.12);
+}
+
+.konva-avatar {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 999px;
+    background: #eefb55;
+    color: #111318;
+    font-size: 11px;
+    font-weight: 800;
+    margin-right: auto;
+}
+
+.konva-right-tabs {
+    margin-top: 10px;
+}
+
+.konva-empty-inspector,
+.konva-prototype-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 420px;
+    padding: 28px;
+    text-align: center;
+    color: #8ea4b8;
+}
+
+.konva-empty-inspector svg,
+.konva-prototype-empty svg {
+    width: 36px;
+    height: 36px;
+    margin-bottom: 18px;
+}
+
+.konva-empty-inspector strong {
+    color: #f8fafc;
+}
+
+.konva-inspector {
+    padding: 14px;
+    overflow: auto;
+    max-height: calc(100vh - 125px);
+}
+
+.konva-inspector-heading {
+    padding-bottom: 12px;
+    border-bottom: 1px solid rgba(173, 190, 210, 0.12);
+}
+
+.konva-inspector-heading strong {
+    display: block;
+    margin-top: 3px;
+    color: #ffffff;
+}
+
+.konva-grid-2 {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    margin-top: 12px;
+}
+
+.konva-inspector label {
+    display: grid;
+    gap: 6px;
+    color: #8ea4b8;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.konva-inspector input,
+.konva-inspector select,
+.konva-inspector textarea {
+    min-height: 34px;
+    padding: 8px 10px;
+    letter-spacing: 0;
+    text-transform: none;
+}
+
+.konva-text-prop {
+    margin-top: 12px;
+}
+
+.konva-inspector-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-top: 16px;
+}
+
+.konva-inspector-actions button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: 38px;
+    border: 1px solid rgba(173, 190, 210, 0.14);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.04);
+    color: #dbe7ef;
+    cursor: pointer;
+}
+
+.konva-inspector-actions button:last-child {
+    color: #ff7788;
+    border-color: rgba(255, 119, 136, 0.26);
+}
+
+.konva-json-preview {
+    height: calc(100vh - 140px);
+    margin: 12px;
+    padding: 14px;
+    overflow: auto;
+    border: 1px solid rgba(173, 190, 210, 0.12);
+    border-radius: 8px;
+    background: #0b0c0f;
+    color: #dbe7ef;
+    font-family: "Fira Code", monospace;
+    font-size: 12px;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+@media (max-width: 1280px) {
+    .konva-designer-shell {
+        grid-template-columns: 280px minmax(520px, 1fr) 300px;
+    }
+}
+
+/* =========================================================
+   END SECTION: Konva Design Canvas
+   ========================================================= */

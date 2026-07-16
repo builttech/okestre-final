@@ -7336,6 +7336,15 @@ def get_dashboard():
             return f.read()
     return HTMLResponse(content="<h1>Act IA está rodando!</h1><p>Dashboard HTML não encontrado na pasta <code>static/</code>.</p>", status_code=200)
 
+@app.get("/design-canvas", response_class=HTMLResponse, tags=["Design Canvas"])
+def get_design_canvas():
+    """Ferramenta separada de design canvas nativo com Konva."""
+    canvas_path = os.path.join(STATIC_DIR, "konva-designer.html")
+    if os.path.exists(canvas_path):
+        with open(canvas_path, 'r', encoding='utf-8') as f:
+            return f.read()
+    return HTMLResponse(content="<h1>Design Canvas não encontrado.</h1>", status_code=404)
+
 @app.get("/favicon.ico", include_in_schema=False)
 def favicon():
     return FileResponse(os.path.join(STATIC_DIR, "favicon.ico")) if os.path.exists(os.path.join(STATIC_DIR, "favicon.ico")) else Response(status_code=404)

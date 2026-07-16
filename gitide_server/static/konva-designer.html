@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Act IA Design Canvas</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://unpkg.com/konva@9/konva.min.js"></script>
+    <link rel="stylesheet" href="/static/rebrand.css?v=81">
+</head>
+<body class="konva-designer-page">
+    <main class="konva-designer-shell">
+        <aside class="konva-designer-left">
+            <header class="konva-file-header">
+                <div class="konva-file-mark" aria-hidden="true"></div>
+                <div>
+                    <span>DRAFTS</span>
+                    <strong><span class="konva-live-dot"></span>Novo arquivo 1</strong>
+                </div>
+                <button class="konva-icon-button" type="button" title="Opções"><i data-lucide="more-vertical"></i></button>
+            </header>
+
+            <nav class="konva-tabs" aria-label="Painel esquerdo">
+                <button class="is-active" type="button" data-left-tab="layers">Camadas</button>
+                <button type="button" data-left-tab="assets">Ativos</button>
+                <button type="button" data-left-tab="tokens">Tokens</button>
+            </nav>
+
+            <section class="konva-left-pane is-active" data-left-pane="layers">
+                <div class="konva-section-header">
+                    <span>Páginas</span>
+                    <button class="konva-icon-button" id="konva-add-page" type="button" title="Nova página"><i data-lucide="plus"></i></button>
+                </div>
+                <div id="konva-page-list" class="konva-page-list"></div>
+                <div id="konva-page-menu" class="konva-page-menu" hidden></div>
+
+                <div class="konva-layer-panel">
+                    <div class="konva-section-header">
+                        <span id="konva-active-page-title">Page 1</span>
+                        <button class="konva-icon-button" type="button" title="Buscar layer"><i data-lucide="search"></i></button>
+                    </div>
+                    <div id="konva-layer-tree" class="konva-layer-tree"></div>
+                </div>
+            </section>
+
+            <section class="konva-left-pane" data-left-pane="assets">
+                <button class="konva-primary-wide" type="button">Add Library</button>
+                <label class="konva-search">
+                    <i data-lucide="search"></i>
+                    <input id="konva-asset-search" type="text" placeholder="Procurar nos ativos">
+                </label>
+                <div class="konva-assets-list">
+                    <button type="button"><i data-lucide="diamond"></i><span>Componentes</span><small>0</small></button>
+                    <button type="button"><i data-lucide="droplet"></i><span>Cores</span><small>0</small></button>
+                    <button type="button"><i data-lucide="type"></i><span>Tipografias</span><small>0</small></button>
+                </div>
+            </section>
+
+            <section class="konva-left-pane" data-left-pane="tokens">
+                <div class="konva-token-control">
+                    <label>Themes</label>
+                    <div class="konva-inline-control">
+                        <select id="konva-theme-select">
+                            <option>light</option>
+                            <option>dark</option>
+                        </select>
+                        <button type="button">Editar</button>
+                    </div>
+                </div>
+                <div class="konva-token-list">
+                    <button type="button"><i data-lucide="circle"></i>Border Radius<i data-lucide="plus"></i></button>
+                    <button type="button"><i data-lucide="droplet"></i>Color<i data-lucide="plus"></i></button>
+                    <button type="button"><i data-lucide="move-diagonal"></i>Dimensions<i data-lucide="plus"></i></button>
+                    <button type="button"><i data-lucide="type"></i>Font Family<i data-lucide="plus"></i></button>
+                    <button type="button"><i data-lucide="hash"></i>Number<i data-lucide="plus"></i></button>
+                    <button type="button"><i data-lucide="sparkles"></i>Shadow<i data-lucide="plus"></i></button>
+                    <button type="button"><i data-lucide="between-horizontal-start"></i>Spacing<i data-lucide="plus"></i></button>
+                </div>
+            </section>
+        </aside>
+
+        <section class="konva-designer-center">
+            <div class="konva-ruler-top" id="konva-ruler-top"></div>
+            <div class="konva-ruler-left" id="konva-ruler-left"></div>
+
+            <header class="konva-floating-toolbar" aria-label="Ferramentas">
+                <button class="is-active" type="button" data-tool="select" title="Selecionar"><i data-lucide="mouse-pointer-2"></i></button>
+                <button type="button" data-tool="frame" title="Frame"><i data-lucide="scan"></i></button>
+                <button type="button" data-tool="rect" title="Retângulo"><i data-lucide="square"></i></button>
+                <button type="button" data-tool="ellipse" title="Elipse"><i data-lucide="circle"></i></button>
+                <button type="button" data-tool="text" title="Texto"><i data-lucide="type"></i></button>
+                <button type="button" data-tool="image" title="Imagem"><i data-lucide="image"></i></button>
+                <button type="button" data-tool="line" title="Linha"><i data-lucide="pen-line"></i></button>
+                <button type="button" data-tool="icon" title="Ícone"><i data-lucide="sparkles"></i></button>
+            </header>
+
+            <div class="konva-top-actions">
+                <button class="konva-icon-button" id="konva-zoom-out" type="button" title="Diminuir zoom"><i data-lucide="minus"></i></button>
+                <span id="konva-zoom-label">53%</span>
+                <button class="konva-icon-button" id="konva-zoom-in" type="button" title="Aumentar zoom"><i data-lucide="plus"></i></button>
+                <button class="konva-icon-button" id="konva-export-json" type="button" title="Exportar JSON"><i data-lucide="braces"></i></button>
+                <button class="konva-icon-button" id="konva-save" type="button" title="Salvar"><i data-lucide="save"></i></button>
+                <button class="konva-icon-button" id="konva-preview" type="button" title="Prévia"><i data-lucide="play"></i></button>
+            </div>
+
+            <div id="konva-stage-scroll" class="konva-stage-scroll">
+                <div id="konva-stage"></div>
+            </div>
+            <div class="konva-mini-toolbar" aria-label="Atalhos rápidos">
+                <button type="button" data-tool="icon"><i data-lucide="droplet"></i></button>
+                <button type="button" data-tool="text"><i data-lucide="type"></i></button>
+            </div>
+        </section>
+
+        <aside class="konva-designer-right">
+            <header class="konva-right-top">
+                <span class="konva-avatar">AL</span>
+                <span id="konva-right-zoom">53%</span>
+                <button class="konva-icon-button" type="button" title="Comentários"><i data-lucide="message-circle"></i></button>
+                <button class="konva-icon-button" type="button" title="Histórico"><i data-lucide="history"></i></button>
+            </header>
+
+            <nav class="konva-tabs konva-right-tabs">
+                <button class="is-active" type="button" data-right-tab="design">Design</button>
+                <button type="button" data-right-tab="prototype">Protótipo</button>
+                <button type="button" data-right-tab="inspect">Inspecionar</button>
+            </nav>
+
+            <section class="konva-right-pane is-active" data-right-pane="design">
+                <div id="konva-inspector-empty" class="konva-empty-inspector">
+                    <i data-lucide="mouse-pointer-2"></i>
+                    <strong>Selecione um elemento</strong>
+                    <span>Use o canvas para editar posição, tamanho, aparência e texto.</span>
+                </div>
+                <form id="konva-inspector" class="konva-inspector" hidden>
+                    <div class="konva-inspector-heading">
+                        <span id="konva-selected-type">Layer</span>
+                        <strong id="konva-selected-name">Selecionado</strong>
+                    </div>
+                    <div class="konva-grid-2">
+                        <label>X<input type="number" data-prop="x"></label>
+                        <label>Y<input type="number" data-prop="y"></label>
+                        <label>W<input type="number" data-prop="width"></label>
+                        <label>H<input type="number" data-prop="height"></label>
+                    </div>
+                    <div class="konva-grid-2">
+                        <label>Fill<input type="text" data-prop="fill"></label>
+                        <label>Stroke<input type="text" data-prop="stroke"></label>
+                        <label>Radius<input type="number" data-prop="cornerRadius"></label>
+                        <label>Opacity<input type="number" min="0" max="1" step="0.05" data-prop="opacity"></label>
+                    </div>
+                    <label class="konva-text-prop">Texto<textarea data-prop="text" rows="4"></textarea></label>
+                    <div class="konva-grid-2">
+                        <label>Font size<input type="number" data-prop="fontSize"></label>
+                        <label>Weight<select data-prop="fontStyle"><option value="normal">Normal</option><option value="bold">Bold</option></select></label>
+                    </div>
+                    <div class="konva-inspector-actions">
+                        <button type="button" id="konva-duplicate"><i data-lucide="copy"></i>Duplicar</button>
+                        <button type="button" id="konva-delete"><i data-lucide="trash-2"></i>Excluir</button>
+                    </div>
+                </form>
+            </section>
+
+            <section class="konva-right-pane" data-right-pane="prototype">
+                <div class="konva-prototype-empty">
+                    <i data-lucide="arrow-right-circle"></i>
+                    <p>Selecione uma forma, tela ou grupo para arrastar uma conexão para outra tela.</p>
+                    <i data-lucide="play"></i>
+                    <p>Use o botão play no cabeçalho para visualizar o protótipo.</p>
+                </div>
+            </section>
+
+            <section class="konva-right-pane" data-right-pane="inspect">
+                <pre id="konva-json-preview" class="konva-json-preview"></pre>
+            </section>
+        </aside>
+    </main>
+    <script src="/static/konva-designer.js?v=1"></script>
+</body>
+</html>

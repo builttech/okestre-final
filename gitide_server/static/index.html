@@ -947,6 +947,20 @@ VALIDAÇÃO: quando o runtime real estiver em VM e comandos locais como npm/node
                             <div class="ui-canvas-list" id="ui-canvas-file-list">
                                 <div class="ui-canvas-empty">Nenhum canvas encontrado.</div>
                             </div>
+                            <div class="ui-canvas-library">
+                                <div class="ui-canvas-section-title">Inserir</div>
+                                <div class="ui-canvas-library-grid">
+                                    <button class="ui-canvas-library-item ui-canvas-tool" data-ui-canvas-tool="frame" title="Frame"><i data-lucide="scan"></i><span>Frame</span></button>
+                                    <button class="ui-canvas-library-item ui-canvas-tool" data-ui-canvas-tool="rect" title="Retângulo"><i data-lucide="square"></i><span>Rect</span></button>
+                                    <button class="ui-canvas-library-item ui-canvas-tool" data-ui-canvas-tool="ellipse" title="Elipse"><i data-lucide="circle"></i><span>Elipse</span></button>
+                                    <button class="ui-canvas-library-item ui-canvas-tool" data-ui-canvas-tool="heading" title="Heading"><i data-lucide="heading-1"></i><span>Heading</span></button>
+                                    <button class="ui-canvas-library-item ui-canvas-tool" data-ui-canvas-tool="paragraph" title="Texto"><i data-lucide="type"></i><span>Texto</span></button>
+                                    <button class="ui-canvas-library-item ui-canvas-tool" data-ui-canvas-tool="button" title="Button"><i data-lucide="rectangle-ellipsis"></i><span>Button</span></button>
+                                    <button class="ui-canvas-library-item ui-canvas-tool" data-ui-canvas-tool="input" title="Input"><i data-lucide="text-cursor-input"></i><span>Input</span></button>
+                                    <button class="ui-canvas-library-item ui-canvas-tool" data-ui-canvas-tool="icon" title="Ícone"><i data-lucide="sparkles"></i><span>Icon</span></button>
+                                    <button class="ui-canvas-library-item ui-canvas-tool" data-ui-canvas-tool="line" title="Linha"><i data-lucide="minus"></i><span>Linha</span></button>
+                                </div>
+                            </div>
                             <div class="ui-canvas-layers">
                                 <div class="ui-canvas-section-title">Layers</div>
                                 <div id="ui-canvas-layer-list" class="ui-canvas-layer-list"></div>
@@ -961,6 +975,13 @@ VALIDAÇÃO: quando o runtime real estiver em VM e comandos locais como npm/node
                                 </div>
                                 <div class="ui-canvas-toolset" role="toolbar" aria-label="Ferramentas do canvas">
                                     <button class="btn btn-secondary btn-sm ui-canvas-tool active" data-ui-canvas-tool="select" title="Selecionar"><i data-lucide="mouse-pointer-2"></i></button>
+                                    <button class="btn btn-secondary btn-sm ui-canvas-tool" data-ui-canvas-tool="frame" title="Frame"><i data-lucide="scan"></i></button>
+                                    <button class="btn btn-secondary btn-sm ui-canvas-tool" data-ui-canvas-tool="rect" title="Retângulo"><i data-lucide="square"></i></button>
+                                    <button class="btn btn-secondary btn-sm ui-canvas-tool" data-ui-canvas-tool="ellipse" title="Elipse"><i data-lucide="circle"></i></button>
+                                    <button class="btn btn-secondary btn-sm ui-canvas-tool" data-ui-canvas-tool="heading" title="Título"><i data-lucide="heading-1"></i></button>
+                                    <button class="btn btn-secondary btn-sm ui-canvas-tool" data-ui-canvas-tool="paragraph" title="Texto"><i data-lucide="type"></i></button>
+                                    <button class="btn btn-secondary btn-sm ui-canvas-tool" data-ui-canvas-tool="icon" title="Ícone"><i data-lucide="sparkles"></i></button>
+                                    <button class="btn btn-secondary btn-sm ui-canvas-tool" data-ui-canvas-tool="line" title="Linha"><i data-lucide="minus"></i></button>
                                     <select id="ui-canvas-frame-preset" class="select-input ui-canvas-preset-select" title="Frames">
                                         <option value="">Frame livre</option>
                                         <option value="section">Section</option>
@@ -973,12 +994,10 @@ VALIDAÇÃO: quando o runtime real estiver em VM e comandos locais como npm/node
                                         <option value="macbook-air">MacBook Air - 1280x832</option>
                                         <option value="slide-16-9">Slide 16:9 - 1920x1080</option>
                                     </select>
-                                    <button class="btn btn-secondary btn-sm ui-canvas-tool" data-ui-canvas-tool="frame" title="Criar Frame"><i data-lucide="scan"></i></button>
-                                    <button class="btn btn-secondary btn-sm ui-canvas-tool" data-ui-canvas-tool="rect" title="Retângulo"><i data-lucide="square"></i></button>
-                                    <button class="btn btn-secondary btn-sm ui-canvas-tool" data-ui-canvas-tool="text" title="Texto"><i data-lucide="type"></i></button>
-                                    <button class="btn btn-secondary btn-sm ui-canvas-tool" data-ui-canvas-tool="line" title="Linha"><i data-lucide="minus"></i></button>
                                     <select id="ui-canvas-element-preset" class="select-input ui-canvas-preset-select" title="Elementos">
                                         <option value="">Elementos</option>
+                                        <option value="rect">Rectangle</option>
+                                        <option value="ellipse">Ellipse</option>
                                         <option value="heading">Heading</option>
                                         <option value="paragraph">Text Basic</option>
                                         <option value="button">Button</option>
@@ -994,6 +1013,7 @@ VALIDAÇÃO: quando o runtime real estiver em VM e comandos locais como npm/node
                                     </select>
                                 </div>
                                 <div class="ui-canvas-actions">
+                                    <button class="btn btn-secondary btn-sm" id="btn-ui-canvas-duplicate" title="Duplicar layer"><i data-lucide="copy"></i></button>
                                     <button class="btn btn-secondary btn-sm" id="btn-ui-canvas-zoom-out"><i data-lucide="zoom-out"></i></button>
                                     <span id="ui-canvas-zoom-label">100%</span>
                                     <button class="btn btn-secondary btn-sm" id="btn-ui-canvas-zoom-in"><i data-lucide="zoom-in"></i></button>

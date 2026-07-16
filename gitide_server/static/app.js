@@ -65,19 +65,27 @@ const uiCanvasState = {
     tool: 'select',
     zoom: 1,
     drag: null,
-    resize: null
+    resize: null,
+    pan: null,
+    lastPointer: { x: 360, y: 240 }
 };
 
 const UI_CANVAS_FRAME_PRESETS = {
     section: { name: 'Section', width: 960, height: 540 },
+    wireframe: { name: 'Wireframe', width: 1440, height: 1024 },
     iphone17: { name: 'iPhone 17', width: 402, height: 874 },
     iphone16: { name: 'iPhone 16', width: 393, height: 852 },
+    'iphone-plus': { name: 'iPhone Plus', width: 430, height: 932 },
     'android-compact': { name: 'Android Compact', width: 412, height: 917 },
+    'android-medium': { name: 'Android Medium', width: 700, height: 840 },
     'ipad-mini': { name: 'iPad mini 8.3', width: 744, height: 1133 },
+    'surface-pro': { name: 'Surface Pro 8', width: 1440, height: 960 },
     'ipad-pro': { name: 'iPad Pro 12.9', width: 1024, height: 1366 },
     desktop: { name: 'Desktop', width: 1440, height: 1024 },
     'macbook-air': { name: 'MacBook Air', width: 1280, height: 832 },
-    'slide-16-9': { name: 'Slide 16:9', width: 1920, height: 1080 }
+    'macbook-pro': { name: 'MacBook Pro 14', width: 1512, height: 982 },
+    'slide-16-9': { name: 'Slide 16:9', width: 1920, height: 1080 },
+    tv: { name: 'TV', width: 1280, height: 720 }
 };
 
 const UI_CANVAS_ICON_OPTIONS = [
@@ -348,7 +356,9 @@ function resetProjectScopedState() {
         uiCanvasState.filepath = '';
         uiCanvasState.doc = null;
         uiCanvasState.selectedLayerId = null;
-        uiCanvasState.mode = 'select';
+        uiCanvasState.tool = 'select';
+        uiCanvasState.drag = null;
+        uiCanvasState.resize = null;
     }
 
     if (typeof sddState !== 'undefined') {
@@ -4658,9 +4668,50 @@ function uiCanvasCreateDocument(name = 'Novo Canvas') {
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         viewport: { width: 2600, height: 1800 },
+        pages: [{ id: 'page-1', name: 'Page 1' }],
+        activePageId: 'page-1',
         frames: [],
         layers: []
     };
+}
+
+function uiCanvasNormalizeDoc(doc) {
+    const normalized = doc && typeof doc === 'object' ? doc : uiCanvasCreateDocument();
+    normalized.version = normalized.version || 1;
+    normalized.name = normalized.name || 'Novo Canvas';
+    normalized.createdAt = normalized.createdAt || new Date().toISOString();
+    normalized.updatedAt = normalized.updatedAt || new Date().toISOString();
+    normalized.viewport = normalized.viewport || { width: 2600, height: 1800 };
+    normalized.pages = Array.isArray(normalized.pages) && normalized.pages.length
+        ? normalized.pages
+        : [{ id: 'page-1', name: 'Page 1' }];
+    normalized.activePageId = normalized.activePageId || normalized.pages[0].id;
+    normalized.layers = Array.isArray(normalized.layers) ? normalized.layers : [];
+    normalized.layers.forEach((layer, index) => {
+        layer.id = layer.id || `${layer.type || 'layer'}-${Date.now().toString(36)}-${index}`;
+        layer.type = layer.type || 'rect';
+        layer.name = layer.name || uiCanvasLayerLabel(layer.type);
+        layer.x = Number.isFinite(Number(layer.x)) ? Number(layer.x) : 0;
+        layer.y = Number.isFinite(Number(layer.y)) ? Number(layer.y) : 0;
+        layer.width = Number.isFinite(Number(layer.width)) ? Number(layer.width) : 120;
+        layer.height = Number.isFinite(Number(layer.height)) ? Number(layer.height) : 80;
+        layer.widthMode = layer.widthMode || 'fixed';
+        layer.heightMode = layer.heightMode || 'fixed';
+        layer.opacity = layer.opacity ?? 1;
+        layer.parentId = layer.parentId || null;
+        layer.pageId = layer.pageId || normalized.activePageId;
+        if (['frame', 'group'].includes(layer.type)) {
+            layer.autoLayout = {
+                enabled: Boolean(layer.autoLayout?.enabled),
+                direction: layer.autoLayout?.direction || 'vertical',
+                align: layer.autoLayout?.align || 'start',
+                distribute: layer.autoLayout?.distribute || 'packed',
+                gap: Number(layer.autoLayout?.gap ?? 12),
+                padding: Number(layer.autoLayout?.padding ?? 16)
+            };
+        }
+    });
+    return normalized;
 }
 
 function uiCanvasEnsureDraft() {
@@ -4679,6 +4730,7 @@ function uiCanvasLayerLabel(type) {
         group: 'Group',
         section: 'Section',
         rect: 'Retângulo',
+        ellipse: 'Elipse',
         text: 'Texto',
         heading: 'Heading',
         paragraph: 'Text Basic',
@@ -4702,58 +4754,131 @@ function uiCanvasDefaultLayer(type, x, y) {
     const framePreset = framePresetKey ? UI_CANVAS_FRAME_PRESETS[framePresetKey] : null;
     const normalizedType = type === 'section' ? 'frame' : type;
     const isText = ['text', 'heading', 'paragraph', 'button', 'input', 'list'].includes(normalizedType);
+    const isMedia = ['image', 'video', 'table'].includes(normalizedType);
     const base = {
         id,
         type: normalizedType,
         name: framePreset?.name || uiCanvasLayerLabel(normalizedType),
         x: Math.round(x),
         y: Math.round(y),
-        width: framePreset?.width || (normalizedType === 'text' ? 220 : normalizedType === 'line' || normalizedType === 'divider' ? 220 : normalizedType === 'frame' ? 375 : normalizedType === 'table' ? 420 : normalizedType === 'image' || normalizedType === 'video' ? 260 : 180),
-        height: framePreset?.height || (normalizedType === 'text' ? 44 : normalizedType === 'heading' ? 48 : normalizedType === 'paragraph' ? 76 : normalizedType === 'line' || normalizedType === 'divider' ? 2 : normalizedType === 'frame' ? 667 : normalizedType === 'table' ? 180 : normalizedType === 'image' || normalizedType === 'video' ? 160 : 96),
+        width: framePreset?.width || (normalizedType === 'text' ? 220 : normalizedType === 'heading' ? 300 : normalizedType === 'line' || normalizedType === 'divider' ? 220 : normalizedType === 'frame' ? 375 : normalizedType === 'group' ? 360 : normalizedType === 'table' ? 420 : normalizedType === 'image' || normalizedType === 'video' ? 260 : normalizedType === 'card' ? 280 : normalizedType === 'ellipse' ? 160 : 180),
+        height: framePreset?.height || (normalizedType === 'text' ? 44 : normalizedType === 'heading' ? 48 : normalizedType === 'paragraph' ? 76 : normalizedType === 'line' || normalizedType === 'divider' ? 2 : normalizedType === 'frame' ? 667 : normalizedType === 'group' ? 220 : normalizedType === 'table' ? 180 : normalizedType === 'image' || normalizedType === 'video' ? 160 : normalizedType === 'card' ? 150 : normalizedType === 'ellipse' ? 160 : 96),
         widthMode: 'fixed',
         heightMode: 'fixed',
-        fill: normalizedType === 'frame' ? '#101012' : normalizedType === 'line' || normalizedType === 'divider' ? '#f8fafc' : isText ? 'transparent' : '#1f1f22',
-        stroke: isText ? 'transparent' : '#2d2d31',
-        radius: normalizedType === 'frame' ? 18 : normalizedType === 'button' || normalizedType === 'input' ? 12 : 10,
+        fill: normalizedType === 'frame' ? '#ffffff' : normalizedType === 'group' ? 'transparent' : normalizedType === 'line' || normalizedType === 'divider' ? '#111827' : isText ? 'transparent' : isMedia ? '#f3f4f6' : '#f8fafc',
+        stroke: isText ? 'transparent' : normalizedType === 'group' ? '#9ca3af' : normalizedType === 'frame' ? '#d6dbe5' : '#cfd6e2',
+        radius: normalizedType === 'ellipse' ? 999 : normalizedType === 'frame' ? 0 : normalizedType === 'button' || normalizedType === 'input' ? 10 : normalizedType === 'card' ? 12 : 6,
         opacity: 1,
         token: '',
+        pageId: uiCanvasState.doc?.activePageId || 'page-1',
         parentId: null
     };
     if (normalizedType === 'frame' || normalizedType === 'group') {
-        return { ...base, autoLayout: { enabled: false, direction: 'vertical', gap: 12, padding: 16 } };
+        return { ...base, autoLayout: { enabled: false, direction: 'vertical', align: 'start', distribute: 'packed', gap: 12, padding: 16 } };
     }
     if (normalizedType === 'heading') {
-        return { ...base, text: 'Heading', color: '#f8fafc', fontSize: 28, fontWeight: 800 };
+        return { ...base, text: 'Heading', color: '#111827', fontSize: 28, fontWeight: 800 };
     }
     if (normalizedType === 'paragraph') {
-        return { ...base, text: 'Texto básico', color: '#a1a1aa', fontSize: 16, fontWeight: 500 };
+        return { ...base, text: 'Texto básico', color: '#374151', fontSize: 16, fontWeight: 500 };
     }
     if (normalizedType === 'button') {
-        return { ...base, text: 'Button', color: '#050505', fill: '#f8fafc', stroke: 'transparent', fontSize: 15, fontWeight: 700, width: 128, height: 44 };
+        return { ...base, text: 'Button', color: '#ffffff', fill: '#111827', stroke: 'transparent', fontSize: 15, fontWeight: 700, width: 128, height: 44 };
     }
     if (normalizedType === 'input') {
-        return { ...base, text: 'Placeholder', color: '#71717a', fill: '#111113', stroke: '#2d2d31', fontSize: 14, fontWeight: 500, width: 260, height: 44 };
+        return { ...base, text: 'Placeholder', color: '#6b7280', fill: '#ffffff', stroke: '#d1d5db', fontSize: 14, fontWeight: 500, width: 260, height: 44 };
     }
     if (normalizedType === 'list') {
-        return { ...base, text: 'Item 1\nItem 2\nItem 3', color: '#f8fafc', fontSize: 15, fontWeight: 500, width: 220, height: 100 };
+        return { ...base, text: 'Item 1\nItem 2\nItem 3', color: '#111827', fontSize: 15, fontWeight: 500, width: 220, height: 100 };
     }
     if (normalizedType === 'icon') {
-        return { ...base, icon: 'sparkles', text: '', color: '#f8fafc', fontSize: 24, fontWeight: 700, width: 48, height: 48 };
+        return { ...base, icon: 'sparkles', text: '', color: '#111827', fontSize: 24, fontWeight: 700, width: 48, height: 48 };
     }
     if (normalizedType === 'image' || normalizedType === 'video') {
-        return { ...base, text: normalizedType === 'image' ? 'Image' : 'Video', color: '#71717a', fill: '#151518', stroke: '#34343a', fontSize: 14, fontWeight: 700 };
+        return { ...base, text: normalizedType === 'image' ? 'Image' : 'Video', color: '#6b7280', fill: '#f3f4f6', stroke: '#d1d5db', fontSize: 14, fontWeight: 700 };
     }
     if (normalizedType === 'table') {
-        return { ...base, text: 'Table', fill: '#151518', stroke: '#34343a' };
+        return { ...base, text: 'Table', fill: '#f9fafb', stroke: '#d1d5db' };
+    }
+    if (normalizedType === 'card') {
+        return { ...base, name: 'Card', fill: '#ffffff', stroke: '#d1d5db', widthMode: 'fixed', heightMode: 'fixed' };
     }
     if (normalizedType === 'text') {
-        return { ...base, text: 'Texto', color: '#f8fafc', fontSize: 18, fontWeight: 700 };
+        return { ...base, text: 'Texto', color: '#111827', fontSize: 18, fontWeight: 700 };
     }
     return base;
 }
 
+function uiCanvasFindLayer(id) {
+    return uiCanvasGetLayers().find(layer => layer.id === id) || null;
+}
+
+function uiCanvasGetLayerDescendantIds(layerId) {
+    const ids = new Set();
+    let changed = true;
+    while (changed) {
+        changed = false;
+        uiCanvasGetLayers().forEach(layer => {
+            if (layer.parentId && (layer.parentId === layerId || ids.has(layer.parentId)) && !ids.has(layer.id)) {
+                ids.add(layer.id);
+                changed = true;
+            }
+        });
+    }
+    return ids;
+}
+
+function uiCanvasPrepareInsertedLayer(layer) {
+    const selected = uiCanvasGetSelectedLayer();
+    if (selected && ['frame', 'group'].includes(selected.type) && layer.id !== selected.id) {
+        const layout = selected.autoLayout || {};
+        const padding = Number(layout.padding ?? 16);
+        layer.parentId = selected.id;
+        if (Number(layer.x || 0) <= 0 && Number(layer.y || 0) <= 0) {
+            layer.x = Math.round(selected.x + padding);
+            layer.y = Math.round(selected.y + padding);
+        }
+    }
+    return layer;
+}
+
+function uiCanvasInsertLayer(layer) {
+    uiCanvasEnsureDraft();
+    const prepared = uiCanvasPrepareInsertedLayer(layer);
+    uiCanvasState.doc.layers.push(prepared);
+    uiCanvasState.selectedLayerId = prepared.id;
+    uiCanvasState.doc.updatedAt = new Date().toISOString();
+    uiCanvasRender();
+}
+
+function uiCanvasCloneLayer(layer, parentIdMap = new Map(), offset = 28) {
+    const clone = JSON.parse(JSON.stringify(layer));
+    clone.id = `${layer.type}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
+    clone.name = `${layer.name || uiCanvasLayerLabel(layer.type)} copy`;
+    clone.x = Math.round((layer.x || 0) + offset);
+    clone.y = Math.round((layer.y || 0) + offset);
+    clone.parentId = parentIdMap.get(layer.parentId) || layer.parentId || null;
+    parentIdMap.set(layer.id, clone.id);
+    return clone;
+}
+
+function uiCanvasDuplicateSelectedLayer() {
+    const selected = uiCanvasGetSelectedLayer();
+    if (!selected || !uiCanvasState.doc) return;
+    const descendants = uiCanvasGetLayerDescendantIds(selected.id);
+    const sourceLayers = uiCanvasGetLayers().filter(layer => layer.id === selected.id || descendants.has(layer.id));
+    const parentIdMap = new Map();
+    const clones = sourceLayers.map(layer => uiCanvasCloneLayer(layer, parentIdMap));
+    uiCanvasState.doc.layers.push(...clones);
+    uiCanvasState.selectedLayerId = parentIdMap.get(selected.id);
+    uiCanvasState.doc.updatedAt = new Date().toISOString();
+    uiCanvasRender();
+}
+
 function uiCanvasGetLayers() {
-    return uiCanvasState.doc?.layers || [];
+    const layers = uiCanvasState.doc?.layers || [];
+    const activePageId = uiCanvasState.doc?.activePageId;
+    return activePageId ? layers.filter(layer => (layer.pageId || activePageId) === activePageId) : layers;
 }
 
 function uiCanvasGetSelectedLayer() {
@@ -4795,6 +4920,7 @@ function uiCanvasRender() {
         return;
     }
 
+    uiCanvasState.doc = uiCanvasNormalizeDoc(uiCanvasState.doc);
     uiCanvasAssignParents();
     uiCanvasApplyAutoLayouts();
     viewport.style.width = `${uiCanvasState.doc.viewport?.width || 2600}px`;
@@ -4811,9 +4937,16 @@ function uiCanvasRender() {
     if (window.lucide) lucide.createIcons();
 }
 
+function uiCanvasResizeHandles(id) {
+    return ['nw', 'ne', 'sw', 'se']
+        .map(handle => `<span class="ui-canvas-resize-handle ui-canvas-resize-${handle}" data-layer-id="${id}" data-resize-handle="${handle}"></span>`)
+        .join('');
+}
+
 function uiCanvasLayerHtml(layer) {
     const selected = layer.id === uiCanvasState.selectedLayerId ? ' is-selected' : '';
     const dimensions = uiCanvasGetRenderedDimensions(layer);
+    const layerIndex = uiCanvasGetLayers().findIndex(item => item.id === layer.id) + 1;
     const commonStyle = [
         `left:${layer.x}px`,
         `top:${layer.y}px`,
@@ -4821,24 +4954,25 @@ function uiCanvasLayerHtml(layer) {
         `height:${dimensions.height}px`,
         `opacity:${layer.opacity ?? 1}`,
         `border-radius:${layer.radius || 0}px`,
-        `border-color:${layer.stroke || 'transparent'}`
+        `border-color:${layer.stroke || 'transparent'}`,
+        `z-index:${layerIndex}`
     ].join(';');
 
     if (['text', 'heading', 'paragraph', 'button', 'input', 'list', 'icon', 'image', 'video'].includes(layer.type)) {
         if (layer.type === 'icon') {
-            return `<div class="ui-canvas-layer ui-canvas-layer-text ui-canvas-layer-icon${selected}" data-layer-id="${layer.id}" style="${commonStyle};background:${layer.fill || 'transparent'};color:${layer.color || '#f8fafc'};border-color:${layer.stroke || 'transparent'};"><i data-lucide="${escapeHtml(layer.icon || 'sparkles')}" style="width:${layer.fontSize || 24}px;height:${layer.fontSize || 24}px;"></i><span class="ui-canvas-resize-handle" data-layer-id="${layer.id}"></span></div>`;
+            return `<div class="ui-canvas-layer ui-canvas-layer-text ui-canvas-layer-icon${selected}" data-layer-id="${layer.id}" style="${commonStyle};background:${layer.fill || 'transparent'};color:${layer.color || '#f8fafc'};border-color:${layer.stroke || 'transparent'};"><i data-lucide="${escapeHtml(layer.icon || 'sparkles')}" style="width:${layer.fontSize || 24}px;height:${layer.fontSize || 24}px;"></i>${uiCanvasResizeHandles(layer.id)}</div>`;
         }
         const text = layer.type === 'list' ? escapeHtml(layer.text || '').replace(/\n/g, '<br>') : escapeHtml(layer.text || uiCanvasLayerLabel(layer.type));
-        return `<div class="ui-canvas-layer ui-canvas-layer-text ui-canvas-layer-${layer.type}${selected}" data-layer-id="${layer.id}" style="${commonStyle};background:${layer.fill || 'transparent'};color:${layer.color || '#f8fafc'};font-size:${layer.fontSize || 16}px;font-weight:${layer.fontWeight || 600};border-color:${layer.stroke || 'transparent'};">${text}<span class="ui-canvas-resize-handle" data-layer-id="${layer.id}"></span></div>`;
+        return `<div class="ui-canvas-layer ui-canvas-layer-text ui-canvas-layer-${layer.type}${selected}" data-layer-id="${layer.id}" style="${commonStyle};background:${layer.fill || 'transparent'};color:${layer.color || '#f8fafc'};font-size:${layer.fontSize || 16}px;font-weight:${layer.fontWeight || 600};border-color:${layer.stroke || 'transparent'};">${text}${uiCanvasResizeHandles(layer.id)}</div>`;
     }
     if (layer.type === 'line' || layer.type === 'divider') {
-        return `<div class="ui-canvas-layer ui-canvas-layer-line${selected}" data-layer-id="${layer.id}" style="left:${layer.x}px;top:${layer.y}px;width:${dimensions.width}px;height:${Math.max(2, dimensions.height || 2)}px;background:${layer.fill || '#f8fafc'};opacity:${layer.opacity ?? 1};"><span class="ui-canvas-resize-handle" data-layer-id="${layer.id}"></span></div>`;
+        return `<div class="ui-canvas-layer ui-canvas-layer-line${selected}" data-layer-id="${layer.id}" style="left:${layer.x}px;top:${layer.y}px;width:${dimensions.width}px;height:${Math.max(2, dimensions.height || 2)}px;background:${layer.fill || '#f8fafc'};opacity:${layer.opacity ?? 1};z-index:${layerIndex};">${uiCanvasResizeHandles(layer.id)}</div>`;
     }
     if (layer.type === 'table') {
-        return `<div class="ui-canvas-layer ui-canvas-layer-table${selected}" data-layer-id="${layer.id}" style="${commonStyle};background:${layer.fill || '#151518'};"><span class="ui-canvas-table-grid"></span><span class="ui-canvas-layer-name">${escapeHtml(layer.name || 'Table')}</span><span class="ui-canvas-resize-handle" data-layer-id="${layer.id}"></span></div>`;
+        return `<div class="ui-canvas-layer ui-canvas-layer-table${selected}" data-layer-id="${layer.id}" style="${commonStyle};background:${layer.fill || '#151518'};"><span class="ui-canvas-table-grid"></span><span class="ui-canvas-layer-name">${escapeHtml(layer.name || 'Table')}</span>${uiCanvasResizeHandles(layer.id)}</div>`;
     }
-    const cls = layer.type === 'frame' ? 'ui-canvas-layer-frame' : layer.type === 'group' ? 'ui-canvas-layer-group' : 'ui-canvas-layer-rect';
-    return `<div class="ui-canvas-layer ${cls}${selected}" data-layer-id="${layer.id}" style="${commonStyle};background:${layer.fill || 'transparent'};"><span class="ui-canvas-layer-name">${escapeHtml(layer.name || layer.type)}</span><span class="ui-canvas-resize-handle" data-layer-id="${layer.id}"></span></div>`;
+    const cls = layer.type === 'frame' ? 'ui-canvas-layer-frame' : layer.type === 'group' ? 'ui-canvas-layer-group' : layer.type === 'ellipse' ? 'ui-canvas-layer-ellipse' : 'ui-canvas-layer-rect';
+    return `<div class="ui-canvas-layer ${cls}${selected}" data-layer-id="${layer.id}" style="${commonStyle};background:${layer.fill || 'transparent'};"><span class="ui-canvas-layer-name">${escapeHtml(layer.name || layer.type)}</span>${uiCanvasResizeHandles(layer.id)}</div>`;
 }
 
 function uiCanvasGetParentLayer(layer) {
@@ -4918,7 +5052,8 @@ function uiCanvasLayerIcon(type) {
         image: 'image',
         video: 'video',
         card: 'panel-top',
-        rect: 'square'
+        rect: 'square',
+        ellipse: 'circle'
     };
     return icons[type] || 'square';
 }
@@ -4986,17 +5121,44 @@ function uiCanvasApplyAutoLayouts() {
         const children = layers
             .filter(layer => layer.parentId === container.id)
             .sort((a, b) => (a.y - b.y) || (a.x - b.x));
-        let cursor = Number(layout.padding ?? 16);
         const padding = Number(layout.padding ?? 16);
         const gap = Number(layout.gap ?? 12);
+        const align = layout.align || 'start';
+        const direction = layout.direction || 'vertical';
+        const containerDimensions = uiCanvasGetRenderedDimensions(container);
+        const innerWidth = Math.max(12, containerDimensions.width - padding * 2);
+        const innerHeight = Math.max(12, containerDimensions.height - padding * 2);
+        let cursor = padding;
         children.forEach(child => {
             const childDimensions = uiCanvasGetRenderedDimensions(child);
-            if (layout.direction === 'horizontal') {
+            if (direction === 'horizontal') {
                 child.x = Math.round(container.x + cursor);
-                child.y = Math.round(container.y + padding);
+                if (align === 'center') {
+                    child.y = Math.round(container.y + padding + (innerHeight - childDimensions.height) / 2);
+                } else if (align === 'end') {
+                    child.y = Math.round(container.y + padding + innerHeight - childDimensions.height);
+                } else {
+                    child.y = Math.round(container.y + padding);
+                }
+                if (align === 'stretch') {
+                    child.y = Math.round(container.y + padding);
+                    child.height = innerHeight;
+                    child.heightMode = 'fixed';
+                }
                 cursor += childDimensions.width + gap;
             } else {
-                child.x = Math.round(container.x + padding);
+                if (align === 'center') {
+                    child.x = Math.round(container.x + padding + (innerWidth - childDimensions.width) / 2);
+                } else if (align === 'end') {
+                    child.x = Math.round(container.x + padding + innerWidth - childDimensions.width);
+                } else {
+                    child.x = Math.round(container.x + padding);
+                }
+                if (align === 'stretch') {
+                    child.x = Math.round(container.x + padding);
+                    child.width = innerWidth;
+                    child.widthMode = 'fixed';
+                }
                 child.y = Math.round(container.y + cursor);
                 cursor += childDimensions.height + gap;
             }
@@ -5019,7 +5181,7 @@ function renderUiCanvasProperties() {
     const hasAutoLayout = ['frame', 'group'].includes(layer.type);
     form.innerHTML = `
         ${uiCanvasField('name', 'Nome', layer.name || '')}
-        ${hasText ? uiCanvasField('text', 'Texto', layer.text || '') : ''}
+        ${hasText ? uiCanvasTextArea('text', 'Texto', layer.text || '') : ''}
         ${layer.type === 'icon' ? uiCanvasIconSelect(layer) : ''}
         <div class="ui-canvas-grid-2">
             ${uiCanvasField('x', 'X', layer.x, 'number')}
@@ -5038,7 +5200,10 @@ function renderUiCanvasProperties() {
         ${hasText ? uiCanvasField('fontWeight', 'Peso', layer.fontWeight || 600, 'number') : ''}
         ${hasAutoLayout ? uiCanvasAutoLayoutFields(layer) : ''}
         ${uiCanvasField('token', 'Token aplicado', layer.token || '', 'text', '', 'ex: color.surface.card')}
-        <button class="btn btn-secondary btn-sm" id="btn-ui-canvas-delete-layer"><i data-lucide="trash-2"></i> Remover layer</button>
+        <div class="ui-canvas-inspector-actions">
+            <button class="btn btn-secondary btn-sm" id="btn-ui-canvas-duplicate-layer"><i data-lucide="copy"></i> Duplicar</button>
+            <button class="btn btn-secondary btn-sm" id="btn-ui-canvas-delete-layer"><i data-lucide="trash-2"></i> Remover</button>
+        </div>
     `;
     form.querySelectorAll('[data-ui-prop]').forEach(input => {
         input.addEventListener('change', () => uiCanvasUpdateLayerProp(input.dataset.uiProp, input.value, input.type));
@@ -5049,6 +5214,7 @@ function renderUiCanvasProperties() {
     form.querySelectorAll('[data-ui-autolayout]').forEach(input => {
         input.addEventListener('change', () => uiCanvasUpdateAutoLayoutProp(input.dataset.uiAutolayout, input.type === 'checkbox' ? input.checked : input.value));
     });
+    document.getElementById('btn-ui-canvas-duplicate-layer')?.addEventListener('click', uiCanvasDuplicateSelectedLayer);
     document.getElementById('btn-ui-canvas-delete-layer')?.addEventListener('click', uiCanvasDeleteSelectedLayer);
     if (window.lucide) lucide.createIcons();
 }
@@ -5123,6 +5289,10 @@ function uiCanvasField(prop, label, value, type = 'text', step = '', placeholder
     return `<label class="ui-canvas-field"><span>${label}</span><input class="text-input" data-ui-prop="${prop}" type="${type}" ${step ? `step="${step}"` : ''} value="${escapeHtml(String(value ?? ''))}" placeholder="${escapeHtml(placeholder)}"></label>`;
 }
 
+function uiCanvasTextArea(prop, label, value, placeholder = '') {
+    return `<label class="ui-canvas-field"><span>${label}</span><textarea class="text-input ui-canvas-textarea" data-ui-prop="${prop}" placeholder="${escapeHtml(placeholder)}">${escapeHtml(String(value ?? ''))}</textarea></label>`;
+}
+
 function uiCanvasUpdateLayerProp(prop, value, inputType) {
     const layer = uiCanvasGetSelectedLayer();
     if (!layer) return;
@@ -5130,7 +5300,7 @@ function uiCanvasUpdateLayerProp(prop, value, inputType) {
     if (prop.startsWith('autoLayout.')) {
         layer.autoLayout = layer.autoLayout || { enabled: false, direction: 'vertical', gap: 12, padding: 16 };
         const key = prop.split('.')[1];
-        layer.autoLayout[key] = Number(value);
+        layer.autoLayout[key] = ['gap', 'padding'].includes(key) ? Number(value) : value;
     } else {
         layer[prop] = numeric.includes(prop) ? Number(value) : value;
         if (prop === 'width') layer.widthMode = 'fixed';
