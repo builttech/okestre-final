@@ -597,3 +597,11 @@ graph TD
     Q --> R["Solicitar validação final do usuário"]
 ```
 Importante: O usuário pode solicitar que se pule uma etapa sempre que necessário, mas isso deve ser feito apenas quando solicitado explicitamente.
+
+
+## 13. Etapa Final — Criação de Casos de Teste (Pós-Execução)
+
+- Após a execução sequencial e verificação técnica de todas as tasks, o agente deve gerar ou atualizar os casos de teste.
+- Os casos de teste devem ser salvos nos arquivos `.documents/casos/test_cases.json` e `.documents/casos/test_cases.md`.
+- Esses arquivos são únicos e vivos. O agente NÃO deve sobrescrevê-os apagando o histórico; deve adicionar ou atualizar mantendo o histórico das baterias anteriores.
+- A criação de casos de teste conclui a entrega do pacote.

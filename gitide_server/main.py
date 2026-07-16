@@ -7602,19 +7602,46 @@ def update_system_parameter_content(type: str = Query(...), filename: str = Quer
 # ==========================================
 
 def _load_testcases_store(project: Project) -> dict:
-    path = os.path.join(project.path, ".gitide", "test_cases.json")
-    if os.path.exists(path):
-        try:
-            with open(path, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except Exception:
-            return {}
+    import glob
+    casos_dir = os.path.join(project.path, ".documents", "casos")
+    aggregated_cases = []
+    updated_at = None
+    
+    if os.path.exists(casos_dir):
+        for filepath in glob.glob(os.path.join(casos_dir, "*.json")):
+            try:
+                with open(filepath, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                    cases = data.get("test_cases", [])
+                    aggregated_cases.extend(cases)
+                    if not updated_at or (data.get("updated_at") and data.get("updated_at") > updated_at):
+                        updated_at = data.get("updated_at")
+            except Exception:
+                pass
+                
+    # fallback antigo
+    if not aggregated_cases:
+        old_path = os.path.join(project.path, ".gitide", "test_cases.json")
+        if os.path.exists(old_path):
+            try:
+                with open(old_path, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                    aggregated_cases.extend(data.get("test_cases", []))
+                    updated_at = data.get("updated_at")
+            except Exception:
+                pass
+
+    return {
+        "test_cases": aggregated_cases,
+        "updated_at": updated_at
+    }
     return {}
 
 def _save_testcases_store(project: Project, data: dict):
-    path = os.path.join(project.path, ".gitide", "test_cases.json")
+    path = os.path.join(project.path, ".documents", "casos", "test_cases.json")
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "w", encoding="utf-8") as f:
+        import json
         json.dump(data, f, ensure_ascii=False, indent=2)
 
 def _read_all_reqs_and_rfs(project: Project) -> str:
@@ -7720,15 +7747,47 @@ def generate_test_cases(project: Project = Depends(get_project_or_404)):
 
 @app.delete("/api/projects/{project_id}/test-cases/{tc_id}", tags=["Test Cases"])
 def delete_test_case(tc_id: str, project: Project = Depends(get_project_or_404)):
-    store = _load_testcases_store(project)
-    cases = store.get("test_cases", [])
-    initial_len = len(cases)
-    cases = [c for c in cases if c.get("id") != tc_id]
-    if len(cases) == initial_len:
-        raise HTTPException(status_code=404, detail="Caso de teste não encontrado.")
+    casos_dir = os.path.join(project.path, ".documents", "casos")
+    deleted = False
     
-    store["test_cases"] = cases
-    _save_testcases_store(project, store)
+    if os.path.exists(casos_dir):
+        import glob
+        for filepath in glob.glob(os.path.join(casos_dir, "*.json")):
+            try:
+                with open(filepath, "r", encoding="utf-8") as f:
+                    import json
+                    data = json.load(f)
+                cases = data.get("test_cases", [])
+                initial_len = len(cases)
+                cases = [c for c in cases if c.get("id") != tc_id]
+                if len(cases) < initial_len:
+                    data["test_cases"] = cases
+                    with open(filepath, "w", encoding="utf-8") as f:
+                        json.dump(data, f, ensure_ascii=False, indent=2)
+                    deleted = True
+            except Exception:
+                pass
+                
+    old_path = os.path.join(project.path, ".gitide", "test_cases.json")
+    if not deleted and os.path.exists(old_path):
+        try:
+            with open(old_path, "r", encoding="utf-8") as f:
+                import json
+                data = json.load(f)
+            cases = data.get("test_cases", [])
+            initial_len = len(cases)
+            cases = [c for c in cases if c.get("id") != tc_id]
+            if len(cases) < initial_len:
+                data["test_cases"] = cases
+                with open(old_path, "w", encoding="utf-8") as f:
+                    json.dump(data, f, ensure_ascii=False, indent=2)
+                deleted = True
+        except Exception:
+            pass
+
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Caso de teste não encontrado.")
+        
     return {"status": "success"}
 
 def export_testcases_xlsx(project: Project = Depends(get_project_or_404)):

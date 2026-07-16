@@ -221,7 +221,7 @@
           '2. Compreenda os fluxos normais, alternativos e de exceção descritos.',
           '3. Crie casos de teste (TC) cobrindo 100% das regras mapeadas.',
           '4. Um bom Caso de Teste deve conter: Identificador (ex: TC-01), Título, Origem (o ID do REQ/RF), Pré-condições, Passos detalhados e Resultado Esperado claro.',
-          '5. Registre a suíte final formatada na documentação ou gere o arquivo JSON correspondente, sem agrupar de forma genérica.',
+          '5. Registre a suíte final nos arquivos .documents/casos/test_cases.json e .documents/casos/test_cases.md. Eles são únicos e vivos, NÃO sobrescreva o histórico. Faça merge e append.',
           '',
           buildCommonExecutionRules()
         ].join('\n')
