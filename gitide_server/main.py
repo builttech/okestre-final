@@ -683,27 +683,11 @@ def sync_project_system_files(project_path: str) -> list[str]:
         os.path.join(".documents", "functional-requirements"),
         os.path.join(".documents", "spec"),
         os.path.join(".documents", "task"),
-        os.path.join(".documents", "casos"),
     ):
         try:
             os.makedirs(os.path.join(project_path, rel_dir), exist_ok=True)
         except Exception as e:
             print(f"Erro ao criar diretório {rel_dir} no workspace: {str(e)}")
-
-    try:
-        casos_dir = os.path.join(project_path, ".documents", "casos")
-        if os.path.exists(casos_dir):
-            json_path = os.path.join(casos_dir, "test_cases.json")
-            if not os.path.exists(json_path):
-                with open(json_path, "w", encoding="utf-8") as f:
-                    f.write('{\n  "test_cases": []\n}')
-            md_path = os.path.join(casos_dir, "test_cases.md")
-            if not os.path.exists(md_path):
-                with open(md_path, "w", encoding="utf-8") as f:
-                    f.write('# Casos de Teste\n\n')
-    except Exception as e:
-        print(f"Erro ao criar .gitkeep em casos: {str(e)}")
-
 
     try:
         task_dir = os.path.join(project_path, ".documents", "task")
@@ -731,7 +715,7 @@ def sync_project_system_files(project_path: str) -> list[str]:
         
         estimativa_path = os.path.join(project_path, ".documents", "estimativa.md")
         if not os.path.exists(estimativa_path):
-            with open(estimativa_path, "w", encoding="utf-8") as f:
+            with builtins.open(estimativa_path, "w", encoding="utf-8") as f:
                 f.write(
                     "# Estimativa Global do Projeto\n\n"
                     "Acesse **Estimativas** no menu principal e selecione **Gerar estimativa** "
@@ -959,44 +943,6 @@ def export_project_zip(project: Project = Depends(get_project_or_404)):
             background=BackgroundTask(lambda path: os.path.exists(path) and os.remove(path), temp_file.name)
         )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.post("/api/projects/{project_id}/files/import.zip", tags=["Arquivos"])
-async def import_project_zip(
-    project_id: int,
-    file: UploadFile = File(...),
-    project: Project = Depends(get_project_or_404)
-):
-    """Importa um arquivo .zip e extrai no projeto ativo, substituindo os arquivos locais."""
-    if not file.filename.endswith('.zip'):
-        raise HTTPException(status_code=400, detail="Somente arquivos .zip são aceitos.")
-
-    try:
-        temp_file = tempfile.NamedTemporaryFile(prefix="gitide-import-", suffix=".zip", delete=False)
-        temp_file.close()
-
-        with open(temp_file.name, "wb") as f:
-            content = await file.read()
-            f.write(content)
-
-        extracted_files = []
-        with zipfile.ZipFile(temp_file.name, "r") as archive:
-            for member in archive.infolist():
-                if member.is_dir():
-                    continue
-                # Proteção contra path traversal na extração
-                target_path = vcs.get_safe_path(project.path, member.filename)
-                os.makedirs(os.path.dirname(target_path), exist_ok=True)
-                with archive.open(member, 'r') as source, open(target_path, 'wb') as target:
-                    shutil.copyfileobj(source, target)
-                extracted_files.append(member.filename)
-                
-        os.remove(temp_file.name)
-        return {"status": "success", "extracted": len(extracted_files), "message": "Arquivos extraídos com sucesso."}
-
-    except Exception as e:
-        if os.path.exists(temp_file.name):
-            os.remove(temp_file.name)
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/projects/{project_id}/files/read", tags=["Arquivos"])
@@ -7396,7 +7342,13 @@ def get_design_canvas():
     canvas_path = os.path.join(STATIC_DIR, "konva-designer.html")
     if os.path.exists(canvas_path):
         with open(canvas_path, 'r', encoding='utf-8') as f:
-            return f.read()
+            return HTMLResponse(
+                content=f.read(),
+                headers={
+                    "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+                    "Pragma": "no-cache",
+                },
+            )
     return HTMLResponse(content="<h1>Design Canvas não encontrado.</h1>", status_code=404)
 
 @app.get("/favicon.ico", include_in_schema=False)
@@ -7600,265 +7552,3 @@ def update_system_parameter_content(type: str = Query(...), filename: str = Quer
         
     return {"status": "success"}
 
-
-# ==========================================
-# TEST CASES (QA) API
-# ==========================================
-
-def _load_testcases_store(project: Project) -> dict:
-    import glob
-    casos_dir = os.path.join(project.path, ".documents", "casos")
-    aggregated_cases = []
-    updated_at = None
-    
-    if os.path.exists(casos_dir):
-        for filepath in glob.glob(os.path.join(casos_dir, "*.json")):
-            try:
-                with open(filepath, "r", encoding="utf-8") as f:
-                    data = json.load(f)
-                    cases = data.get("test_cases", [])
-                    aggregated_cases.extend(cases)
-                    if not updated_at or (data.get("updated_at") and data.get("updated_at") > updated_at):
-                        updated_at = data.get("updated_at")
-            except Exception:
-                pass
-                
-    # fallback antigo
-    if not aggregated_cases:
-        old_path = os.path.join(project.path, ".gitide", "test_cases.json")
-        if os.path.exists(old_path):
-            try:
-                with open(old_path, "r", encoding="utf-8") as f:
-                    data = json.load(f)
-                    aggregated_cases.extend(data.get("test_cases", []))
-                    updated_at = data.get("updated_at")
-            except Exception:
-                pass
-
-    return {
-        "test_cases": aggregated_cases,
-        "updated_at": updated_at
-    }
-    return {}
-
-def _save_testcases_store(project: Project, data: dict):
-    path = os.path.join(project.path, ".documents", "casos", "test_cases.json")
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-    with open(path, "w", encoding="utf-8") as f:
-        import json
-        json.dump(data, f, ensure_ascii=False, indent=2)
-
-def _read_all_reqs_and_rfs(project: Project) -> str:
-    docs = []
-    for root, _, files in os.walk(project.path):
-        if ".gitide" in root or ".git" in root or "node_modules" in root or ".venv" in root:
-            continue
-        for file in files:
-            if (file.startswith("REQ-") or file.startswith("RF-")) and file.endswith(".md"):
-                file_path = os.path.join(root, file)
-                try:
-                    with open(file_path, "r", encoding="utf-8") as f:
-                        c = f.read()
-                    docs.append(f"--- Arquivo: {file} ---\n{c}\n")
-                except Exception:
-                    pass
-    return "\n".join(docs)
-
-@app.get("/api/projects/{project_id}/test-cases", tags=["Test Cases"])
-def get_test_cases(project: Project = Depends(get_project_or_404)):
-    store = _load_testcases_store(project)
-    return {"status": "success", "data": store}
-
-@app.post("/api/projects/{project_id}/test-cases/generate", tags=["Test Cases"])
-def generate_test_cases(project: Project = Depends(get_project_or_404)):
-    llm_config = agent.load_agent_config()
-    provider = llm_config.get("provider")
-    model = llm_config.get("model")
-    api_key = llm_config.get("api_key") or ""
-    can_use_ai = bool(provider and model and (provider == "ollama" or api_key))
-    if not can_use_ai:
-        raise HTTPException(status_code=400, detail="Configure uma IA nas configurações antes de gerar casos de teste.")
-
-    context = _read_all_reqs_and_rfs(project)
-    if not context:
-        raise HTTPException(status_code=400, detail="Nenhum arquivo REQ ou RF encontrado no seu projeto.")
-
-    response_schema = {
-        "type": "object",
-        "properties": {
-            "test_cases": {
-                "type": "array",
-                "items": {
-                    "type": "object",
-                    "properties": {
-                        "id": {"type": "string", "description": "Ex: TC-01"},
-                        "origem": {"type": "string", "description": "Ex: RF-01-01 ou REQ-01"},
-                        "titulo": {"type": "string"},
-                        "pre_condicoes": {"type": "string"},
-                        "passos": {"type": "string"},
-                        "resultado_esperado": {"type": "string"}
-                    },
-                    "required": ["id", "origem", "titulo", "pre_condicoes", "passos", "resultado_esperado"]
-                }
-            }
-        },
-        "required": ["test_cases"]
-    }
-
-    system_prompt = (
-        "Você é um engenheiro de QA especialista. Seu objetivo é escrever casos de teste cobrindo 100% "
-        "dos requisitos funcionais (RFs) e requisitos gerais (REQs) informados no contexto. "
-        "Sua saída deve ser puramente um objeto JSON com uma chave 'test_cases'."
-    )
-
-    try:
-        if provider == "openai":
-            import openai
-            client = openai.OpenAI(api_key=api_key)
-            resp = client.chat.completions.create(
-                model=model,
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": f"Contexto de Requisitos:\n{context}"}
-                ],
-                response_format={"type": "json_schema", "json_schema": {"name": "test_cases", "schema": response_schema, "strict": True}},
-                temperature=0.2
-            )
-            raw_result = resp.choices[0].message.content
-        elif provider == "google":
-            import google.generativeai as genai
-            genai.configure(api_key=api_key)
-            genai_model = genai.GenerativeModel(model)
-            import json
-            resp = genai_model.generate_content(
-                f"{system_prompt}\n\nContexto de Requisitos:\n{context}\n\nRESPONDA APENAS EM JSON: {json.dumps(response_schema)}",
-            )
-            raw_result = resp.text
-        elif provider == "ollama":
-            import json
-            raw_result = agent.call_ollama_plain(model, f"Contexto de Requisitos:\n{context}", system_prompt)
-        else:
-            raise Exception(f"Provider {provider} não suportado para Test Cases via Schema (ainda).")
-
-        result = agent.extract_json(raw_result)
-        result["updated_at"] = datetime.utcnow().isoformat() + "Z"
-        _save_testcases_store(project, result)
-        return {"status": "success", "data": result}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.get("/api/projects/{project_id}/test-cases/export.xlsx", tags=["Test Cases"])
-
-@app.delete("/api/projects/{project_id}/test-cases/{tc_id}", tags=["Test Cases"])
-def delete_test_case(tc_id: str, project: Project = Depends(get_project_or_404)):
-    casos_dir = os.path.join(project.path, ".documents", "casos")
-    deleted = False
-    
-    if os.path.exists(casos_dir):
-        import glob
-        for filepath in glob.glob(os.path.join(casos_dir, "*.json")):
-            try:
-                with open(filepath, "r", encoding="utf-8") as f:
-                    import json
-                    data = json.load(f)
-                cases = data.get("test_cases", [])
-                initial_len = len(cases)
-                cases = [c for c in cases if c.get("id") != tc_id]
-                if len(cases) < initial_len:
-                    data["test_cases"] = cases
-                    with open(filepath, "w", encoding="utf-8") as f:
-                        json.dump(data, f, ensure_ascii=False, indent=2)
-                    deleted = True
-            except Exception:
-                pass
-                
-    old_path = os.path.join(project.path, ".gitide", "test_cases.json")
-    if not deleted and os.path.exists(old_path):
-        try:
-            with open(old_path, "r", encoding="utf-8") as f:
-                import json
-                data = json.load(f)
-            cases = data.get("test_cases", [])
-            initial_len = len(cases)
-            cases = [c for c in cases if c.get("id") != tc_id]
-            if len(cases) < initial_len:
-                data["test_cases"] = cases
-                with open(old_path, "w", encoding="utf-8") as f:
-                    json.dump(data, f, ensure_ascii=False, indent=2)
-                deleted = True
-        except Exception:
-            pass
-
-    if not deleted:
-        raise HTTPException(status_code=404, detail="Caso de teste não encontrado.")
-        
-    return {"status": "success"}
-
-def export_testcases_xlsx(project: Project = Depends(get_project_or_404)):
-    store = _load_testcases_store(project)
-    cases = store.get("test_cases", [])
-    
-    headers = ["ID", "Origem", "Título", "Pré-condições", "Passos", "Resultado Esperado"]
-    
-    sheet_rows = []
-    sheet_rows.append("<row>" + "".join(_xlsx_cell(header) for header in headers) + "</row>")
-    for tc in cases:
-        row_cells = [
-            str(tc.get("id", "")),
-            str(tc.get("origem", "")),
-            str(tc.get("titulo", "")),
-            str(tc.get("pre_condicoes", "")),
-            str(tc.get("passos", "")),
-            str(tc.get("resultado_esperado", ""))
-        ]
-        sheet_rows.append("<row>" + "".join(_xlsx_cell(c) for c in row_cells) + "</row>")
-    
-    cols = "".join(f'<col min="{i}" max="{i}" width="40" customWidth="1"/>' for i, header in enumerate(headers, 1))
-    
-    sheet = (
-        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
-        '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" '
-        'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">'
-        f"<cols>{cols}</cols><sheetData>{''.join(sheet_rows)}</sheetData></worksheet>"
-    )
-    
-    workbook = (
-        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
-        '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" '
-        'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">'
-        '<sheets><sheet name="Casos de Teste" sheetId="1" r:id="rId1"/></sheets></workbook>'
-    )
-    
-    rels = (
-        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
-        '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
-        '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>'
-        '</Relationships>'
-    )
-    
-    content_types = (
-        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
-        '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">'
-        '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>'
-        '<Default Extension="xml" ContentType="application/xml"/>'
-        '<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>'
-        '<Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>'
-        '</Types>'
-    )
-    
-    import io
-    import zipfile
-    zip_buffer = io.BytesIO()
-    with zipfile.ZipFile(zip_buffer, "w", compression=zipfile.ZIP_DEFLATED) as archive:
-        archive.writestr("[Content_Types].xml", content_types)
-        archive.writestr("_rels/.rels", '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>')
-        archive.writestr("xl/_rels/workbook.xml.rels", rels)
-        archive.writestr("xl/workbook.xml", workbook)
-        archive.writestr("xl/worksheets/sheet1.xml", sheet)
-    
-    filename = f"casos-de-teste-{datetime.utcnow().strftime('%Y%m%d-%H%M%S')}.xlsx"
-    return Response(
-        content=zip_buffer.getvalue(),
-        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
-    )

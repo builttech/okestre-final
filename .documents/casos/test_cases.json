@@ -1,3 +1,469 @@
 {
-  "test_cases": []
+  "test_cases": [
+    {
+      "id": "TC-001",
+      "origem": "REQ-0001, RF-0001-01, RF-0001-03",
+      "titulo": "Exibir seção Auto Layout ao selecionar frame sem layout ativo",
+      "pre_condicoes": "Aplicação aberta em /design-canvas; existe pelo menos um frame sem layout.enabled=true.",
+      "passos": "1. Abrir /design-canvas; 2. Selecionar um frame; 3. Manter a aba Design ativa; 4. Observar a seção Auto Layout no painel direito.",
+      "resultado_esperado": "A seção Auto Layout aparece visível e exibe ação para ativar o layout do frame selecionado."
+    },
+    {
+      "id": "TC-002",
+      "origem": "REQ-0001, RF-0001-01",
+      "titulo": "Ativar Auto Layout em frame selecionado",
+      "pre_condicoes": "Frame selecionado sem Auto Layout ativo; CTA Ativar visível.",
+      "passos": "1. Clicar em Ativar; 2. Observar o painel direito; 3. Observar os filhos no canvas; 4. Inspecionar o JSON quando disponível.",
+      "resultado_esperado": "O frame recebe layout.enabled=true, filhos são normalizados com layoutItem e o canvas recalcula a posição dos filhos."
+    },
+    {
+      "id": "TC-003",
+      "origem": "REQ-0001, RF-0001-01",
+      "titulo": "Criar defaults seguros ao ativar Auto Layout",
+      "pre_condicoes": "Frame selecionado sem propriedade layout.",
+      "passos": "1. Ativar Auto Layout; 2. Verificar valores iniciais nos controles; 3. Conferir JSON exportado ou estado serializado.",
+      "resultado_esperado": "O layout criado contém enabled=true, direction=row, wrap=false, alignItems=start, justifyContent=start, alignContent=start, gaps e paddings não negativos, widthMode=fixed e heightMode=fixed."
+    },
+    {
+      "id": "TC-004",
+      "origem": "REQ-0001, RF-0001-01",
+      "titulo": "Remover Auto Layout preservando aparência visual",
+      "pre_condicoes": "Frame com Auto Layout ativo e filhos visíveis organizados.",
+      "passos": "1. Selecionar o frame; 2. Anotar visualmente as posições dos filhos; 3. Clicar em Remover; 4. Observar as posições dos filhos.",
+      "resultado_esperado": "O Auto Layout é desativado ou removido e as posições visuais atuais dos filhos permanecem preservadas."
+    },
+    {
+      "id": "TC-005",
+      "origem": "REQ-0001, RF-0001-01, RF-0001-03",
+      "titulo": "Impedir ativação de Auto Layout em elemento não-frame",
+      "pre_condicoes": "Existe pelo menos um elemento não-frame no canvas.",
+      "passos": "1. Selecionar um elemento não-frame; 2. Observar a seção Auto Layout; 3. Procurar ação de ativação de layout de container.",
+      "resultado_esperado": "O sistema não permite ativar Auto Layout de container em elemento não-frame e exibe mensagem informativa ou controles de item quando aplicável."
+    },
+    {
+      "id": "TC-006",
+      "origem": "RF-0001-01, RF-0001-03",
+      "titulo": "Estado sem seleção não deve mostrar controles editáveis de Auto Layout",
+      "pre_condicoes": "Tela /design-canvas aberta.",
+      "passos": "1. Clicar em área vazia do canvas para limpar seleção; 2. Observar o painel direito.",
+      "resultado_esperado": "O inspector fica vazio ou informativo, sem controles editáveis de Auto Layout."
+    },
+    {
+      "id": "TC-007",
+      "origem": "RF-0001-01",
+      "titulo": "Ativar Auto Layout em frame raiz",
+      "pre_condicoes": "Existe um frame raiz na página.",
+      "passos": "1. Selecionar o frame raiz; 2. Ativar Auto Layout; 3. Verificar organização dos filhos; 4. Verificar hierarquia do frame.",
+      "resultado_esperado": "O Auto Layout é ativado no frame raiz, os filhos são organizados e o frame mantém sua posição hierárquica de raiz."
+    },
+    {
+      "id": "TC-008",
+      "origem": "REQ-0001, RF-0001-01",
+      "titulo": "Ativar Auto Layout em frame filho",
+      "pre_condicoes": "Existe um frame dentro de outro frame.",
+      "passos": "1. Selecionar o frame filho; 2. Ativar Auto Layout; 3. Alterar gap ou direção; 4. Observar o frame filho e o frame pai.",
+      "resultado_esperado": "O frame filho organiza seus próprios filhos sem perder parentId e sem quebrar o frame pai."
+    },
+    {
+      "id": "TC-009",
+      "origem": "RF-0001-01, RF-0001-04",
+      "titulo": "Normalizar documento antigo sem propriedades de layout",
+      "pre_condicoes": "Documento salvo anteriormente não contém layout ou layoutItem nos nós.",
+      "passos": "1. Abrir /design-canvas com documento antigo; 2. Selecionar frames e elementos existentes; 3. Ativar Auto Layout em um frame antigo.",
+      "resultado_esperado": "O documento antigo carrega sem erro e a ativação cria propriedades ausentes de forma defensiva."
+    },
+    {
+      "id": "TC-010",
+      "origem": "REQ-0001, RF-0001-01, RF-0001-03",
+      "titulo": "Normalizar valores numéricos negativos para zero",
+      "pre_condicoes": "Frame com Auto Layout ativo; controles de gap e padding disponíveis.",
+      "passos": "1. Tentar informar valor negativo em rowGap; 2. Tentar informar valor negativo em columnGap; 3. Tentar informar valor negativo nos paddings; 4. Observar valores aplicados.",
+      "resultado_esperado": "Valores negativos são impedidos ou normalizados para zero sem quebrar o cálculo."
+    },
+    {
+      "id": "TC-011",
+      "origem": "REQ-0001, RF-0001-02",
+      "titulo": "Organizar filhos em direção horizontal row",
+      "pre_condicoes": "Frame com Auto Layout ativo e pelo menos três filhos estáticos.",
+      "passos": "1. Definir direção row; 2. Aplicar gap visível; 3. Observar a posição dos filhos.",
+      "resultado_esperado": "Os filhos são organizados da esquerda para a direita, respeitando padding e gap."
+    },
+    {
+      "id": "TC-012",
+      "origem": "RF-0001-02",
+      "titulo": "Organizar filhos em direção row-reverse",
+      "pre_condicoes": "Frame com Auto Layout ativo e múltiplos filhos estáticos.",
+      "passos": "1. Definir direção row-reverse; 2. Observar a ordem visual dos filhos.",
+      "resultado_esperado": "Os filhos são organizados visualmente da direita para a esquerda."
+    },
+    {
+      "id": "TC-013",
+      "origem": "RF-0001-02",
+      "titulo": "Organizar filhos em direção column",
+      "pre_condicoes": "Frame com Auto Layout ativo e múltiplos filhos estáticos.",
+      "passos": "1. Definir direção column; 2. Observar o posicionamento dos filhos.",
+      "resultado_esperado": "Os filhos são empilhados de cima para baixo, respeitando padding e rowGap."
+    },
+    {
+      "id": "TC-014",
+      "origem": "RF-0001-02",
+      "titulo": "Organizar filhos em direção column-reverse",
+      "pre_condicoes": "Frame com Auto Layout ativo e múltiplos filhos estáticos.",
+      "passos": "1. Definir direção column-reverse; 2. Observar a ordem visual dos filhos.",
+      "resultado_esperado": "Os filhos são organizados visualmente de baixo para cima."
+    },
+    {
+      "id": "TC-015",
+      "origem": "REQ-0001, RF-0001-02",
+      "titulo": "Aplicar wrap em layout horizontal",
+      "pre_condicoes": "Frame estreito em row; soma das larguras dos filhos excede o espaço interno.",
+      "passos": "1. Ativar wrap; 2. Observar quebra dos filhos; 3. Alterar a largura do frame para menor e maior.",
+      "resultado_esperado": "Filhos excedentes quebram para nova linha quando não couberem e retornam quando houver espaço suficiente."
+    },
+    {
+      "id": "TC-016",
+      "origem": "RF-0001-02",
+      "titulo": "Aplicar wrap em layout vertical",
+      "pre_condicoes": "Frame baixo em column; soma das alturas dos filhos excede o espaço interno.",
+      "passos": "1. Definir direction=column; 2. Ativar wrap; 3. Observar distribuição em colunas adicionais.",
+      "resultado_esperado": "Filhos excedentes quebram para nova coluna quando não couberem verticalmente."
+    },
+    {
+      "id": "TC-017",
+      "origem": "RF-0001-02",
+      "titulo": "Aplicar justifyContent start",
+      "pre_condicoes": "Frame com espaço interno maior que a soma dos filhos.",
+      "passos": "1. Definir justifyContent=start; 2. Observar o início do eixo principal.",
+      "resultado_esperado": "O grupo de filhos fica alinhado ao início do eixo principal, após o padding inicial."
+    },
+    {
+      "id": "TC-018",
+      "origem": "RF-0001-02",
+      "titulo": "Aplicar justifyContent center",
+      "pre_condicoes": "Frame com Auto Layout e espaço livre no eixo principal.",
+      "passos": "1. Definir justifyContent=center; 2. Observar o espaço antes e depois do grupo de filhos.",
+      "resultado_esperado": "O grupo de filhos fica centralizado no eixo principal."
+    },
+    {
+      "id": "TC-019",
+      "origem": "RF-0001-02",
+      "titulo": "Aplicar justifyContent end",
+      "pre_condicoes": "Frame com Auto Layout e espaço livre no eixo principal.",
+      "passos": "1. Definir justifyContent=end; 2. Observar o grupo de filhos.",
+      "resultado_esperado": "O grupo de filhos fica alinhado ao final do eixo principal, antes do padding final."
+    },
+    {
+      "id": "TC-020",
+      "origem": "RF-0001-02",
+      "titulo": "Aplicar justifyContent space-between",
+      "pre_condicoes": "Frame com pelo menos três filhos e espaço livre no eixo principal.",
+      "passos": "1. Definir justifyContent=space-between; 2. Comparar espaços entre filhos e bordas internas.",
+      "resultado_esperado": "Primeiro e último filhos ficam próximos aos limites internos, e o espaço extra é distribuído entre os filhos."
+    },
+    {
+      "id": "TC-021",
+      "origem": "RF-0001-02",
+      "titulo": "Aplicar justifyContent space-around",
+      "pre_condicoes": "Frame com pelo menos três filhos.",
+      "passos": "1. Definir justifyContent=space-around; 2. Observar espaços antes, entre e depois dos filhos.",
+      "resultado_esperado": "Cada filho recebe espaço ao redor, com comportamento visual compatível com space-around."
+    },
+    {
+      "id": "TC-022",
+      "origem": "RF-0001-02",
+      "titulo": "Aplicar justifyContent space-evenly",
+      "pre_condicoes": "Frame com pelo menos três filhos.",
+      "passos": "1. Definir justifyContent=space-evenly; 2. Observar a distribuição dos espaços.",
+      "resultado_esperado": "Os espaços antes, entre e depois dos filhos são distribuídos de maneira uniforme."
+    },
+    {
+      "id": "TC-023",
+      "origem": "RF-0001-02",
+      "titulo": "Aplicar alignItems start",
+      "pre_condicoes": "Frame com filhos de tamanhos diferentes e Auto Layout ativo.",
+      "passos": "1. Definir alignItems=start; 2. Observar o eixo transversal.",
+      "resultado_esperado": "Os filhos ficam alinhados ao início do eixo transversal."
+    },
+    {
+      "id": "TC-024",
+      "origem": "RF-0001-02",
+      "titulo": "Aplicar alignItems center",
+      "pre_condicoes": "Frame com filhos de tamanhos diferentes e espaço transversal livre.",
+      "passos": "1. Definir alignItems=center; 2. Observar o eixo transversal.",
+      "resultado_esperado": "Os filhos ficam centralizados no eixo transversal da linha ou coluna."
+    },
+    {
+      "id": "TC-025",
+      "origem": "RF-0001-02",
+      "titulo": "Aplicar alignItems end",
+      "pre_condicoes": "Frame com filhos de tamanhos diferentes e Auto Layout ativo.",
+      "passos": "1. Definir alignItems=end; 2. Observar o eixo transversal.",
+      "resultado_esperado": "Os filhos ficam alinhados ao final do eixo transversal."
+    },
+    {
+      "id": "TC-026",
+      "origem": "RF-0001-02",
+      "titulo": "Aplicar alignContent com múltiplas linhas",
+      "pre_condicoes": "Frame com wrap=true, múltiplas linhas ou colunas e espaço transversal livre.",
+      "passos": "1. Definir alignContent=start; 2. Alterar para center e end; 3. Alterar para space-between, space-around e space-evenly.",
+      "resultado_esperado": "O conjunto de linhas ou colunas muda de posição ou distribuição no eixo transversal conforme o valor selecionado."
+    },
+    {
+      "id": "TC-027",
+      "origem": "REQ-0001, RF-0001-02",
+      "titulo": "Aplicar rowGap e columnGap",
+      "pre_condicoes": "Frame com Auto Layout ativo, múltiplos filhos e, preferencialmente, wrap ativo.",
+      "passos": "1. Alterar rowGap; 2. Observar espaçamento entre linhas; 3. Alterar columnGap; 4. Observar espaçamento entre colunas ou itens horizontais.",
+      "resultado_esperado": "rowGap e columnGap alteram os espaçamentos correspondentes conforme direção e wrap."
+    },
+    {
+      "id": "TC-028",
+      "origem": "REQ-0001, RF-0001-02",
+      "titulo": "Aplicar padding por lado",
+      "pre_condicoes": "Frame com Auto Layout ativo e filhos visíveis.",
+      "passos": "1. Alterar paddingTop; 2. Alterar paddingRight; 3. Alterar paddingBottom; 4. Alterar paddingLeft; 5. Observar deslocamento e limites internos.",
+      "resultado_esperado": "Cada padding move ou limita o fluxo dos filhos no lado correspondente sem sair do frame."
+    },
+    {
+      "id": "TC-029",
+      "origem": "REQ-0001, RF-0001-02",
+      "titulo": "Manter largura fixa com widthMode fixed",
+      "pre_condicoes": "Frame com Auto Layout ativo.",
+      "passos": "1. Definir widthMode=fixed; 2. Alterar gaps, padding ou quantidade de filhos; 3. Observar largura do frame.",
+      "resultado_esperado": "A largura do frame permanece a largura definida pelo usuário, salvo alteração manual explícita."
+    },
+    {
+      "id": "TC-030",
+      "origem": "REQ-0001, RF-0001-02",
+      "titulo": "Ajustar largura com widthMode hug",
+      "pre_condicoes": "Frame com Auto Layout ativo e filhos estáticos.",
+      "passos": "1. Definir widthMode=hug; 2. Aumentar columnGap ou padding horizontal; 3. Adicionar ou remover filho quando possível.",
+      "resultado_esperado": "A largura do frame se ajusta ao conteúdo, considerando filhos, gaps e padding horizontal."
+    },
+    {
+      "id": "TC-031",
+      "origem": "RF-0001-02",
+      "titulo": "Manter altura fixa com heightMode fixed",
+      "pre_condicoes": "Frame com Auto Layout ativo.",
+      "passos": "1. Definir heightMode=fixed; 2. Alterar gaps, padding ou quantidade de filhos; 3. Observar altura do frame.",
+      "resultado_esperado": "A altura do frame permanece fixa, salvo alteração manual explícita."
+    },
+    {
+      "id": "TC-032",
+      "origem": "REQ-0001, RF-0001-02",
+      "titulo": "Ajustar altura com heightMode hug",
+      "pre_condicoes": "Frame com Auto Layout ativo e filhos estáticos.",
+      "passos": "1. Definir heightMode=hug; 2. Aumentar rowGap ou padding vertical; 3. Adicionar ou remover filho quando possível.",
+      "resultado_esperado": "A altura do frame se ajusta ao conteúdo, considerando filhos, gaps e padding vertical."
+    },
+    {
+      "id": "TC-033",
+      "origem": "REQ-0001, RF-0001-02, RF-0001-03",
+      "titulo": "Excluir filho absoluto do cálculo de fluxo",
+      "pre_condicoes": "Frame com Auto Layout ativo e pelo menos um filho selecionável.",
+      "passos": "1. Selecionar um filho dentro do frame; 2. Alterar participação para Absoluto; 3. Alterar direção, gap ou padding do frame; 4. Observar o filho absoluto.",
+      "resultado_esperado": "O filho absoluto permanece fora do fluxo automático e não afeta o posicionamento dos filhos estáticos."
+    },
+    {
+      "id": "TC-034",
+      "origem": "RF-0001-02, RF-0001-03",
+      "titulo": "Retornar filho absoluto para fluxo estático",
+      "pre_condicoes": "Filho dentro de frame com Auto Layout está marcado como absoluto.",
+      "passos": "1. Selecionar o filho absoluto; 2. Alterar participação para Estático; 3. Observar o frame.",
+      "resultado_esperado": "O filho volta a participar do fluxo e passa a ser reposicionado pelo motor de layout."
+    },
+    {
+      "id": "TC-035",
+      "origem": "REQ-0001, RF-0001-02",
+      "titulo": "Recalcular Auto Layout aninhado",
+      "pre_condicoes": "Frame pai com Auto Layout e frame filho também com Auto Layout, ambos com filhos.",
+      "passos": "1. Alterar layout do frame filho; 2. Observar dimensões ou posições do frame filho; 3. Observar se frame pai recalcula corretamente.",
+      "resultado_esperado": "O layout do frame filho é calculado antes do ancestral, e o frame pai reflete o resultado sem loop ou quebra visual."
+    },
+    {
+      "id": "TC-036",
+      "origem": "REQ-0001, RF-0001-02",
+      "titulo": "Atualizar nós Konva após recalcular layout",
+      "pre_condicoes": "Frame com Auto Layout ativo.",
+      "passos": "1. Alterar direção ou gap pelo inspector; 2. Observar elementos no canvas; 3. Observar árvore de layers e seleção.",
+      "resultado_esperado": "Os dados do modelo e os nós Konva são sincronizados sem exigir reload."
+    },
+    {
+      "id": "TC-037",
+      "origem": "RF-0001-03",
+      "titulo": "Exibir controles completos para frame com Auto Layout ativo",
+      "pre_condicoes": "Frame selecionado com Auto Layout ativo.",
+      "passos": "1. Selecionar o frame; 2. Observar a seção Auto Layout.",
+      "resultado_esperado": "A seção exibe controles de direção, wrap, align, justify, alignContent, gaps, padding, widthMode, heightMode e botão remover."
+    },
+    {
+      "id": "TC-038",
+      "origem": "RF-0001-03",
+      "titulo": "Exibir CTA de ativação para frame sem Auto Layout",
+      "pre_condicoes": "Frame selecionado sem Auto Layout ativo.",
+      "passos": "1. Selecionar o frame; 2. Observar a seção Auto Layout.",
+      "resultado_esperado": "A seção exibe CTA de ativação e microcopy explicando a organização automática."
+    },
+    {
+      "id": "TC-039",
+      "origem": "RF-0001-03",
+      "titulo": "Exibir toggle estático/absoluto para filho dentro de Auto Layout",
+      "pre_condicoes": "Frame com Auto Layout ativo e filho selecionável.",
+      "passos": "1. Selecionar um filho dentro do frame; 2. Observar a seção Auto Layout.",
+      "resultado_esperado": "A seção exibe controle de participação no fluxo com opções Estático e Absoluto e não exibe controles de container para o filho."
+    },
+    {
+      "id": "TC-040",
+      "origem": "RF-0001-03",
+      "titulo": "Refletir valores atuais do modelo nos controles",
+      "pre_condicoes": "Frame com Auto Layout ativo e valores personalizados salvos.",
+      "passos": "1. Selecionar o frame; 2. Comparar controles do inspector com valores do JSON exportado.",
+      "resultado_esperado": "Os controles mostram exatamente os valores atuais de layout do frame selecionado."
+    },
+    {
+      "id": "TC-041",
+      "origem": "RF-0001-03, RF-0001-02",
+      "titulo": "Atualizar canvas imediatamente ao alterar controles",
+      "pre_condicoes": "Frame com Auto Layout ativo e controles visíveis.",
+      "passos": "1. Alterar direção; 2. Alterar gap; 3. Alterar padding; 4. Alterar align ou justify.",
+      "resultado_esperado": "Cada alteração atualiza imediatamente o modelo e recalcula o canvas."
+    },
+    {
+      "id": "TC-042",
+      "origem": "RF-0001-03",
+      "titulo": "Validar estados ativos e acessibilidade básica dos controles",
+      "pre_condicoes": "Seção Auto Layout visível.",
+      "passos": "1. Alterar direção usando botões segmentados; 2. Verificar estado visual ativo; 3. Verificar type=button; 4. Verificar min=0 em campos numéricos.",
+      "resultado_esperado": "O estado ativo fica claro visualmente, botões não submetem formulários indevidamente e campos numéricos respeitam validação mínima."
+    },
+    {
+      "id": "TC-043",
+      "origem": "REQ-0001, RF-0001-04",
+      "titulo": "Persistir Auto Layout em localStorage após alteração",
+      "pre_condicoes": "Frame com Auto Layout ativo.",
+      "passos": "1. Alterar direção, gaps e padding; 2. Aguardar persistência local; 3. Recarregar a página; 4. Selecionar novamente o frame.",
+      "resultado_esperado": "As configurações de Auto Layout permanecem salvas após reload."
+    },
+    {
+      "id": "TC-044",
+      "origem": "RF-0001-04",
+      "titulo": "Exportar JSON incluindo layout e layoutItem",
+      "pre_condicoes": "Documento contém frame com Auto Layout e filhos.",
+      "passos": "1. Abrir painel ou ação de export JSON; 2. Inspecionar o JSON exportado.",
+      "resultado_esperado": "O JSON contém propriedades layout no frame e layoutItem nos filhos pertinentes."
+    },
+    {
+      "id": "TC-045",
+      "origem": "RF-0001-04",
+      "titulo": "Desfazer ativação de Auto Layout com undo",
+      "pre_condicoes": "Frame sem Auto Layout ativo selecionado.",
+      "passos": "1. Ativar Auto Layout; 2. Pressionar Ctrl/Cmd+Z; 3. Observar o frame e a seção Auto Layout.",
+      "resultado_esperado": "O estado anterior é restaurado, removendo o Auto Layout recém-ativado."
+    },
+    {
+      "id": "TC-046",
+      "origem": "RF-0001-04",
+      "titulo": "Desfazer alteração de propriedade de layout",
+      "pre_condicoes": "Frame com Auto Layout ativo.",
+      "passos": "1. Alterar direction, gap ou padding; 2. Pressionar Ctrl/Cmd+Z; 3. Observar controles e canvas.",
+      "resultado_esperado": "A propriedade volta ao valor anterior e o canvas é redesenhado de acordo com o snapshot restaurado."
+    },
+    {
+      "id": "TC-047",
+      "origem": "RF-0001-04",
+      "titulo": "Refazer alteração de Auto Layout com redo",
+      "pre_condicoes": "Existe uma alteração de Auto Layout desfeita por undo.",
+      "passos": "1. Pressionar Ctrl/Cmd+Shift+Z ou Ctrl/Cmd+Y; 2. Observar controles e canvas.",
+      "resultado_esperado": "O estado desfeito é reaplicado, restaurando layout, posições, dimensões e propriedades."
+    },
+    {
+      "id": "TC-048",
+      "origem": "RF-0001-04",
+      "titulo": "Undo/redo deve restaurar parentId, posições e dimensões",
+      "pre_condicoes": "Frame com filhos e Auto Layout ativo.",
+      "passos": "1. Alterar layout e mover ou redimensionar elementos quando possível; 2. Usar undo; 3. Usar redo; 4. Inspecionar hierarquia, posições e dimensões.",
+      "resultado_esperado": "Snapshots restauram parentId, x, y, width, height, layout e layoutItem corretamente."
+    },
+    {
+      "id": "TC-049",
+      "origem": "RF-0001-04",
+      "titulo": "Documento antigo sem layout permanece válido após reload",
+      "pre_condicoes": "Documento salvo sem propriedades de Auto Layout.",
+      "passos": "1. Carregar documento antigo; 2. Recarregar a tela; 3. Selecionar frames e elementos.",
+      "resultado_esperado": "O documento antigo permanece utilizável, sem erro de carregamento, renderização ou inspector."
+    },
+    {
+      "id": "TC-050",
+      "origem": "REQ-0001, RF-0001-04",
+      "titulo": "Não criar backend, API nova ou persistência remota",
+      "pre_condicoes": "Implementação disponível no workspace.",
+      "passos": "1. Revisar comportamento da feature no navegador; 2. Verificar se alterações persistem localmente; 3. Verificar se não há dependência de endpoint novo para salvar Auto Layout.",
+      "resultado_esperado": "A feature opera no frontend, persiste localmente e não exige backend novo, banco de dados ou contrato de API novo."
+    },
+    {
+      "id": "TC-051",
+      "origem": "REQ-0001, RF-0001-02, RF-0001-03",
+      "titulo": "Garantir ausência de Grid Layout na feature",
+      "pre_condicoes": "Seção Auto Layout disponível.",
+      "passos": "1. Abrir a seção Auto Layout; 2. Procurar controles de Grid Layout, CSS Grid, áreas nomeadas, fracionários ou células.",
+      "resultado_esperado": "A interface e o comportamento oferecem apenas recursos de Auto Layout/Flex Layout; não há controles ou persistência de Grid Layout."
+    },
+    {
+      "id": "TC-052",
+      "origem": "REQ-0001, RF-0001-03",
+      "titulo": "Não permitir estilos inline novos na seção Auto Layout",
+      "pre_condicoes": "Código da seção Auto Layout implementado.",
+      "passos": "1. Inspecionar o HTML relacionado à seção Auto Layout; 2. Inspecionar o CSS em rebrand.css.",
+      "resultado_esperado": "A seção usa classes CSS e regras em stylesheet, sem depender de atributos style novos."
+    },
+    {
+      "id": "TC-053",
+      "origem": "REQ-0001, RF-0001-02, RF-0001-03",
+      "titulo": "Manter fluxo do canvas sem regressão ao ativar Auto Layout",
+      "pre_condicoes": "Canvas com elementos existentes.",
+      "passos": "1. Criar ou selecionar elementos comuns do canvas; 2. Selecionar frame e ativar Auto Layout; 3. Alternar abas Design, Protótipo e Inspecionar; 4. Selecionar outros elementos.",
+      "resultado_esperado": "Seleção, árvore de layers, inspector e abas continuam funcionando sem travar ou perder estado."
+    },
+    {
+      "id": "TC-054",
+      "origem": "RF-0001-02",
+      "titulo": "Normalizar dimensões mínimas para evitar zero",
+      "pre_condicoes": "Frame com filho de dimensão muito pequena, ausente ou zero por documento antigo.",
+      "passos": "1. Carregar documento com item de largura ou altura ausente/zero; 2. Ativar Auto Layout no frame pai; 3. Observar cálculo e renderização.",
+      "resultado_esperado": "O motor evita dimensões zero que quebrem cálculo ou renderização e usa valores mínimos seguros."
+    },
+    {
+      "id": "TC-055",
+      "origem": "RF-0001-02, RF-0001-03",
+      "titulo": "Atualizar árvore de layers após mudanças de layout",
+      "pre_condicoes": "Árvore de layers visível e frame com Auto Layout ativo.",
+      "passos": "1. Alterar direção ou reordenar filhos quando possível; 2. Observar árvore de layers; 3. Selecionar itens pela árvore após a alteração.",
+      "resultado_esperado": "A árvore permanece sincronizada com os nós e permite seleção correta após mudanças de layout."
+    },
+    {
+      "id": "TC-056",
+      "origem": "RF-0001-01",
+      "titulo": "Validar que frame bloqueado não permite edição indevida",
+      "pre_condicoes": "Existe suporte a frame bloqueado ou estado equivalente no documento.",
+      "passos": "1. Selecionar frame bloqueado; 2. Observar controles de Auto Layout; 3. Tentar alterar propriedades se controles estiverem visíveis.",
+      "resultado_esperado": "Controles permanecem desabilitados ou a edição é impedida para o frame bloqueado, conforme regra funcional."
+    },
+    {
+      "id": "TC-057",
+      "origem": "REQ-0001",
+      "titulo": "Validar primeira entrega com seleção única",
+      "pre_condicoes": "Canvas aberto com múltiplos elementos.",
+      "passos": "1. Tentar selecionar múltiplos elementos se a UI permitir; 2. Procurar ação de criar Auto Layout a partir de seleção múltipla.",
+      "resultado_esperado": "A feature não exige criação por multi-seleção completa; seleção única de frame continua sendo o fluxo suportado."
+    },
+    {
+      "id": "TC-058",
+      "origem": "REQ-0001, RF-0001-03",
+      "titulo": "Validar limitação de manipulação direta de gap no canvas",
+      "pre_condicoes": "Frame com Auto Layout ativo.",
+      "passos": "1. Procurar handles específicos de gap no canvas; 2. Tentar alterar gap diretamente arrastando no canvas; 3. Alterar gap pelo inspector.",
+      "resultado_esperado": "Manipulação direta de gap no canvas não é exigida; gap deve ser alterável pelo inspector."
+    }
+  ],
+  "updated_at": "2026-07-16T00:00:00Z"
 }

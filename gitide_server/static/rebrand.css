@@ -16322,6 +16322,11 @@ body.konva-designer-page {
     background: #111318;
 }
 
+.konva-designer-shell [hidden],
+.konva-designer-right [hidden] {
+    display: none !important;
+}
+
 .konva-designer-left,
 .konva-designer-right {
     background: #17191d;
@@ -16996,9 +17001,135 @@ body.konva-designer-page {
     word-break: break-word;
 }
 
+.konva-auto-layout-section {
+    margin-top: 14px;
+    border: 1px solid rgba(173, 190, 210, 0.13);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.035);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    overflow: hidden;
+}
+
+.konva-auto-layout-section:empty {
+    display: none;
+}
+
+.konva-auto-layout-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 10px;
+    border-bottom: 1px solid rgba(173, 190, 210, 0.10);
+}
+
+.konva-auto-layout-header div {
+    display: grid;
+    gap: 2px;
+}
+
+.konva-auto-layout-header span,
+.konva-auto-layout-body > label {
+    color: #8ea4b8;
+    font-size: 10px;
+    font-weight: 900;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+}
+
+.konva-auto-layout-header strong {
+    color: #f8fafc;
+    font-size: 13px;
+}
+
+.konva-auto-layout-header button,
+.konva-segmented-control button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 30px;
+    border: 1px solid rgba(173, 190, 210, 0.14);
+    border-radius: 9px;
+    background: rgba(255, 255, 255, 0.045);
+    color: #c7d4e0;
+    font-size: 11px;
+    font-weight: 800;
+    cursor: pointer;
+    transition: background 0.16s ease, color 0.16s ease, border-color 0.16s ease;
+}
+
+.konva-auto-layout-header button:hover,
+.konva-segmented-control button:hover,
+.konva-segmented-control button[aria-pressed="true"] {
+    color: #071313;
+    border-color: rgba(121, 243, 230, 0.65);
+    background: #79f3e6;
+}
+
+.konva-auto-layout-header button svg,
+.konva-segmented-control button svg {
+    width: 14px;
+    height: 14px;
+}
+
+.konva-auto-layout-body {
+    display: grid;
+    gap: 10px;
+    padding: 10px;
+}
+
+.konva-auto-layout-state,
+.konva-auto-layout-hint {
+    margin: 0;
+    color: #8ea4b8;
+    font-size: 12px;
+    line-height: 1.45;
+}
+
+.konva-auto-layout-state {
+    display: grid;
+    gap: 4px;
+    padding: 10px;
+}
+
+.konva-auto-layout-state strong {
+    color: #f8fafc;
+}
+
+.konva-segmented-control {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 6px;
+}
+
+.konva-field-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.konva-auto-layout-section .konva-field-grid label {
+    margin: 0;
+}
+
+.konva-auto-layout-section input,
+.konva-auto-layout-section select {
+    width: 100%;
+    min-height: 32px;
+    border: 1px solid rgba(173, 190, 210, 0.13);
+    border-radius: 8px;
+    background: rgba(5, 7, 10, 0.62);
+    color: #eef6fb;
+}
+
 @media (max-width: 1280px) {
     .konva-designer-shell {
         grid-template-columns: 280px minmax(520px, 1fr) 300px;
+    }
+
+    .konva-segmented-control {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
     }
 }
 

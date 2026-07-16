@@ -1,0 +1,181 @@
+INFO:     127.0.0.1:49984 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49984 - "GET /static/style.css?v=13 HTTP/1.1" 304 Not Modified
+INFO:     127.0.0.1:59712 - "GET /static/lucide-icons.css?v=1 HTTP/1.1" 304 Not Modified
+INFO:     127.0.0.1:54320 - "GET /static/settings-tabs.css?v=1 HTTP/1.1" 304 Not Modified
+INFO:     127.0.0.1:49984 - "GET /static/app.js?v=74 HTTP/1.1" 304 Not Modified
+INFO:     127.0.0.1:58174 - "GET /static/workspace-switcher-refactor.css?v=2 HTTP/1.1" 304 Not Modified
+INFO:     127.0.0.1:54693 - "GET /static/workspace-native-fallback.css?v=1 HTTP/1.1" 304 Not Modified
+INFO:     127.0.0.1:51324 - "GET /static/rebrand.css?v=42 HTTP/1.1" 304 Not Modified
+INFO:     127.0.0.1:59712 - "GET /static/theme-toggle.js?v=1 HTTP/1.1" 304 Not Modified
+INFO:     127.0.0.1:51324 - "GET /static/settings-tabs.js?v=6 HTTP/1.1" 304 Not Modified
+INFO:     127.0.0.1:59712 - "GET /static/ui/workspace-switcher.js?v=3 HTTP/1.1" 304 Not Modified
+INFO:     127.0.0.1:59712 - "GET /api/info HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58778 - "GET /static/theme-toggle.js?v=1 HTTP/1.1" 304 Not Modified
+INFO:     127.0.0.1:64235 - "GET /static/ui/workspace-switcher.js?v=3 HTTP/1.1" 304 Not Modified
+INFO:     127.0.0.1:55371 - "GET /static/settings-tabs.js?v=6 HTTP/1.1" 304 Not Modified
+INFO:     127.0.0.1:49785 - "GET /static/app.js?v=74 HTTP/1.1" 304 Not Modified
+INFO:     127.0.0.1:59712 - "GET /api/projects HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59712 - "GET /api/projects/8/files/read?filepath=db_credentials.json HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54693 - "GET /api/projects/8/sdd/charter HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51324 - "POST /api/projects/8/sdd/structure HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51324 - "GET /api/projects/8/sdd/specs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51324 - "GET /api/projects/8/execute/pending HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51324 - "GET /design-canvas HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:51324 - "GET /api/projects/8/execute/pending HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51324 - "GET /design-canvas HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:51324 - "GET /api/projects/8/execute/pending HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65240 - "GET /design-canvas HTTP/1.1" 303 See Other
+INFO:     127.0.0.1:65240 - "GET /login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65241 - "GET / HTTP/1.1" 303 See Other
+INFO:     127.0.0.1:65241 - "GET /login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58367 - "GET /api/projects/8/execute/pending HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58367 - "GET /design-canvas HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:58367 - "GET /api/projects/8/execute/pending HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58367 - "GET /design-canvas HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:58367 - "GET /design-canvas HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:58367 - "GET /api/projects/8/execute/pending HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56485 - "GET /api/projects/8/execute/pending HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56485 - "GET /api/projects/8/execute/pending HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59229 - "GET /design-canvas HTTP/1.1" 303 See Other
+INFO:     127.0.0.1:59229 - "GET /login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59229 - "GET /design-canvas HTTP/1.1" 303 See Other
+INFO:     127.0.0.1:59229 - "GET /login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56485 - "GET /api/projects/8/execute/pending HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56485 - "GET /api/projects/8/execute/pending HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56485 - "GET /api/projects/8/execute/pending HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59085 - "GET /api/projects/8/execute/pending HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64580 - "GET /api/projects/8/execute/pending HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62052 - "GET /design-canvas HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:60078 - "GET /design-canvas HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63429 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63429 - "GET /static/style.css?v=13 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57779 - "GET /static/lucide-icons.css?v=1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61764 - "GET /static/workspace-native-fallback.css?v=1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52142 - "GET /static/workspace-switcher-refactor.css?v=2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58772 - "GET /static/rebrand.css?v=42 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53900 - "GET /static/settings-tabs.css?v=1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63429 - "GET /static/app.js?v=74 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61764 - "GET /static/theme-toggle.js?v=1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57779 - "GET /static/lucide-bootstrap.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63429 - "GET /static/ui/workspace-switcher.js?v=3 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57779 - "GET /static/settings-tabs.js?v=6 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63429 - "GET /static/sidebar-workspace-footer.js?v=2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58772 - "GET /static/navigation-unlock.js?v=2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58772 - "GET /api/info HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58772 - "GET /api/projects HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50394 - "GET /api/projects/8/execute/pending HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50223 - "GET / HTTP/1.1" 303 See Other
+INFO:     127.0.0.1:50223 - "GET /login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49500 - "GET /design-canvas HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:49500 - "GET /api/projects/8/execute/pending HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49500 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49500 - "GET /static/style.css?v=13 HTTP/1.1" 304 Not Modified
+INFO:     127.0.0.1:56094 - "GET /static/lucide-icons.css?v=1 HTTP/1.1" 304 Not Modified
+INFO:     127.0.0.1:53670 - "GET /static/workspace-switcher-refactor.css?v=2 HTTP/1.1" 304 Not Modified
+INFO:     127.0.0.1:64120 - "GET /static/workspace-native-fallback.css?v=1 HTTP/1.1" 304 Not Modified
+INFO:     127.0.0.1:53336 - "GET /static/settings-tabs.css?v=1 HTTP/1.1" 304 Not Modified
+INFO:     127.0.0.1:54420 - "GET /static/rebrand.css?v=42 HTTP/1.1" 304 Not Modified
+INFO:     127.0.0.1:49500 - "GET /static/app.js?v=74 HTTP/1.1" 304 Not Modified
+INFO:     127.0.0.1:56094 - "GET /static/theme-toggle.js?v=1 HTTP/1.1" 304 Not Modified
+INFO:     127.0.0.1:65431 - "GET /static/theme-toggle.js?v=1 HTTP/1.1" 304 Not Modified
+INFO:     127.0.0.1:54579 - "GET /static/app.js?v=74 HTTP/1.1" 304 Not Modified
+INFO:     127.0.0.1:56094 - "GET /static/ui/workspace-switcher.js?v=3 HTTP/1.1" 304 Not Modified
+INFO:     127.0.0.1:56094 - "GET /static/settings-tabs.js?v=6 HTTP/1.1" 304 Not Modified
+INFO:     127.0.0.1:65431 - "GET /static/settings-tabs.js?v=6 HTTP/1.1" 304 Not Modified
+INFO:     127.0.0.1:54579 - "GET /static/ui/workspace-switcher.js?v=3 HTTP/1.1" 304 Not Modified
+INFO:     127.0.0.1:56094 - "GET /api/info HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56094 - "GET /api/projects HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56094 - "GET /api/projects/8/files/read?filepath=db_credentials.json HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54420 - "GET /api/projects/8/sdd/charter HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49500 - "POST /api/projects/8/sdd/structure HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49500 - "GET /api/projects/8/sdd/specs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65497 - "GET / HTTP/1.1" 303 See Other
+INFO:     127.0.0.1:65497 - "GET /login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55167 - "GET /api/projects/8/execute/pending HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55167 - "GET /api/projects/8/execute/pending HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59268 - "GET /api/projects/8/execute/pending HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60068 - "POST /api/auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60068 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60068 - "GET /static/style.css?v=13 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60702 - "GET /static/lucide-icons.css?v=1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62648 - "GET /static/workspace-native-fallback.css?v=1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54312 - "GET /static/workspace-switcher-refactor.css?v=2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56881 - "GET /static/settings-tabs.css?v=1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49575 - "GET /static/rebrand.css?v=42 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60702 - "GET /static/app.js?v=74 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60068 - "GET /static/lucide-bootstrap.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62648 - "GET /static/theme-toggle.js?v=1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60702 - "GET /static/ui/workspace-switcher.js?v=3 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60702 - "GET /static/settings-tabs.js?v=6 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60702 - "GET /static/sidebar-workspace-footer.js?v=2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60702 - "GET /static/navigation-unlock.js?v=2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60702 - "GET /api/info HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60702 - "GET /api/projects HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54411 - "GET /api/projects/8/execute/pending HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54411 - "GET /api/projects/8/execute/pending HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54411 - "GET /api/projects/8/execute/pending HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50680 - "GET /api/projects/8/execute/pending HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51779 - "GET /api/projects/8/execute/pending HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51779 - "GET /api/projects/8/execute/pending HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51779 - "GET /api/projects/8/execute/pending HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51779 - "GET /api/projects/8/execute/pending HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51779 - "GET /api/projects/8/execute/pending HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60672 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60672 - "GET /api/info HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60672 - "GET /api/projects HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62774 - "GET /api/projects/8/execute/pending HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62774 - "GET /api/projects/8/execute/pending HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51679 - "GET /api/projects/8/execute/pending HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51679 - "GET /api/projects/8/execute/pending HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51679 - "GET /api/projects/8/execute/pending HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64335 - "GET /api/projects/8/execute/pending HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64335 - "GET /api/projects/8/execute/pending HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59014 - "GET /api/projects/8/execute/pending HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59014 - "GET /api/projects/8/execute/pending HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55611 - "GET /api/projects/8/execute/pending HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51272 - "GET /api/projects/8/execute/pending HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51272 - "GET /api/projects/8/execute/pending HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49234 - "GET /api/projects/8/execute/pending HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49234 - "GET /api/projects/8/execute/pending HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49234 - "GET /api/projects/8/execute/pending HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58322 - "GET /api/projects/8/execute/pending HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58322 - "GET /api/projects/8/execute/pending HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58322 - "GET /api/projects/8/execute/pending HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58322 - "GET /api/projects/8/execute/pending HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58322 - "GET /api/projects/8/execute/pending HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58322 - "GET /api/projects/8/execute/pending HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60323 - "GET /api/projects/8/execute/pending HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60323 - "GET /api/projects/8/execute/pending HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59494 - "GET /api/projects/8/execute/pending HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59494 - "GET /design-canvas HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:59494 - "GET /design-canvas HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63388 - "GET /design-canvas HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63388 - "GET /api/projects/8/execute/pending HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63388 - "GET /api/projects/8/execute/pending HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63388 - "GET /api/projects/8/execute/pending HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63388 - "GET /api/projects/6/files/read?filepath=db_credentials.json HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:50185 - "GET /api/projects/6/sdd/charter HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60475 - "POST /api/projects/6/sdd/structure HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60475 - "GET /api/projects/6/sdd/specs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60475 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60475 - "GET /static/style.css?v=13 HTTP/1.1" 304 Not Modified
+INFO:     127.0.0.1:63388 - "GET /static/workspace-switcher-refactor.css?v=2 HTTP/1.1" 304 Not Modified
+INFO:     127.0.0.1:50185 - "GET /static/lucide-icons.css?v=1 HTTP/1.1" 304 Not Modified
+INFO:     127.0.0.1:58371 - "GET /static/workspace-native-fallback.css?v=1 HTTP/1.1" 304 Not Modified
+INFO:     127.0.0.1:62001 - "GET /static/settings-tabs.css?v=1 HTTP/1.1" 304 Not Modified
+INFO:     127.0.0.1:51921 - "GET /static/rebrand.css?v=42 HTTP/1.1" 304 Not Modified
+INFO:     127.0.0.1:60475 - "GET /static/app.js?v=74 HTTP/1.1" 304 Not Modified
+INFO:     127.0.0.1:63388 - "GET /static/theme-toggle.js?v=1 HTTP/1.1" 304 Not Modified
+INFO:     127.0.0.1:60691 - "GET /static/app.js?v=74 HTTP/1.1" 304 Not Modified
+INFO:     127.0.0.1:54541 - "GET /static/theme-toggle.js?v=1 HTTP/1.1" 304 Not Modified
+INFO:     127.0.0.1:63388 - "GET /static/ui/workspace-switcher.js?v=3 HTTP/1.1" 304 Not Modified
+INFO:     127.0.0.1:63388 - "GET /static/settings-tabs.js?v=6 HTTP/1.1" 304 Not Modified
+INFO:     127.0.0.1:63388 - "GET /api/info HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60691 - "GET /static/settings-tabs.js?v=6 HTTP/1.1" 304 Not Modified
+INFO:     127.0.0.1:54541 - "GET /static/ui/workspace-switcher.js?v=3 HTTP/1.1" 304 Not Modified
+INFO:     127.0.0.1:63388 - "GET /api/projects HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60475 - "GET /api/projects/6/files/read?filepath=db_credentials.json HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:51921 - "GET /api/projects/6/sdd/charter HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63388 - "POST /api/projects/6/sdd/structure HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63388 - "GET /api/projects/6/sdd/specs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63388 - "GET /api/projects/6/execute/pending HTTP/1.1" 200 OK

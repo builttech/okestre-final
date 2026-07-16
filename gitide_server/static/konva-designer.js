@@ -14,6 +14,11 @@
         editingPageId: null,
         pageMenuPageId: null,
         dragSnapshot: null,
+        history: {
+            undo: [],
+            redo: [],
+            limit: 40
+        },
         doc: {
             name: "Novo arquivo 1",
             activePageId: "page-1",
@@ -119,6 +124,154 @@
         return createDefaultNodesForPage("page-1", true);
     }
 
+    function cloneDoc(doc = state.doc) {
+        return JSON.parse(JSON.stringify(doc));
+    }
+
+    function pushHistory(label = "change") {
+        state.history.undo.push({ label, doc: cloneDoc() });
+        if (state.history.undo.length > state.history.limit) state.history.undo.shift();
+        state.history.redo = [];
+    }
+
+    function restoreDocSnapshot(snapshot) {
+        if (!snapshot?.doc) return;
+        state.doc = cloneDoc(snapshot.doc);
+        normalizeDoc();
+        transformer.nodes([]);
+        state.selectedId = null;
+        persistDoc();
+        renderCanvas();
+    }
+
+    function undoHistory() {
+        const snapshot = state.history.undo.pop();
+        if (!snapshot) return;
+        state.history.redo.push({ label: "redo", doc: cloneDoc() });
+        restoreDocSnapshot(snapshot);
+    }
+
+    function redoHistory() {
+        const snapshot = state.history.redo.pop();
+        if (!snapshot) return;
+        state.history.undo.push({ label: "undo", doc: cloneDoc() });
+        restoreDocSnapshot(snapshot);
+    }
+
+    function defaultAutoLayout() {
+        return {
+            enabled: true,
+            direction: "row",
+            wrap: false,
+            alignItems: "start",
+            justifyContent: "start",
+            alignContent: "start",
+            rowGap: 12,
+            columnGap: 12,
+            paddingTop: 24,
+            paddingRight: 24,
+            paddingBottom: 24,
+            paddingLeft: 24,
+            widthMode: "fixed",
+            heightMode: "fixed"
+        };
+    }
+
+    function defaultLayoutItem(order = 0) {
+        return { position: "static", order, zIndex: 0 };
+    }
+
+    function toNonNegativeNumber(value, fallback = 0) {
+        const number = Number(value);
+        return Number.isFinite(number) ? Math.max(0, number) : fallback;
+    }
+
+    function normalizeAutoLayout(layout) {
+        const defaults = defaultAutoLayout();
+        const next = { ...defaults, ...(layout || {}) };
+        const allowedDirections = ["row", "row-reverse", "column", "column-reverse"];
+        const allowedAlign = ["start", "center", "end"];
+        const allowedJustify = ["start", "center", "end", "space-between", "space-around", "space-evenly"];
+        if (!allowedDirections.includes(next.direction)) next.direction = defaults.direction;
+        if (!allowedAlign.includes(next.alignItems)) next.alignItems = defaults.alignItems;
+        if (!allowedAlign.includes(next.alignContent) && !allowedJustify.includes(next.alignContent)) next.alignContent = defaults.alignContent;
+        if (!allowedJustify.includes(next.justifyContent)) next.justifyContent = defaults.justifyContent;
+        next.wrap = Boolean(next.wrap);
+        ["rowGap", "columnGap", "paddingTop", "paddingRight", "paddingBottom", "paddingLeft"].forEach((key) => {
+            next[key] = toNonNegativeNumber(next[key], defaults[key]);
+        });
+        next.widthMode = next.widthMode === "hug" ? "hug" : "fixed";
+        next.heightMode = next.heightMode === "hug" ? "hug" : "fixed";
+        next.enabled = Boolean(next.enabled);
+        return next;
+    }
+
+    function normalizeLayoutItem(item, order = 0) {
+        const next = { ...defaultLayoutItem(order), ...(item || {}) };
+        next.position = next.position === "absolute" ? "absolute" : "static";
+        next.order = Number.isFinite(Number(next.order)) ? Number(next.order) : order;
+        next.zIndex = Number.isFinite(Number(next.zIndex)) ? Number(next.zIndex) : 0;
+        return next;
+    }
+
+    function getNodeData(id) {
+        return state.doc.nodes.find((item) => item.id === id) || null;
+    }
+
+    function getSelectedData() {
+        return state.selectedId ? getNodeData(state.selectedId) : null;
+    }
+
+    function isFrameLikeData(data) {
+        return Boolean(data && (data.type === "frame" || data.type === "board" || data.id === "board" || data.id?.startsWith("board-")));
+    }
+
+    function isAutoLayoutFrame(data) {
+        return Boolean(isFrameLikeData(data) && data.layout?.enabled);
+    }
+
+    function getChildNodes(frameId) {
+        return getPageNodes().filter((item) => item.parentId === frameId);
+    }
+
+    function getParentFrame(data) {
+        return data?.parentId ? getNodeData(data.parentId) : null;
+    }
+
+    function normalizeAutoLayoutChildren(frame) {
+        const children = getChildNodes(frame.id);
+        children
+            .slice()
+            .sort((a, b) => (a.y - b.y) || (a.x - b.x))
+            .forEach((child, index) => {
+                child.layoutItem = normalizeLayoutItem(child.layoutItem, index);
+            });
+    }
+
+    function enableAutoLayoutForSelected() {
+        const data = getSelectedData();
+        if (!isFrameLikeData(data)) return;
+        pushHistory("enable-auto-layout");
+        data.layout = normalizeAutoLayout({ ...(data.layout || {}), enabled: true });
+        normalizeAutoLayoutChildren(data);
+        applyAllAutoLayouts();
+        persistDoc();
+        renderCanvas();
+    }
+
+    function disableAutoLayoutForSelected() {
+        const data = getSelectedData();
+        if (!isAutoLayoutFrame(data)) return;
+        pushHistory("disable-auto-layout");
+        applyAutoLayoutFrame(data);
+        getChildNodes(data.id).forEach((child) => {
+            if (child.layoutItem?.position !== "absolute") child.layoutItem = normalizeLayoutItem(child.layoutItem);
+        });
+        data.layout = { ...data.layout, enabled: false };
+        persistDoc();
+        renderCanvas();
+    }
+
     function loadDoc() {
         try {
             const raw = localStorage.getItem(STORAGE_KEY);
@@ -176,11 +329,11 @@
         state.doc.nodes.forEach((item) => {
             if (item.type === "frame" && (item.id === "board" || item.id.startsWith("board-"))) {
                 delete item.parentId;
-                return;
-            }
-            if (!item.parentId) {
+            } else if (!item.parentId) {
                 item.parentId = findContainingFrameForData(item, item.id)?.id || null;
             }
+            if (item.type === "frame" && item.layout) item.layout = normalizeAutoLayout(item.layout);
+            if (item.parentId) item.layoutItem = normalizeLayoutItem(item.layoutItem, state.doc.nodes.indexOf(item));
         });
     }
 
@@ -308,6 +461,7 @@
         data.parentId = type === "frame"
             ? findContainingFrameAtPoint(point, null)?.id || null
             : getInsertionParent(point)?.id || null;
+        pushHistory(`add-${type}`);
         state.doc.nodes.push(data);
         const node = createKonvaNode(data);
         contentLayer.add(node);
@@ -329,6 +483,7 @@
         });
         node.on("dragstart", () => {
             const data = state.doc.nodes.find((item) => item.id === node.id());
+            pushHistory(`drag-${node.id()}`);
             if (data?.type === "frame") claimContainedNodes(node.id());
             state.dragSnapshot = {
                 id: node.id(),
@@ -359,6 +514,7 @@
         node.on("dragend transformend", () => {
             syncNodeData(node);
             updateNodeParent(node);
+            applyAllAutoLayouts();
             clearFrameDropHighlight();
             state.dragSnapshot = null;
             persistDoc();
@@ -570,7 +726,164 @@
     function updateNodeParent(node) {
         const data = state.doc.nodes.find((item) => item.id === node.id());
         if (!data || data.id === "board" || data.id.startsWith("board-")) return;
+        const currentParent = getParentFrame(data);
+        const currentParentHasLayout = isAutoLayoutFrame(currentParent);
+        if (currentParentHasLayout && data.layoutItem?.position === "static") {
+            reorderChildInAutoLayout(data, currentParent);
+            return;
+        }
         data.parentId = findContainingFrameForData(data, data.id)?.id || null;
+        const nextParent = getParentFrame(data);
+        if (isAutoLayoutFrame(nextParent)) {
+            data.layoutItem = normalizeLayoutItem(data.layoutItem, getChildNodes(nextParent.id).length - 1);
+        }
+    }
+
+    function getLayoutDepth(frame) {
+        let depth = 0;
+        let parent = getParentFrame(frame);
+        while (parent) {
+            depth += 1;
+            parent = getParentFrame(parent);
+        }
+        return depth;
+    }
+
+    function measureLayoutItem(item) {
+        return {
+            width: Math.max(1, Number(item.width) || 1),
+            height: Math.max(1, Number(item.height) || (item.type === "text" ? Number(item.fontSize || 18) * 1.2 : 1))
+        };
+    }
+
+    function distributeOffset(mode, available, used, count, baseGap) {
+        const extra = Math.max(0, available - used);
+        if (mode === "center") return { offset: extra / 2, gap: baseGap };
+        if (mode === "end") return { offset: extra, gap: baseGap };
+        if (mode === "space-between" && count > 1) return { offset: 0, gap: baseGap + (extra / (count - 1)) };
+        if (mode === "space-around" && count > 0) {
+            const unit = extra / count;
+            return { offset: unit / 2, gap: baseGap + unit };
+        }
+        if (mode === "space-evenly" && count > 0) {
+            const unit = extra / (count + 1);
+            return { offset: unit, gap: baseGap + unit };
+        }
+        return { offset: 0, gap: baseGap };
+    }
+
+    function alignOffset(mode, available, size) {
+        const extra = Math.max(0, available - size);
+        if (mode === "center") return extra / 2;
+        if (mode === "end") return extra;
+        return 0;
+    }
+
+    function buildLayoutLines(items, layout, frame) {
+        const isRow = layout.direction === "row" || layout.direction === "row-reverse";
+        const mainGap = isRow ? layout.columnGap : layout.rowGap;
+        const availableMain = Math.max(1, (isRow ? frame.width : frame.height)
+            - (isRow ? layout.paddingLeft + layout.paddingRight : layout.paddingTop + layout.paddingBottom));
+        const lines = [];
+        let current = { items: [], main: 0, cross: 0 };
+        items.forEach((item) => {
+            const size = measureLayoutItem(item);
+            const main = isRow ? size.width : size.height;
+            const cross = isRow ? size.height : size.width;
+            const projected = current.items.length ? current.main + mainGap + main : main;
+            if (layout.wrap && current.items.length && projected > availableMain) {
+                lines.push(current);
+                current = { items: [], main: 0, cross: 0 };
+            }
+            current.items.push({ item, size, main, cross });
+            current.main = current.items.length === 1 ? main : current.main + mainGap + main;
+            current.cross = Math.max(current.cross, cross);
+        });
+        if (current.items.length) lines.push(current);
+        return lines.length ? lines : [{ items: [], main: 0, cross: 0 }];
+    }
+
+    function applyAutoLayoutFrame(frame) {
+        if (!isAutoLayoutFrame(frame)) return;
+        const layout = normalizeAutoLayout(frame.layout);
+        frame.layout = layout;
+        normalizeAutoLayoutChildren(frame);
+        const isRow = layout.direction === "row" || layout.direction === "row-reverse";
+        const isReverse = layout.direction.endsWith("reverse");
+        const mainGap = isRow ? layout.columnGap : layout.rowGap;
+        const crossGap = isRow ? layout.rowGap : layout.columnGap;
+        const children = getChildNodes(frame.id)
+            .filter((child) => child.layoutItem?.position !== "absolute")
+            .sort((a, b) => (a.layoutItem?.order ?? 0) - (b.layoutItem?.order ?? 0));
+        const lines = buildLayoutLines(children, layout, frame);
+        const contentMain = Math.max(...lines.map((line) => line.main), 0);
+        const contentCross = lines.reduce((sum, line, index) => sum + line.cross + (index ? crossGap : 0), 0);
+        if (layout.widthMode === "hug") {
+            frame.width = Math.max(1, Math.round((isRow ? contentMain : contentCross) + layout.paddingLeft + layout.paddingRight));
+        }
+        if (layout.heightMode === "hug") {
+            frame.height = Math.max(1, Math.round((isRow ? contentCross : contentMain) + layout.paddingTop + layout.paddingBottom));
+        }
+        const innerMain = Math.max(1, (isRow ? frame.width : frame.height)
+            - (isRow ? layout.paddingLeft + layout.paddingRight : layout.paddingTop + layout.paddingBottom));
+        const innerCross = Math.max(1, (isRow ? frame.height : frame.width)
+            - (isRow ? layout.paddingTop + layout.paddingBottom : layout.paddingLeft + layout.paddingRight));
+        const totalCross = lines.reduce((sum, line, index) => sum + line.cross + (index ? crossGap : 0), 0);
+        const lineDistribution = distributeOffset(layout.alignContent, innerCross, totalCross, lines.length, crossGap);
+        let crossCursor = lineDistribution.offset;
+        lines.forEach((line) => {
+            const mainDistribution = distributeOffset(layout.justifyContent, innerMain, line.main, line.items.length, mainGap);
+            const visualItems = isReverse ? [...line.items].reverse() : line.items;
+            let mainCursor = mainDistribution.offset;
+            visualItems.forEach((entry) => {
+                const crossCursorItem = crossCursor + alignOffset(layout.alignItems, line.cross, entry.cross);
+                const nextX = isRow
+                    ? frame.x + layout.paddingLeft + mainCursor
+                    : frame.x + layout.paddingLeft + crossCursorItem;
+                const nextY = isRow
+                    ? frame.y + layout.paddingTop + crossCursorItem
+                    : frame.y + layout.paddingTop + mainCursor;
+                entry.item.x = Math.round(nextX);
+                entry.item.y = Math.round(nextY);
+                const konvaNode = contentLayer.findOne(`#${entry.item.id}`);
+                if (konvaNode) konvaNode.position({ x: entry.item.x, y: entry.item.y });
+                mainCursor += entry.main + mainDistribution.gap;
+            });
+            crossCursor += line.cross + lineDistribution.gap;
+        });
+        const frameNode = contentLayer.findOne(`#${frame.id}`);
+        if (frameNode && frameNode.className !== "Text" && frameNode.className !== "Line") {
+            frameNode.width(frame.width);
+            frameNode.height(frame.height);
+        }
+    }
+
+    function applyAllAutoLayouts(redraw = true) {
+        getPageNodes()
+            .filter(isAutoLayoutFrame)
+            .sort((a, b) => getLayoutDepth(b) - getLayoutDepth(a))
+            .forEach(applyAutoLayoutFrame);
+        if (redraw) {
+            contentLayer.batchDraw();
+            renderFrameLabels();
+            renderFrameSelectionMeta();
+        }
+    }
+
+    function reorderChildInAutoLayout(child, parent) {
+        const layout = normalizeAutoLayout(parent.layout);
+        const isRow = layout.direction === "row" || layout.direction === "row-reverse";
+        const siblings = getChildNodes(parent.id)
+            .filter((item) => item.id !== child.id && item.layoutItem?.position !== "absolute")
+            .sort((a, b) => (a.layoutItem?.order ?? 0) - (b.layoutItem?.order ?? 0));
+        const center = isRow ? child.x + ((child.width || 0) / 2) : child.y + ((child.height || 0) / 2);
+        let index = siblings.findIndex((item) => center < (isRow ? item.x + ((item.width || 0) / 2) : item.y + ((item.height || 0) / 2)));
+        if (index < 0) index = siblings.length;
+        siblings.splice(index, 0, child);
+        siblings.forEach((item, order) => {
+            item.layoutItem = normalizeLayoutItem(item.layoutItem, order);
+            item.layoutItem.order = order;
+        });
     }
 
     function getSelectedNode() {
@@ -880,7 +1193,13 @@
 
     function renderCanvas() {
         contentLayer.destroyChildren();
+        applyAllAutoLayouts(false);
         getPageNodes().forEach((data) => contentLayer.add(createKonvaNode(data)));
+        applyAllAutoLayouts(false);
+        const selectedNode = state.selectedId ? contentLayer.findOne(`#${state.selectedId}`) : null;
+        configureTransformer(selectedNode);
+        transformer.nodes(selectedNode ? [selectedNode] : []);
+        transformer.forceUpdate();
         contentLayer.draw();
         renderPageList();
         renderFrameLabels();
@@ -888,6 +1207,135 @@
         renderLayers();
         renderInspector();
         renderJsonPreview();
+    }
+
+    function ensureAutoLayoutPanelPlacement() {
+        const panel = $("#konva-auto-layout-panel");
+        const form = $("#konva-inspector");
+        const heading = form?.querySelector(".konva-inspector-heading");
+        if (panel && form && heading && heading.nextElementSibling !== panel) {
+            heading.insertAdjacentElement("afterend", panel);
+        }
+        return panel;
+    }
+
+    function renderAutoLayoutPanel(selectedData) {
+        const panel = ensureAutoLayoutPanelPlacement();
+        if (!panel) return;
+        panel.hidden = false;
+        panel.classList.remove("is-hidden");
+        panel.style.display = "";
+        if (!selectedData) {
+            panel.innerHTML = "";
+            return;
+        }
+        const parentFrame = getParentFrame(selectedData);
+        const parentHasLayout = isAutoLayoutFrame(parentFrame);
+        if (!isFrameLikeData(selectedData)) {
+            if (!parentHasLayout) {
+                panel.innerHTML = `<div class="konva-auto-layout-state"><strong>Auto Layout</strong><span>Selecione um frame para configurar layout flexível.</span></div>`;
+                return;
+            }
+            selectedData.layoutItem = normalizeLayoutItem(selectedData.layoutItem);
+            const position = selectedData.layoutItem.position;
+            panel.innerHTML = `
+                <div class="konva-auto-layout-header">
+                    <div><span>Auto Layout</span><strong>Item no fluxo</strong></div>
+                </div>
+                <div class="konva-auto-layout-body">
+                    <p class="konva-auto-layout-hint">Filhos absolutos ficam fora do fluxo, mas continuam dentro do frame.</p>
+                    <div class="konva-segmented-control" role="group" aria-label="Participação no fluxo">
+                        <button type="button" data-layout-item-prop="position" data-value="static" aria-pressed="${position === "static"}">Estático</button>
+                        <button type="button" data-layout-item-prop="position" data-value="absolute" aria-pressed="${position === "absolute"}">Absoluto</button>
+                    </div>
+                </div>
+            `;
+            return;
+        }
+        const layoutActive = isAutoLayoutFrame(selectedData);
+        if (!layoutActive) {
+            panel.innerHTML = `
+                <div class="konva-auto-layout-header">
+                    <div><span>Auto Layout</span><strong>Flexível</strong></div>
+                    <button type="button" data-layout-action="enable"><i data-lucide="plus"></i>Ativar</button>
+                </div>
+                <div class="konva-auto-layout-state"><span>Organize filhos automaticamente com direção, gap e padding.</span></div>
+            `;
+            refreshIcons();
+            return;
+        }
+        const layout = normalizeAutoLayout(selectedData.layout);
+        selectedData.layout = layout;
+        const directionButton = (value, icon, label) => `<button type="button" data-layout-prop="direction" data-value="${value}" aria-pressed="${layout.direction === value}" title="${label}"><i data-lucide="${icon}"></i></button>`;
+        const option = (value, label, selected) => `<option value="${value}"${selected === value ? " selected" : ""}>${label}</option>`;
+        panel.innerHTML = `
+            <div class="konva-auto-layout-header">
+                <div><span>Auto Layout</span><strong>Flexível</strong></div>
+                <button type="button" data-layout-action="disable"><i data-lucide="x"></i>Remover</button>
+            </div>
+            <div class="konva-auto-layout-body">
+                <label>Direção</label>
+                <div class="konva-segmented-control" role="group" aria-label="Direção do Auto Layout">
+                    ${directionButton("row", "arrow-right", "Horizontal")}
+                    ${directionButton("row-reverse", "arrow-left", "Horizontal invertido")}
+                    ${directionButton("column", "arrow-down", "Vertical")}
+                    ${directionButton("column-reverse", "arrow-up", "Vertical invertido")}
+                    <button type="button" data-layout-prop="wrap" data-value="${layout.wrap ? "false" : "true"}" aria-pressed="${layout.wrap}" title="Wrap"><i data-lucide="corner-down-right"></i></button>
+                </div>
+                <div class="konva-field-grid">
+                    <label>Align<select data-layout-prop="alignItems">
+                        ${option("start", "Início", layout.alignItems)}
+                        ${option("center", "Centro", layout.alignItems)}
+                        ${option("end", "Final", layout.alignItems)}
+                    </select></label>
+                    <label>Justify<select data-layout-prop="justifyContent">
+                        ${option("start", "Início", layout.justifyContent)}
+                        ${option("center", "Centro", layout.justifyContent)}
+                        ${option("end", "Final", layout.justifyContent)}
+                        ${option("space-between", "Space between", layout.justifyContent)}
+                        ${option("space-around", "Space around", layout.justifyContent)}
+                        ${option("space-evenly", "Space evenly", layout.justifyContent)}
+                    </select></label>
+                    <label>Linhas<select data-layout-prop="alignContent">
+                        ${option("start", "Início", layout.alignContent)}
+                        ${option("center", "Centro", layout.alignContent)}
+                        ${option("end", "Final", layout.alignContent)}
+                        ${option("space-between", "Space between", layout.alignContent)}
+                        ${option("space-around", "Space around", layout.alignContent)}
+                        ${option("space-evenly", "Space evenly", layout.alignContent)}
+                    </select></label>
+                    <label>Wrap<select data-layout-prop="wrap">
+                        ${option("false", "Desligado", String(layout.wrap))}
+                        ${option("true", "Ligado", String(layout.wrap))}
+                    </select></label>
+                </div>
+                <label>Gap</label>
+                <div class="konva-field-grid">
+                    <label>Linhas<input type="number" min="0" data-layout-prop="rowGap" value="${layout.rowGap}"></label>
+                    <label>Colunas<input type="number" min="0" data-layout-prop="columnGap" value="${layout.columnGap}"></label>
+                </div>
+                <label>Padding</label>
+                <div class="konva-field-grid">
+                    <label>Top<input type="number" min="0" data-layout-prop="paddingTop" value="${layout.paddingTop}"></label>
+                    <label>Right<input type="number" min="0" data-layout-prop="paddingRight" value="${layout.paddingRight}"></label>
+                    <label>Bottom<input type="number" min="0" data-layout-prop="paddingBottom" value="${layout.paddingBottom}"></label>
+                    <label>Left<input type="number" min="0" data-layout-prop="paddingLeft" value="${layout.paddingLeft}"></label>
+                </div>
+                <label>Flex Board</label>
+                <div class="konva-field-grid">
+                    <label>Largura<select data-layout-prop="widthMode">
+                        ${option("fixed", "Fixa", layout.widthMode)}
+                        ${option("hug", "Ajustar", layout.widthMode)}
+                    </select></label>
+                    <label>Altura<select data-layout-prop="heightMode">
+                        ${option("fixed", "Fixa", layout.heightMode)}
+                        ${option("hug", "Ajustar", layout.heightMode)}
+                    </select></label>
+                </div>
+                <p class="konva-auto-layout-hint">O layout usa o modelo do canvas como fonte oficial e recalcula os nós Konva.</p>
+            </div>
+        `;
+        refreshIcons();
     }
 
     function renderLayers() {
@@ -928,32 +1376,64 @@
         refreshIcons();
     }
 
+    function getInspectorData(node) {
+        const data = node ? state.doc.nodes.find((item) => item.id === node.id()) : null;
+        if (data) return data;
+        if (!node) return null;
+        const box = nodeBox(node);
+        return {
+            id: node.id(),
+            type: node.getAttr("nodeType") || "layer",
+            name: node.getAttr("nodeName") || node.id(),
+            x: Math.round(box.x || node.x() || 0),
+            y: Math.round(box.y || node.y() || 0),
+            width: Math.round(box.width || node.width?.() || 0),
+            height: Math.round(box.height || node.height?.() || 0),
+            fill: node.fill?.() || "",
+            stroke: node.stroke?.() || "",
+            cornerRadius: node.cornerRadius?.() || 0,
+            opacity: node.opacity?.() ?? 1,
+            text: node.text?.() || "",
+            fontSize: node.fontSize?.() || "",
+            fontStyle: node.fontStyle?.() || "normal"
+        };
+    }
+
     function renderInspector() {
         const empty = $("#konva-inspector-empty");
         const form = $("#konva-inspector");
         const node = getSelectedNode();
         if (!empty || !form) return;
-        empty.hidden = Boolean(node);
-        form.hidden = !node;
-        if (!node) return;
+        const hasSelection = Boolean(node);
+        empty.hidden = hasSelection;
+        form.hidden = !hasSelection;
+        empty.style.display = hasSelection ? "none" : "";
+        form.style.display = hasSelection ? "" : "none";
+        empty.classList.toggle("is-hidden", hasSelection);
+        form.classList.toggle("is-hidden", !hasSelection);
+        if (!node) {
+            renderAutoLayoutPanel(null);
+            return;
+        }
         syncNodeData(node);
-        const data = state.doc.nodes.find((item) => item.id === node.id());
+        const data = getInspectorData(node);
         $("#konva-selected-type").textContent = nodeLabel(data || { type: "layer" });
         $("#konva-selected-name").textContent = data?.name || node.id();
-        setProp("x", data.x);
-        setProp("y", data.y);
-        setProp("width", data.width || Math.round(node.width()));
-        setProp("height", data.height || Math.round(node.height()));
-        setProp("fill", data.fill || node.fill?.() || "");
-        setProp("stroke", data.stroke || node.stroke?.() || "");
-        setProp("cornerRadius", data.cornerRadius || 0);
-        setProp("opacity", data.opacity ?? 1);
-        setProp("text", data.text || "");
-        setProp("fontSize", data.fontSize || "");
-        setProp("fontStyle", data.fontStyle || "normal");
+        setProp("x", data?.x);
+        setProp("y", data?.y);
+        setProp("width", data?.width || Math.round(node.width()));
+        setProp("height", data?.height || Math.round(node.height()));
+        setProp("fill", data?.fill || node.fill?.() || "");
+        setProp("stroke", data?.stroke || node.stroke?.() || "");
+        setProp("cornerRadius", data?.cornerRadius || 0);
+        setProp("opacity", data?.opacity ?? 1);
+        setProp("text", data?.text || "");
+        setProp("fontSize", data?.fontSize || "");
+        setProp("fontStyle", data?.fontStyle || "normal");
         $$(".konva-text-prop, [data-prop='fontSize'], [data-prop='fontStyle']").forEach((field) => {
             field.closest("label")?.toggleAttribute("hidden", node.className !== "Text");
         });
+        renderAutoLayoutPanel(data);
     }
 
     function setProp(prop, value) {
@@ -966,6 +1446,7 @@
         if (!field) return;
         const node = getSelectedNode();
         if (!node) return;
+        pushHistory(`inspector-${field.dataset.prop}`);
         const prop = field.dataset.prop;
         const numeric = ["x", "y", "width", "height", "cornerRadius", "opacity", "fontSize"].includes(prop);
         const value = numeric ? Number(field.value) : field.value;
@@ -994,12 +1475,63 @@
             node[prop](value);
         }
         syncNodeData(node);
+        applyAllAutoLayouts();
         persistDoc();
         contentLayer.batchDraw();
         renderFrameLabels();
         renderFrameSelectionMeta();
         uiLayer.batchDraw();
         renderLayers();
+        renderInspector();
+    }
+
+    function handleAutoLayoutInteraction(event) {
+        const actionButton = event.target.closest("[data-layout-action]");
+        const propButton = event.target.closest("button[data-layout-prop]");
+        const itemButton = event.target.closest("button[data-layout-item-prop]");
+        if (!actionButton && !propButton && !itemButton) return;
+        event.preventDefault();
+        const data = getSelectedData();
+        if (actionButton?.dataset.layoutAction === "enable") enableAutoLayoutForSelected();
+        if (actionButton?.dataset.layoutAction === "disable") disableAutoLayoutForSelected();
+        if (propButton && isAutoLayoutFrame(data)) {
+            pushHistory(`layout-${propButton.dataset.layoutProp}`);
+            const prop = propButton.dataset.layoutProp;
+            let value = propButton.dataset.value;
+            if (value === "true" || value === "false") value = value === "true";
+            data.layout = normalizeAutoLayout({ ...data.layout, [prop]: value });
+            applyAllAutoLayouts();
+            persistDoc();
+            renderInspector();
+        }
+        if (itemButton && data) {
+            pushHistory(`layout-item-${itemButton.dataset.layoutItemProp}`);
+            data.layoutItem = normalizeLayoutItem({ ...data.layoutItem, [itemButton.dataset.layoutItemProp]: itemButton.dataset.value });
+            applyAllAutoLayouts();
+            persistDoc();
+            renderInspector();
+        }
+    }
+
+    function updateAutoLayoutField(event) {
+        const field = event.target.closest("[data-layout-prop], [data-layout-item-prop]");
+        if (!field || field.tagName === "BUTTON") return;
+        const data = getSelectedData();
+        if (!data) return;
+        pushHistory(`layout-field-${field.dataset.layoutProp || field.dataset.layoutItemProp}`);
+        if (field.dataset.layoutProp && isAutoLayoutFrame(data)) {
+            const prop = field.dataset.layoutProp;
+            let value = field.value;
+            if (field.type === "number") value = toNonNegativeNumber(value);
+            if (value === "true" || value === "false") value = value === "true";
+            data.layout = normalizeAutoLayout({ ...data.layout, [prop]: value });
+        }
+        if (field.dataset.layoutItemProp) {
+            data.layoutItem = normalizeLayoutItem({ ...data.layoutItem, [field.dataset.layoutItemProp]: field.value });
+        }
+        applyAllAutoLayouts();
+        persistDoc();
+        renderInspector();
     }
 
     function setTool(tool) {
@@ -1011,6 +1543,7 @@
     function deleteSelected() {
         const node = getSelectedNode();
         if (!node || node.id() === "board" || node.id().startsWith("board-")) return;
+        pushHistory(`delete-${node.id()}`);
         const idsToDelete = new Set([node.id()]);
         let changed = true;
         while (changed) {
@@ -1035,6 +1568,7 @@
     function duplicateSelected() {
         const data = state.doc.nodes.find((item) => item.id === state.selectedId);
         if (!data) return;
+        pushHistory(`duplicate-${data.id}`);
         const clone = {
             ...JSON.parse(JSON.stringify(data)),
             id: uid(data.type),
@@ -1127,6 +1661,8 @@
             });
         });
         $("#konva-inspector")?.addEventListener("input", updateSelectedFromInspector);
+        $("#konva-inspector")?.addEventListener("click", handleAutoLayoutInteraction);
+        $("#konva-inspector")?.addEventListener("change", updateAutoLayoutField);
         $("#konva-delete")?.addEventListener("click", deleteSelected);
         $("#konva-duplicate")?.addEventListener("click", duplicateSelected);
         $("#konva-add-page")?.addEventListener("click", addPage);
@@ -1147,6 +1683,17 @@
         });
         window.addEventListener("keydown", (event) => {
             if (event.target.matches("input, textarea, select")) return;
+            if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "z") {
+                event.preventDefault();
+                if (event.shiftKey) redoHistory();
+                else undoHistory();
+                return;
+            }
+            if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "y") {
+                event.preventDefault();
+                redoHistory();
+                return;
+            }
             if (event.key === "Delete" || event.key === "Backspace") deleteSelected();
             if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "d") {
                 event.preventDefault();

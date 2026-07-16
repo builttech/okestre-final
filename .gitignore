@@ -1,4 +1,4 @@
-# Gerenciado pelo Act IA - arquivos ignorados pelo Git
+# GitIDE local files
 database.db
 db_credentials.json
 *.db
@@ -7,6 +7,8 @@ db_credentials.json
 .cache/
 ~$*
 outputs/test-min*
+
+# Python env
 __pycache__/
 *.py[cod]
 *$py.class
@@ -14,17 +16,7 @@ __pycache__/
 venv/
 env/
 .env
+
+# Configs
 .idea/
 .vscode/
-.documents/qa/annotations.json
-.documents/task/task.details.md
-.documents/qa/evidence
-.documents/qa
-.documents/design/design.md
-.documents/dri/dri.md
-.documents/security/.gitkeep
-.documents/task/task.md
-*.log
-*.documents/qa/annotations.json
-*.annotations.json
-*.task.details.md

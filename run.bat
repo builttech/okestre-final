@@ -4,7 +4,7 @@ chcp 65001 > nul
 cls
 
 echo ======================================================================
-echo                     DayIA - Servidor de Desenvolvimento
+echo                     GitIDE - Servidor de Desenvolvimento
 echo ======================================================================
 echo.
 
@@ -47,7 +47,7 @@ python -c "from gitide_server.main import load_or_create_config; print('Configur
 
 echo.
 echo ======================================================================
-echo    O servidor local do DayIA está prestes a iniciar!
+echo    O servidor local do GitIDE está prestes a iniciar!
 echo.
 echo    1. Abra o Dashboard no seu navegador:
 echo       -^> http://127.0.0.1:8000

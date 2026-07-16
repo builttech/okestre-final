@@ -1,6 +1,6 @@
 # Estimativa Global do Projeto
 
-> Gerada em 2026-07-14T20:36:24Z com 0 tarefa(s), valor-hora de R$ 150.00 e 8 hora(s) por dia.
+> Gerada em 2026-07-16T00:00:00Z com 0 tarefa(s), valor-hora de R$ 150.00 e 8 hora(s) por dia.
 
 ## Resumo Executivo
 
@@ -14,6 +14,18 @@
 
 | Tarefa | Título | Tipo | Área | Complexidade | Sem IA | Com IA | Economia |
 | --- | --- | --- | --- | --- | ---: | ---: | ---: |
+
+## Histórico de Tarefas Fechadas
+
+> 5 tarefa(s) concluída(s) preservada(s) no histórico de estimativas.
+
+| Tarefa | Título | Tipo | Área | Complexidade | Sem IA | Com IA | Economia |
+| --- | --- | --- | --- | --- | ---: | ---: | ---: |
+| TASK-QA-QA-C118E4B1-001 | Garantir exibição da seção Auto Layout ao selecionar frame no Design Canvas | correction | frontend | low | 1.0h | 0.3h | 0.7h |
+| TASK-RF-0001-01-001 | Adicionar modelo de Auto Layout e ativação/remoção em frames | implementation | frontend | medium | 2.0h | 0.7h | 1.3h |
+| TASK-RF-0001-02-001 | Implementar motor Flex Layout para frames no Konva | implementation | frontend | high | 4.5h | 1.4h | 3.1h |
+| TASK-RF-0001-03-001 | Criar controles de Auto Layout no inspector da aba Design | implementation | frontend | medium | 2.5h | 0.8h | 1.7h |
+| TASK-RF-0001-04-001 | Implementar persistência, undo/redo e validação da feature Auto Layout | implementation | frontend | medium | 1.5h | 0.5h | 1.0h |
 
 ## Premissas
 

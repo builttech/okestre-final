@@ -135,9 +135,6 @@
 
                     <div class="sidebar-category">
                         <div class="sidebar-category-title">04. Qualidade</div>
-                        <button class="nav-item" data-tab="tab-test-cases" title="Casos de Teste">
-                            <i data-lucide="test-tube"></i> <span class="nav-label">Casos de Teste</span>
-                        </button>
                         <button class="nav-item" data-tab="tab-qa" title="QA">
                             <i data-lucide="bug"></i> <span class="nav-label">QA</span>
                         </button>
@@ -1287,67 +1284,6 @@ VALIDAÇÃO: quando o runtime real estiver em VM e comandos locais como npm/node
                                 <div class="engineering-report-content" id="security-report-content"></div>
                             </section>
                         </div>
-                    </div>
-                </div>
-
-                <!-- TAB: TEST CASES -->
-                <div id="tab-test-cases" class="tab-pane">
-                    <div class="estimation-page">
-                        <header class="estimation-header">
-                            <div>
-                                <span class="qa-kicker">Qualidade</span>
-                                <h3><i data-lucide="test-tube"></i> Casos de Teste</h3>
-                                <p>Geração automatizada de casos de teste com base nos REQs e RFs documentados.</p>
-                            </div>
-                            <div class="estimation-actions">
-                                <button class="btn btn-secondary" id="btn-testcases-export" type="button" disabled><i data-lucide="table"></i> Exportar XLSX</button>
-                                <button class="btn btn-primary" id="btn-testcases-generate" type="button"><i data-lucide="sparkles"></i> Gerar casos com IA</button>
-                            </div>
-                        </header>
-
-                        <section class="estimation-summary" aria-label="Resumo dos testes">
-                            <article class="estimation-card neutral">
-                                <span>Total de Casos de Teste</span>
-                                <strong id="testcases-total-count">-</strong>
-                                <small id="testcases-updated-at">Aguardando geração</small>
-                            </article>
-                            <article class="estimation-card manual">
-                                <span>REQs cobertos</span>
-                                <strong id="testcases-req-count">-</strong>
-                                <small>Requisitos únicos</small>
-                            </article>
-                            <article class="estimation-card ai">
-                                <span>RFs cobertos</span>
-                                <strong id="testcases-rf-count">-</strong>
-                                <small>Requisitos Funcionais</small>
-                            </article>
-                        </section>
-
-                        <section class="estimation-table-panel">
-                            <div class="estimation-table-header">
-                                <div>
-                                    <h4>Lista de Testes</h4>
-                                    <p>Estes casos foram gerados pela inteligência artificial com base na documentação técnica.</p>
-                                </div>
-                            </div>
-                            <div class="estimation-table-scroll">
-                                <table class="estimation-table" id="testcases-table">
-                                    <thead>
-                                        <tr>
-                                            <th>ID</th>
-                                            <th>Origem (RF/REQ)</th>
-                                            <th style="min-width:200px">Título</th>
-                                            <th style="min-width:250px">Pré-condições</th>
-                                            <th style="min-width:300px">Passos</th>
-                                            <th style="min-width:250px">Resultado Esperado</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="testcases-table-body">
-                                        <!-- renderizado via JS -->
-                                    </tbody>
-                                </table>
-                            </div>
-                        </section>
                     </div>
                 </div>
 

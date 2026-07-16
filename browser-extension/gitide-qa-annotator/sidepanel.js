@@ -5,7 +5,6 @@ const fields = {
   category: document.getElementById('category'),
   severity: document.getElementById('severity'),
   title: document.getElementById('title'),
-  relatedQa: document.getElementById('relatedQa'),
   description: document.getElementById('description'),
   selector: document.getElementById('selector'),
   includeScreenshot: document.getElementById('includeScreenshot'),
@@ -13,7 +12,6 @@ const fields = {
 };
 
 let pickedElement = null;
-let relatedQaItems = [];
 
 function setStatus(message) {
   fields.status.textContent = message;
@@ -63,13 +61,11 @@ async function loadConfig() {
   fields.apiBase.value = saved.apiBase || 'http://127.0.0.1:8000';
   fields.projectId.value = saved.projectId || '';
   fields.token.value = saved.token || '';
-  loadRelatedQas({ silent: true });
 }
 
 async function saveConfig() {
   await chrome.storage.sync.set(getConnectionConfig());
   setStatus('Configuração salva.');
-  loadRelatedQas({ silent: true });
 }
 
 async function testConnection() {
@@ -88,87 +84,6 @@ async function testConnection() {
   } catch (err) {
     setStatus(buildNetworkErrorMessage(err));
   }
-}
-
-function normalizeQaAnnotations(data) {
-  if (Array.isArray(data)) return data;
-  if (Array.isArray(data?.annotations)) return data.annotations;
-  if (Array.isArray(data?.items)) return data.items;
-  return [];
-}
-
-function qaStatusLabel(status) {
-  return {
-    open: 'Aberta',
-    reviewing: 'Em revisão',
-    resolved: 'Resolvida'
-  }[status || 'open'] || 'Aberta';
-}
-
-function compactOptionText(text, maxLength = 62) {
-  const cleaned = cleanInlineText(text || '');
-  if (!cleaned) return '';
-  return cleaned.length > maxLength ? `${cleaned.slice(0, maxLength - 3).trim()}...` : cleaned;
-}
-
-function renderRelatedQas(items) {
-  relatedQaItems = items;
-  fields.relatedQa.innerHTML = '';
-
-  const emptyOption = document.createElement('option');
-  emptyOption.value = '';
-  emptyOption.textContent = items.length ? 'Nenhum QA relacionado' : 'Nenhum QA encontrado';
-  fields.relatedQa.appendChild(emptyOption);
-
-  items.forEach((item) => {
-    const qaId = String(item.id || item.qa_id || item.qaId || '').trim();
-    if (!qaId) return;
-    const option = document.createElement('option');
-    option.value = qaId;
-    option.textContent = `${qaId} - ${compactOptionText(item.title || item.description || qaStatusLabel(item.status))}`;
-    option.dataset.status = item.status || 'open';
-    fields.relatedQa.appendChild(option);
-  });
-}
-
-async function loadRelatedQas({ silent = false } = {}) {
-  const config = getConnectionConfig();
-  if (!config.apiBase || !config.projectId || !config.token || !/^https?:\/\//i.test(config.apiBase)) {
-    renderRelatedQas([]);
-    return;
-  }
-
-  if (!silent) setStatus('Carregando QAs existentes...');
-  try {
-    const { response, data } = await requestGitide(config, `/api/projects/${config.projectId}/qa/annotations`, {
-      method: 'GET'
-    });
-    if (!response.ok) {
-      renderRelatedQas([]);
-      if (!silent) setStatus(data.detail || `Não foi possível carregar QAs. HTTP ${response.status}`);
-      return;
-    }
-    const items = normalizeQaAnnotations(data);
-    renderRelatedQas(items);
-    if (!silent) setStatus(`${items.length} QA(s) carregado(s).`);
-  } catch (err) {
-    renderRelatedQas([]);
-    if (!silent) setStatus(buildNetworkErrorMessage(err));
-  }
-}
-
-function insertRelatedQaReference(qaId) {
-  if (!qaId) return;
-  const marker = 'QA relacionado:';
-  const line = `${marker} ${qaId}`;
-  const current = fields.description.value.trim();
-  const lines = current
-    ? current.split('\n').filter((item) => !item.trim().toLowerCase().startsWith(marker.toLowerCase()))
-    : [];
-
-  fields.description.value = [...lines, '', line].join('\n').trim();
-  fields.description.focus();
-  setStatus(`${qaId} adicionado na descrição.`);
 }
 
 function buildNetworkErrorMessage(err) {
@@ -482,12 +397,10 @@ async function sendAnnotation() {
       return;
     }
     fields.title.value = '';
-    fields.relatedQa.value = '';
     fields.description.value = '';
     fields.selector.value = '';
     pickedElement = null;
     setStatus(`Enviado: ${data.annotation.id}`);
-    loadRelatedQas({ silent: true });
   } catch (err) {
     if (payload.screenshot) {
       setStatus('Falha no envio com print. Tentando enviar sem screenshot...');
@@ -505,12 +418,10 @@ async function sendAnnotation() {
           return;
         }
         fields.title.value = '';
-        fields.relatedQa.value = '';
         fields.description.value = '';
         fields.selector.value = '';
         pickedElement = null;
         setStatus(`Enviado sem screenshot: ${data.annotation.id}`);
-        loadRelatedQas({ silent: true });
         return;
       } catch (fallbackErr) {
         setStatus(buildNetworkErrorMessage(fallbackErr));
@@ -525,8 +436,6 @@ document.getElementById('saveConfig').addEventListener('click', saveConfig);
 document.getElementById('testConnection').addEventListener('click', testConnection);
 document.getElementById('generateTitle').addEventListener('click', generateTitleFromDescription);
 document.getElementById('polishDescription').addEventListener('click', polishDescriptionText);
-document.getElementById('refreshRelatedQas').addEventListener('click', () => loadRelatedQas());
-fields.relatedQa.addEventListener('change', () => insertRelatedQaReference(fields.relatedQa.value));
 document.getElementById('pickElement').addEventListener('click', pickElement);
 document.getElementById('sendAnnotation').addEventListener('click', sendAnnotation);
 
