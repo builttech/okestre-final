@@ -16,6 +16,22 @@ from urllib.request import Request, urlopen
 
 CONFIG_DIR = Path.home() / ".gitide"
 CONFIG_PATH = CONFIG_DIR / "sync.json"
+EXCLUDE_DIRS = {
+    ".git",
+    ".venv",
+    "venv",
+    "env",
+    "node_modules",
+    "__pycache__",
+    ".pytest_cache",
+    ".mypy_cache",
+    ".ruff_cache",
+    "dist",
+    "build",
+    ".next",
+    ".turbo",
+}
+EXCLUDE_FILES = {".DS_Store", "Thumbs.db"}
 
 
 def normalize_server_url(server: str) -> str:
@@ -101,6 +117,55 @@ def download_project_zip(server: str, token: str | None, project_id: int, target
         return filename
 
 
+def should_skip_path(path: Path) -> bool:
+    return any(part in EXCLUDE_DIRS for part in path.parts) or path.name in EXCLUDE_FILES
+
+
+def create_project_zip(source: Path, target_zip: Path) -> int:
+    source = source.expanduser().resolve()
+    if not source.exists() or not source.is_dir():
+        raise RuntimeError(f"Pasta local não encontrada: {source}")
+
+    count = 0
+    with zipfile.ZipFile(target_zip, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+        for item in source.rglob("*"):
+            rel_path = item.relative_to(source)
+            if should_skip_path(rel_path) or should_skip_path(item):
+                continue
+            if item.is_file():
+                archive.write(item, arcname=rel_path.as_posix())
+                count += 1
+
+    if count == 0:
+        raise RuntimeError("Nenhum arquivo elegível encontrado para envio.")
+    return count
+
+
+def upload_project_zip(server: str, token: str | None, project_id: int, zip_path: Path) -> dict:
+    boundary = f"----gitide-sync-{os.urandom(12).hex()}"
+    file_bytes = zip_path.read_bytes()
+    body = (
+        f"--{boundary}\r\n"
+        'Content-Disposition: form-data; name="file"; filename="workspace-upload.zip"\r\n'
+        "Content-Type: application/zip\r\n\r\n"
+    ).encode("utf-8") + file_bytes + f"\r\n--{boundary}--\r\n".encode("utf-8")
+
+    headers = auth_headers(token)
+    headers.update({
+        "Content-Type": f"multipart/form-data; boundary={boundary}",
+        "Content-Length": str(len(body)),
+    })
+    request = Request(
+        urljoin(server, f"/api/projects/{project_id}/files/import.zip"),
+        data=body,
+        headers=headers,
+        method="POST",
+    )
+    with urlopen(request, timeout=300) as response:
+        data = response.read().decode("utf-8")
+        return json.loads(data) if data else {"status": "success"}
+
+
 def safe_extract(zip_path: Path, destination: Path, clean: bool = False) -> int:
     destination = destination.resolve()
     destination.mkdir(parents=True, exist_ok=True)
@@ -175,6 +240,28 @@ def command_pull(args: argparse.Namespace) -> int:
     return 0
 
 
+def command_push(args: argparse.Namespace) -> int:
+    config = load_config()
+    server = normalize_server_url(args.server or config.get("server", ""))
+    token = args.token or config.get("token")
+    project = find_project(server, token, args.project_id, args.project)
+    source = Path(args.source).expanduser().resolve()
+
+    with tempfile.TemporaryDirectory(prefix="gitide-sync-push-") as temp_dir:
+        zip_path = Path(temp_dir) / "workspace-upload.zip"
+        local_files = create_project_zip(source, zip_path)
+        zip_size = zip_path.stat().st_size
+        result = upload_project_zip(server, token, int(project["id"]), zip_path)
+
+    print(f"Projeto: {project.get('name')} (ID {project.get('id')})")
+    print(f"Destino: {server}")
+    print(f"Origem local: {source}")
+    print(f"Arquivos enviados: {local_files}")
+    print(f"Tamanho do pacote: {zip_size} bytes")
+    print(json.dumps(result, indent=2, ensure_ascii=False))
+    return 0
+
+
 SYNC_UI_HTML = r"""<!doctype html>
 <html lang="pt-BR">
 <head>
@@ -196,6 +283,9 @@ SYNC_UI_HTML = r"""<!doctype html>
     input:focus, select:focus { border-color: #fb7185; box-shadow: 0 0 0 3px rgba(251,113,133,.14); }
     .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
     .actions { justify-content: flex-end; padding-top: 4px; }
+    .tabs { display: inline-flex; gap: 4px; padding: 4px; border: 1px solid rgba(255,255,255,.1); border-radius: 12px; background: #080809; }
+    .tabs button { height: 32px; border-radius: 8px; border-color: transparent; color: #a1a1aa; }
+    .tabs button.active { background: #2a2a2f; color: #fff; border-color: rgba(255,255,255,.08); }
     button { height: 42px; border: 1px solid rgba(255,255,255,.1); border-radius: 12px; background: #1f1f23; color: #fff; padding: 0 14px; font: inherit; font-weight: 700; cursor: pointer; }
     button.primary { background: #fff; color: #111; border-color: #fff; }
     button:hover { border-color: rgba(255,255,255,.24); }
@@ -212,9 +302,12 @@ SYNC_UI_HTML = r"""<!doctype html>
     <header>
       <div>
         <h1>GitIDE Local Sync</h1>
-        <p>Puxe projetos da VM GitIDE para esta maquina.</p>
+        <p>Sincronize projetos entre a VM GitIDE e esta maquina.</p>
       </div>
-      <span class="pill">Somente pull</span>
+      <div class="tabs" aria-label="Modo de sincronização">
+        <button id="modePull" class="active" type="button">Puxar (VM -> Local)</button>
+        <button id="modePush" type="button">Enviar (Local -> VM)</button>
+      </div>
     </header>
     <section class="body">
       <div class="grid">
@@ -233,19 +326,20 @@ SYNC_UI_HTML = r"""<!doctype html>
         <label>Projeto remoto
           <select id="project"><option value="">Carregue os projetos...</option></select>
         </label>
-        <label>Pasta local de destino
+        <label id="pathLabel">Pasta local de destino
           <input id="destination" placeholder="C:\Users\augus\.workspace\meu-projeto">
         </label>
       </div>
       <label class="checkbox"><input id="clean" type="checkbox"> Limpar pasta local antes de extrair</label>
       <div class="row actions">
-        <button class="primary" id="pull">Puxar para minha maquina</button>
+        <button class="primary" id="run">Puxar para minha maquina</button>
       </div>
       <pre id="log">Pronto.</pre>
     </section>
   </main>
   <script>
     const $ = (id) => document.getElementById(id);
+    let mode = 'pull';
     const log = (text) => { $('log').textContent = text; };
     async function api(path, options = {}) {
       const res = await fetch(path, { headers: { 'content-type': 'application/json' }, ...options });
@@ -274,24 +368,40 @@ SYNC_UI_HTML = r"""<!doctype html>
       }
       log(`${data.projects.length} projeto(s) carregado(s).`);
     }
-    async function pullProject() {
+    function setMode(nextMode) {
+      mode = nextMode;
+      $('modePull').classList.toggle('active', mode === 'pull');
+      $('modePush').classList.toggle('active', mode === 'push');
+      $('pathLabel').firstChild.textContent = mode === 'pull' ? 'Pasta local de destino' : 'Pasta local de origem';
+      $('clean').closest('label').style.display = mode === 'pull' ? 'flex' : 'none';
+      $('run').textContent = mode === 'pull' ? 'Puxar para minha maquina' : 'Enviar para a VM';
+      $('destination').placeholder = mode === 'pull' ? 'C:\\Users\\augus\\.workspace\\meu-projeto' : 'C:\\Users\\augus\\.workspace\\act\\git-ide';
+      log(mode === 'pull' ? 'Modo pull selecionado.' : 'Modo push selecionado.');
+    }
+    async function runSync() {
       const payload = { server: $('server').value, token: $('token').value, project_id: Number($('project').value), to: $('destination').value, clean: $('clean').checked };
       if (!payload.project_id) return log('Selecione um projeto.');
-      if (!payload.to) return log('Informe a pasta local de destino.');
-      $('pull').disabled = true;
-      log('Baixando e extraindo projeto...');
+      if (!payload.to) return log(mode === 'pull' ? 'Informe a pasta local de destino.' : 'Informe a pasta local de origem.');
+      $('run').disabled = true;
+      log(mode === 'pull' ? 'Baixando e extraindo projeto...' : 'Compactando e enviando projeto...');
       try {
-        const data = await api('/api/pull', { method: 'POST', body: JSON.stringify(payload) });
-        log(`Concluido.\nProjeto: ${data.project_name} (ID ${data.project_id})\nPacote: ${data.filename}\nDestino: ${data.destination}\nArquivos sincronizados: ${data.files}`);
+        const data = await api(mode === 'pull' ? '/api/pull' : '/api/push', { method: 'POST', body: JSON.stringify(payload) });
+        if (mode === 'pull') {
+          log(`Concluido.\nProjeto: ${data.project_name} (ID ${data.project_id})\nPacote: ${data.filename}\nDestino: ${data.destination}\nArquivos sincronizados: ${data.files}`);
+        } else {
+          log(`Concluido.\nProjeto: ${data.project_name} (ID ${data.project_id})\nOrigem: ${data.source}\nArquivos enviados: ${data.local_files}\nTamanho do pacote: ${data.zip_size} bytes\nImportados na VM: ${data.remote?.files_imported ?? 'n/a'}`);
+        }
       } catch (err) {
         log(`Erro: ${err.message}`);
       } finally {
-        $('pull').disabled = false;
+        $('run').disabled = false;
       }
     }
     $('save').addEventListener('click', saveConfig);
     $('loadProjects').addEventListener('click', loadProjects);
-    $('pull').addEventListener('click', pullProject);
+    $('modePull').addEventListener('click', () => setMode('pull'));
+    $('modePush').addEventListener('click', () => setMode('push'));
+    $('run').addEventListener('click', runSync);
     loadConfig().catch((err) => log(`Erro ao carregar config: ${err.message}`));
   </script>
 </body>
@@ -334,6 +444,31 @@ def perform_pull(server: str, token: str | None, project_id: int, destination: s
         "filename": filename,
         "destination": str(destination_path),
         "files": total,
+    }
+
+
+def perform_push(server: str, token: str | None, project_id: int, source: str) -> dict:
+    server = normalize_server_url(server)
+    projects = list_projects(server, token)
+    project = next((item for item in projects if int(item.get("id", -1)) == int(project_id)), None)
+    if not project:
+        raise RuntimeError(f"Projeto com ID {project_id} não encontrado.")
+
+    source_path = Path(source).expanduser().resolve()
+    with tempfile.TemporaryDirectory(prefix="gitide-sync-push-") as temp_dir:
+        zip_path = Path(temp_dir) / "workspace-upload.zip"
+        local_files = create_project_zip(source_path, zip_path)
+        zip_size = zip_path.stat().st_size
+        remote_result = upload_project_zip(server, token, int(project["id"]), zip_path)
+
+    return {
+        "status": "success",
+        "project_id": project.get("id"),
+        "project_name": project.get("name"),
+        "source": str(source_path),
+        "local_files": local_files,
+        "zip_size": zip_size,
+        "remote": remote_result,
     }
 
 
@@ -395,6 +530,17 @@ def make_ui_handler():
                     json_response(self, 200, result)
                     return
 
+                if self.path == "/api/push":
+                    config = load_config()
+                    result = perform_push(
+                        payload.get("server") or config.get("server", ""),
+                        payload.get("token") or config.get("token"),
+                        int(payload.get("project_id")),
+                        payload.get("to") or "",
+                    )
+                    json_response(self, 200, result)
+                    return
+
                 json_response(self, 404, {"status": "error", "detail": "Rota não encontrada."})
             except HTTPError as exc:
                 try:
@@ -428,7 +574,7 @@ def command_ui(args: argparse.Namespace) -> int:
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="gitide-sync",
-        description="Puxa projetos de uma VM GitIDE para uma pasta local.",
+        description="Sincroniza projetos entre uma VM GitIDE e uma pasta local.",
     )
     parser.add_argument("--server", help="URL do GitIDE remoto. Ex: https://ide.builtt.com.br")
     parser.add_argument("--token", help="Token Bearer do GitIDE, quando exigido.")
@@ -450,6 +596,13 @@ def build_parser() -> argparse.ArgumentParser:
     pull.add_argument("--to", required=True, help="Pasta local de destino.")
     pull.add_argument("--clean", action="store_true", help="Limpa a pasta destino antes de extrair.")
     pull.set_defaults(func=command_pull)
+
+    push = subparsers.add_parser("push", help="Compacta uma pasta local e envia para o projeto remoto.")
+    push_target = push.add_mutually_exclusive_group(required=True)
+    push_target.add_argument("--project-id", type=int, help="ID do projeto no GitIDE remoto.")
+    push_target.add_argument("--project", help="Nome exato do projeto no GitIDE remoto.")
+    push.add_argument("--from", dest="source", required=True, help="Pasta local de origem.")
+    push.set_defaults(func=command_push)
 
     ui = subparsers.add_parser("ui", help="Abre uma interface local para sincronizar projetos.")
     ui.add_argument("--host", default="127.0.0.1", help="Host local da interface.")

@@ -1,6 +1,6 @@
 # GitIDE Sync Agent
 
-CLI local para puxar projetos de uma VM GitIDE para a sua maquina.
+CLI local para puxar e enviar projetos entre uma VM GitIDE e a sua maquina.
 
 ## Configurar servidor padrao
 
@@ -32,7 +32,7 @@ A interface abre em:
 http://127.0.0.1:8765
 ```
 
-Ela permite configurar servidor, token, selecionar o projeto remoto, informar a pasta local e executar o pull.
+Ela permite configurar servidor, token, selecionar o projeto remoto, informar a pasta local e executar o pull ou o envio para a VM.
 
 ## Puxar um projeto pelo nome
 
@@ -46,6 +46,18 @@ Ela permite configurar servidor, token, selecionar o projeto remoto, informar a 
 .\gitide-sync.bat pull --project-id 1 --to C:\Users\augus\.workspace\git-ide
 ```
 
+## Enviar um projeto pelo nome
+
+```powershell
+.\gitide-sync.bat push --project git-ide --from C:\Users\augus\.workspace\act\git-ide
+```
+
+## Enviar um projeto pelo ID
+
+```powershell
+.\gitide-sync.bat push --project-id 1 --from C:\Users\augus\.workspace\act\git-ide
+```
+
 ## Limpar a pasta local antes de extrair
 
 Use somente quando quiser que a pasta local fique igual ao pacote exportado pela VM.
@@ -56,7 +68,8 @@ Use somente quando quiser que a pasta local fique igual ao pacote exportado pela
 
 ## Observacoes
 
-- O sync atual e somente pull: VM para maquina local.
-- O pacote usa o endpoint `/api/projects/{id}/files/export.zip`.
-- A extracao bloqueia caminhos inseguros dentro do zip.
-- Arquivos ignorados pela arvore do GitIDE tambem nao entram no pacote, como `.git`, `node_modules`, `dist`, `build`, `.venv` e arquivos `.zip`.
+- O modo Puxar usa o endpoint `/api/projects/{id}/files/export.zip`.
+- O modo Enviar compacta a pasta local e usa o endpoint `/api/projects/{id}/files/import.zip`.
+- A extracao e a importacao bloqueiam caminhos inseguros dentro do zip.
+- O envio ignora `.git`, `node_modules`, `dist`, `build`, `.venv`, `.next`, caches e arquivos temporarios comuns.
+- Arquivos ignorados pela arvore do GitIDE tambem nao entram no pacote exportado, como `.git`, `node_modules`, `dist`, `build`, `.venv` e arquivos `.zip`.

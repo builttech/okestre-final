@@ -945,6 +945,70 @@ def export_project_zip(project: Project = Depends(get_project_or_404)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.post("/api/projects/{project_id}/files/import.zip", tags=["Arquivos"])
+async def import_project_zip(file: UploadFile = File(...), project: Project = Depends(get_project_or_404)):
+    """Importa um .zip enviado pelo GitIDE Local Sync para dentro do projeto."""
+    if not file.filename or not file.filename.lower().endswith(".zip"):
+        raise HTTPException(status_code=400, detail="Envie um arquivo .zip válido.")
+
+    blocked_dirs = {".git", ".venv", "venv", "env", "node_modules", "__pycache__"}
+    skipped = []
+    temp_file = tempfile.NamedTemporaryFile(prefix="gitide-import-", suffix=".zip", delete=False)
+
+    try:
+        total_bytes = 0
+        while True:
+            chunk = await file.read(1024 * 1024)
+            if not chunk:
+                break
+            total_bytes += len(chunk)
+            temp_file.write(chunk)
+        temp_file.close()
+
+        imported = 0
+        with zipfile.ZipFile(temp_file.name, "r") as archive:
+            for member in archive.infolist():
+                member_name = member.filename.replace("\\", "/").lstrip("/")
+                if not member_name or member_name.endswith("/"):
+                    continue
+
+                path_parts = [part for part in member_name.split("/") if part]
+                if any(part in blocked_dirs for part in path_parts):
+                    skipped.append(member_name)
+                    continue
+
+                try:
+                    full_path = vcs.get_safe_path(project.path, member_name)
+                except ValueError:
+                    skipped.append(member_name)
+                    continue
+
+                os.makedirs(os.path.dirname(full_path), exist_ok=True)
+                with archive.open(member, "r") as source, open(full_path, "wb") as output:
+                    shutil.copyfileobj(source, output)
+                imported += 1
+
+        return {
+            "status": "success",
+            "project_id": project.id,
+            "project_name": project.name,
+            "files_imported": imported,
+            "files_skipped": len(skipped),
+            "bytes": total_bytes,
+        }
+    except zipfile.BadZipFile:
+        raise HTTPException(status_code=400, detail="Arquivo .zip inválido.")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        try:
+            temp_file.close()
+        except Exception:
+            pass
+        if os.path.exists(temp_file.name):
+            os.remove(temp_file.name)
+        await file.close()
+
 @app.get("/api/projects/{project_id}/files/read", tags=["Arquivos"])
 def read_file(filepath: str = Query(..., description="Caminho relativo do arquivo"), 
               start_line: Optional[int] = Query(None, description="Linha inicial (1-indexed) para leitura parcial"),
