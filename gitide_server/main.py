@@ -715,7 +715,7 @@ def sync_project_system_files(project_path: str) -> list[str]:
         
         estimativa_path = os.path.join(project_path, ".documents", "estimativa.md")
         if not os.path.exists(estimativa_path):
-            with builtins.open(estimativa_path, "w", encoding="utf-8") as f:
+            with open(estimativa_path, "w", encoding="utf-8") as f:
                 f.write(
                     "# Estimativa Global do Projeto\n\n"
                     "Acesse **Estimativas** no menu principal e selecione **Gerar estimativa** "
@@ -959,7 +959,7 @@ async def import_project_zip(
         temp_file = tempfile.NamedTemporaryFile(prefix="gitide-import-", suffix=".zip", delete=False)
         temp_file.close()
 
-        with builtins.open(temp_file.name, "wb") as f:
+        with open(temp_file.name, "wb") as f:
             content = await file.read()
             f.write(content)
 
@@ -971,7 +971,7 @@ async def import_project_zip(
                 # Proteção contra path traversal na extração
                 target_path = vcs.get_safe_path(project.path, member.filename)
                 os.makedirs(os.path.dirname(target_path), exist_ok=True)
-                with archive.open(member, 'r') as source, builtins.open(target_path, 'wb') as target:
+                with archive.open(member, 'r') as source, open(target_path, 'wb') as target:
                     shutil.copyfileobj(source, target)
                 extracted_files.append(member.filename)
                 
