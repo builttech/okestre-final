@@ -20,3 +20,6 @@ env/
 # Configs
 .idea/
 .vscode/
+
+frontend_react/node_modules/
+frontend_react/dist/
