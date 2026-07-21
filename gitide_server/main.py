@@ -6674,10 +6674,10 @@ async def discovery_upload(
                 print(f"Erro LLM: {e}")
                 return f"<erro-ao-extrair-imagem: {str(e)}>"
         
-        text_content = re.sub(r'!\[([^\]]*)\]\(data:image\/[^;]+;base64,[^\)]+\)', replace_with_llm, result.text_content)
+        text_content = re.sub(r'!\[([^\]]*)\]\(data:image\/[^;]+;base64,[^\)]+\)', replace_with_llm, text_content)
         text_content = re.sub(r'!\[([^\]]*)\]\(data:image\/[^;]+;base64[^\)]+\)', r'![\1](<imagem-truncada-removida>)', text_content)
     else:
-        text_content = re.sub(r'!\[([^\]]*)\]\(data:image\/[^;]+;base64[^\)]+\)', r'![\1](<imagem-base64-removida>)', result.text_content)
+        text_content = re.sub(r'!\[([^\]]*)\]\(data:image\/[^;]+;base64[^\)]+\)', r'![\1](<imagem-base64-removida>)', text_content)
     
     
     # Save output
