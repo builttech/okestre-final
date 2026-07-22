@@ -1,4 +1,4 @@
-# GitIDE local files
+# Gerenciado pelo Act IA - arquivos ignorados pelo Git
 database.db
 db_credentials.json
 *.db
@@ -7,8 +7,6 @@ db_credentials.json
 .cache/
 ~$*
 outputs/test-min*
-
-# Python env
 __pycache__/
 *.py[cod]
 *$py.class
@@ -16,10 +14,5 @@ __pycache__/
 venv/
 env/
 .env
-
-# Configs
 .idea/
 .vscode/
-
-frontend_react/node_modules/
-frontend_react/dist/
