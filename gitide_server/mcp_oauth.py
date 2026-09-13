@@ -5,6 +5,7 @@ import hmac
 import html
 import json
 import secrets
+import re
 import sqlite3
 import time
 from contextlib import contextmanager
@@ -168,6 +169,15 @@ class MCPOAuth:
     def csrf(self, ticket, nonce, user):
         return hmac.new(self.secret, f"{ticket}:{nonce}:{user.id}".encode(), hashlib.sha256).hexdigest()
 
+    def consent_policy(self, redirect_uri):
+        callback = urlsplit(redirect_uri)
+        # Only the validated callback origin may receive the form's redirect.
+        if callback.scheme not in {"https", "http"} or not re.fullmatch(r"[A-Za-z0-9.\-:\[\]]+", callback.netloc):
+            raise ValueError("Invalid callback origin.")
+        origin = f"{callback.scheme}://{callback.netloc}"
+        return ("default-src 'none'; style-src 'unsafe-inline'; "
+                f"form-action 'self' {origin}; frame-ancestors 'none'; base-uri 'none'")
+
     async def consent(self, request):
         ticket = request.query_params.get("ticket", "")
         pending = self.store.get("pending", ticket)
@@ -178,6 +188,7 @@ class MCPOAuth:
             return RedirectResponse("/login?" + urlencode({"next": "/oauth/consent?" + urlencode({"ticket": ticket})}), 303)
         if user.role != "root":
             return HTMLResponse("Apenas o usuario root pode autorizar acesso a todos os projetos.", 403)
+        policy = self.consent_policy(pending["params"]["redirect_uri"])
         if request.method == "POST":
             form = await request.form()
             nonce = request.cookies.get("mcp_consent", "")
@@ -215,7 +226,7 @@ class MCPOAuth:
             response.set_cookie("mcp_consent", nonce, secure=self.base.startswith("https:"), httponly=True,
                                 samesite="lax", max_age=600, path="/oauth/consent")
         response.headers.update({"Cache-Control": "no-store", "Referrer-Policy": "no-referrer",
-            "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'"})
+            "Content-Security-Policy": policy})
         return response
 
     def routes(self):

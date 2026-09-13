@@ -121,3 +121,9 @@ autenticacao, Origin, paginacao, leitura, escrita com snapshot, conflito de
 versao, criacao, projeto inexistente e bloqueios de acesso.
 OAuth: descoberta, cadastro dinamico, consentimento e CSRF, PKCE, replay,
 callback, audiencia, renovacao, revogacao, expiracao, persistencia e conta root.
+
+O teste opcional `test_mcp_oauth_browser.py` requer `pip install playwright`
+no ambiente de desenvolvimento e Microsoft Edge instalado. Ele reproduz o
+bloqueio de redirecionamento causado por `form-action 'self'` e verifica que
+o callback OAuth registrado e alcancado no primeiro clique com a politica
+corrigida. O callback de teste roda exclusivamente em loopback.

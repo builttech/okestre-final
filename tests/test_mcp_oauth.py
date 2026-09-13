@@ -54,9 +54,12 @@ class OAuthTests(unittest.TestCase):
         location = auth.headers["location"]
         self.client.cookies.set("login", "yes")
         page = self.client.get(location)
+        self.assertIn("form-action 'self' https://chatgpt.com;", page.headers["content-security-policy"])
+        self.assertIn("frame-ancestors 'none'", page.headers["content-security-policy"])
         csrf = re.search(r'name="csrf" value="([^"]+)"', page.text).group(1)
         result = self.client.post(location, data={"csrf": csrf, "decision": decision})
         self.assertEqual(result.status_code, 303, result.text)
+        self.assertIn("form-action 'self' https://chatgpt.com;", result.headers["content-security-policy"])
         return parse_qs(urlsplit(result.headers["location"]).query)
 
     def exchange(self, code, **overrides):
