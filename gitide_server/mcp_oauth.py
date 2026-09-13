@@ -31,7 +31,7 @@ class ResourceTokenHandler(TokenHandler):
 
     async def handle(self, request):
         form = await request.form()
-        if form.get("resource") not in (None, self.resource):
+        if form.get("resource") not in (None, self.resource, self.resource.rstrip("/")):
             return JSONResponse({"error": "invalid_target"}, 400,
                                 headers={"Cache-Control": "no-store"})
         return await super().handle(request)
@@ -97,7 +97,7 @@ class MCPOAuth:
         self.store.put("client", client_info.client_id, client_info.model_dump(mode="json"), time.time() + 365 * 86400)
 
     async def authorize(self, client, params):
-        if params.resource not in (None, self.resource):
+        if params.resource not in (None, self.resource, self.resource.rstrip("/")):
             raise AuthorizeError("invalid_request", "Invalid MCP resource.")
         if params.scopes and set(params.scopes) != {"mcp"}:
             raise AuthorizeError("invalid_scope", "Supported scope: mcp.")
@@ -222,7 +222,10 @@ class MCPOAuth:
         routes = create_auth_routes(self, AnyHttpUrl(self.base),
             client_registration_options=ClientRegistrationOptions(enabled=True, valid_scopes=["mcp"], default_scopes=["mcp"]),
             revocation_options=RevocationOptions(enabled=True))
-        routes += create_protected_resource_routes(AnyHttpUrl(self.resource), [AnyHttpUrl(self.base)], scopes_supported=["mcp"])
+        resource_routes = create_protected_resource_routes(AnyHttpUrl(self.resource), [AnyHttpUrl(self.base)], scopes_supported=["mcp"])
+        routes += resource_routes
+        for path in ("/.well-known/oauth-protected-resource/mcp", "/.well-known/oauth-protected-resource"):
+            routes.append(Route(path, resource_routes[0].endpoint, methods=["GET", "OPTIONS"]))
         token_route = Route("/token", ResourceTokenHandler(self).handle, methods=["POST"])
         token_route.app = RequestBodyLimitMiddleware(token_route.app, 65536)
         routes = [token_route if route.path == "/token" else route for route in routes]

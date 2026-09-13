@@ -205,7 +205,7 @@ def ensure_root_user():
 
 ensure_root_user()
 
-from gitide_server.mcp_server import create_mcp
+from gitide_server.mcp_server import create_mcp, mount_mcp
 from gitide_server.mcp_oauth import MCPOAuth
 
 def active_mcp_subject(subject):
@@ -232,7 +232,7 @@ async def validate_mcp_bearer(request):
 mcp_server, mcp_app, mcp_lifespan = create_mcp(validate_mcp_bearer,
     metadata_url=mcp_oauth.base + "/.well-known/oauth-protected-resource/mcp/")
 app.router.lifespan_context = mcp_lifespan
-app.mount("/mcp", mcp_app, name="mcp")
+mount_mcp(app, mcp_app)
 
 @app.middleware("http")
 async def require_authenticated_session(request: Request, call_next):

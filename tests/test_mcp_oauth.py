@@ -12,7 +12,7 @@ from urllib.parse import parse_qs, urlsplit
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from gitide_server.mcp_oauth import MCPOAuth
-from gitide_server.mcp_server import create_mcp
+from gitide_server.mcp_server import create_mcp, mount_mcp
 
 
 class OAuthTests(unittest.TestCase):
@@ -28,7 +28,7 @@ class OAuthTests(unittest.TestCase):
         _, transport, lifespan = create_mcp(validate, metadata_url="http://localhost/.well-known/oauth-protected-resource/mcp/")
         app = FastAPI(lifespan=lifespan)
         app.router.routes.extend(self.provider.routes())
-        app.mount("/mcp", transport)
+        mount_mcp(app, transport)
         self.client = TestClient(app, base_url="http://localhost", follow_redirects=False)
         self.client.__enter__()
         self.addCleanup(self.client.__exit__, None, None, None)
@@ -66,6 +66,14 @@ class OAuthTests(unittest.TestCase):
         return self.client.post("/token", data=data)
 
     def test_discovery_and_consent_security(self):
+        for path in ("/.well-known/oauth-protected-resource/mcp", "/.well-known/oauth-protected-resource"):
+            result = self.client.get(path)
+            self.assertEqual(result.status_code, 200)
+            self.assertEqual(result.json()["resource"], self.provider.resource)
+        for method in (self.client.get, self.client.post):
+            result = method("/mcp")
+            self.assertEqual(result.status_code, 401)
+            self.assertNotIn("location", result.headers)
         meta = self.client.get("/.well-known/oauth-authorization-server").json()
         self.assertEqual(meta["code_challenge_methods_supported"], ["S256"])
         self.assertEqual(self.client.get("/.well-known/oauth-protected-resource/mcp/").json()["resource"], self.provider.resource)
@@ -92,6 +100,9 @@ class OAuthTests(unittest.TestCase):
             return self.client.post("/mcp/", headers={"Authorization": "Bearer " + token,
                 "Accept": "application/json, text/event-stream"}, json={"jsonrpc": "2.0", "id": 1, "method": "tools/list"})
         self.assertEqual(mcp(tokens["access_token"]).status_code, 200)
+        slashless = self.client.post("/mcp", headers={"Authorization": "Bearer " + tokens["access_token"],
+            "Accept": "application/json, text/event-stream"}, json={"jsonrpc": "2.0", "id": 1, "method": "tools/list"})
+        self.assertEqual(slashless.status_code, 200, slashless.text)
         refreshed = self.client.post("/token", data=dict(self.credentials, grant_type="refresh_token", refresh_token=tokens["refresh_token"]))
         self.assertEqual(refreshed.status_code, 200, refreshed.text)
         self.assertEqual(mcp(tokens["access_token"]).status_code, 401)

@@ -23,7 +23,7 @@ Esta implementacao local nao publica nem reinicia a VM automaticamente.
 - URL publica apos deploy: `https://ide.builtt.com.br/mcp/`
 - Transporte: Streamable HTTP.
 - Header: `Authorization: Bearer <chave da API Act IA>` em todas as chamadas.
-- Use a barra final para evitar redirecionamento.
+- `/mcp` e `/mcp/` funcionam diretamente, sem redirecionamento.
 - A chave e a mesma da API, armazenada no servidor em `~/.gitide/config.json`.
   Configure-a no armazenamento de segredos do cliente; nao a coloque no Git.
 
@@ -45,8 +45,10 @@ encaminhar estas rotas ao mesmo backend, sem exigir login no proxy:
 
 - `/.well-known/oauth-authorization-server`
 - `/.well-known/oauth-protected-resource/mcp/`
+- `/.well-known/oauth-protected-resource/mcp` e `/.well-known/oauth-protected-resource`
 - `/register`, `/authorize`, `/token`, `/revoke`
 - `/oauth/consent`, `/login`, `/api/auth/login`, `/mcp/`
+- `/mcp` (tambem deve chegar ao backend sem redirecionamento no proxy)
 
 Persistir `~/.gitide/mcp_oauth.db` junto com `~/.gitide/config.json` no volume
 da instalacao. Os registros OAuth sao cifrados com chave derivada do

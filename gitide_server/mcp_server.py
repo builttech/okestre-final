@@ -15,6 +15,7 @@ from mcp.types import ToolAnnotations
 from pydantic import Field
 from starlette.requests import Request
 from starlette.responses import JSONResponse
+from starlette.routing import Route
 
 from gitide_server import vcs, git_bridge
 from gitide_server.database import SessionLocal, Project, ActivityLog
@@ -70,6 +71,24 @@ class BearerOnly:
             await response(scope, receive, send)
             return
         await self.app(scope, receive, send)
+
+
+class MCPPathAlias:
+    """Dispatch the slashless URL without proxy-dependent redirects."""
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        scope = dict(scope)
+        scope["root_path"] = scope.get("root_path", "") + "/mcp"
+        scope["path"] += "/"
+        scope["raw_path"] = scope["path"].encode("utf-8")
+        await self.app(scope, receive, send)
+
+
+def mount_mcp(app, transport):
+    app.router.routes.append(Route("/mcp", MCPPathAlias(transport), methods=["GET", "POST", "DELETE"]))
+    app.mount("/mcp", transport, name="mcp")
 
 
 def create_mcp(validate_bearer, session_factory=SessionLocal, metadata_url=None):
