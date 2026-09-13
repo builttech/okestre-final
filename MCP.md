@@ -1,0 +1,84 @@
+# Act IA MCP
+
+Servidor MCP integrado ao FastAPI, usando o SDK oficial Python (linha 1.x,
+fixada em `mcp>=1.28,<2`). Transporte Streamable HTTP, sem sessao persistente.
+Referencia: https://py.sdk.modelcontextprotocol.io/v1/
+
+## Executar
+
+Instale as dependencias no ambiente do backend e reinicie o processo:
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+.\.venv\Scripts\python.exe -m uvicorn gitide_server.main:app --host 127.0.0.1 --port 8000
+```
+
+O mesmo entrypoint usado pelo Docker ja monta o MCP. Na VM, publique a nova
+versao da imagem/backend com as dependencias atualizadas antes de conectar.
+Esta implementacao local nao publica nem reinicia a VM automaticamente.
+
+## Conectar
+
+- URL local: `http://127.0.0.1:8000/mcp/`
+- URL publica apos deploy: `https://ide.builtt.com.br/mcp/`
+- Transporte: Streamable HTTP.
+- Header: `Authorization: Bearer <chave da API Act IA>` em todas as chamadas.
+- Use a barra final para evitar redirecionamento.
+- A chave e a mesma da API, armazenada no servidor em `~/.gitide/config.json`.
+  Configure-a no armazenamento de segredos do cliente; nao a coloque no Git.
+
+Esta versao exige um cliente que permita configurar o header Bearer. Nao
+implementa OAuth, registro dinamico de clientes nem descoberta de autorizacao.
+Nao e um schema para colar na tela de GPT Actions. A conexao pelo ChatGPT
+ainda precisa ser configurada e validada no cliente; se o fluxo exigir OAuth,
+essa camada precisa ser adicionada antes de utiliza-lo.
+
+## Ferramentas
+
+| Nome | Parametros principais | Resultado |
+| --- | --- | --- |
+| `list_projects` | `offset`, `limit` | Projetos com id/nome e proxima pagina |
+| `list_files` | `project_id`, `query`, `offset`, `limit` | Arquivos filtrados pelo caminho |
+| `read_file` | `project_id`, `filepath`, `start_line`, `limit` | Texto, hash SHA-256 integral e proxima linha |
+| `git_status` | `project_id` | Status retornado pelo servico Git existente |
+| `write_file` | `project_id`, `filepath`, `content`, `expected_sha256` | Gravacao, snapshot e novo hash |
+
+Fluxo: listar projetos, selecionar id, listar arquivos, ler arquivo e gravar
+o conteudo completo usando o hash retornado. Para criar um arquivo, usar
+`expected_sha256: "missing"`; se ja existir, a operacao falha.
+Uma leitura paginada nao representa o conteudo completo a ser gravado.
+Requisitos e tarefas em Markdown podem ser encontrados por `list_files`
+com `query: ".documents/"` e lidos com `read_file`.
+
+## Limites
+
+- Listagens retornam ate 200 itens por pagina; o inventario ainda percorre
+  os arquivos do projeto a cada chamada. Status Git reutiliza a resposta da API.
+- Leitura/escrita somente de texto UTF-8 ate 1 MiB; pagina de leitura ate
+  200 linhas e 64 KB. Linhas maiores precisam ser tratadas pela API existente.
+- Caminhos relativos, confinados ao projeto, inclusive apos resolver links.
+  Respeita `.gitideignore` e bloqueia acesso a metadados `.git`.
+- A chave global tem acesso a todos os projetos, como na API atual. Nao ha
+  ACL individual por usuario/projeto neste adaptador. Cookies nao autenticam MCP.
+- O hash detecta alteracoes feitas desde a leitura. O lock serializa chamadas
+  de escrita MCP dentro do mesmo worker; nao garante exclusao mutua contra
+  editores externos, a API REST ou outros workers.
+- Gravacoes reutilizam ActivityLog e os snapshots do servico existente.
+  Nao ha ferramentas de exclusao, shell ou commit nesta versao.
+- Anotacoes MCP identificam leitura e escrita; confirmacao pelo usuario depende
+  do cliente e nao e imposta pelas anotacoes no servidor.
+
+Hosts e Origins sao validados. Para outro dominio, configure listas separadas
+por virgula em `GITIDE_MCP_ALLOWED_HOSTS` (host, sem protocolo) e
+`GITIDE_MCP_ALLOWED_ORIGINS` (origem, com protocolo). O proxy deve preservar o
+Host permitido e o header Authorization e encaminhar `/mcp/` ao backend.
+
+## Validar
+
+```powershell
+.\.venv\Scripts\python.exe -m unittest discover -s tests -p test_mcp_server.py
+```
+
+Os testes usam banco e workspace temporarios: inicializacao MCP, descoberta,
+autenticacao, Origin, paginacao, leitura, escrita com snapshot, conflito de
+versao, criacao, projeto inexistente e bloqueios de acesso.

@@ -205,9 +205,17 @@ def ensure_root_user():
 
 ensure_root_user()
 
+from gitide_server.mcp_server import create_mcp
+
+mcp_server, mcp_app, mcp_lifespan = create_mcp(has_valid_bearer)
+app.router.lifespan_context = mcp_lifespan
+app.mount("/mcp", mcp_app, name="mcp")
+
 @app.middleware("http")
 async def require_authenticated_session(request: Request, call_next):
     path = request.url.path
+    if path == "/mcp" or path.startswith("/mcp/"):
+        return await call_next(request)
     public_paths = {"/login", "/api/auth/login", "/favicon.ico"}
     if request.method == "OPTIONS":
         return await call_next(request)
