@@ -1,7 +1,7 @@
 # Act IA MCP
 
 Servidor MCP integrado ao FastAPI, usando o SDK oficial Python (linha 1.x,
-fixada em `mcp>=1.28,<2`). Transporte Streamable HTTP, sem sessao persistente.
+fixada em `mcp>=1.30,<2`). Transporte Streamable HTTP, sem sessao persistente.
 Referencia: https://py.sdk.modelcontextprotocol.io/v1/
 
 ## Executar
@@ -27,11 +27,46 @@ Esta implementacao local nao publica nem reinicia a VM automaticamente.
 - A chave e a mesma da API, armazenada no servidor em `~/.gitide/config.json`.
   Configure-a no armazenamento de segredos do cliente; nao a coloque no Git.
 
-Esta versao exige um cliente que permita configurar o header Bearer. Nao
-implementa OAuth, registro dinamico de clientes nem descoberta de autorizacao.
-Nao e um schema para colar na tela de GPT Actions. A conexao pelo ChatGPT
-ainda precisa ser configurada e validada no cliente; se o fluxo exigir OAuth,
-essa camada precisa ser adicionada antes de utiliza-lo.
+No ChatGPT, cadastre o plugin com a URL publica e selecione **OAuth**.
+O servidor oferece descoberta e registro dinamico de clientes. O navegador
+abre o login existente do Act IA e, em seguida, uma tela de aprovacao.
+Somente uma conta root ativa pode autorizar. O escopo `mcp` concede acesso
+a todas as ferramentas e projetos; a tela de aprovacao explicita esse acesso.
+O Bearer estatico continua funcionando para os clientes ja configurados.
+Nao e um schema para colar na tela de GPT Actions.
+
+## Publicar OAuth
+
+Configure `GITIDE_PUBLIC_URL=https://ide.builtt.com.br` no backend (esse e o
+padrao). Use a origem HTTPS publica, sem caminho. Em testes locais use
+`http://127.0.0.1:8000` e acesse o servidor por essa mesma origem.
+Recrie/reinicie o backend com as dependencias atualizadas. O proxy deve
+encaminhar estas rotas ao mesmo backend, sem exigir login no proxy:
+
+- `/.well-known/oauth-authorization-server`
+- `/.well-known/oauth-protected-resource/mcp/`
+- `/register`, `/authorize`, `/token`, `/revoke`
+- `/oauth/consent`, `/login`, `/api/auth/login`, `/mcp/`
+
+Persistir `~/.gitide/mcp_oauth.db` junto com `~/.gitide/config.json` no volume
+da instalacao. Os registros OAuth sao cifrados com chave derivada do
+`session_secret` existente. Trocar esse segredo invalida o armazenamento OAuth;
+preserve o par no backup. Nao compartilhe o banco entre instalacoes com
+origens/segredos diferentes. O banco usa SQLite, assim como o backend atual.
+
+O protocolo e processado pelo SDK MCP: codigo de autorizacao com PKCE S256,
+callback previamente registrado, escopo `mcp` e audiencia do endpoint MCP.
+Codigos duram 2 minutos e sao consumidos uma unica vez; aprovacao dura 10
+minutos. Access tokens duram 1 hora; refresh tokens, 30 dias, com rotacao
+e invalidacao do par anterior. `/revoke` revoga o par de tokens correspondente.
+Desativar a conta ou remover seu perfil root impede o uso/renovacao dos tokens.
+O cadastro dinamico suporta clientes com segredo conforme metadata do SDK.
+
+Na tela do ChatGPT, informe a URL com barra final e selecione OAuth. A
+descoberta deve preencher os endpoints; complete login e aprovacao no Act IA.
+O fluxo foi testado localmente, mas a conexao real pelo ChatGPT so pode ser
+confirmada depois do deploy e da autorizacao no navegador do usuario.
+Referencia: https://developers.openai.com/plugins/build/auth
 
 ## Ferramentas
 
@@ -76,9 +111,11 @@ Host permitido e o header Authorization e encaminhar `/mcp/` ao backend.
 ## Validar
 
 ```powershell
-.\.venv\Scripts\python.exe -m unittest discover -s tests -p test_mcp_server.py
+.\.venv\Scripts\python.exe -m unittest discover -s tests -p 'test_mcp*.py'
 ```
 
 Os testes usam banco e workspace temporarios: inicializacao MCP, descoberta,
 autenticacao, Origin, paginacao, leitura, escrita com snapshot, conflito de
 versao, criacao, projeto inexistente e bloqueios de acesso.
+OAuth: descoberta, cadastro dinamico, consentimento e CSRF, PKCE, replay,
+callback, audiencia, renovacao, revogacao, expiracao, persistencia e conta root.

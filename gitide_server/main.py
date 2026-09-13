@@ -206,8 +206,31 @@ def ensure_root_user():
 ensure_root_user()
 
 from gitide_server.mcp_server import create_mcp
+from gitide_server.mcp_oauth import MCPOAuth
 
-mcp_server, mcp_app, mcp_lifespan = create_mcp(has_valid_bearer)
+def active_mcp_subject(subject):
+    if not subject or not str(subject).isdigit():
+        return False
+    with SessionLocal() as db:
+        user = db.get(User, int(subject))
+        return bool(user and user.is_active and user.role == "root")
+
+mcp_oauth = MCPOAuth(os.getenv("GITIDE_PUBLIC_URL", "https://ide.builtt.com.br"),
+    os.path.join(CONFIG_DIR, "mcp_oauth.db"), SESSION_SECRET,
+    get_current_user_from_request, active_mcp_subject)
+oauth_routes = mcp_oauth.routes()
+app.router.routes.extend(oauth_routes)
+oauth_public_paths = {route.path for route in oauth_routes}
+
+async def validate_mcp_bearer(request):
+    if has_valid_bearer(request):
+        return True
+    auth = request.headers.get("authorization", "")
+    return bool(auth.lower().startswith("bearer ") and
+                await mcp_oauth.load_access_token(auth.split(" ", 1)[1]))
+
+mcp_server, mcp_app, mcp_lifespan = create_mcp(validate_mcp_bearer,
+    metadata_url=mcp_oauth.base + "/.well-known/oauth-protected-resource/mcp/")
 app.router.lifespan_context = mcp_lifespan
 app.mount("/mcp", mcp_app, name="mcp")
 
@@ -215,6 +238,8 @@ app.mount("/mcp", mcp_app, name="mcp")
 async def require_authenticated_session(request: Request, call_next):
     path = request.url.path
     if path == "/mcp" or path.startswith("/mcp/"):
+        return await call_next(request)
+    if path in oauth_public_paths:
         return await call_next(request)
     public_paths = {"/login", "/api/auth/login", "/favicon.ico"}
     if request.method == "OPTIONS":
@@ -523,8 +548,11 @@ def resolve_project_delete_path(project_path: str) -> str:
 @app.get("/login", response_class=HTMLResponse, tags=["Autenticação"])
 def get_login_page(request: Request):
     """Tela de autenticação do Act IA."""
+    next_path = request.query_params.get("next", "")
+    if not re.fullmatch(r"/oauth/consent\?ticket=[A-Za-z0-9_-]+", next_path):
+        next_path = "/"
     if get_current_user_from_request(request):
-        return RedirectResponse(url="/", status_code=status.HTTP_303_SEE_OTHER)
+        return RedirectResponse(url=next_path, status_code=status.HTTP_303_SEE_OTHER)
     return HTMLResponse(
         content=f"""<!doctype html>
 <html lang="pt-BR">
@@ -581,7 +609,7 @@ def get_login_page(request: Request):
         error.textContent = data.detail || 'Usuário ou senha inválidos.';
         return;
       }}
-      window.location.href = '/';
+      window.location.href = {json.dumps(next_path)};
     }});
   </script>
 </body>

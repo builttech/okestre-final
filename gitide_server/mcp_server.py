@@ -4,6 +4,7 @@ import hashlib
 import logging
 import os
 import threading
+import inspect
 from contextlib import asynccontextmanager
 from pathlib import Path, PureWindowsPath
 from typing import Annotated, Any
@@ -53,19 +54,25 @@ def read_text(target):
 
 
 class BearerOnly:
-    def __init__(self, app, validate):
+    def __init__(self, app, validate, metadata_url=None):
         self.app, self.validate = app, validate
+        self.challenge = 'Bearer' + (f' resource_metadata="{metadata_url}"' if metadata_url else '')
 
     async def __call__(self, scope, receive, send):
-        if scope["type"] == "http" and not self.validate(Request(scope)):
+        valid = True
+        if scope["type"] == "http":
+            valid = self.validate(Request(scope))
+            if inspect.isawaitable(valid):
+                valid = await valid
+        if not valid:
             response = JSONResponse({"detail": "Valid Bearer token required."}, 401,
-                                    headers={"WWW-Authenticate": "Bearer"})
+                                    headers={"WWW-Authenticate": self.challenge})
             await response(scope, receive, send)
             return
         await self.app(scope, receive, send)
 
 
-def create_mcp(validate_bearer, session_factory=SessionLocal):
+def create_mcp(validate_bearer, session_factory=SessionLocal, metadata_url=None):
     hosts = [item.strip() for item in os.getenv(
         "GITIDE_MCP_ALLOWED_HOSTS", "localhost,localhost:*,127.0.0.1,127.0.0.1:*,ide.builtt.com.br"
     ).split(",") if item.strip()]
@@ -169,7 +176,7 @@ def create_mcp(validate_bearer, session_factory=SessionLocal):
                 return result
         return run(project_id, operation)
 
-    http_app = BearerOnly(mcp.streamable_http_app(), validate_bearer)
+    http_app = BearerOnly(mcp.streamable_http_app(), validate_bearer, metadata_url)
 
     @asynccontextmanager
     async def lifespan(app):
