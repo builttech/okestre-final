@@ -5,6 +5,8 @@ import logging
 import os
 import threading
 import inspect
+import subprocess
+import tempfile
 from contextlib import asynccontextmanager
 from pathlib import Path, PureWindowsPath
 from typing import Annotated, Any
@@ -168,6 +170,104 @@ def create_mcp(validate_bearer, session_factory=SessionLocal, metadata_url=None)
     def git_status(project_id: Positive) -> dict[str, Any]:
         """Return the existing Git service's working-tree status for a project."""
         return run(project_id, lambda db, project: git_bridge.get_git_status(project.path))
+
+    @mcp.tool(annotations=read_only, structured_output=True)
+    def search_files(project_id: Positive, query: Annotated[str, Field(min_length=1, max_length=500)],
+                     path_filter: str = "", case_sensitive: bool = False,
+                     offset: Offset = 0, limit: Limit = 50) -> dict[str, Any]:
+        """Search literal text within individual lines. Returns matching lines, not regex matches.
+
+        path_filter is a path substring. Skips binary, inaccessible and >1 MiB files.
+        Paginate using next_offset; snippets are limited to 240 characters.
+        """
+        def operation(db, project):
+            if "\n" in query or "\r" in query:
+                raise ValueError("Search query must fit on one line.")
+            items, seen, skipped = [], 0, 0
+            needle = query if case_sensitive else query.casefold()
+            for item in sorted(vcs.list_project_files(project.path), key=lambda item: item["path"]):
+                if path_filter.casefold() not in item["path"].casefold():
+                    continue
+                try:
+                    content, _ = read_text(safe_path(project, item["path"]))
+                except (ValueError, OSError, UnicodeError):
+                    skipped += 1
+                    continue
+                for number, line in enumerate(content.splitlines(), 1):
+                    haystack = line if case_sensitive else line.casefold()
+                    if needle not in haystack:
+                        continue
+                    if seen >= offset:
+                        if len(items) == limit:
+                            return {"items": items, "next_offset": offset + limit, "skipped_files": skipped}
+                        items.append({"filepath": item["path"], "line": number,
+                                      "snippet": line[:240], "snippet_truncated": len(line) > 240})
+                    seen += 1
+            return {"items": items, "next_offset": None, "skipped_files": skipped}
+        return run(project_id, operation)
+
+    @mcp.tool(annotations=read_only, structured_output=True)
+    def git_diff(project_id: Positive, filepath: str, staged: bool = False) -> dict[str, Any]:
+        """Read a tracked file's Git diff. staged=False: working tree vs index; True: index vs HEAD.
+
+        Untracked files have no Git diff. Output is limited to 64 KB; no external diff/textconv runs.
+        """
+        def operation(db, project):
+            target = safe_path(project, filepath)
+            if target.is_dir():
+                raise ValueError("Specify a file, not a directory.")
+            root = Path(project.path).resolve()
+            with git_bridge.Repo(str(root)) as repo:
+                if Path(repo.working_tree_dir).resolve() != root:
+                    raise ValueError("Project must be the Git repository root.")
+            relative = target.relative_to(root).as_posix()
+            command = ["git", "--no-pager", "--literal-pathspecs", "-C", str(root),
+                       "diff", "--no-ext-diff", "--no-textconv", "--no-color", "--no-renames"]
+            if staged:
+                command.append("--cached")
+            command.extend(["--", relative])
+            with tempfile.TemporaryFile() as output:
+                result = subprocess.run(command, stdout=output, stderr=subprocess.PIPE, timeout=15)
+                if result.returncode:
+                    raise ValueError("Git diff failed for this project.")
+                output.seek(0)
+                data = output.read(64001)
+            return {"filepath": relative, "staged": staged,
+                    "diff": data[:64000].decode("utf-8", errors="replace"), "truncated": len(data) > 64000}
+        return run(project_id, operation)
+
+    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True,
+                                         idempotentHint=False, openWorldHint=False), structured_output=True)
+    def patch_file(project_id: Positive, filepath: str, expected_sha256: str,
+                   target_content: Annotated[str, Field(min_length=1, max_length=MAX_BYTES)],
+                   replacement_content: Annotated[str, Field(max_length=MAX_BYTES)],
+                   allow_multiple: bool = False) -> dict[str, Any]:
+        """Replace an exact text fragment after verifying read_file.sha256; records a snapshot.
+
+        Missing or ambiguous targets fail without writing. allow_multiple replaces all occurrences.
+        """
+        def operation(db, project):
+            target = safe_path(project, filepath)
+            with write_lock:
+                content, digest = read_text(target)
+                if digest != expected_sha256:
+                    raise ValueError("Version conflict: read the file again before patching.")
+                count = content.count(target_content)
+                if not count or (count > 1 and not allow_multiple):
+                    raise ValueError("Target missing or ambiguous; refine it or set allow_multiple.")
+                updated = content.replace(target_content, replacement_content)
+                if len(updated.encode("utf-8")) > MAX_BYTES or "\x00" in updated:
+                    raise ValueError("Expected UTF-8 text up to 1 MiB.")
+                log = ActivityLog(project_id=project.id, action_type="FILE_PATCH", details=f"MCP patch: {filepath}")
+                db.add(log)
+                db.commit()
+                # The shared writer performs native newline translation on Windows.
+                if os.name == "nt":
+                    updated = updated.replace("\r\n", "\n")
+                result = vcs.write_project_file(db, project, filepath, updated, activity_log_id=log.id)
+                result.update(sha256=read_text(target)[1], replacements=count)
+                return result
+        return run(project_id, operation)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True,
                                          idempotentHint=False, openWorldHint=False), structured_output=True)

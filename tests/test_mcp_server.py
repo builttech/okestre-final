@@ -61,7 +61,54 @@ class MCPTests(unittest.TestCase):
         self.assertIn("serverInfo", response.json()["result"])
         tools = self.rpc("tools/list").json()["result"]["tools"]
         self.assertEqual({t["name"] for t in tools},
-                         {"list_projects", "list_files", "read_file", "write_file", "git_status"})
+                         {"list_projects", "list_files", "read_file", "write_file", "git_status",
+                          "search_files", "patch_file", "git_diff"})
+
+    def test_search_pagination_and_exclusions(self):
+        (self.workspace / "hello.txt").write_bytes(b"Needle\nneedle\nother\n")
+        (self.workspace / "secret.txt").write_text("needle")
+        (self.workspace / ".gitideignore").write_text("secret.txt")
+        (self.workspace / "binary.dat").write_bytes(b"needle\x00")
+        first = self.tool("search_files", project_id=1, query="needle", limit=1)["structuredContent"]
+        self.assertEqual(first["items"][0]["line"], 1)
+        second = self.tool("search_files", project_id=1, query="needle", offset=first["next_offset"], limit=1)["structuredContent"]
+        self.assertEqual(second["items"][0]["line"], 2)
+        self.assertIsNone(second["next_offset"])
+        sensitive = self.tool("search_files", project_id=1, query="Needle", case_sensitive=True)["structuredContent"]
+        self.assertEqual(len(sensitive["items"]), 1)
+
+    def test_patch_conflicts_ambiguity_and_snapshot(self):
+        (self.workspace / "hello.txt").write_bytes(b"same\nsame\n")
+        digest = self.tool("read_file", project_id=1, filepath="hello.txt")["structuredContent"]["sha256"]
+        args = dict(project_id=1, filepath="hello.txt", expected_sha256=digest,
+                    target_content="same", replacement_content="new")
+        self.assertTrue(self.tool("patch_file", **args)["isError"])
+        result = self.tool("patch_file", **args, allow_multiple=True)["structuredContent"]
+        self.assertEqual(result["replacements"], 2)
+        self.assertEqual((self.workspace / "hello.txt").read_text(), "new\nnew\n")
+        self.assertTrue(self.tool("patch_file", **args, allow_multiple=True)["isError"])
+        with self.sessions() as db:
+            self.assertEqual(db.query(FileSnapshot).count(), 1)
+            self.assertEqual(db.query(ActivityLog).one().action_type, "FILE_PATCH")
+
+    def test_git_diff_modes_and_ignored_file(self):
+        from git import Repo, Actor
+        repo = Repo.init(self.workspace)
+        repo.index.add(["hello.txt"])
+        actor = Actor("Test", "test@example.test")
+        repo.index.commit("initial", author=actor, committer=actor)
+        (self.workspace / "hello.txt").write_bytes(b"staged\n")
+        repo.index.add(["hello.txt"])
+        (self.workspace / "hello.txt").write_bytes(b"unstaged\n")
+        unstaged = self.tool("git_diff", project_id=1, filepath="hello.txt")["structuredContent"]["diff"]
+        staged = self.tool("git_diff", project_id=1, filepath="hello.txt", staged=True)["structuredContent"]["diff"]
+        self.assertIn("+unstaged", unstaged)
+        self.assertIn("+staged", staged)
+        self.assertNotIn("+unstaged", staged)
+        (self.workspace / ".gitideignore").write_text("hello.txt")
+        self.assertTrue(self.tool("git_diff", project_id=1, filepath="hello.txt")["isError"])
+        self.assertTrue(self.tool("git_diff", project_id=1, filepath="../secret")["isError"])
+        repo.close()
 
     def test_read_write_conflict_and_snapshot(self):
         read = self.tool("read_file", project_id=1, filepath="hello.txt", limit=1)["structuredContent"]

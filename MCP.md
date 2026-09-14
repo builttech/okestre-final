@@ -79,6 +79,26 @@ Referencia: https://developers.openai.com/plugins/build/auth
 | `read_file` | `project_id`, `filepath`, `start_line`, `limit` | Texto, hash SHA-256 integral e proxima linha |
 | `git_status` | `project_id` | Status retornado pelo servico Git existente |
 | `write_file` | `project_id`, `filepath`, `content`, `expected_sha256` | Gravacao, snapshot e novo hash |
+| `search_files` | `project_id`, `query`, `path_filter`, `case_sensitive`, `offset`, `limit` | Linhas contendo texto literal, com arquivo e numero de linha |
+| `patch_file` | `project_id`, `filepath`, `expected_sha256`, `target_content`, `replacement_content`, `allow_multiple` | Substituicao de trecho, snapshot e novo hash |
+| `git_diff` | `project_id`, `filepath`, `staged` | Diff de um arquivo rastreado: working tree/index ou index/HEAD |
+
+Fluxo de edicao parcial: `search_files` localiza o trecho, `read_file` fornece
+conteudo e hash, `patch_file` substitui o texto exato, `git_diff` revisa o resultado.
+A busca e literal por linha (sem regex), ignora binarios e arquivos acima de
+1 MiB, respeita as exclusoes e retorna snippets de ate 240 caracteres. Um
+snippet pode estar truncado: use `read_file` na linha indicada para ler o trecho.
+`next_offset` permite continuar a busca enquanto o projeto permanece estavel.
+`skipped_files` conta os arquivos pulados ate o fim da varredura dessa pagina.
+
+O patch exige o hash integral atual e rejeita texto ausente ou ambiguo.
+`allow_multiple=true` autoriza substituir todas as ocorrencias. O limite final
+continua sendo 1 MiB. O snapshot e o registro FILE_PATCH usam o servico existente.
+
+`git_diff` exige um arquivo e o projeto na raiz do repositorio. Arquivos novos
+nao rastreados nao aparecem no diff; consulte `git_status` e `read_file` nesses
+casos. O resultado limita-se a 64 KB e sinaliza `truncated`; a execucao tem timeout
+de 15 segundos. Nao executa diff externo nem conversores textconv.
 
 Fluxo: listar projetos, selecionar id, listar arquivos, ler arquivo e gravar
 o conteudo completo usando o hash retornado. Para criar um arquivo, usar
