@@ -712,6 +712,7 @@
     layout.innerHTML = '';
     layout.appendChild(sidebar);
     layout.appendChild(content);
+    if (new URL(location.href).searchParams.get('supabase') === 'connected') setActiveTab('integrations');
 
     
     wirePromptActions();

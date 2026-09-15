@@ -97,8 +97,9 @@ def sql_level(sql):
 
 
 class Integrations:
-    def __init__(self, store, connect=psycopg2.connect):
+    def __init__(self, store, connect=psycopg2.connect, supabase=None):
         self.store, self.connect = store, connect
+        self.supabase = supabase
         self.lock = threading.RLock()
         with store.connect() as db:
             db.execute("CREATE TABLE IF NOT EXISTS integrations (id TEXT PRIMARY KEY, data BLOB NOT NULL)")
@@ -132,6 +133,8 @@ class Integrations:
             raise ValueError("Selecione projetos existentes do Okestre.")
         with self.lock:
             previous = self.get(identifier) if identifier else None
+            if previous and previous.get("auth_type") == "oauth":
+                raise ValueError("Edite esta integracao pelo fluxo OAuth.")
             if not config["password"]:
                 config["password"] = previous["password"] if previous else ""
             if not config["password"]:
@@ -142,11 +145,38 @@ class Integrations:
                 db.execute("INSERT OR REPLACE INTO integrations VALUES (?,?)", (identifier, self.encode(config)))
             return self.public(config)
 
+    def save_oauth(self, config, valid_projects, identifier=None):
+        if any(pid not in valid_projects for pid in config["project_ids"]):
+            raise ValueError("Selecione projetos existentes do Okestre.")
+        with self.lock:
+            if identifier and self.get(identifier).get("auth_type") != "oauth":
+                raise ValueError("Nao e permitido substituir uma conexao PostgreSQL por OAuth.")
+            identifier = identifier or secrets.token_hex(16)
+            config = dict(config, id=identifier, provider="supabase", auth_type="oauth", revision=secrets.token_hex(16))
+            with self.store.connect() as db:
+                db.execute("INSERT OR REPLACE INTO integrations VALUES (?,?)", (identifier, self.encode(config)))
+            return self.public(config)
+
     def delete(self, identifier):
         with self.lock, self.store.connect() as db:
             db.execute("DELETE FROM integrations WHERE id=?", (identifier,))
 
+    def disconnect_supabase(self, account_id, owner):
+        with self.lock:
+            if not self.supabase or not self.supabase.disconnect(account_id, owner):
+                raise ValueError("Autorizacao Supabase nao encontrada.")
+            with self.store.connect() as db:
+                for identifier, encrypted in db.execute("SELECT id,data FROM integrations").fetchall():
+                    config = self.decode(encrypted)
+                    if config.get("account_id") == account_id:
+                        config.update(enabled=False, revision=secrets.token_hex(16))
+                        db.execute("UPDATE integrations SET data=? WHERE id=?", (self.encode(config), identifier))
+
     def query(self, config, sql, level, limit=200):
+        if config.get("auth_type") == "oauth":
+            if self.supabase is None:
+                raise ValueError("Supabase OAuth nao configurado neste servidor.")
+            return self.supabase.query(config, sql, level, limit)
         try:
             with closing(self.connect(host=config["host"], port=config["port"], dbname=config["database"],
                     user=config["username"], password=config["password"], sslmode="verify-full", sslrootcert="system",

@@ -4,6 +4,7 @@ from starlette.responses import JSONResponse
 from starlette.routing import Route
 from starlette.concurrency import run_in_threadpool
 from gitide_server.integrations import DatabaseDiagnostic
+from gitide_server.supabase_oauth import SupabaseOAuthError
 
 
 def routes(oauth, integrations):
@@ -20,7 +21,8 @@ def routes(oauth, integrations):
             action = request.path_params.get("action")
             if request.method == "GET":
                 return JSONResponse({"items": integrations.list(), "projects": oauth.list_projects(),
-                    "approvals": integrations.pending(), "csrf_token": csrf}, headers=headers)
+                    "approvals": integrations.pending(), "csrf_token": csrf,
+                    "supabase_oauth": integrations.supabase.metadata(user.id) if integrations.supabase else {"configured": False, "accounts": []}}, headers=headers)
             if request.method == "DELETE":
                 await run_in_threadpool(integrations.delete, identifier)
                 return JSONResponse({"status": "deleted"}, headers=headers)
@@ -38,6 +40,8 @@ def routes(oauth, integrations):
             return JSONResponse(result, headers=headers)
         except DatabaseDiagnostic as error:
             return JSONResponse({"detail": str(error), "code": error.code}, 502, headers=headers)
+        except SupabaseOAuthError as error:
+            return JSONResponse({"detail": str(error), "code": "supabase_oauth_error"}, 502, headers=headers)
         except Exception:
             return JSONResponse({"detail": "Operacao recusada. Verifique campos, host Supabase, projetos, senha e conexao SSL."}, 400, headers=headers)
     return [Route("/api/integrations", manage, methods=["GET", "POST"]),

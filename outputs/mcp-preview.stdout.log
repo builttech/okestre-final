@@ -1,1 +1,2 @@
-INFO:     127.0.0.1:61657 - "GET /login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54886 - "GET /login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64550 - "GET /api/integrations HTTP/1.1" 200 OK

@@ -233,6 +233,61 @@ Host permitido e o header Authorization e encaminhar `/mcp/` ao backend.
 
 ## Integracao Supabase
 
+### OAuth (principal)
+
+Conectar Supabase inicia a autorizacao oficial no painel Supabase. O retorno
+abre Integracoes e permite selecionar um projeto remoto e os projetos locais
+autorizados. Nao solicita senha PostgreSQL: consultas usam a Management API
+via HTTPS. PostgreSQL avancado continua disponivel para conexao direta.
+
+Configuracao unica no servidor (nao coloque segredos no frontend):
+
+```text
+SUPABASE_OAUTH_CLIENT_ID=<client-id-do-oauth-app>
+SUPABASE_OAUTH_CLIENT_SECRET=<client-secret-do-oauth-app>
+GITIDE_PUBLIC_URL=https://ide.builtt.com.br
+```
+
+Cadastre o OAuth App em Organization Settings > OAuth Apps do Supabase.
+URL de retorno exata para esse dominio:
+`https://ide.builtt.com.br/api/integrations/supabase/callback`.
+No ambiente local, use uma configuracao/app de teste com GITIDE_PUBLIC_URL
+`http://127.0.0.1:8766` e o mesmo caminho de callback. O proxy precisa encaminhar
+`/api/integrations/supabase/*` ao backend. Alteracoes de variaveis exigem restart.
+
+Escopos no OAuth App: Projects Read (`projects:read`) para listar projetos e
+Database Write (`database:write`) para o endpoint SQL, inclusive SELECT.
+Nao solicitar Secrets, Auth, Storage ou permissoes de criacao de projetos.
+Os niveis read/write/full do Okestre continuam sendo impostos antes das
+chamadas; leituras enviam `read_only: true` ao Supabase. Isso nao reduz os
+escopos do token remoto: proteja o backend que o armazena.
+
+PKCE S256 e state descartavel vinculam a autorizacao ao root e a sessao local.
+Access/refresh tokens ficam cifrados no banco OAuth, separados dos vinculos
+de projeto. Renovacoes sao serializadas e nao ha repeticao automatica de SQL
+apos erro. Desconectar autorizacao remove os tokens locais e desativa todos
+os vinculos dependentes; para revogar globalmente, use tambem o painel Supabase.
+Excluir apenas uma integracao nao remove uma autorizacao usada por outros
+vinculos. Uma autorizacao revogada externamente pode exigir nova conexao.
+
+OAuth usa limite de resposta HTTP de 2 MiB e apresenta ate 200 linhas/64 KB.
+Timeout de conexao/leitura HTTP: 8s/25s; nao implica cancelamento de uma consulta
+ja aceita no Supabase. Nao ha rollback de escritas confirmadas remotamente.
+CREATE TABLE/CREATE TABLE AS/SELECT INTO exigem schema explicito e incluem
+habilitacao de RLS na mesma transacao enviada ao Supabase. Nao cria politicas
+publicas. As aprovacoes de escrita existentes continuam valendo.
+
+Sem Client ID/Secret, o botao informa a configuracao faltante e nao tenta
+autorizacao. O fluxo foi validado com respostas simuladas e navegador; a
+autorizacao real depende do cadastro OAuth App e das credenciais do servidor.
+
+Referencias oficiais:
+- https://supabase.com/docs/guides/integrations/build-a-supabase-oauth-integration
+- https://supabase.com/docs/reference/api/v1-list-all-projects
+- https://supabase.com/docs/reference/api/v1-run-a-query
+
+### PostgreSQL avancado
+
 Configuracoes > Integracoes permite cadastrar, editar, testar, desativar e
 excluir conexoes PostgreSQL do Supabase. Nao gerencia Auth, Storage, Edge
 Functions, chaves nem projetos da Management API. Neon fica para outra entrega.

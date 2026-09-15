@@ -1,6 +1,7 @@
 .integrations .mcp-connections-dialog {width:min(680px, calc(100vw - 32px)); max-height:90vh; overflow:auto; box-sizing:border-box}
 .integration-fields {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
 .integration-fields label {display:grid;gap:6px;min-width:0}
+.integration-fields label[hidden] {display:none}
 .integration-fields input,.integration-fields select {width:100%;min-width:0;box-sizing:border-box;padding:9px;background:var(--bg-primary,#171719);color:var(--text-primary,#eee);border:1px solid var(--border-color,#555);border-radius:6px}
 .integration-projects {max-height:160px;overflow:auto}
 .integration-projects label,.integration-check {display:block;padding:6px 0;overflow-wrap:anywhere}

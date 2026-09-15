@@ -233,7 +233,11 @@ mcp_oauth = MCPOAuth(os.getenv("GITIDE_PUBLIC_URL", "https://ide.builtt.com.br")
     get_current_user_from_request, active_mcp_subject, mcp_consent_projects, mcp_subject_name)
 from gitide_server.integrations import Integrations
 from gitide_server.integration_routes import routes as integration_routes
-integrations = Integrations(mcp_oauth.store)
+from gitide_server.supabase_oauth import SupabaseOAuth, routes as supabase_oauth_routes
+supabase_oauth = SupabaseOAuth(mcp_oauth.store, mcp_oauth.base,
+    os.getenv("SUPABASE_OAUTH_CLIENT_ID", ""), os.getenv("SUPABASE_OAUTH_CLIENT_SECRET", ""))
+integrations = Integrations(mcp_oauth.store, supabase=supabase_oauth)
+app.router.routes.extend(supabase_oauth_routes(supabase_oauth, integrations, mcp_oauth))
 app.router.routes.extend(integration_routes(mcp_oauth, integrations))
 oauth_routes = mcp_oauth.routes()
 app.router.routes.extend(oauth_routes)
