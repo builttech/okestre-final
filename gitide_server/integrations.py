@@ -14,6 +14,37 @@ from pglast.parser import parse_sql_json
 from pydantic import BaseModel, ConfigDict, Field
 
 
+class DatabaseDiagnostic(ValueError):
+    """Only allowlisted diagnostics may cross the API boundary."""
+    def __init__(self, code, message):
+        super().__init__(message)
+        self.code = code
+
+
+def database_diagnostic(error):
+    state = getattr(error, "pgcode", None)
+    message = str(error).lower()
+    if state == "28P01" or "password authentication failed" in message:
+        return DatabaseDiagnostic("authentication_failed", "Autenticacao PostgreSQL recusada. Confira o usuario e a senha do banco, nao a chave de API Supabase.")
+    if state == "3D000":
+        return DatabaseDiagnostic("database_not_found", "Banco PostgreSQL nao encontrado. Confira o campo Banco.")
+    if state == "42501":
+        return DatabaseDiagnostic("permission_denied", "O usuario PostgreSQL nao tem permissao para esta operacao.")
+    if state == "57014" or "timeout" in message or "timed out" in message:
+        return DatabaseDiagnostic("timeout", "Tempo limite excedido. Confira rede, firewall e disponibilidade do banco; a consulta tambem pode ter excedido o limite.")
+    if any(value in message for value in ("could not translate host name", "name or service not known", "nodename nor servname", "no such host is known")):
+        return DatabaseDiagnostic("dns_failed", "Nao foi possivel resolver o host. Confira o endereco copiado do painel Connect do Supabase e o DNS do servidor.")
+    if any(value in message for value in ("network is unreachable", "no route to host", "unreachable network")):
+        return DatabaseDiagnostic("network_unreachable", "O servidor nao tem rota ate o banco. Se o endpoint direto exigir IPv6, use os dados completos do Session pooler no painel Connect do Supabase.")
+    if "connection refused" in message or "actively refused" in message:
+        return DatabaseDiagnostic("connection_refused", "Conexao recusada pelo destino. Confira host, porta, firewall e se o projeto Supabase esta ativo.")
+    if any(value in message for value in ("certificate", "root certificate", "sslrootcert", "ssl error", "tls")):
+        return DatabaseDiagnostic("tls_failed", "Falha na verificacao TLS. Confira certificados raiz do servidor e o host oficial. A validacao SSL permanece obrigatoria.")
+    if isinstance(error, psycopg2.OperationalError):
+        return DatabaseDiagnostic("connection_failed", "Falha ao conectar ao PostgreSQL. Confira os dados do painel Connect e a conectividade do servidor.")
+    return DatabaseDiagnostic("database_operation_failed", "A operacao PostgreSQL falhou. Confira o SQL e os privilegios; detalhes sensiveis foram omitidos.")
+
+
 class SupabaseConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
     name: str = Field(min_length=1, max_length=100)
@@ -151,8 +182,8 @@ class Integrations:
                             pgsql.Identifier(created.get("schemaname") or ("pg_temp" if created.get("relpersistence") == "t" else "public")), pgsql.Identifier(created["relname"])))
                 conn.commit()
                 return result
-        except Exception:
-            raise ValueError("Falha PostgreSQL: verifique conexao, credenciais, privilegios ou timeout. Detalhes sensiveis foram omitidos.") from None
+        except Exception as error:
+            raise database_diagnostic(error) from None
 
     def test(self, identifier):
         return self.query(self.get(identifier), "SELECT current_database(), current_user", "read", 1)

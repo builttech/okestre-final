@@ -3,6 +3,7 @@ import hmac
 from starlette.responses import JSONResponse
 from starlette.routing import Route
 from starlette.concurrency import run_in_threadpool
+from gitide_server.integrations import DatabaseDiagnostic
 
 
 def routes(oauth, integrations):
@@ -35,6 +36,8 @@ def routes(oauth, integrations):
             data = await request.json()
             result = await run_in_threadpool(integrations.save, data, {p["id"] for p in oauth.list_projects()}, identifier)
             return JSONResponse(result, headers=headers)
+        except DatabaseDiagnostic as error:
+            return JSONResponse({"detail": str(error), "code": error.code}, 502, headers=headers)
         except Exception:
             return JSONResponse({"detail": "Operacao recusada. Verifique campos, host Supabase, projetos, senha e conexao SSL."}, 400, headers=headers)
     return [Route("/api/integrations", manage, methods=["GET", "POST"]),

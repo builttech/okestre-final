@@ -4,6 +4,10 @@
 .integration-fields input,.integration-fields select {width:100%;min-width:0;box-sizing:border-box;padding:9px;background:var(--bg-primary,#171719);color:var(--text-primary,#eee);border:1px solid var(--border-color,#555);border-radius:6px}
 .integration-projects {max-height:160px;overflow:auto}
 .integration-projects label,.integration-check {display:block;padding:6px 0;overflow-wrap:anywhere}
+.integrations .integration-projects label,.integrations .integration-check {display:flex;align-items:flex-start;gap:8px;line-height:1.5;min-height:24px;margin:0;padding:6px 0}
+.integrations input[type="checkbox"] {width:16px;height:16px;min-width:16px;min-height:16px;flex:0 0 16px;margin:3px 0 0;padding:0}
+.integrations fieldset {min-width:0;padding:10px 14px;margin:12px 0}
+.integrations legend {float:none;position:static;width:auto;margin:0;padding:0 4px;line-height:1.5}
 .integration-actions {white-space:nowrap}
 .integration-actions button {margin:2px;min-width:36px;min-height:36px}
 .integration-approval {border-bottom:1px solid var(--border-color,#555);padding:12px 0}

@@ -99,6 +99,41 @@ class IntegrationTests(unittest.TestCase):
             service.test(self.config['id'])
         self.assertNotIn('secret-db', str(error.exception))
 
+    def test_connection_diagnostics_are_safe(self):
+        import psycopg2
+        from gitide_server.integrations import database_diagnostic
+        cases = {
+            'password authentication failed': 'authentication_failed',
+            'could not translate host name': 'dns_failed',
+            'Network is unreachable': 'network_unreachable',
+            'connection refused': 'connection_refused',
+            'certificate verify failed': 'tls_failed',
+            'connection timeout expired': 'timeout',
+            'unexpected connection failure': 'connection_failed',
+        }
+        for message, code in cases.items():
+            with self.subTest(code=code):
+                diagnostic = database_diagnostic(psycopg2.OperationalError(message + ' secret-db'))
+                self.assertEqual(diagnostic.code, code)
+                self.assertNotIn('secret-db', str(diagnostic))
+
+    def test_test_endpoint_preserves_safe_diagnostic(self):
+        import psycopg2
+        import test_mcp_oauth
+        from gitide_server.integration_routes import routes
+        fixture = test_mcp_oauth.OAuthTests()
+        fixture.setUp()
+        self.addCleanup(fixture.doCleanups)
+        fixture.client.app.router.routes.extend(routes(fixture.provider, self.service))
+        fixture.client.cookies.set('login', 'yes')
+        csrf = fixture.client.get('/api/integrations').json()['csrf_token']
+        with patch.object(self.service, 'connect', side_effect=psycopg2.OperationalError('certificate verify failed: secret-db')):
+            response = fixture.client.post('/api/integrations/' + self.config['id'] + '/test', headers={'X-CSRF-Token': csrf})
+        self.assertEqual(response.status_code, 502)
+        self.assertEqual(response.json()['code'], 'tls_failed')
+        self.assertNotIn('secret-db', response.text)
+        self.assertEqual(response.headers['cache-control'], 'no-store')
+
 
 if __name__ == '__main__':
     unittest.main()
