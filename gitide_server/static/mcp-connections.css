@@ -1,0 +1,24 @@
+.mcp-connections { min-width: 0; color: var(--text-main, #ececef); }
+.mcp-connections h2 { font-size: 20px; margin: 0; }
+.mcp-connections-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 0; flex-wrap: wrap; }
+.mcp-connections-toolbar button { min-width: 40px; min-height: 40px; display: inline-flex; align-items: center; justify-content: center; }
+.mcp-connections-toolbar svg { width: 18px; height: 18px; }
+.mcp-connections-pager { display: flex; gap: 8px; }
+.mcp-connections-scroll { overflow-x: auto; max-width: 100%; border-top: 1px solid var(--border-color, #444); }
+.mcp-connections table { width: 100%; min-width: 840px; border-collapse: collapse; table-layout: fixed; font-size: 13px; }
+.mcp-connections th, .mcp-connections td { padding: 14px 8px; text-align: left; vertical-align: top; border-bottom: 1px solid var(--border-color, #444); overflow-wrap: anywhere; }
+.mcp-connections th:first-child { width: 20%; }
+.mcp-connections th:nth-child(2) { width: 22%; }
+.mcp-connections small { display: block; margin-top: 6px; color: var(--text-muted, #aaa); }
+.mcp-connections button:disabled { opacity: .5; cursor: not-allowed; }
+.mcp-connections-dialog { box-sizing: border-box; width: min(480px, calc(100vw - 32px)); padding: 24px; border: 1px solid var(--border-color, #555); border-radius: 8px; background: var(--bg-secondary, #19191c); color: var(--text-main, #eee); }
+.mcp-connections-dialog::backdrop { background: #0009; }
+.mcp-connections-dialog p { overflow-wrap: anywhere; line-height: 1.5; }
+.mcp-connections-dialog-actions { display: flex; gap: 12px; justify-content: flex-end; flex-wrap: wrap; }
+.mcp-connections [data-mcp-revoke-error] { color: #eb7474; }
+.mcp-audit-filters { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(190px, 100%), 1fr)); gap: 12px; align-items: end; }
+.mcp-audit-filters label { display: grid; gap: 6px; font-size: 13px; min-width: 0; }
+.mcp-audit-filters input, .mcp-audit-filters select { box-sizing: border-box; min-width: 0; width: 100%; padding: 8px; min-height: 38px; border: 1px solid var(--border-color, #555); border-radius: 4px; background: var(--bg-surface, #19191c); color: var(--text-main, #eee); }
+.mcp-audit td { white-space: pre-line; }
+.mcp-audit th:first-child { width: 15%; }
+.mcp-audit th:nth-child(2) { width: 20%; }

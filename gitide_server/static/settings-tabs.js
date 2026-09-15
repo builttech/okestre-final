@@ -314,6 +314,9 @@
 
     
     if (tabName === 'prompt-copy') refreshPromptCopyFromProject();
+    if (tabName === 'mcp-connections') window.mcpConnectionsPanel?.load();
+    if (tabName === 'mcp-audit') window.mcpAuditPanel?.load();
+    if (tabName === 'integrations') window.integrationsPanel?.load();
     if (tabName === 'parametrization') {
        if (!paramEditor) setTimeout(initParamEditor, 50);
        else setTimeout(() => paramEditor.refresh(), 50);
@@ -658,6 +661,9 @@
 
     sidebar.appendChild(createTabButton('agent-config', 'bot', 'API Agents', false));
     sidebar.appendChild(createTabButton('gpt-action', 'rocket', 'GPT Action', false));
+    sidebar.appendChild(createTabButton('mcp-connections', 'plug', 'Conexões MCP', false));
+    sidebar.appendChild(createTabButton('mcp-audit', 'history', 'Histórico MCP', false));
+    sidebar.appendChild(createTabButton('integrations', 'database', 'Integrações', false));
     if (prodValidatorCard) {
       sidebar.appendChild(createTabButton('prod-validator', 'shield-check', 'Prod-Ready Validator', false));
     }
@@ -674,6 +680,16 @@
 
     const agentPanel = createPanel('agent-config', false);
     const gptPanel = createPanel('gpt-action', false);
+    const mcpPanel = createPanel('mcp-connections', false);
+    window.mcpConnectionsPanel = window.mountMcpConnections(mcpPanel);
+    const auditPanel = createPanel('mcp-audit', false);
+    window.mcpAuditPanel = window.mountMcpAudit(auditPanel);
+    const integrationsPanel = createPanel('integrations', false);
+    window.integrationsPanel = window.mountIntegrations(integrationsPanel);
+    window.addEventListener('gitide:mcp-show-connection', (event) => {
+      window.mcpConnectionsPanel.selectConnection(event.detail);
+      setActiveTab('mcp-connections');
+    });
     const prodValidatorPanel = createPanel('prod-validator', false);
     const securityRulesPanel = createPanel('security-rules', false);
 
@@ -687,6 +703,9 @@
 
     content.appendChild(agentPanel);
     content.appendChild(gptPanel);
+    content.appendChild(mcpPanel);
+    content.appendChild(auditPanel);
+    content.appendChild(integrationsPanel);
     if (prodValidatorCard) content.appendChild(prodValidatorPanel);
     if (securityRulesCard) content.appendChild(securityRulesPanel);
 

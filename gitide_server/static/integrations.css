@@ -1,0 +1,11 @@
+.integrations .mcp-connections-dialog {width:min(680px, calc(100vw - 32px)); max-height:90vh; overflow:auto; box-sizing:border-box}
+.integration-fields {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.integration-fields label {display:grid;gap:6px;min-width:0}
+.integration-fields input,.integration-fields select {width:100%;min-width:0;box-sizing:border-box;padding:9px;background:var(--bg-primary,#171719);color:var(--text-primary,#eee);border:1px solid var(--border-color,#555);border-radius:6px}
+.integration-projects {max-height:160px;overflow:auto}
+.integration-projects label,.integration-check {display:block;padding:6px 0;overflow-wrap:anywhere}
+.integration-actions {white-space:nowrap}
+.integration-actions button {margin:2px;min-width:36px;min-height:36px}
+.integration-approval {border-bottom:1px solid var(--border-color,#555);padding:12px 0}
+.integration-approval pre {white-space:pre-wrap;overflow-wrap:anywhere;max-height:240px;overflow:auto}
+@media(max-width:600px){.integration-fields{grid-template-columns:minmax(0,1fr)}}

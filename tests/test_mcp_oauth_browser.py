@@ -63,6 +63,7 @@ class ConsentBrowserTests(unittest.TestCase):
             page.context.add_cookies([{"name": "login", "value": "yes", "url": "http://localhost"}])
             old_location = fixture.authorize().headers["location"]
             page.goto(old_location)
+            page.get_by_label("Todos os projetos, inclusive futuros").check()
             page.get_by_role("button", name="Autorizar", exact=True).click()
             page.wait_for_timeout(500)
             self.assertFalse(callbacks)
@@ -72,6 +73,7 @@ class ConsentBrowserTests(unittest.TestCase):
 
             legacy[0] = False
             page.goto(fixture.authorize().headers["location"])
+            page.get_by_label("Todos os projetos, inclusive futuros").check()
             page.get_by_role("button", name="Autorizar", exact=True).click()
             page.wait_for_url(origin + "/callback?**")
             self.assertEqual(len(callbacks), 1)

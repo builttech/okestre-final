@@ -30,8 +30,47 @@ Esta implementacao local nao publica nem reinicia a VM automaticamente.
 No ChatGPT, cadastre o plugin com a URL publica e selecione **OAuth**.
 O servidor oferece descoberta e registro dinamico de clientes. O navegador
 abre o login existente do Act IA e, em seguida, uma tela de aprovacao.
-Somente uma conta root ativa pode autorizar. O escopo `mcp` concede acesso
-a todas as ferramentas e projetos; a tela de aprovacao explicita esse acesso.
+Somente uma conta root ativa pode autorizar. Na tela de aprovacao, escolha
+os projetos e entre Somente leitura (padrao) ou Leitura e edicao. A opcao
+Todos os projetos, inclusive futuros deve ser marcada explicitamente para
+conceder acesso global. Sem essa opcao, pelo menos um projeto e obrigatorio.
+O escopo OAuth continua `mcp`; as restricoes sao armazenadas na concessao
+e verificadas pelo servidor a cada chamada, inclusive apos renovar o token.
+`list_projects` retorna somente os projetos autorizados. `write_file` e
+`patch_file` exigem Leitura e edicao; as outras ferramentas permitem leitura.
+As ferramentas continuam visiveis na descoberta, mas chamadas sem permissao
+sao recusadas antes de acessar arquivos ou registrar alteracoes.
+
+Compatibilidade: tokens anteriores a esta versao mantem o acesso global de
+leitura/edicao originalmente autorizado. O Bearer estatico tambem permanece
+global. Para restringir uma conexao antiga, revogue a conexao em Configuracoes
+> Conexoes MCP e autorize novamente com os projetos desejados. As permissoes
+de uma concessao existente nao sao editadas retroativamente.
+
+## Gerenciar conexoes
+
+Em **Configuracoes > Conexoes MCP**, a conta root pode consultar aplicativo,
+conta responsavel, projetos, leitura/edicao, autorizacao, ultimo acesso e status.
+Cada autorizacao e uma conexao separada, mesmo quando o aplicativo e o mesmo.
+Ha paginacao, atualizacao manual e confirmacao antes de revogar.
+
+A revogacao persiste em `mcp_oauth.db` e bloqueia tokens atuais e renovacoes
+da conexao, inclusive depois de reiniciar o backend. Requisicoes ja em execucao
+nao sao interrompidas. A chave Bearer global nao e uma conexao OAuth e nao
+aparece nesta lista. A revogacao OAuth `/revoke` tambem bloqueia a conexao.
+
+O ultimo acesso representa validacao autenticada de um token MCP, incluindo
+descoberta de ferramentas, atualizado no maximo uma vez por minuto. Nao e
+uma auditoria de operacoes. Conexoes antigas com refresh token valido sao
+importadas automaticamente; datas que nao foram registradas aparecem como
+"Nao registrado". Conexoes ja expiradas antes da atualizacao podem nao ser
+recuperaveis. A lista preserva os registros de conexoes revogadas/expiradas.
+
+Endpoints administrativos (sessao root obrigatoria, sem acesso via token MCP):
+`GET /api/mcp/connections?offset=0&limit=25` e
+`POST /api/mcp/connections/{connection_id}/revoke`. A listagem retorna um token
+CSRF vinculado a sessao, exigido no header `X-CSRF-Token` para revogar. As
+respostas usam `Cache-Control: no-store` e nunca retornam segredos OAuth.
 O Bearer estatico continua funcionando para os clientes ja configurados.
 Nao e um schema para colar na tela de GPT Actions.
 
@@ -60,7 +99,7 @@ O protocolo e processado pelo SDK MCP: codigo de autorizacao com PKCE S256,
 callback previamente registrado, escopo `mcp` e audiencia do endpoint MCP.
 Codigos duram 2 minutos e sao consumidos uma unica vez; aprovacao dura 10
 minutos. Access tokens duram 1 hora; refresh tokens, 30 dias, com rotacao
-e invalidacao do par anterior. `/revoke` revoga o par de tokens correspondente.
+e invalidacao do par anterior. `/revoke` revoga a conexao correspondente.
 Desativar a conta ou remover seu perfil root impede o uso/renovacao dos tokens.
 O cadastro dinamico suporta clientes com segredo conforme metadata do SDK.
 
@@ -82,6 +121,67 @@ Referencia: https://developers.openai.com/plugins/build/auth
 | `search_files` | `project_id`, `query`, `path_filter`, `case_sensitive`, `offset`, `limit` | Linhas contendo texto literal, com arquivo e numero de linha |
 | `patch_file` | `project_id`, `filepath`, `expected_sha256`, `target_content`, `replacement_content`, `allow_multiple` | Substituicao de trecho, snapshot e novo hash |
 | `git_diff` | `project_id`, `filepath`, `staged` | Diff de um arquivo rastreado: working tree/index ou index/HEAD |
+| `list_requirements` | `project_id`, `query`, `offset`, `limit` | Caminhos Markdown de requisitos e especificacoes, incluindo pastas legadas |
+| `read_requirement` | `project_id`, `filepath`, `start_line`, `limit` | Leitura paginada de uma especificacao com hash integral |
+| `list_tasks` | `project_id`, `status`, `offset`, `limit` | Tarefas rastreaveis e hash integral do task.md |
+| `create_task` | `project_id`, `code`, `title`, `expected_sha256` | Acrescenta uma tarefa pendente com codigo unico |
+| `update_task` | `project_id`, `code`, `checked`, `expected_sha256` | Conclui ou reabre uma tarefa pelo codigo |
+| `execute_command` | `project_id`, `command`, `command_id` opcional | Solicita aprovacao e executa um comando de shell nao interativo |
+
+### Terminal MCP
+
+Reconecte via OAuth com Leitura e edicao e a opcao explicita de terminal.
+Conexoes antigas e chaves API globais nao recebem permissao de executar.
+A permissao persiste na renovacao e aparece em Conexoes MCP.
+
+Primeiro chame `execute_command` sem `command_id`. A resposta retorna
+`pending_approval` e um identificador. Aprove o comando exato no painel
+existente do Act IA e repita a chamada com o mesmo comando e identificador.
+Cada aprovacao e consumida uma unica vez; chamadas repetidas nao executam
+novamente um identificador consumido. O registro de aprovacao existente guarda
+o texto do comando: nao inclua senhas ou tokens nele. Historico MCP e o log
+de execucao MCP nao guardam comando ou saida.
+
+O shell roda NO SERVIDOR, com o projeto como diretorio inicial e com os
+privilegios e ambiente do processo Act IA. Nao e sandbox: pode acessar outros
+arquivos, segredos e rede. `.gitideignore` nao restringe comandos. Use apenas
+para contas e projetos confiaveis; a permissao por projeto controla o inicio
+da chamada, nao os recursos acessiveis ao shell.
+
+Limites: 30 segundos, 64 KB de stdout/stderr combinados, stdin fechado,
+sem sessao persistente ou terminal interativo. Retorna exit_code, timed_out,
+truncated e output; saida nao UTF-8 pode conter caracteres substituidos.
+No timeout tenta encerrar a arvore/grupo de processos; isto nao impede um
+programa de escapar do grupo ou iniciar servicos independentes. Nao use
+para servidores em background. Comandos nao possuem rollback nem snapshots
+automaticos; revise Git antes e depois. Uma falha apos consumir aprovacao
+nao reutiliza essa aprovacao. Revogacao impede novas chamadas, mas nao cancela
+um comando que ja esta rodando.
+
+### Requisitos e tarefas
+
+`list_requirements` lista Markdown em `.documents/requirements`,
+`.documents/functional-requirements`, `.documents/spec` e `.documents/specs`.
+`query` filtra caminhos; `read_requirement` usa os mesmos limites e protecoes
+de `read_file`. Esta entrega nao cria nem altera requisitos por ferramenta dedicada.
+
+Tarefas usam `.documents/task/task.md` e o mesmo parser da API REST. Estados:
+`pending` (checkbox aberto), `completed` (marcado), ou `all` na listagem.
+Nao ha novo estado "em andamento". Identificadores seguem o formato existente,
+por exemplo `TASK-RF-0001-01-001`, `TASK-REQ-01-001` ou `TASK-QA-ABC-001`.
+
+Leia `list_tasks` antes de escrever e envie seu `sha256` em `expected_sha256`.
+Documento inexistente retorna `missing`. Criacao rejeita codigo duplicado e
+titulo vazio/multilinha; atualizacao rejeita codigo ausente ou ambiguo.
+Escritas preservam o restante do documento, reutilizam snapshots e ActivityLog
+do gravador existente e respeitam a permissao OAuth de edicao. Cada ferramenta
+tambem aparece no Historico MCP, sem argumentos ou conteudo.
+
+Criar tarefa acrescenta apenas o item da lista: nao gera `task.details.md`,
+nao aprova o pacote Harness nem executa a tarefa. O detalhamento pode ser lido
+e editado pelas ferramentas de arquivo existentes, conforme o fluxo do projeto.
+As garantias de concorrencia continuam limitadas ao lock do worker MCP e hash;
+editores externos e a API REST nao compartilham esse lock.
 
 Fluxo de edicao parcial: `search_files` localiza o trecho, `read_file` fornece
 conteudo e hash, `patch_file` substitui o texto exato, `git_diff` revisa o resultado.
@@ -115,13 +215,14 @@ com `query: ".documents/"` e lidos com `read_file`.
   200 linhas e 64 KB. Linhas maiores precisam ser tratadas pela API existente.
 - Caminhos relativos, confinados ao projeto, inclusive apos resolver links.
   Respeita `.gitideignore` e bloqueia acesso a metadados `.git`.
-- A chave global tem acesso a todos os projetos, como na API atual. Nao ha
-  ACL individual por usuario/projeto neste adaptador. Cookies nao autenticam MCP.
+- A chave global tem acesso a todos os projetos, como na API atual. Novas
+  concessoes OAuth possuem restricoes por conexao/projeto e leitura/edicao.
+  Cookies nao autenticam chamadas MCP, apenas o login/consentimento.
 - O hash detecta alteracoes feitas desde a leitura. O lock serializa chamadas
   de escrita MCP dentro do mesmo worker; nao garante exclusao mutua contra
   editores externos, a API REST ou outros workers.
 - Gravacoes reutilizam ActivityLog e os snapshots do servico existente.
-  Nao ha ferramentas de exclusao, shell ou commit nesta versao.
+  Nao ha ferramentas dedicadas de exclusao ou commit; o shell autorizado pode realiza-los.
 - Anotacoes MCP identificam leitura e escrita; confirmacao pelo usuario depende
   do cliente e nao e imposta pelas anotacoes no servidor.
 
@@ -129,6 +230,85 @@ Hosts e Origins sao validados. Para outro dominio, configure listas separadas
 por virgula em `GITIDE_MCP_ALLOWED_HOSTS` (host, sem protocolo) e
 `GITIDE_MCP_ALLOWED_ORIGINS` (origem, com protocolo). O proxy deve preservar o
 Host permitido e o header Authorization e encaminhar `/mcp/` ao backend.
+
+## Integracao Supabase
+
+Configuracoes > Integracoes permite cadastrar, editar, testar, desativar e
+excluir conexoes PostgreSQL do Supabase. Nao gerencia Auth, Storage, Edge
+Functions, chaves nem projetos da Management API. Neon fica para outra entrega.
+Use os dados do painel Connect do Supabase: host, porta, banco, usuario e
+senha PostgreSQL (nao anon/service_role). Hosts diretos `db.<ref>.supabase.co`
+e pooler `*.pooler.supabase.com` sao aceitos; self-hosted e dominios customizados
+nao sao suportados nesta versao. TLS verifica certificado e hostname usando
+as CAs do sistema (libpq 16+; psycopg2-binary 2.9.12 fixado nas dependencias).
+
+Referencia de conexao: https://supabase.com/docs/guides/database/connecting-to-postgres
+
+Permissoes por integracao: `read`, `write` (SELECT e DML), `full` (inclui DDL).
+O parser PostgreSQL rejeita multiplas instrucoes, COPY e controle manual de
+sessao/transacao. Funcoes fora de uma lista pequena de builtins, casts e outras
+construcoes exigem full. Leitura usa transacao READ ONLY. A conta PostgreSQL
+deve ter privilegios minimos compativeis com o nivel escolhido: o filtro SQL
+nao substitui GRANT/REVOKE, RLS nem isola funcoes, operadores e triggers existentes.
+Nao use uma conta privilegiada para acesso de leitura/escrita nao confiavel.
+Terminais MCP com acesso ao host nao sao isolados das credenciais do servidor.
+
+Cada chamada exige um projeto autorizado tanto no OAuth quanto na integracao.
+Conexoes OAuth somente leitura nao executam escritas mesmo em integracoes full.
+Chaves API globais mantem o acesso global existente, limitado pelo perfil da
+integracao. `list_integrations` omite credenciais; `database_schema` consulta
+colunas visiveis; `database_query` executa uma instrucao por chamada. Resultados
+retornam no maximo 200 linhas/64 KB, com `truncated`, e valores nao nulos como
+texto. Limites de statement/lock: 15s/3s; conexao: 8s. O driver pode materializar
+resultados de escritas com RETURNING antes do corte de saida; evite lotes enormes.
+Consultas de estrutura truncadas podem ser refinadas usando database_query.
+
+Aprovacao de TODA escrita vem ativada por padrao, podendo ser desligada pelo
+root. O SQL fica pendente nesta tela por dez minutos; apos aprovar, repetir o
+SQL exato com `approval_id`. Aprovacao vincula integracao, revisao, projeto,
+conexao e SQL, e e consumida antes da execucao. Editar a integracao invalida
+aprovacoes anteriores. Falha de rede apos commit pode deixar resultado incerto;
+consulte o banco antes de criar outra aprovacao. Desativar/revogar impede novas
+chamadas, nao desfaz operacoes ja iniciadas. Nao ha rollback posterior automatico.
+
+CREATE TABLE, CREATE TABLE AS e SELECT INTO habilitam RLS na tabela resultante
+antes do commit, inclusive se CREATE IF NOT EXISTS encontrar tabela existente.
+Nao sao criadas politicas nem grants publicos automaticamente. Qualifique os
+schemas, por exemplo `public.minha_tabela`. Views e funcoes privilegiadas exigem
+revisao das regras Supabase de security_invoker/security_definer pelo operador.
+
+Configuracoes completas e SQLs pendentes sao cifrados com o mesmo segredo do
+OAuth, em `mcp_oauth.db`. As senhas nao voltam ao frontend; campo vazio numa
+edicao preserva a senha. Somente root via sessao e CSRF pode administrar ou
+aprovar. Auditoria MCP registra nome da ferramenta/projeto/resultado sem SQL,
+senha ou linhas retornadas. Proteja o volume e o par banco/session_secret.
+As aprovacoes expiradas ficam armazenadas cifradas; limpeza por retencao ainda
+nao foi implementada.
+
+Testes locais usam bancos temporarios e mocks da conexao PostgreSQL. A validacao
+real do Supabase deve ser feita por Testar conexao e uma consulta de leitura
+num projeto de teste; nao foi executada com credenciais remotas nesta entrega.
+
+## Historico de auditoria
+
+Em Configuracoes > Historico MCP, a conta root pode consultar chamadas por
+conexao, projeto, ferramenta, resultado e periodo, com paginacao. Ver conexao
+abre o cadastro correspondente, onde a revogacao continua exigindo confirmacao.
+A API de consulta e `GET /api/mcp/audit`, restrita a root e sem cache.
+
+Cada chamada de ferramenta registra data, conexao/conta, ferramenta, projeto,
+duracao e resultado: sucesso, erro ou acesso negado por permissao de projeto ou
+escrita. Autenticacao ausente/invalida registra um evento anonimo sem ferramenta
+ou projeto. A chave API global nao identifica uma pessoa individualmente.
+As datas da tela usam o fuso local do navegador.
+
+O historico nao armazena tokens, senhas, argumentos, conteudo de arquivos,
+resultados ou mensagens brutas de excecao. Os metadados de auditoria ficam na
+tabela `mcp_audit` do mesmo `mcp_oauth.db`, sem cifragem adicional desses campos;
+proteja o arquivo e seus backups. A coleta comeca apos instalar esta versao:
+nao reconstitui chamadas anteriores e ainda nao possui limpeza por retencao.
+Falhas de armazenamento geram um aviso generico no log e nao interrompem a
+operacao MCP, evitando tratar uma edicao ja concluida como falha de ferramenta.
 
 ## Validar
 

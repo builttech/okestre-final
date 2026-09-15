@@ -8,6 +8,7 @@ import secrets
 import re
 import sqlite3
 import time
+import math
 from contextlib import contextmanager
 from urllib.parse import urlencode, urlsplit
 
@@ -23,6 +24,29 @@ from mcp.shared.auth import OAuthClientInformationFull, OAuthToken
 from pydantic import AnyHttpUrl
 from starlette.responses import HTMLResponse, JSONResponse, RedirectResponse
 from starlette.routing import Route
+from gitide_server.mcp_connections import Connections
+from gitide_server.mcp_audit import MCPAudit
+
+
+class ProjectAuthorizationCode(AuthorizationCode):
+    # Missing fields preserve grants issued before project permissions existed.
+    project_ids: list[int] | None = None
+    can_write: bool = True
+    can_execute: bool = False
+
+
+class ProjectRefreshToken(RefreshToken):
+    connection_id: str | None = None
+    project_ids: list[int] | None = None
+    can_write: bool = True
+    can_execute: bool = False
+
+
+class ProjectAccessToken(AccessToken):
+    connection_id: str | None = None
+    project_ids: list[int] | None = None
+    can_write: bool = True
+    can_execute: bool = False
 
 
 class ResourceTokenHandler(TokenHandler):
@@ -76,7 +100,7 @@ class OAuthStore:
 
 
 class MCPOAuth:
-    def __init__(self, base_url, store_path, secret, current_user, active_subject):
+    def __init__(self, base_url, store_path, secret, current_user, active_subject, list_projects=None, subject_name=None):
         self.base = base_url.rstrip("/")
         parsed = urlsplit(self.base)
         if (parsed.scheme != "https" and not (parsed.scheme == "http" and parsed.hostname in {"localhost", "127.0.0.1"})) or parsed.path or parsed.query or parsed.fragment or parsed.username:
@@ -85,6 +109,28 @@ class MCPOAuth:
         self.store = OAuthStore(store_path, secret)
         self.secret = secret.encode()
         self.current_user, self.active_subject = current_user, active_subject
+        self.list_projects = list_projects or (lambda: [])
+        self.subject_name = subject_name or (lambda subject: f"Usuario #{subject}")
+        self.connections = Connections(self.store)
+        self.audit = MCPAudit(self.store)
+        self.import_legacy_connections()
+
+    def import_legacy_connections(self):
+        with self.store.connect() as db:
+            rows = db.execute("SELECT data FROM oauth WHERE kind='family' AND expires>?", (time.time(),)).fetchall()
+        for (encrypted,) in rows:
+            pair = json.loads(self.store.cipher.decrypt(encrypted))
+            source = self.store.get("refresh", pair["refresh"])
+            if source:
+                client = self.store.get("client", source["client_id"]) or {}
+                self.connections.ensure(pair["family"], source, client.get("client_name") or source["client_id"])
+
+    def token_connection(self, data):
+        identifier = data.get("connection_id")
+        if not identifier:
+            pair = self.store.get("pair", data["token"])
+            identifier = self.store.key(pair["family"]) if pair else None
+        return identifier
 
     async def get_client(self, client_id):
         data = self.store.get("client", client_id)
@@ -109,23 +155,31 @@ class MCPOAuth:
 
     async def load_authorization_code(self, client, authorization_code):
         data = self.store.get("code", authorization_code)
-        return AuthorizationCode.model_validate(data) if data and data["client_id"] == client.client_id else None
+        return ProjectAuthorizationCode.model_validate(data) if data and data["client_id"] == client.client_id else None
 
     def issue(self, source, scopes, family=None):
         if not self.active_subject(source.subject):
             raise TokenError("invalid_grant", "User no longer authorized.")
         access, refresh = secrets.token_urlsafe(48), secrets.token_urlsafe(48)
         family = family or secrets.token_urlsafe(32)
-        common = dict(client_id=source.client_id, scopes=scopes, resource=self.resource, subject=source.subject)
+        common = dict(client_id=source.client_id, scopes=scopes, resource=self.resource, subject=source.subject,
+                      project_ids=source.project_ids, can_write=source.can_write, can_execute=source.can_execute)
         now = int(time.time())
-        a = AccessToken(token=access, expires_at=now + 3600, **common)
-        r = RefreshToken(token=refresh, expires_at=now + 30 * 86400, **common)
+        client = self.store.get("client", source.client_id) or {}
+        identifier = self.connections.ensure(family, dict(common, expires_at=now + 30 * 86400),
+            client.get("client_name") or source.client_id, now)
+        if not self.connections.allowed(identifier):
+            raise TokenError("invalid_grant", "Connection revoked or expired.")
+        common["connection_id"] = identifier
+        a = ProjectAccessToken(token=access, expires_at=now + 3600, **common)
+        r = ProjectRefreshToken(token=refresh, expires_at=now + 30 * 86400, **common)
         self.store.put("access", access, a.model_dump(), a.expires_at)
         self.store.put("refresh", refresh, r.model_dump(), r.expires_at)
         pair = {"access": access, "refresh": refresh, "family": family}
         self.store.put("pair", access, pair, r.expires_at)
         self.store.put("pair", refresh, pair, r.expires_at)
         self.store.put("family", family, pair, r.expires_at)
+        self.connections.extend(identifier, r.expires_at)
         return OAuthToken(access_token=access, refresh_token=refresh, token_type="Bearer", expires_in=3600, scope=" ".join(scopes))
 
     async def exchange_authorization_code(self, client, authorization_code):
@@ -135,13 +189,16 @@ class MCPOAuth:
 
     async def load_refresh_token(self, client, refresh_token):
         data = self.store.get("refresh", refresh_token)
+        if data and not self.connections.allowed(self.token_connection(data)):
+            return None
         used = self.store.get("used_refresh", refresh_token)
         if not data and used and used["client_id"] == client.client_id:
+            self.connections.revoke(self.store.key(used["family"]))
             pair = self.store.get("family", used["family"])
             if pair:
                 for kind in ("access", "refresh"):
                     self.store.get(kind, pair[kind], consume=True)
-        return RefreshToken.model_validate(data) if data and data["client_id"] == client.client_id else None
+        return ProjectRefreshToken.model_validate(data) if data and data["client_id"] == client.client_id else None
 
     async def exchange_refresh_token(self, client, refresh_token, scopes):
         pair = self.store.get("pair", refresh_token.token)
@@ -150,21 +207,102 @@ class MCPOAuth:
         family = pair["family"] if pair else secrets.token_urlsafe(32)
         self.store.put("used_refresh", refresh_token.token,
             {"family": family, "client_id": client.client_id}, time.time() + 30 * 86400)
-        await self.revoke_token(refresh_token)
+        await self.revoke_token(refresh_token, connection=False)
         return self.issue(refresh_token, scopes, family)
 
     async def load_access_token(self, token):
         data = self.store.get("access", token)
         if data and data["resource"] == self.resource and "mcp" in data["scopes"] and self.active_subject(data["subject"]):
-            return AccessToken.model_validate(data)
+            identifier = self.token_connection(data)
+            if not self.connections.allowed(identifier):
+                return None
+            self.connections.touch(identifier)
+            data["connection_id"] = identifier
+            return ProjectAccessToken.model_validate(data)
         return None
 
-    async def revoke_token(self, token):
+    async def revoke_token(self, token, connection=True):
         pair = self.store.get("pair", token.token, consume=True)
         if pair:
+            if connection:
+                self.connections.revoke(self.store.key(pair["family"]))
             for kind in ("access", "refresh"):
                 self.store.get(kind, pair[kind], consume=True)
                 self.store.get("pair", pair[kind], consume=True)
+
+    def management_csrf(self, request, user):
+        session = request.cookies.get("gitide_session", "")
+        return hmac.new(self.secret, f"connections:{user.id}:{session}".encode(), hashlib.sha256).hexdigest()
+
+    async def manage_connections(self, request):
+        user = self.current_user(request)
+        headers = {"Cache-Control": "no-store"}
+        if not user or user.role != "root":
+            return JSONResponse({"detail": "Acesso restrito ao usuario root."}, 403 if user else 401, headers=headers)
+        csrf = self.management_csrf(request, user)
+        if request.method == "POST":
+            if not hmac.compare_digest(request.headers.get("x-csrf-token", ""), csrf):
+                return JSONResponse({"detail": "Autorizacao invalida. Atualize a lista."}, 403, headers=headers)
+            identifier = request.path_params["connection_id"]
+            if not self.connections.revoke(identifier):
+                return JSONResponse({"detail": "Conexao nao encontrada."}, 404, headers=headers)
+            return JSONResponse({"status": "revoked"}, headers=headers)
+        try:
+            offset = int(request.query_params.get("offset", "0"))
+            limit = int(request.query_params.get("limit", "50"))
+            if offset < 0 or not 1 <= limit <= 100:
+                raise ValueError()
+        except ValueError:
+            return JSONResponse({"detail": "Paginacao invalida."}, 400, headers=headers)
+        page = self.connections.page(offset, limit, request.query_params.get("connection_id") or None)
+        projects = {p["id"]: p["name"] for p in self.list_projects()}
+        for item in page["items"]:
+            item["account"] = self.subject_name(item.pop("subject"))
+            item["projects"] = None if item["project_ids"] is None else [
+                {"id": pid, "name": projects.get(pid, f"Projeto #{pid} (indisponivel)")} for pid in item["project_ids"]]
+        return JSONResponse(dict(page, csrf_token=csrf), headers=headers)
+
+    async def audit_history(self, request):
+        user = self.current_user(request)
+        headers = {"Cache-Control": "no-store"}
+        if not user or user.role != "root":
+            return JSONResponse({"detail": "Acesso restrito ao usuario root."}, 403 if user else 401, headers=headers)
+        params = request.query_params
+        try:
+            filters = {"offset": int(params.get("offset", 0)), "limit": int(params.get("limit", 25))}
+            if filters["offset"] < 0 or not 1 <= filters["limit"] <= 100:
+                raise ValueError()
+            for name in ("connection_id", "tool", "outcome"):
+                if params.get(name):
+                    filters[name] = params[name]
+            if "connection_id" in filters and not re.fullmatch(r"[0-9a-f]{64}", filters["connection_id"]):
+                raise ValueError()
+            if "tool" in filters and not re.fullmatch(r"[a-z_]{1,64}", filters["tool"]):
+                raise ValueError()
+            if "outcome" in filters and filters["outcome"] not in {"success", "error", "denied"}:
+                raise ValueError()
+            if params.get("project_id"):
+                filters["project_id"] = int(params["project_id"])
+                if not 0 < filters["project_id"] <= 2147483647:
+                    raise ValueError()
+            for name in ("start", "end"):
+                if params.get(name):
+                    value = float(params[name])
+                    if not math.isfinite(value) or value < 0:
+                        raise ValueError()
+                    filters[name] = value
+            if filters.get("start", 0) > filters.get("end", float("inf")):
+                raise ValueError()
+        except ValueError:
+            return JSONResponse({"detail": "Filtros invalidos."}, 400, headers=headers)
+        page = self.audit.page(**filters)
+        projects = {p["id"]: p["name"] for p in self.list_projects()}
+        for item in page["items"]:
+            subject = item.pop("subject")
+            item["account"] = self.subject_name(subject) if subject else "Chave API global" if item["auth_type"] == "api_key" else "Nao identificado"
+            item["project_name"] = projects.get(item["project_id"], f'Projeto #{item["project_id"]}') if item["project_id"] else None
+        page["projects"] = [{"id": pid, "name": projects.get(pid, f"Projeto #{pid}")} for pid in page.pop("project_ids")]
+        return JSONResponse(page, headers=headers)
 
     def csrf(self, ticket, nonce, user):
         return hmac.new(self.secret, f"{ticket}:{nonce}:{user.id}".encode(), hashlib.sha256).hexdigest()
@@ -194,6 +332,23 @@ class MCPOAuth:
             nonce = request.cookies.get("mcp_consent", "")
             if not nonce or not hmac.compare_digest(str(form.get("csrf", "")), self.csrf(ticket, nonce, user)):
                 return HTMLResponse("Autorizacao invalida. Reabra a conexao.", 403)
+            project_ids, can_write, can_execute = [], False, False
+            if form.get("decision") == "allow":
+                mode = form.get("access_mode")
+                if mode not in {"read", "write"}:
+                    return HTMLResponse("Selecione o tipo de acesso.", 400)
+                can_write = mode == "write"
+                can_execute = form.get("can_execute") == "yes"
+                if can_execute and not can_write:
+                    return HTMLResponse("Terminal exige permissao de leitura e edicao.", 400)
+                if form.get("all_projects") == "yes":
+                    project_ids = None
+                else:
+                    requested = form.getlist("project_ids")
+                    valid_ids = {str(p["id"]) for p in self.list_projects()}
+                    if not requested or any(value not in valid_ids for value in requested):
+                        return HTMLResponse("Selecione pelo menos um projeto disponivel.", 400)
+                    project_ids = sorted({int(value) for value in requested})
             pending = self.store.get("pending", ticket, consume=True)
             if not pending:
                 return HTMLResponse("Solicitacao expirada.", 400)
@@ -202,10 +357,10 @@ class MCPOAuth:
                 url = construct_redirect_uri(str(params.redirect_uri), error="access_denied", state=params.state)
             else:
                 code = secrets.token_urlsafe(32)
-                record = AuthorizationCode(code=code, client_id=pending["client_id"], scopes=["mcp"],
+                record = ProjectAuthorizationCode(code=code, client_id=pending["client_id"], scopes=["mcp"],
                     expires_at=time.time() + 120, code_challenge=params.code_challenge,
                     redirect_uri=params.redirect_uri, redirect_uri_provided_explicitly=params.redirect_uri_provided_explicitly,
-                    resource=self.resource, subject=str(user.id))
+                    resource=self.resource, subject=str(user.id), project_ids=project_ids, can_write=can_write, can_execute=can_execute)
                 self.store.put("code", code, record.model_dump(mode="json"), record.expires_at)
                 url = construct_redirect_uri(str(params.redirect_uri), code=code, state=params.state)
             response = RedirectResponse(url, 303)
@@ -215,13 +370,24 @@ class MCPOAuth:
             nonce = secrets.token_urlsafe(32)
             label = html.escape(client.client_name or client.client_id)
             callback = html.escape(pending["params"]["redirect_uri"])
+            projects_html = "".join(
+                f'<label class="project"><input type="checkbox" name="project_ids" value="{int(p["id"])}"> {html.escape(p["name"])} (#{int(p["id"])})</label>'
+                for p in self.list_projects())
             response = HTMLResponse(f'''<!doctype html><html lang="pt-BR"><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1"><title>Autorizar Act IA</title>
-<style>body{{font:16px system-ui;background:#111;color:#eee;margin:0;padding:24px}}main{{max-width:540px;margin:10vh auto}}p{{line-height:1.5;overflow-wrap:anywhere}}button{{padding:12px 20px;margin:8px 8px 0 0;cursor:pointer}}small{{overflow-wrap:anywhere}}</style>
+<style>body{{font:16px system-ui;background:#111;color:#eee;margin:0;padding:24px}}main{{max-width:540px;margin:5vh auto}}p{{line-height:1.5;overflow-wrap:anywhere}}button{{padding:12px 20px;margin:8px 8px 0 0;cursor:pointer}}small{{overflow-wrap:anywhere}}fieldset{{margin:16px 0;border:1px solid #555;min-width:0}}label{{display:block;padding:8px 0;overflow-wrap:anywhere}}.projects{{max-height:240px;overflow:auto}}</style>
 <main><h1>Autorizar acesso ao Act IA</h1><p>Aplicativo: <strong>{label}</strong></p>
-<p>Esta conexao podera listar todos os projetos, ler arquivos, consultar Git e criar ou editar arquivos em seu nome.</p>
+<p>Autorize os projetos e o tipo de acesso desta conexao.</p>
 <p>Conta: {html.escape(user.email)}</p><p>Destino informado pelo aplicativo:<br><small>{callback}</small></p>
 <form method="post"><input type="hidden" name="csrf" value="{self.csrf(ticket, nonce, user)}">
+<fieldset><legend>Acesso</legend>
+<label><input type="radio" name="access_mode" value="read" checked> Somente leitura</label>
+<label><input type="radio" name="access_mode" value="write"> Leitura e edicao</label></fieldset>
+<fieldset><legend>Terminal</legend>
+<label><input type="checkbox" name="can_execute" value="yes"> Permitir comandos com aprovacao no painel</label>
+<p>Exige leitura e edicao. Comandos usam os privilegios do servidor, podem acessar rede, segredos e arquivos fora do projeto. O diretorio inicial nao e uma sandbox.</p></fieldset>
+<fieldset><legend>Projetos</legend><div class="projects">{projects_html}</div>
+<label><input type="checkbox" name="all_projects" value="yes"> Todos os projetos, inclusive futuros</label></fieldset>
 <button name="decision" value="deny">Cancelar</button><button name="decision" value="allow">Autorizar</button></form></main></html>''')
             response.set_cookie("mcp_consent", nonce, secure=self.base.startswith("https:"), httponly=True,
                                 samesite="lax", max_age=600, path="/oauth/consent")
@@ -241,4 +407,7 @@ class MCPOAuth:
         token_route.app = RequestBodyLimitMiddleware(token_route.app, 65536)
         routes = [token_route if route.path == "/token" else route for route in routes]
         routes.append(Route("/oauth/consent", self.consent, methods=["GET", "POST"]))
+        routes.append(Route("/api/mcp/connections", self.manage_connections, methods=["GET"]))
+        routes.append(Route("/api/mcp/audit", self.audit_history, methods=["GET"]))
+        routes.append(Route("/api/mcp/connections/{connection_id}/revoke", self.manage_connections, methods=["POST"]))
         return routes

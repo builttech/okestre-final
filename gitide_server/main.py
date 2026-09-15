@@ -37,6 +37,10 @@ from typing import List
 
 import requests
 from gitide_server.documents import generate_docx, parse_docx_to_json
+from gitide_server.sdd_tasks import (
+    SDD_TASK_CODE_FRAGMENT, SDD_TASK_CODE_PATTERN, SDD_TASK_LINE_PATTERN,
+    parse_task_line as _parse_sdd_task_line,
+)
 
 # Cria diretórios e inicializa o DB
 init_db()
@@ -215,9 +219,22 @@ def active_mcp_subject(subject):
         user = db.get(User, int(subject))
         return bool(user and user.is_active and user.role == "root")
 
+def mcp_consent_projects():
+    with SessionLocal() as db:
+        return [{"id": p.id, "name": p.name} for p in db.query(Project).order_by(Project.name)]
+
+def mcp_subject_name(subject):
+    with SessionLocal() as db:
+        user = db.get(User, int(subject)) if subject and str(subject).isdigit() else None
+        return user.email if user else "Conta indisponivel"
+
 mcp_oauth = MCPOAuth(os.getenv("GITIDE_PUBLIC_URL", "https://ide.builtt.com.br"),
     os.path.join(CONFIG_DIR, "mcp_oauth.db"), SESSION_SECRET,
-    get_current_user_from_request, active_mcp_subject)
+    get_current_user_from_request, active_mcp_subject, mcp_consent_projects, mcp_subject_name)
+from gitide_server.integrations import Integrations
+from gitide_server.integration_routes import routes as integration_routes
+integrations = Integrations(mcp_oauth.store)
+app.router.routes.extend(integration_routes(mcp_oauth, integrations))
 oauth_routes = mcp_oauth.routes()
 app.router.routes.extend(oauth_routes)
 oauth_public_paths = {route.path for route in oauth_routes}
@@ -226,10 +243,13 @@ async def validate_mcp_bearer(request):
     if has_valid_bearer(request):
         return True
     auth = request.headers.get("authorization", "")
-    return bool(auth.lower().startswith("bearer ") and
-                await mcp_oauth.load_access_token(auth.split(" ", 1)[1]))
+    if not auth.lower().startswith("bearer "):
+        return False
+    return await mcp_oauth.load_access_token(auth.split(" ", 1)[1])
 
 mcp_server, mcp_app, mcp_lifespan = create_mcp(validate_mcp_bearer,
+    integrations=integrations,
+    audit=mcp_oauth.audit,
     metadata_url=mcp_oauth.base + "/.well-known/oauth-protected-resource/mcp/")
 app.router.lifespan_context = mcp_lifespan
 mount_mcp(app, mcp_app)
@@ -4848,33 +4868,6 @@ def _sdd_project_document_path(project: Project, kind: str, create_dir: bool = F
     if create_dir:
         os.makedirs(doc_dir, exist_ok=True)
     return os.path.join(doc_dir, config["filename"])
-
-SDD_TASK_CODE_FRAGMENT = r"TASK-(?:REQ-\d{2,6}|RF-\d{2,6}-\d{1,4}|QA-[A-Z0-9-]+)-\d{3}"
-SDD_TASK_CODE_PATTERN = re.compile(rf"\b{SDD_TASK_CODE_FRAGMENT}\b", flags=re.IGNORECASE)
-SDD_TASK_LINE_PATTERN = re.compile(
-    rf"^({SDD_TASK_CODE_FRAGMENT})\s*:\s*-?\s*(.+)$",
-    flags=re.IGNORECASE,
-)
-
-
-def _parse_sdd_task_line(line: str, line_index: int) -> Optional[dict]:
-    checkbox_match = re.match(r"^\-\s*\[([ xX])\]\s*(.*)", (line or "").strip())
-    if not checkbox_match:
-        return None
-    task_match = SDD_TASK_LINE_PATTERN.match(checkbox_match.group(2).strip())
-    if not task_match:
-        return None
-    task_code = task_match.group(1).upper()
-    task_title = task_match.group(2).strip()
-    return {
-        "id": line_index,
-        "line_no": line_index + 1,
-        "code": task_code,
-        "title": task_title,
-        "text": f"{task_code}: - {task_title}",
-        "checked": checkbox_match.group(1).lower() == "x",
-    }
-
 
 def _remove_sdd_task_detail_section(details_path: str, task_code: str) -> bool:
     if not os.path.exists(details_path):

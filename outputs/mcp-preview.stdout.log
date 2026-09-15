@@ -1,0 +1,32 @@
+INFO:     127.0.0.1:65319 - "POST /mcp/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65505 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64238 - "GET /static/rebrand.css?v=80 HTTP/1.1" 304 Not Modified
+INFO:     127.0.0.1:51319 - "GET /static/mcp-connections.css?v=2 HTTP/1.1" 304 Not Modified
+INFO:     127.0.0.1:65505 - "GET /static/integrations.css?v=1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56029 - "GET /static/app.js?v=93 HTTP/1.1" 304 Not Modified
+INFO:     127.0.0.1:64548 - "GET /static/theme-toggle.js?v=2 HTTP/1.1" 304 Not Modified
+INFO:     127.0.0.1:64548 - "GET /static/ui/workspace-switcher.js?v=4 HTTP/1.1" 304 Not Modified
+INFO:     127.0.0.1:56029 - "GET /static/mcp-connections.js?v=2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64238 - "GET /static/navigation-unlock.js?v=2 HTTP/1.1" 304 Not Modified
+INFO:     127.0.0.1:65505 - "GET /static/integrations.js?v=1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64548 - "GET /static/mcp-audit.js?v=2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51319 - "GET /static/settings-tabs.js?v=11 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51319 - "GET /api/system/parameters HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51319 - "GET /api/info HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51319 - "GET /api/projects HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64287 - "GET /api/integrations HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51788 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52593 - "GET /static/mcp-connections.css?v=2 HTTP/1.1" 304 Not Modified
+INFO:     127.0.0.1:51788 - "GET /static/integrations.css?v=1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51788 - "GET /static/mcp-connections.js?v=2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51788 - "GET /static/mcp-audit.js?v=2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51788 - "GET /static/integrations.js?v=1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51788 - "GET /static/settings-tabs.js?v=11 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52593 - "GET /api/info HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51788 - "GET /api/system/parameters HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52766 - "GET /static/mcp-connections.js?v=2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61663 - "GET /static/mcp-audit.js?v=2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55723 - "GET /static/integrations.js?v=1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63500 - "GET /static/settings-tabs.js?v=11 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51788 - "GET /api/projects HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51788 - "GET /api/integrations HTTP/1.1" 200 OK
