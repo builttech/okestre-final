@@ -26,6 +26,7 @@ class IntegrationBrowserTests(unittest.TestCase):
             browser = playwright.chromium.launch(channel='msedge', headless=True)
             page = browser.new_page(viewport={'width': 1280, 'height': 800})
             errors = []
+            test_failure = [None]
             page.on('pageerror', lambda error: errors.append(str(error)))
             page.on('dialog', lambda dialog: dialog.accept())
             def handle(route):
@@ -39,6 +40,9 @@ class IntegrationBrowserTests(unittest.TestCase):
                 elif parsed.path.startswith('/static/'):
                     path = static / Path(parsed.path).name
                     route.fulfill(content_type='text/css' if path.suffix == '.css' else 'text/javascript', body=path.read_text(encoding='utf-8'))
+                elif parsed.path.endswith('/test') and test_failure[0]:
+                    status, content_type, body = test_failure[0]
+                    route.fulfill(status=status, content_type=content_type, body=body)
                 else:
                     response = fixture.client.request(req.method, parsed.path, content=req.post_data,
                         headers={**req.headers, 'Cookie': 'login=yes'})
@@ -57,6 +61,20 @@ class IntegrationBrowserTests(unittest.TestCase):
             page.screenshot(path=str(output / 'supabase-integration-mobile.png'))
             page.get_by_role('button', name='Salvar integração').click()
             expect(page.get_by_role('cell', name='Supabase HML')).to_be_visible()
+            page.get_by_role('button', name='Testar conexão', exact=True).click()
+            expect(page.get_by_text('Conexão PostgreSQL validada.')).to_be_visible()
+            for status, content_type, body, expected in [
+                (502, 'text/html', '<!DOCTYPE html><h1>private-proxy-detail</h1>', 'Servidor ou proxy indisponível (HTTP 502)'),
+                (200, 'text/html', '<!DOCTYPE html><h1>private-proxy-detail</h1>', 'Resposta inesperada da API (HTTP 200)'),
+                (401, 'text/html', '<!DOCTYPE html>Login', 'Sessão expirada ou autenticação necessária (HTTP 401)'),
+                (500, 'application/json', '{invalid', 'Resposta JSON inválida da API (HTTP 500)'),
+                (502, 'application/json', '{"detail":"Falha na verificacao TLS."}', 'Falha na verificacao TLS. (HTTP 502)'),
+            ]:
+                test_failure[0] = (status, content_type, body)
+                page.get_by_role('button', name='Testar conexão', exact=True).click()
+                expect(page.locator('[data-message]')).to_contain_text(expected)
+                expect(page.locator('[data-message]')).not_to_contain_text('private-proxy-detail')
+            test_failure[0] = None
             page.get_by_role('button', name='Testar conexão', exact=True).click()
             expect(page.get_by_text('Conexão PostgreSQL validada.')).to_be_visible()
             config = service.list()[0]

@@ -30,9 +30,23 @@
     const permission = {read: 'Somente leitura', write: 'Leitura e escrita', full: 'Acesso total ao banco'};
     async function request(path = '', method = 'GET', body) {
       const response = await fetch('/api/integrations' + path, {method, credentials: 'same-origin',
-        headers: {'Content-Type': 'application/json', 'X-CSRF-Token': csrf}, body: body === undefined ? undefined : JSON.stringify(body)});
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.detail || 'Falha na integração.');
+        headers: {'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-Token': csrf}, body: body === undefined ? undefined : JSON.stringify(body)});
+      const status = `HTTP ${response.status}`;
+      if (response.status === 401 || new URL(response.url).pathname === '/login') {
+        throw new Error(`Sessão expirada ou autenticação necessária (${status}). Entre novamente no Okestre.`);
+      }
+      const type = (response.headers.get('content-type') || '').split(';')[0].trim().toLowerCase();
+      if (type !== 'application/json' && !type.endsWith('+json')) {
+        if (response.status === 502 || response.status === 503 || response.status === 504) {
+          throw new Error(`Servidor ou proxy indisponível (${status}). A API não retornou JSON. Verifique os logs do backend e do proxy.`);
+        }
+        throw new Error(`Resposta inesperada da API (${status}): conteúdo não JSON. Verifique a rota /api/integrations e a configuração do proxy.`);
+      }
+      let data;
+      try { data = await response.json(); }
+      catch { throw new Error(`Resposta JSON inválida da API (${status}). Verifique os logs do servidor.`); }
+      if (!response.ok) throw new Error(`${typeof data?.detail === 'string' ? data.detail : 'Falha na integração.'} (${status})`);
+      if (!data || typeof data !== 'object' || Array.isArray(data)) throw new Error(`Formato inesperado da API (${status}).`);
       return data;
     }
     async function action(callback) {
