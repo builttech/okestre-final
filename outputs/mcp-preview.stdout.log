@@ -1,2 +1,10 @@
 INFO:     127.0.0.1:54886 - "GET /login HTTP/1.1" 200 OK
 INFO:     127.0.0.1:64550 - "GET /api/integrations HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63378 - "GET /static/theme-toggle.js?v=2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63355 - "GET /static/ui/workspace-switcher.js?v=4 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63299 - "GET /static/mcp-connections.js?v=2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64697 - "GET /static/mcp-audit.js?v=2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57008 - "GET /static/settings-tabs.js?v=11 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63355 - "GET /static/navigation-unlock.js?v=2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63378 - "GET /static/integrations.js?v=1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55943 - "GET /static/app.js?v=93 HTTP/1.1" 200 OK

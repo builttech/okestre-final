@@ -212,7 +212,8 @@ com `query: ".documents/"` e lidos com `read_file`.
 - Listagens retornam ate 200 itens por pagina; o inventario ainda percorre
   os arquivos do projeto a cada chamada. Status Git reutiliza a resposta da API.
 - Leitura/escrita somente de texto UTF-8 ate 1 MiB; pagina de leitura ate
-  200 linhas e 64 KB. Linhas maiores precisam ser tratadas pela API existente.
+  200 linhas, podendo retornar ate 1 MiB de conteudo. JSON minificado em uma
+  unica linha e aceito, sem a antiga trava de 64 KB por pagina.
 - Caminhos relativos, confinados ao projeto, inclusive apos resolver links.
   Respeita `.gitideignore` e bloqueia acesso a metadados `.git`.
 - A chave global tem acesso a todos os projetos, como na API atual. Novas

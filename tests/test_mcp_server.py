@@ -59,6 +59,37 @@ class MCPTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200, response.text)
         return response.json()["result"]
 
+    def test_read_large_minified_json_and_utf8(self):
+        import hashlib
+        import json
+
+        for value in ("x" * 90000, "\u00e1" * 45000):
+            content = json.dumps({"template": value}, ensure_ascii=False)
+            data = content.encode("utf-8")
+            (self.workspace / "template.json").write_bytes(data)
+            result = self.tool("read_file", project_id=1, filepath="template.json")["structuredContent"]
+            self.assertEqual(result["content"], content)
+            self.assertEqual(json.loads(result["content"])["template"], value)
+            self.assertEqual(result["sha256"], hashlib.sha256(data).hexdigest())
+            self.assertEqual(result["total_lines"], 1)
+            self.assertIsNone(result["next_line"])
+
+    def test_read_one_mib_boundary_and_pagination(self):
+        content = "x" * (1024 * 1024)
+        path = self.workspace / "large.txt"
+        path.write_bytes(content.encode())
+        result = self.tool("read_file", project_id=1, filepath="large.txt")["structuredContent"]
+        self.assertEqual(result["content"], content)
+        path.write_bytes((content + "x").encode())
+        self.assertTrue(self.tool("read_file", project_id=1, filepath="large.txt")["isError"])
+        path.write_bytes(("x" * 90000 + "\nsecond\n").encode())
+        result = self.tool("read_file", project_id=1, filepath="large.txt", limit=1)["structuredContent"]
+        self.assertEqual(result["content"], "x" * 90000 + "\n")
+        self.assertEqual(result["next_line"], 2)
+        result = self.tool("read_file", project_id=1, filepath="large.txt", start_line=2, limit=1)["structuredContent"]
+        self.assertEqual(result["content"], "second\n")
+        self.assertIsNone(result["next_line"])
+
     def test_auth_and_origin(self):
         for token in (None, "wrong"):
             self.assertEqual(self.rpc("tools/list", token=token).status_code, 401)

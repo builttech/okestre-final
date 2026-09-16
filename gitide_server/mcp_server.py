@@ -233,14 +233,16 @@ def create_mcp(validate_bearer, session_factory=SessionLocal, metadata_url=None,
     @mcp.tool(annotations=read_only, structured_output=True)
     def read_file(project_id: Positive, filepath: str, start_line: Positive = 1,
                   limit: Limit = 200) -> dict[str, Any]:
-        """Read UTF-8 text (up to 1 MiB); sha256 identifies the entire file, not just this page."""
+        """Read UTF-8 text up to 1 MiB, including single-line minified JSON.
+
+        Pages contain up to 200 lines, with no separate 64 KB line/page cap.
+        sha256 identifies the entire file, not just this page; paginate with next_line.
+        """
         def operation(db, project):
             content, digest = read_text(safe_path(project, filepath))
             lines = content.splitlines(keepends=True)
             selected = lines[start_line - 1:start_line - 1 + limit]
             result = "".join(selected)
-            if len(result.encode("utf-8")) > 64000:
-                raise ValueError("Page exceeds 64 KB; request fewer lines.")
             end = start_line - 1 + len(selected)
             return {"filepath": filepath, "content": result, "sha256": digest,
                     "total_lines": len(lines), "start_line": start_line, "end_line": end,
