@@ -16,4 +16,4 @@ COPY . .
 EXPOSE 8000
 
 # Executa o uvicorn apontando para o app do main.py
-CMD ["uvicorn", "gitide_server.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "gitide_server.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1", "--ws-max-size", "8388608"]

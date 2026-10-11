@@ -1,6 +1,6 @@
 import os
 from datetime import datetime
-from sqlalchemy import create_engine, ForeignKey, Text, String, DateTime, Boolean
+from sqlalchemy import create_engine, ForeignKey, Text, String, DateTime, Boolean, inspect, text
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship, sessionmaker
 
 # Configuração do banco de dados SQLite interno do GitIDE.
@@ -26,12 +26,17 @@ class Project(Base):
     
     # Mapeia a coluna 'path' para o atributo interno '_path'
     _path: Mapped[str] = mapped_column("path", String(500), nullable=False)
+    storage_kind: Mapped[str] = mapped_column(String(16), default="server", server_default="server", nullable=False)
+    device_id: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    root_id: Mapped[str | None] = mapped_column(String(32), nullable=True)
     
     git_remote: Mapped[str | None] = mapped_column(String(500), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     @hybrid_property
     def path(self) -> str:
+        if self.storage_kind == "device":
+            raise ValueError("device_project_requires_local_bridge")
         val = self._path
         # Se for Linux (POSIX) mas o caminho cadastrado no banco for do Windows, mapeia para /workspace
         if os.name != 'nt':
@@ -120,6 +125,19 @@ class User(Base):
 
 def init_db():
     Base.metadata.create_all(bind=engine)
+    migrate_project_storage(engine)
+
+
+def migrate_project_storage(bind):
+    """Additive SQLite migration; legacy rows remain server projects. Idempotent."""
+    with bind.begin() as connection:
+        columns = {column["name"] for column in inspect(connection).get_columns("projects")}
+        for name, definition in (
+            ("storage_kind", "VARCHAR(16) NOT NULL DEFAULT 'server'"),
+            ("device_id", "VARCHAR(32)"), ("root_id", "VARCHAR(32)"),
+        ):
+            if name not in columns:
+                connection.execute(text(f"ALTER TABLE projects ADD COLUMN {name} {definition}"))
 
 def get_db():
     db = SessionLocal()

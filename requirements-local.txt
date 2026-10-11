@@ -1,0 +1,7 @@
+# Agent only: no FastAPI, MCP runtime, database drivers or AI SDK required.
+pydantic>=2,<3
+requests>=2.31,<3
+websockets>=14,<18
+pystray>=0.19,<1
+pillow>=10,<13
+pywin32>=306; sys_platform == 'win32'

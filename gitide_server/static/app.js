@@ -472,6 +472,11 @@ function selectProject(projectId) {
     if (previousProjectId && previousProjectId !== normalizedProjectId) {
         resetProjectScopedState();
     }
+
+    if (nextProject.storage_kind === 'device') {
+        window.location.assign(`/local-devices?project=${encodeURIComponent(nextProject.id)}`);
+        return;
+    }
     
     state.activeProjectId = Number(nextProject.id);
     state.activeProject = nextProject;

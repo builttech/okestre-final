@@ -1,0 +1,212 @@
+import asyncio
+import json
+import socket
+import threading
+import time
+import uuid
+from types import SimpleNamespace
+
+import httpx
+import pytest
+import uvicorn
+from fastapi import FastAPI
+from sqlalchemy import create_engine, text
+from sqlalchemy.orm import sessionmaker
+from starlette.staticfiles import StaticFiles
+from pathlib import Path
+
+from gitide_server.database import Base, Project, FileSnapshot, migrate_project_storage
+from gitide_server.local_bridge import DeviceStore, LocalBridge
+from gitide_server.mcp_server import create_mcp
+from okestre_local.client import Agent
+from okestre_local.config import Config
+from okestre_local.protocol import BridgeError
+
+
+def eventually(predicate, seconds=8):
+    deadline = time.monotonic() + seconds
+    while time.monotonic() < deadline:
+        if predicate():
+            return
+        time.sleep(.05)
+    raise AssertionError("condition did not become true")
+
+
+@pytest.fixture
+def live(tmp_path):
+    engine = create_engine("sqlite:///" + str(tmp_path / "server.db"))
+    Base.metadata.create_all(engine)
+    sessions = sessionmaker(bind=engine, expire_on_commit=False)
+    state = SimpleNamespace(grant=SimpleNamespace(subject="1", project_ids=None, can_write=True), active=True)
+    oauth = SimpleNamespace(
+        active_subject=lambda subject: state.active and subject in ("1", "2"),
+        current_user=lambda request: SimpleNamespace(id=1, role="root") if request.cookies.get("session") == "owner" else None,
+        management_csrf=lambda request, user: "test-csrf",
+    )
+    bridge = LocalBridge(DeviceStore(tmp_path / "devices.db"), sessions, oauth, timeout=2)
+    _, transport, lifespan = create_mcp(lambda request: state.grant if request.headers.get("authorization") == "Bearer test" else False,
+                                       sessions, bridge=bridge)
+    app = FastAPI(lifespan=lifespan)
+    app.router.routes.extend(bridge.routes())
+    app.mount("/mcp", transport)
+    app.mount("/static", StaticFiles(directory=Path(__file__).parents[1] / "gitide_server/static"))
+    sock = socket.socket()
+    sock.bind(("127.0.0.1", 0))
+    port = sock.getsockname()[1]
+    server = uvicorn.Server(uvicorn.Config(app, log_level="critical", ws_max_size=8 * 1024 * 1024))
+    thread = threading.Thread(target=lambda: server.run(sockets=[sock]), daemon=True)
+    thread.start()
+    eventually(lambda: server.started)
+    url = f"http://127.0.0.1:{port}"
+    client = httpx.Client(base_url=url, cookies={"session": "owner"}, headers={"X-CSRF-Token": "test-csrf"}, timeout=10)
+    state.bridge, state.client, state.url, state.sessions = bridge, client, url, sessions
+    state.agents = []
+    def enroll():
+        code = client.post("/api/local/pair", json={"name": "Windows de teste"}).json()["code"]
+        config = Config(tmp_path / ("local-" + uuid.uuid4().hex))
+        config.pair(url, code)
+        folder = tmp_path / ("project-" + uuid.uuid4().hex)
+        folder.mkdir()
+        marker = "ONLY_ON_COMPUTER_" + uuid.uuid4().hex
+        (folder / "README.md").write_text(marker, encoding="utf-8")
+        root_id = config.add_root(folder, "Projeto local", True)
+        agent = Agent(config)
+        agent_thread = threading.Thread(target=lambda: asyncio.run(agent.run()), daemon=True)
+        state.agents.append((agent, agent_thread))
+        agent_thread.start()
+        identifier = config.load()["device_id"]
+        eventually(lambda: bridge.online(identifier))
+        result = client.post("/api/local/bind", json={"device_id": identifier, "root_id": root_id, "name": "Local " + root_id[:8]})
+        assert result.status_code == 200, result.text
+        return config, folder, marker, result.json()["project_id"]
+    state.enroll = enroll
+    def tool(name, **arguments):
+        response = client.post("/mcp/", headers={"Authorization": "Bearer test", "Accept": "application/json, text/event-stream"},
+                               json={"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": name, "arguments": arguments}})
+        assert response.status_code == 200, response.text
+        return response.json()["result"]
+    state.tool = tool
+    yield state
+    for agent, agent_thread in state.agents:
+        agent.stopping.set()
+        agent_thread.join(7)
+        assert not agent_thread.is_alive()
+    client.close()
+    server.should_exit = True
+    thread.join(8)
+    assert not thread.is_alive()
+    sock.close()
+    engine.dispose()
+
+
+def test_end_to_end_mcp_reads_edits_and_keeps_server_content_free(live, tmp_path):
+    config, folder, marker, project = live.enroll()
+    read = live.tool("read_file", project_id=project, filepath="README.md")
+    assert not read.get("isError"), read
+    assert read["structuredContent"]["content"] == marker
+    result = live.tool("write_file", project_id=project, filepath="README.md", content=marker + " changed", expected_sha256=read["structuredContent"]["sha256"])
+    assert not result.get("isError"), result
+    assert folder.joinpath("README.md").read_text() == marker + " changed"
+    assert live.tool("search_files", project_id=project, query="changed")["structuredContent"]["items"][0]["filepath"] == "README.md"
+    with live.sessions() as db:
+        assert db.query(FileSnapshot).count() == 0
+        with pytest.raises(ValueError, match="requires_local_bridge"):
+            _ = db.get(Project, project).path
+    for name in ("server.db", "devices.db"):
+        assert marker.encode() not in (tmp_path / name).read_bytes()
+    data = live.client.get("/api/local/devices").json()
+    assert str(folder) not in json.dumps(data)
+    assert config.load()["token"] not in json.dumps(data)
+    assert live.tool("execute_command", project_id=project, command="echo forbidden")["isError"]
+    assert live.tool("git_status", project_id=project)["isError"]
+
+
+def test_oauth_owner_write_grant_and_offline(live):
+    config, folder, marker, project = live.enroll()
+    live.grant.can_write = False
+    assert live.tool("write_file", project_id=project, filepath="README.md", content="no", expected_sha256="missing")["isError"]
+    live.grant.subject = "2"
+    assert live.tool("read_file", project_id=project, filepath="README.md")["isError"]
+    live.grant = True
+    assert live.tool("read_file", project_id=project, filepath="README.md")["isError"]
+    live.grant = SimpleNamespace(subject="1", project_ids=[], can_write=True)
+    assert live.tool("read_file", project_id=project, filepath="README.md")["isError"]
+    live.grant.project_ids = [project]
+    agent, thread = live.agents[0]
+    agent.stopping.set()
+    thread.join(7)
+    eventually(lambda: not live.bridge.online(config.load()["device_id"]))
+    assert "device_offline" in str(live.tool("read_file", project_id=project, filepath="README.md"))
+    assert folder.joinpath("README.md").read_text() == marker
+
+
+def test_pairing_csrf_revocation_and_local_pause(live):
+    client = live.client
+    assert httpx.get(live.url + "/api/local/devices").status_code == 403
+    assert client.post("/api/local/pair", json={"name": "no"}, headers={"X-CSRF-Token": "bad"}).status_code == 403
+    code = client.post("/api/local/pair", json={"name": "one use"}).json()["code"]
+    assert client.post("/api/local/claim", json={"code": code}).status_code == 200
+    assert client.post("/api/local/claim", json={"code": code}).status_code == 400
+    config, _, _, project = live.enroll()
+    settings = config.load()
+    settings["paused"] = True
+    config.save(settings)
+    eventually(lambda: not live.bridge.online(settings["device_id"]))
+    settings["paused"] = False
+    config.save(settings)
+    eventually(lambda: live.bridge.online(settings["device_id"]), seconds=10)
+    assert not live.tool("read_file", project_id=project, filepath="README.md").get("isError")
+    assert client.post("/api/local/revoke", json={"device_id": settings["device_id"]}).status_code == 200
+    assert "device_not_authorized" in str(live.tool("read_file", project_id=project, filepath="README.md"))
+    assert live.bridge.store.authenticate(settings["token"]) is None
+
+
+def test_additive_migration(tmp_path):
+    engine = create_engine("sqlite:///" + str(tmp_path / "old.db"))
+    with engine.begin() as db:
+        db.execute(text("CREATE TABLE projects (id INTEGER PRIMARY KEY,name TEXT,path TEXT,git_remote TEXT,created_at DATETIME)"))
+        db.execute(text("INSERT INTO projects(id,name,path) VALUES (1,'old','old-path')"))
+    migrate_project_storage(engine)
+    migrate_project_storage(engine)
+    with engine.connect() as db:
+        assert db.execute(text("SELECT storage_kind,path,device_id FROM projects")).fetchone() == ("server", "old-path", None)
+    engine.dispose()
+
+
+def test_timeout_and_inactive_owner(live):
+    config, folder, marker, project = live.enroll()
+    agent, _ = live.agents[0]
+    original = agent.executor.dispatch
+    def slow(message):
+        time.sleep(2.2)
+        return original(message)
+    agent.executor.dispatch = slow
+    assert "request_timeout" in str(live.tool("read_file", project_id=project, filepath="README.md"))
+    agent.executor.dispatch = original
+    live.active = False
+    assert "device_not_authorized" in str(live.tool("read_file", project_id=project, filepath="README.md"))
+    assert folder.joinpath("README.md").read_text() == marker
+
+
+def test_packaged_windows_agent_with_real_mcp(live):
+    import os
+    import subprocess
+    executable = Path(__file__).parents[1] / "outputs/okestre-local/OkestreLocal/OkestreLocal.exe"
+    if os.name != "nt" or not executable.exists():
+        pytest.skip("Build the Windows portable executable to run this test")
+    config, folder, marker, project = live.enroll()
+    agent, thread = live.agents[0]
+    agent.stopping.set()
+    thread.join(7)
+    eventually(lambda: not live.bridge.online(config.load()["device_id"]))
+    process = subprocess.Popen([str(executable), "--home", str(config.home), "run"], creationflags=subprocess.CREATE_NO_WINDOW)
+    try:
+        eventually(lambda: live.bridge.online(config.load()["device_id"]), seconds=10)
+        read = live.tool("read_file", project_id=project, filepath="README.md")["structuredContent"]
+        assert read["content"] == marker
+        result = live.tool("write_file", project_id=project, filepath="README.md", content="packaged executable edit", expected_sha256=read["sha256"])
+        assert not result.get("isError"), result
+        assert folder.joinpath("README.md").read_text() == "packaged executable edit"
+    finally:
+        process.terminate()
+        process.wait(timeout=10)

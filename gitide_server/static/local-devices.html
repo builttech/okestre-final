@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Computadores · Okestre</title>
+  <link rel="stylesheet" href="/static/local-devices.css">
+  <script src="/static/local-devices.js" defer></script>
+</head>
+<body>
+  <main>
+    <header><div><a href="/">← Voltar ao Okestre</a><h1>Seus computadores</h1></div><button id="refresh">Atualizar</button></header>
+    <p>Conecte o Okestre Local para trabalhar nos arquivos do seu computador. Os arquivos e o histórico ficam nele; o conteúdo solicitado passa pela VM até o GPT.</p>
+    <p id="notice" role="status" aria-live="polite"></p>
+    <section aria-labelledby="pair-title"><h2 id="pair-title">Conectar um computador</h2>
+      <form id="pair-form"><label>Nome do computador<input id="device-name" required maxlength="100" placeholder="Meu Windows" autocomplete="off"></label><button>Gerar código de pareamento</button></form>
+      <div id="pair-result" hidden><p>Abra o Okestre Local, clique em Parear e informe o endereço desta VM e o código abaixo. Válido por 5 minutos, para um único uso. Gerar outro código invalida o anterior.</p><code id="pair-code"></code></div>
+    </section>
+    <section aria-labelledby="devices-title"><h2 id="devices-title">Dispositivos e pastas</h2><div id="devices"></div></section>
+    <section aria-labelledby="files-title"><h2 id="files-title">Arquivos locais</h2>
+      <p>Selecione um projeto para ler e editar arquivos. Git, terminal e o editor principal ainda não estão habilitados para projetos locais nesta versão.</p>
+      <label>Projeto<select id="projects"><option value="">Selecione…</option></select></label>
+      <div class="workspace"><div><ul id="files"></ul><button id="more" hidden>Mais arquivos</button></div>
+        <form id="editor"><label>Arquivo<input id="filepath" required placeholder="README.md" autocomplete="off"></label>
+          <div class="actions"><button type="button" id="read">Ler arquivo</button><button type="button" id="new-file">Preparar arquivo novo</button></div>
+          <label>Conteúdo<textarea id="content" spellcheck="false" rows="16" disabled></textarea></label>
+          <button id="save" disabled>Salvar no computador</button><small id="version"></small>
+        </form>
+      </div>
+    </section>
+  </main>
+</body></html>

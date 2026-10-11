@@ -251,7 +251,12 @@ async def validate_mcp_bearer(request):
         return False
     return await mcp_oauth.load_access_token(auth.split(" ", 1)[1])
 
+from gitide_server.local_bridge import LocalBridge, DeviceStore
+local_bridge = LocalBridge(DeviceStore(os.path.join(CONFIG_DIR, "local_devices.db")), SessionLocal, mcp_oauth)
+app.router.routes.extend(local_bridge.routes())
+
 mcp_server, mcp_app, mcp_lifespan = create_mcp(validate_mcp_bearer,
+    bridge=local_bridge,
     integrations=integrations,
     audit=mcp_oauth.audit,
     metadata_url=mcp_oauth.base + "/.well-known/oauth-protected-resource/mcp/")
@@ -265,12 +270,18 @@ async def require_authenticated_session(request: Request, call_next):
         return await call_next(request)
     if path in oauth_public_paths:
         return await call_next(request)
-    public_paths = {"/login", "/api/auth/login", "/favicon.ico"}
+    public_paths = {"/login", "/api/auth/login", "/favicon.ico", "/api/local/claim"}
     if request.method == "OPTIONS":
         return await call_next(request)
     if path in public_paths:
         return await call_next(request)
     if has_valid_bearer(request) or get_current_user_from_request(request):
+        match = re.match(r"^/api/projects/(\d+)(?:/|$)", path)
+        if match:
+            with SessionLocal() as db:
+                project = db.get(Project, int(match.group(1)))
+                if project and project.storage_kind == "device":
+                    return Response(status_code=409, content='{"detail":"Projeto local: utilize o MCP ou o painel /local-devices. Esta operacao ainda nao esta disponivel no editor principal."}', media_type="application/json")
         return await call_next(request)
     if path.startswith("/api/"):
         return Response(status_code=status.HTTP_401_UNAUTHORIZED, content='{"detail":"Autenticação obrigatória."}', media_type="application/json")
@@ -828,7 +839,8 @@ def list_projects(db: Session = Depends(get_db)):
     """Lista todos os projetos cadastrados."""
     projects = db.query(Project).all()
     for project in projects:
-        sync_project_system_files(project.path)
+        if project.storage_kind != "device":
+            sync_project_system_files(project.path)
     return projects
 
 @app.post("/api/projects", tags=["Projetos"])

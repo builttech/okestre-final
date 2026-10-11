@@ -16,3 +16,5 @@ env/
 .env
 .idea/
 .vscode/
+/outputs/okestre-local/
+/outputs/local-bridge-qa/
