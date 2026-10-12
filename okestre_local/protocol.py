@@ -7,8 +7,8 @@ from pydantic import BaseModel, ConfigDict, Field
 VERSION = 1
 MAX_FILE = 1024 * 1024
 MAX_MESSAGE = 8 * MAX_FILE
-READS = {"list_files", "read_file", "search_files", "list_requirements", "read_requirement", "list_tasks"}
-WRITES = {"write_file", "patch_file", "create_task", "update_task"}
+READS = {"list_files", "read_file", "search_files", "list_requirements", "read_requirement", "list_tasks", "git_status", "git_diff"}
+WRITES = {"write_file", "patch_file", "create_task", "update_task", "execute_command", "stop_command"}
 OPERATIONS = READS | WRITES
 
 

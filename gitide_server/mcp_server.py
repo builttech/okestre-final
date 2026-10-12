@@ -80,6 +80,9 @@ class AuditedMCP(FastMCP):
                         if self.bridge is None:
                             raise BridgeError("local_bridge_unavailable")
                         grant = request_grant.get()
+                        if function.__name__ in {"execute_command", "stop_command"} and not getattr(grant, "can_execute", False):
+                            mark_access_denied()
+                            raise ValueError("Reconnect with explicit terminal permission.")
                         # Device ownership requires an OAuth subject, not the shared API key.
                         return await self.bridge.request(project, function.__name__, arguments,
                             getattr(grant, "subject", None), getattr(grant, "can_write", False))
@@ -521,7 +524,10 @@ def create_mcp(validate_bearer, session_factory=SessionLocal, metadata_url=None,
                         command_id: Positive | None = None) -> dict[str, Any]:
         """Request a shell command, then call again with the returned command_id after dashboard approval.
 
-        Requires explicit OAuth terminal permission (global API keys are denied). Runs on the SERVER,
+        LOCAL projects: executes directly on the computer with OAuth terminal permission and writable folder.
+        Returns running + command_id for long jobs; repeat the same command and id to poll, or use stop_command.
+        Local commands have no execution timeout; use npm.cmd on Windows. cwd is NOT a sandbox.
+        SERVER projects: requires dashboard approval and explicit OAuth terminal permission. Runs on the SERVER,
         not the user's PC, with its privileges; project cwd is NOT a sandbox. No interactive input.
         Timeout 30s, combined output 64KB. Never use for background servers or supply secrets in commands.
         Approval is single-use; rejected/executed commands cannot be retried under the same id.
@@ -562,6 +568,11 @@ def create_mcp(validate_bearer, session_factory=SessionLocal, metadata_url=None,
                           command_id=command_id)
             return result
         return run(project_id, operation, write=True)
+
+    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True, openWorldHint=True), structured_output=True)
+    def stop_command(project_id: Positive, command_id: Positive) -> dict[str, Any]:
+        """Stop a local terminal process and its children. Requires terminal and write permission."""
+        raise ValueError("Only available for local projects.")
 
     def integration_service():
         if integrations is None:

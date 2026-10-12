@@ -76,7 +76,7 @@ def test_permissions_legacy_deadline_unsupported_and_invalid_args(agent):
         with pytest.raises(BridgeError, match="invalid_arguments"):
             executor.dispatch(message("read_file", **args))
     with pytest.raises(BridgeError, match="unsupported_operation"):
-        executor.dispatch(message("execute_command", command="echo no"))
+        executor.dispatch(message("unsupported_command", command="echo no"))
     assert not (root / "new.txt").exists()
 
 
@@ -151,3 +151,21 @@ def test_protected_config_and_single_instance(tmp_path):
         with pytest.raises(BridgeError):
             server_url(url)
     assert server_url("http://127.0.0.1:8000/") == "http://127.0.0.1:8000"
+
+def test_terminal_long_job_poll_stop_and_root_isolation(agent):
+    import subprocess
+    import sys
+    executor, root, message = agent
+    command = subprocess.list2cmdline([sys.executable, '-u', '-c', 'import time; print("ready", flush=True); time.sleep(90)']) if os.name == 'nt' else "python3 -u -c 'import time; print(\"ready\", flush=True); time.sleep(90)'"
+    try:
+        started = executor.dispatch(message('execute_command', command=command))
+        identifier = started['command_id']
+        assert started['status'] == 'running'
+        polled = executor.dispatch(message('execute_command', command=command, command_id=identifier))
+        assert 'ready' in polled['output']
+        with pytest.raises(BridgeError, match='invalid_arguments'):
+            executor.terminal.stop('another-root', identifier)
+        stopped = executor.dispatch(message('stop_command', command_id=identifier))
+        assert stopped['exit_code'] is not None
+    finally:
+        executor.terminal.close()

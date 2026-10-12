@@ -90,7 +90,9 @@ O hash precisa corresponder ao conteúdo atual. A restauração preserva o conte
 
 ## Limites explícitos
 
-- Git, terminal, integrações de banco e execução do agente de IA da VM não estão disponíveis para projetos locais neste incremento. O MCP devolve indisponibilidade; não executa na VM como alternativa.
+- Git local: `git_status` e `git_diff`. Commit, branch, pull e push podem ser feitos pelo terminal com as credenciais Git do Windows. Integrações de banco e execução do agente de IA da VM continuam indisponíveis para projetos locais.
+- Terminal local exige concessão OAuth de terminal e escrita, além de pasta compartilhada com escrita. Reconecte o plugin para conceder terminal. Comandos locais são executados diretamente como o usuário Windows, com a pasta do projeto como diretório inicial; não há sandbox de shell. Na VM, comandos continuam exigindo aprovação no painel.
+- `execute_command` retorna `command_id`; se estiver `running`, consulte novamente com o mesmo comando e identificador. `stop_command` encerra o processo. Saída retém os últimos 64 KB; não há expiração de execução. Use `npm.cmd` no Windows. Ao desconectar/pausar/reconfigurar o agente, processos são encerrados; identificadores não sobrevivem ao reinício do agente.
 - Rotas antigas `/api/projects/{id}/...` são bloqueadas para projetos locais. Ao selecionar um projeto local, a interface abre o novo painel. A integração completa com as demais abas está pendente.
 - Textos UTF-8 de até 1 MiB; até 200 linhas por página; inventário limitado a 20 mil entradas por chamada. Mensagens até 8 MiB, até oito pedidos pendentes por dispositivo sem prazo de expiração da execução.
 - A política bloqueia segredos comuns, metadados Git, diretórios internos/dependências, caminhos especiais Windows, links simbólicos, junctions e hard links. Não equivale a detecção universal de segredos em qualquer arquivo.

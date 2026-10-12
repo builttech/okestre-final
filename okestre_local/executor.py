@@ -15,7 +15,8 @@ from typing import Annotated, Literal
 
 from pydantic import Field, ValidationError, validate_call
 
-from .paths import SafeRoot, BLOCKED_DIRS
+from .paths import SafeRoot, BLOCKED_DIRS, parts_for
+from .terminal import Terminal
 from .protocol import Call, BridgeError, MAX_FILE, OPERATIONS, WRITES
 from gitide_server.sdd_tasks import TASK_FILE, SDD_TASK_CODE_FRAGMENT, parse_task_line
 
@@ -37,6 +38,7 @@ class Executor:
         self.data_dir.mkdir(parents=True, exist_ok=True)
         self.db_path = self.data_dir / "history.sqlite3"
         self.lock = threading.Lock()
+        self.terminal = Terminal()
         with self.database() as db:
             db.executescript("""
                 CREATE TABLE IF NOT EXISTS mutations (
@@ -285,3 +287,26 @@ class Executor:
     @checked
     def update_task(self, code: str, checked: bool, expected_sha256: str) -> dict:
         return self.change_task(code, expected_sha256, checked=checked)
+
+    @checked
+    def execute_command(self, command: Annotated[str, Field(min_length=1, max_length=8000)], command_id: Positive | None = None):
+        return self.terminal.execute(self.call.root_id, self.root.path, command, command_id)
+
+    @checked
+    def stop_command(self, command_id: Positive):
+        return self.terminal.stop(self.call.root_id, command_id)
+
+    @checked
+    def git_status(self):
+        return self.terminal.git(self.root.path, ["status", "--porcelain=v1", "--branch"], "output")
+
+    @checked
+    def git_diff(self, filepath: str, staged: bool = False):
+        relative = "/".join(parts_for(filepath))
+        self.root.allowed(relative)
+        args = ["diff", "--no-ext-diff", "--no-textconv", "--no-color", "--no-renames"]
+        if staged:
+            args.append("--cached")
+        result = self.terminal.git(self.root.path, args + ["--", relative], "diff")
+        result.update(filepath=relative, staged=staged)
+        return result

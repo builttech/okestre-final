@@ -149,7 +149,7 @@ class MCPTests(unittest.TestCase):
         self.assertEqual({t["name"] for t in tools},
                          {"list_projects", "list_files", "read_file", "write_file", "git_status",
                           "search_files", "patch_file", "git_diff", "list_requirements", "read_requirement",
-                          "list_tasks", "create_task", "update_task", "execute_command", "list_integrations", "database_schema", "database_query"})
+                          "list_tasks", "create_task", "update_task", "execute_command", "stop_command", "list_integrations", "database_schema", "database_query"})
 
     def test_database_permissions_and_audit(self):
         from unittest.mock import patch

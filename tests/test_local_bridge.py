@@ -236,6 +236,12 @@ def test_packaged_windows_agent_with_real_mcp(live):
         result = live.tool("write_file", project_id=project, filepath="README.md", content="packaged executable edit", expected_sha256=read["sha256"])
         assert not result.get("isError"), result
         assert folder.joinpath("README.md").read_text() == "packaged executable edit"
+        live.grant.can_execute = True
+        terminal = live.tool("execute_command", project_id=project, command="echo packaged-terminal")
+        assert not terminal.get("isError"), terminal
+        assert "packaged-terminal" in terminal["structuredContent"]["output"]
+        subprocess.run(["git", "init", str(folder)], capture_output=True, check=True)
+        assert "README.md" in live.tool("git_status", project_id=project)["structuredContent"]["output"]
     finally:
         process.terminate()
         process.wait(timeout=10)
@@ -365,3 +371,27 @@ def test_disconnect_releases_pending_request_even_if_socket_already_closed():
         with pytest.raises(BridgeError, match='device_disconnected_result_unknown'):
             await future
     asyncio.run(scenario())
+
+def test_local_terminal_jobs_permissions_and_git(live):
+    import subprocess
+    config, folder, marker, project = live.enroll()
+    command = 'echo local-terminal>terminal.txt'
+    denied = live.tool('execute_command', project_id=project, command=command)
+    assert denied.get('isError') and not (folder / 'terminal.txt').exists()
+    live.grant.can_execute = True
+    result = live.tool('execute_command', project_id=project, command=command)
+    assert not result.get('isError'), result
+    job = result['structuredContent']['command_id']
+    eventually(lambda: (folder / 'terminal.txt').exists())
+    polled = live.tool('execute_command', project_id=project, command=command, command_id=job)
+    assert polled['structuredContent']['exit_code'] == 0
+    assert 'local-terminal' in (folder / 'terminal.txt').read_text()
+    subprocess.run(['git', 'init', str(folder)], check=True, capture_output=True)
+    status = live.tool('git_status', project_id=project)
+    assert not status.get('isError'), status
+    assert 'terminal.txt' in status['structuredContent']['output']
+    subprocess.run(['git', '-C', str(folder), 'add', 'README.md'], check=True)
+    diff = live.tool('git_diff', project_id=project, filepath='README.md', staged=True)
+    assert marker in diff['structuredContent']['diff']
+    live.grant.can_write = False
+    assert live.tool('execute_command', project_id=project, command='echo denied')['isError']

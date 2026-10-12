@@ -69,6 +69,7 @@ class Agent:
                         response.update(ok=False, error="local_operation_failed")
                     await send(response)
             finally:
+                await asyncio.to_thread(self.executor.terminal.close)
                 beat.cancel()
                 await asyncio.gather(beat, return_exceptions=True)
 

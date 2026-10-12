@@ -384,7 +384,7 @@ class MCPOAuth:
 <label><input type="radio" name="access_mode" value="read" checked> Somente leitura</label>
 <label><input type="radio" name="access_mode" value="write"> Leitura e edicao</label></fieldset>
 <fieldset><legend>Terminal</legend>
-<label><input type="checkbox" name="can_execute" value="yes"> Permitir comandos com aprovacao no painel</label>
+<label><input type="checkbox" name="can_execute" value="yes"> Permitir terminal: execucao direta no computador local; na VM, aprovacao no painel</label>
 <p>Exige leitura e edicao. Comandos usam os privilegios do servidor, podem acessar rede, segredos e arquivos fora do projeto. O diretorio inicial nao e uma sandbox.</p></fieldset>
 <fieldset><legend>Projetos</legend><div class="projects">{projects_html}</div>
 <label><input type="checkbox" name="all_projects" value="yes"> Todos os projetos, inclusive futuros</label></fieldset>

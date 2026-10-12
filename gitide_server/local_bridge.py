@@ -273,7 +273,7 @@ class LocalBridge:
                         future.set_result(message["result"])
                     else:
                         error = message.get("error")
-                        allowed = {"conflict", "read_only", "root_unavailable", "path_blocked", "invalid_path", "unsafe_path", "unsupported_file", "local_access_failed", "invalid_arguments", "request_expired", "mutation_indeterminate", "request_id_conflict", "ambiguous_patch", "inventory_limit", "unsupported_operation", "invalid_task", "ignore_policy_unavailable"}
+                        allowed = {"device_busy", "local_operation_failed", "conflict", "read_only", "root_unavailable", "path_blocked", "invalid_path", "unsafe_path", "unsupported_file", "local_access_failed", "invalid_arguments", "request_expired", "mutation_indeterminate", "request_id_conflict", "ambiguous_patch", "inventory_limit", "unsupported_operation", "invalid_task", "ignore_policy_unavailable"}
                         future.set_exception(BridgeError(error if error in allowed else "local_operation_failed"))
         except Exception:
             # Never log frames, arguments, file contents, tokens, or exception bodies.

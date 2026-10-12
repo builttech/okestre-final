@@ -19,3 +19,5 @@ env/
 /outputs/okestre-local/
 /outputs/local-bridge-qa/
 /outputs/okestre-local-no-expiry/
+
+/outputs/okestre-local-terminal/
