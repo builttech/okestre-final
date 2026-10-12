@@ -174,6 +174,33 @@ def test_additive_migration(tmp_path):
     engine.dispose()
 
 
+def test_batch_binding_is_atomic_authorized_and_repeatable(live):
+    config, _, _, existing = live.enroll()
+    device = config.load()['device_id']
+    a, b = uuid.uuid4().hex, uuid.uuid4().hex
+    live.bridge.store.roots(device, [{'id': a, 'name': 'Alpha', 'writable': True}, {'id': b, 'name': 'Beta', 'writable': False}])
+    with live.sessions() as db:
+        existing_name = db.get(Project, existing).name
+    url = '/api/local/bind-many'
+    payload = {'device_id': device, 'projects': [{'root_id': a, 'name': 'Alpha'}, {'root_id': b, 'name': existing_name}]}
+    result = live.client.post(url, json=payload)
+    assert result.status_code == 400 and result.json()['detail'] == 'project_name_exists'
+    with live.sessions() as db:
+        assert db.query(Project).filter_by(root_id=a).count() == 0
+    payload['projects'][1]['name'] = 'Beta'
+    assert live.client.post(url, json=payload, headers={'X-CSRF-Token': 'bad'}).status_code == 403
+    wrong = dict(payload, device_id='f' * 32)
+    assert live.client.post(url, json=wrong).status_code == 400
+    result = live.client.post(url, json=payload)
+    assert result.status_code == 200, result.text
+    assert len(result.json()['projects']) == 2
+    assert live.client.post(url, json=payload).json() == result.json()
+    with live.sessions() as db:
+        assert db.query(Project).count() == 3
+    payload['projects'][1]['root_id'] = a
+    assert live.client.post(url, json=payload).status_code == 400
+
+
 def test_timeout_and_inactive_owner(live):
     config, folder, marker, project = live.enroll()
     agent, _ = live.agents[0]
@@ -282,6 +309,8 @@ def test_remove_folder_access_preserves_physical_content_and_blocks_project(live
     assert not any(p["id"] == project for p in after["projects"])
     assert live.client.post("/api/local/bind",
         json={"device_id": device_id, "root_id": root_id, "name": "Outra pasta"}).status_code == 400
+    assert live.client.post("/api/local/bind-many",
+        json={"device_id": device_id, "projects": [{"root_id": root_id, "name": "Outra pasta"}]}).status_code == 400
     assert "root_unavailable" in str(live.tool("read_file", project_id=project, filepath="README.md"))
     assert folder.joinpath("README.md").read_text() == marker
     # Revocation remains active in durable SQLite independently of the running channel.

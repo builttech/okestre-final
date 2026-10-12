@@ -402,6 +402,37 @@ class LocalBridge:
                     db.add(project)
                     db.commit()
                     return JSONResponse({"project_id": project.id}, headers=headers)
+            if action == "bind-many":
+                device = self.store.get(body.get("device_id"))
+                if not device or device["owner"] != str(user.id):
+                    raise BridgeError("device_not_authorized")
+                selections = body.get("projects")
+                if not isinstance(selections, list) or not 1 <= len(selections) <= 100:
+                    raise BridgeError("invalid_project")
+                roots = {r["id"] for r in self.store.visible_roots(device)}
+                seen, validated = set(), []
+                for selection in selections:
+                    if not isinstance(selection, dict):
+                        raise BridgeError("invalid_project")
+                    root_id, name = selection.get("root_id"), selection.get("name")
+                    if not isinstance(root_id, str) or root_id not in roots or root_id in seen or not isinstance(name, str) or not 1 <= len(name.strip()) <= 100:
+                        raise BridgeError("invalid_project")
+                    seen.add(root_id)
+                    validated.append((root_id, name.strip()))
+                # Atomic batch: a conflicting name never leaves partial additions.
+                with self.sessions() as db:
+                    items = []
+                    for root_id, name in validated:
+                        project = db.query(Project).filter_by(device_id=device["id"], root_id=root_id).first()
+                        if project is None:
+                            if db.query(Project).filter_by(name=name).first():
+                                raise BridgeError("project_name_exists")
+                            project = Project(name=name, path="", storage_kind="device", device_id=device["id"], root_id=root_id)
+                            db.add(project)
+                            db.flush()
+                        items.append({"id": project.id, "name": project.name, "root_id": root_id})
+                    db.commit()
+                return JSONResponse({"projects": items}, headers=headers)
             if action == "call":
                 identifier = body.get("project_id")
                 if type(identifier) is not int or not isinstance(body.get("arguments", {}), dict):

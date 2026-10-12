@@ -1,6 +1,6 @@
 # Okestre Local — primeira versão funcional
 
-Branch: `codex/local-agent-bridge`. Esta versão implementa acesso MCP a arquivos locais e um painel próprio de dispositivos. Não foi publicada na VM.
+Branch: `codex/local-agent-bridge`. Esta versão implementa acesso MCP a arquivos locais e um painel próprio de dispositivos. A atualização do painel em etapas foi validada localmente; sua publicação na VM ainda está pendente.
 
 ## O que funciona
 
@@ -11,7 +11,7 @@ Branch: `codex/local-agent-bridge`. Esta versão implementa acesso MCP a arquivo
 - MCP: `list_files`, `read_file`, `search_files`, `write_file`, `patch_file`, requisitos e tarefas.
 - Escrita condicionada a SHA-256, substituição atômica e histórico local da versão anterior.
 - Deduplicação durável do identificador de uma mutação recebida pelo agente. Operações interrompidas em estado ambíguo não são repetidas automaticamente.
-- Painel web com leitura paginada completa, edição, criação de arquivos em pastas existentes e detecção de conflito.
+- Painel web em três etapas: Computador, Projetos e Conectar ao GPT. Permite selecionar e vincular várias pastas de uma vez, sem editor de arquivos separado.
 - Configuração e credencial protegidas com DPAPI do usuário Windows. Não existe chave OpenAI no agente.
 
 ## Iniciar pelo código
@@ -44,11 +44,11 @@ Sem `--write`, a pasta fica somente leitura. O agente não cria subpastas implic
 ## Conectar ao GPT
 
 1. Acesse o Okestre na VM com sua sessão root e abra `/local-devices`.
-2. Na aba Computador, selecione Adicionar dispositivo, informe o nome e escolha a expiração da credencial: 1, 3, 9 meses ou Nunca. Gerar chave cria um código temporário de pareamento válido por cinco minutos.
+2. Na etapa Computador, abra o cadastro de computador, informe o nome e escolha a expiração da credencial: 1, 3, 9 meses ou Nunca. Gerar código cria um código temporário de pareamento válido por cinco minutos.
 3. Abra o aplicativo local, clique em **Parear** e informe o endereço da VM e o código.
-4. Na aba Dispositivos e pastas, o cadastro físico de novas pastas continua sendo feito no aplicativo Okestre Local (botão Adicionar pasta). Cada pasta vira um card no painel da VM após o envio pelo agente. O painel não recebe caminhos absolutos do computador e a exclusão de card bloqueia a autorização no servidor, sem apagar arquivos locais.
-5. No painel da VM, clique em **Atualizar** e depois em **Vincular projeto** junto à pasta.
-6. Autorize o projeto na conexão OAuth do GPT. Concessões anteriores restritas a outros projetos não recebem acesso automaticamente.
+4. No aplicativo Okestre Local, use Adicionar pasta para cada projeto. Na etapa Projetos do painel web, clique em Atualizar pastas, selecione as pastas desejadas e ajuste os nomes dos projetos. O painel não recebe caminhos absolutos do computador. Remover acesso bloqueia a pasta no servidor sem apagar arquivos locais.
+5. Clique em Adicionar projetos selecionados. O lote inteiro é validado antes de salvar; conflitos de nome não deixam um cadastro parcial. Pastas já vinculadas aparecem como Já adicionado.
+6. Na etapa Conectar ao GPT, copie a URL completa terminada em `/mcp/` e cadastre-a no plugin com OAuth. Autorize os projetos desejados. Concessões anteriores restritas a outros projetos não recebem acesso automaticamente.
 7. Solicite `list_projects` e `read_file` para o novo projeto.
 
 Projetos locais exigem identidade OAuth da mesma conta que pareou o dispositivo. O Bearer global legado não dá acesso a eles. A sessão web autenticada dessa conta pode usar o painel próprio. Reparear exige cadastrar novamente as pastas; revogue a identidade anterior no painel.
