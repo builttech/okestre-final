@@ -359,3 +359,27 @@ class MCPTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+def test_discovery_on_configured_public_domain(monkeypatch):
+    from gitide_server.mcp_server import mount_mcp
+    monkeypatch.delenv('GITIDE_MCP_ALLOWED_HOSTS', raising=False)
+    monkeypatch.delenv('GITIDE_MCP_ALLOWED_ORIGINS', raising=False)
+    _, transport, lifespan = create_mcp(lambda req: True,
+        metadata_url='https://local.okestre.com.br/.well-known/oauth-protected-resource/mcp/')
+    app = FastAPI(lifespan=lifespan)
+    mount_mcp(app, transport)
+    headers = {'Accept': 'application/json, text/event-stream', 'Origin': 'https://local.okestre.com.br'}
+    with TestClient(app, base_url='https://local.okestre.com.br') as client:
+        for path in ('/mcp', '/mcp/'):
+            response = client.post(path, headers=headers, json={'jsonrpc':'2.0','id':1,'method':'tools/list'})
+            assert response.status_code == 200, response.text
+            assert response.json()['result']['tools']
+        rejected = client.post('/mcp/', headers={**headers, 'Host':'untrusted.example'}, json={'jsonrpc':'2.0','id':1,'method':'tools/list'})
+        assert rejected.status_code == 421
+
+
+def test_explicit_host_allowlist_is_preserved(monkeypatch):
+    monkeypatch.setenv('GITIDE_MCP_ALLOWED_HOSTS', 'only.example')
+    server, _, _ = create_mcp(lambda req: True,
+        metadata_url='https://local.okestre.com.br/.well-known/oauth-protected-resource/mcp/')
+    assert server.settings.transport_security.allowed_hosts == ['only.example']

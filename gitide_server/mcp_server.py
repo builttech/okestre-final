@@ -14,6 +14,7 @@ import anyio
 from contextlib import asynccontextmanager
 from contextvars import ContextVar
 from pathlib import Path, PureWindowsPath
+from urllib.parse import urlsplit
 from typing import Annotated, Any, Literal
 
 from mcp.server.fastmcp import FastMCP
@@ -200,11 +201,19 @@ def mount_mcp(app, transport):
 
 
 def create_mcp(validate_bearer, session_factory=SessionLocal, metadata_url=None, audit=None, integrations=None, bridge=None):
+    # Trust only the configured public origin, never an incoming Host header.
+    public = urlsplit(metadata_url or os.getenv("GITIDE_PUBLIC_URL", ""))
+    public_host = public.netloc if public.scheme in {"https", "http"} and public.hostname and not public.username and not public.password else ""
+    default_hosts = "localhost,localhost:*,127.0.0.1,127.0.0.1:*,ide.builtt.com.br"
+    default_origins = "https://ide.builtt.com.br,http://localhost,http://localhost:*,http://127.0.0.1,http://127.0.0.1:*"
+    if public_host:
+        default_hosts += "," + public_host
+        default_origins += "," + public.scheme + "://" + public_host
     hosts = [item.strip() for item in os.getenv(
-        "GITIDE_MCP_ALLOWED_HOSTS", "localhost,localhost:*,127.0.0.1,127.0.0.1:*,ide.builtt.com.br"
+        "GITIDE_MCP_ALLOWED_HOSTS", default_hosts
     ).split(",") if item.strip()]
     origins = [item.strip() for item in os.getenv(
-        "GITIDE_MCP_ALLOWED_ORIGINS", "https://ide.builtt.com.br,http://localhost,http://localhost:*,http://127.0.0.1,http://127.0.0.1:*"
+        "GITIDE_MCP_ALLOWED_ORIGINS", default_origins
     ).split(",") if item.strip()]
     mcp = AuditedMCP(
         "Act IA", stateless_http=True, json_response=True, streamable_http_path="/",

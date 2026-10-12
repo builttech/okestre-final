@@ -79,6 +79,7 @@ O hash precisa corresponder ao conteúdo atual. A restauração preserva o conte
 
 ## Implantação da VM
 
+- O MCP inclui automaticamente o domínio da URL pública OAuth na proteção de Host/Origin. Se definir `GITIDE_MCP_ALLOWED_HOSTS` ou `GITIDE_MCP_ALLOWED_ORIGINS`, essas listas explícitas substituem os padrões: inclua o domínio publicado. Para `https://local.okestre.com.br`, use `GITIDE_MCP_ALLOWED_HOSTS=local.okestre.com.br` e `GITIDE_MCP_ALLOWED_ORIGINS=https://local.okestre.com.br`. OAuth pode funcionar enquanto a descoberta MCP falha quando o domínio não está permitido.
 - Preserve o volume `~/.gitide`, incluindo `local_devices.db`, `gitide.db` e os bancos/configurações OAuth existentes.
 - O schema de projetos recebe três colunas adicionais automaticamente. Projetos existentes continuam no modo `server`; nenhum arquivo é transferido ou apagado por essa migração.
 - O proxy deve permitir upgrade WebSocket em `/api/local/connect`, além das rotas HTTPS já existentes. Configure timeout ocioso superior a 45 segundos e limite de frame de 8 MiB.
