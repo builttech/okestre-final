@@ -120,4 +120,20 @@ A partir deste TAP, o projeto deve evoluir suas especificações funcionais no f
 - Discovery de origem: `.discovery/saida/Feat_ Auto Layout Flexível na Aba Design.md`.
 - REQ principal: `REQ-0001-auto-layout-flexivel-aba-design`.
 - Tela impactada: `/design-canvas`.
+
+## 10. Evolução proposta — Local Devices (REQ-0003, 2026-10-11)
+
+**Problema:** o fluxo de dispositivos locais mistura cadastro de computadores, credenciais e pastas; o usuário precisa identificar claramente o computador e as pastas vinculadas a ele.
+
+**Objetivo:** estruturar a experiência `local-devices` em duas abas, **Computador** e **Dispositivos e pastas**, suportar múltiplos computadores, emissão de chave com validade definida, associação ilimitada de pastas e remoção segura do cadastro das pastas.
+
+**Escopo:** (a) estado vazio e CTA **Adicionar dispositivo** quando não houver computadores; (b) modal com **Nome do computador**, **Expiração da chave** (1, 3, 9 meses ou nunca) e ação **Gerar chave**; (c) listagem de computadores com estado da chave e seleção do computador ativo; (d) aba de pastas com cards vinculados ao computador escolhido, criação ilimitada e exclusão da associação; (e) persistência, validações e acessibilidade.
+
+**Restrições e segurança:** uma chave por emissão é retornada em texto puro somente no momento da criação; o servidor armazena somente hash, validade e metadados. `Nunca` significa chave sem expiração automática, sujeita a revogação futura, e deve ter aviso explícito. Excluir um card de pasta **não exclui arquivos físicos**. Autorização e isolamento de usuário devem ser definidos de acordo com o modelo existente antes de disponibilizar rotas sensíveis.
+
+**Premissas / pendências:** a rota/página `local-devices` e seus contratos não foram localizados nos arquivos atualmente expostos pelo projeto 46; antes da implementação é necessário identificar se há outro frontend/serviço ou se esta tela será criada. A expressão "dispositivos e pastas" será interpretada inicialmente como **pastas de computadores cadastrados**, não um segundo tipo de hardware, até confirmação do domínio. Não há, nesta solicitação, pedido de remoção de computadores ou exclusão de diretórios físicos.
+
+**Critérios de sucesso:** os dois painéis funcionam sem depender de recarregar a página; computadores e pastas persistem após atualização; opções de validade são exatamente 1/3/9 meses/nunca; zero/um/múltiplos computadores e zero/muitas pastas têm estados consistentes; apagar um card remove apenas o registro da pasta.
+
+**Rastreabilidade:** `.documents/requirements/REQ-0003-local-devices-computadores-pastas.md`, RF-0003-01/02/03, `.documents/design/design.md`, RI-0003 e Task List correspondente.
 - Arquivos técnicos previstos: `gitide_server/static/konva-designer.html`, `gitide_server/static/konva-designer.js`, `gitide_server/static/rebrand.css`.

@@ -7,6 +7,8 @@ import secrets
 import sqlite3
 import time
 import uuid
+import calendar
+from datetime import datetime, timezone
 from dataclasses import dataclass, field
 from contextlib import contextmanager
 from pathlib import Path
@@ -21,6 +23,8 @@ from okestre_local.protocol import BridgeError, Call, RootInfo, MAX_MESSAGE, OPE
 
 
 class DeviceStore:
+    """Stores device metadata, never plain-text long-lived credentials or local paths."""
+
     def __init__(self, path):
         self.path = str(path)
         with self.connect() as db:
@@ -32,6 +36,38 @@ class DeviceStore:
                 CREATE TABLE IF NOT EXISTS pairing (
                     code_hash TEXT PRIMARY KEY, owner TEXT NOT NULL, name TEXT NOT NULL, expires REAL NOT NULL);
             """)
+            # Additive SQLite migration: older tokens remain valid with no automatic expiry.
+            self._add_columns(db, "devices", {
+                "expires_at": "REAL",
+                "blocked_roots": "TEXT NOT NULL DEFAULT '[]'",
+            })
+            self._add_columns(db, "pairing", {
+                "expires_in_months": "INTEGER",
+                "pending_id": "TEXT",
+                "created": "REAL",
+            })
+            db.execute("CREATE INDEX IF NOT EXISTS idx_local_devices_owner ON devices(owner)")
+            db.execute("CREATE INDEX IF NOT EXISTS idx_local_pairing_owner ON pairing(owner)")
+
+    @staticmethod
+    def _add_columns(db, table, definitions):
+        existing = {row["name"] for row in db.execute("PRAGMA table_info(" + table + ")")}
+        for column, definition in definitions.items():
+            if column not in existing:
+                db.execute("ALTER TABLE " + table + " ADD COLUMN " + column + " " + definition)
+
+    @staticmethod
+    def months_after(created, months):
+        """Calendar-month expiry in UTC, clamping end-of-month safely."""
+        if months is None:
+            return None
+        original = datetime.fromtimestamp(created, timezone.utc)
+        index = original.year * 12 + original.month - 1 + months
+        year, month = divmod(index, 12)
+        year_month = year
+        month += 1
+        day = min(original.day, calendar.monthrange(year_month, month)[1])
+        return original.replace(year=year_month, month=month, day=day).timestamp()
 
     @contextmanager
     def connect(self):
@@ -43,51 +79,117 @@ class DeviceStore:
         finally:
             db.close()
 
-    def pair(self, owner, name):
-        code = secrets.token_urlsafe(24)
-        with self.connect() as db:
-            db.execute("DELETE FROM pairing WHERE expires < ? OR owner=?", (time.time(), str(owner)))
-            db.execute("INSERT INTO pairing VALUES (?,?,?,?)", (self.digest(code), str(owner), name, time.time() + 300))
-        return code
-
     @staticmethod
     def digest(token):
         return hashlib.sha256(token.encode()).hexdigest()
+
+    def pair(self, owner, name, expires_in_months=None):
+        if expires_in_months not in (1, 3, 9, None) or type(expires_in_months) is bool:
+            raise BridgeError("invalid_expiry")
+        code = secrets.token_urlsafe(24)
+        now = time.time()
+        with self.connect() as db:
+            db.execute("DELETE FROM pairing WHERE expires < ?", (now,))
+            # Same computer can regenerate its temporary code without invalidating other computers.
+            db.execute("DELETE FROM pairing WHERE owner=? AND name=?", (str(owner), name))
+            db.execute("""INSERT INTO pairing
+                (code_hash,owner,name,expires,expires_in_months,pending_id,created)
+                VALUES (?,?,?,?,?,?,?)""",
+                (self.digest(code), str(owner), name, now + 300,
+                 expires_in_months, uuid.uuid4().hex, now))
+        return code
 
     def claim(self, code):
         token, identifier = secrets.token_urlsafe(48), uuid.uuid4().hex
         with self.connect() as db:
             db.execute("BEGIN IMMEDIATE")
-            row = db.execute("SELECT * FROM pairing WHERE code_hash=? AND expires>?", (self.digest(code), time.time())).fetchone()
+            row = db.execute("SELECT * FROM pairing WHERE code_hash=? AND expires>?",
+                             (self.digest(code), time.time())).fetchone()
             if not row:
                 raise BridgeError("pairing_invalid_or_expired")
+            created = time.time()
+            expires_at = self.months_after(created, row["expires_in_months"])
             db.execute("DELETE FROM pairing WHERE code_hash=?", (self.digest(code),))
-            db.execute("INSERT INTO devices(id,owner,name,token_hash,created) VALUES (?,?,?,?,?)",
-                       (identifier, row["owner"], row["name"], self.digest(token), time.time()))
+            db.execute("""INSERT INTO devices
+                (id,owner,name,token_hash,created,expires_at)
+                VALUES (?,?,?,?,?,?)""",
+                (identifier, row["owner"], row["name"], self.digest(token),
+                 created, expires_at))
         return {"device_id": identifier, "token": token}
 
     def authenticate(self, token):
         with self.connect() as db:
-            row = db.execute("SELECT * FROM devices WHERE token_hash=? AND revoked IS NULL", (self.digest(token),)).fetchone()
+            row = db.execute("""SELECT * FROM devices WHERE token_hash=?
+                AND revoked IS NULL AND (expires_at IS NULL OR expires_at>?)""",
+                (self.digest(token), time.time())).fetchone()
             return dict(row) if row else None
 
     def get(self, identifier):
         with self.connect() as db:
-            row = db.execute("SELECT * FROM devices WHERE id=? AND revoked IS NULL", (identifier,)).fetchone()
+            row = db.execute("""SELECT * FROM devices WHERE id=?
+                AND revoked IS NULL AND (expires_at IS NULL OR expires_at>?)""",
+                (identifier, time.time())).fetchone()
             return dict(row) if row else None
+
+    @staticmethod
+    def visible_roots(device, roots=None):
+        roots = json.loads(device["roots"]) if roots is None else roots
+        blocked = set(json.loads(device.get("blocked_roots") or "[]"))
+        return [root for root in roots if root["id"] not in blocked]
 
     def roots(self, identifier, roots):
         with self.connect() as db:
-            db.execute("UPDATE devices SET roots=? WHERE id=? AND revoked IS NULL", (json.dumps(roots), identifier))
+            db.execute("UPDATE devices SET roots=? WHERE id=? AND revoked IS NULL",
+                       (json.dumps(roots), identifier))
+
+    def remove_root(self, identifier, root_id, owner):
+        """Revoke one root's VM access; never touch the computer filesystem."""
+        with self.connect() as db:
+            db.execute("BEGIN IMMEDIATE")
+            row = db.execute("""SELECT * FROM devices
+                WHERE id=? AND owner=? AND revoked IS NULL""",
+                (identifier, str(owner))).fetchone()
+            if not row or not isinstance(root_id, str):
+                return False
+            roots = json.loads(row["roots"])
+            if not any(root.get("id") == root_id for root in roots):
+                return False
+            blocked = set(json.loads(row["blocked_roots"] or "[]"))
+            blocked.add(root_id)
+            db.execute("UPDATE devices SET blocked_roots=? WHERE id=?",
+                       (json.dumps(sorted(blocked)), identifier))
+            return True
 
     def revoke(self, identifier, owner):
         with self.connect() as db:
-            return db.execute("UPDATE devices SET revoked=? WHERE id=? AND owner=?", (time.time(), identifier, str(owner))).rowcount > 0
+            return db.execute("UPDATE devices SET revoked=? WHERE id=? AND owner=?",
+                              (time.time(), identifier, str(owner))).rowcount > 0
 
     def page(self, owner):
+        now = time.time()
         with self.connect() as db:
-            rows = db.execute("SELECT id,name,roots,created,revoked FROM devices WHERE owner=? ORDER BY created DESC LIMIT 100", (str(owner),)).fetchall()
-        return [dict(row, roots=json.loads(row["roots"])) for row in rows]
+            rows = db.execute("""SELECT id,name,roots,created,revoked,expires_at,blocked_roots
+                FROM devices WHERE owner=? ORDER BY created DESC""", (str(owner),)).fetchall()
+            pending = db.execute("""SELECT name,pending_id,created,expires_in_months
+                FROM pairing WHERE owner=? AND expires>? ORDER BY created DESC""",
+                (str(owner), now)).fetchall()
+        items = []
+        for row in rows:
+            device = dict(row)
+            device["roots"] = self.visible_roots(device)
+            device.pop("blocked_roots", None)
+            device["expired"] = device["expires_at"] is not None and device["expires_at"] <= now
+            device["pending"] = False
+            items.append(device)
+        for row in pending:
+            items.append({
+                "id": row["pending_id"] or uuid.uuid4().hex,
+                "name": row["name"], "created": row["created"] or now,
+                "roots": [], "revoked": None, "expires_at": None,
+                "expired": False, "pending": True,
+                "expires_in_months": row["expires_in_months"]
+            })
+        return sorted(items, key=lambda item: item["created"], reverse=True)
 
 
 @dataclass
@@ -139,14 +241,17 @@ class LocalBridge:
         channel = None
         try:
             hello = decode(await asyncio.wait_for(socket.receive_text(), 10))
-            if hello.get("type") != "hello" or hello.get("version") != 1 or not isinstance(hello.get("roots"), list) or len(hello["roots"]) > 100:
+            if hello.get("type") != "hello" or hello.get("version") != 1 or not isinstance(hello.get("roots"), list):
                 raise BridgeError("invalid_message")
             roots = [RootInfo.model_validate(r).model_dump() for r in hello["roots"]]
             if len({r["id"] for r in roots}) != len(roots):
                 raise BridgeError("invalid_message")
-            if identifier in self.channels or not self.active(self.store.get(identifier)):
+            latest = self.store.get(identifier)
+            if identifier in self.channels or not self.active(latest):
                 raise BridgeError("device_not_authorized")
-            channel = Channel(socket, {r["id"]: r for r in roots})
+            # Revoked folder shares stay blocked after the Windows client reconnects.
+            permitted_roots = self.store.visible_roots(latest, roots)
+            channel = Channel(socket, {r["id"]: r for r in permitted_roots})
             self.channels[identifier] = channel
             self.store.roots(identifier, roots)
             await socket.send_text(encode({"type": "ready", "version": 1}))
@@ -241,11 +346,15 @@ class LocalBridge:
             if request.method == "GET":
                 items = self.store.page(user.id)
                 for item in items:
-                    item["online"] = self.online(item["id"]) and item["revoked"] is None
-                ids = [i["id"] for i in items]
+                    item["online"] = (not item["pending"] and not item["expired"] and
+                                      item["revoked"] is None and self.online(item["id"]))
+                active = [i for i in items if not i["pending"] and not i["expired"] and i["revoked"] is None]
+                allowed = {(i["id"], root["id"]) for i in active for root in i["roots"]}
+                ids = [i["id"] for i in active]
                 with self.sessions() as db:
                     projects = [{"id": p.id, "name": p.name, "device_id": p.device_id, "root_id": p.root_id}
-                                for p in db.query(Project).filter(Project.storage_kind == "device", Project.device_id.in_(ids))]
+                                for p in db.query(Project).filter(Project.storage_kind == "device", Project.device_id.in_(ids))
+                                if (p.device_id, p.root_id) in allowed]
                 return JSONResponse({"devices": items, "projects": projects, "csrf_token": csrf}, headers=headers)
             if not hmac.compare_digest(request.headers.get("x-csrf-token", ""), csrf):
                 return JSONResponse({"detail": "csrf_invalid"}, 403, headers=headers)
@@ -253,19 +362,35 @@ class LocalBridge:
             action = request.path_params["action"]
             if action == "pair":
                 name = body.get("name", "")
+                # Legacy API callers without a selected policy keep the previous non-expiring behavior.
+                months = body.get("expires_in_months", None)
                 if not isinstance(name, str) or not 1 <= len(name.strip()) <= 100:
                     raise BridgeError("invalid_name")
-                return JSONResponse({"code": self.store.pair(user.id, name.strip()), "expires_in": 300}, headers=headers)
+                if (months is not None and (type(months) is not int or months not in (1, 3, 9))):
+                    raise BridgeError("invalid_expiry")
+                code = self.store.pair(user.id, name.strip(), months)
+                return JSONResponse({"code": code, "expires_in": 300, "expires_in_months": months}, headers=headers)
             if action == "revoke":
                 if not self.store.revoke(body.get("device_id"), user.id):
                     raise BridgeError("device_not_authorized")
                 await self.disconnect(body["device_id"], 1008)
                 return JSONResponse({"status": "revoked"}, headers=headers)
+            if action == "remove-root":
+                device = self.store.get(body.get("device_id"))
+                if not device or device["owner"] != str(user.id):
+                    raise BridgeError("device_not_authorized")
+                root_id = body.get("root_id")
+                if not self.store.remove_root(device["id"], root_id, user.id):
+                    raise BridgeError("root_unavailable")
+                channel = self.channels.get(device["id"])
+                if channel:
+                    channel.roots.pop(root_id, None)
+                return JSONResponse({"status": "removed"}, headers=headers)
             if action == "bind":
                 device = self.store.get(body.get("device_id"))
                 if not device or device["owner"] != str(user.id):
                     raise BridgeError("device_not_authorized")
-                root = next((r for r in json.loads(device["roots"]) if r["id"] == body.get("root_id")), None)
+                root = next((r for r in self.store.visible_roots(device) if r["id"] == body.get("root_id")), None)
                 name = body.get("name", "")
                 if root is None or not isinstance(name, str) or not 1 <= len(name.strip()) <= 100:
                     raise BridgeError("invalid_project")

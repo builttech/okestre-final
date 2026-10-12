@@ -2,13 +2,13 @@
   "version": 2,
   "project_id": 22,
   "project_name": "act-ide-teste",
-  "updated_at": "2026-07-16T00:00:00Z",
+  "updated_at": "2026-10-12T01:06:49.761Z",
   "items": {
     "TASK-RF-0002-01-001": {
       "id": "TASK-RF-0002-01-001",
       "title": "Implementar estado de viewport e conversões Screen/World",
       "complexity": "medium",
-      "manual_hours": 2.0,
+      "manual_hours": 2,
       "ai_hours": 0.7,
       "task_type": "implementation",
       "technical_area": "frontend",
@@ -16,7 +16,7 @@
       "source": "ai",
       "completed": true,
       "saved_hours": 1.3,
-      "saving_percent": 65.0
+      "saving_percent": 65
     },
     "TASK-RF-0002-02-001": {
       "id": "TASK-RF-0002-02-001",
@@ -30,7 +30,7 @@
       "source": "ai",
       "completed": true,
       "saved_hours": 1.7,
-      "saving_percent": 68.0
+      "saving_percent": 68
     },
     "TASK-RF-0002-03-001": {
       "id": "TASK-RF-0002-03-001",
@@ -44,20 +44,20 @@
       "source": "ai",
       "completed": true,
       "saved_hours": 1.7,
-      "saving_percent": 68.0
+      "saving_percent": 68
     },
     "TASK-RF-0002-04-001": {
       "id": "TASK-RF-0002-04-001",
       "title": "Implementar stage responsivo, touch/pinch e grid dinâmico",
       "complexity": "high",
-      "manual_hours": 3.0,
-      "ai_hours": 1.0,
+      "manual_hours": 3,
+      "ai_hours": 1,
       "task_type": "implementation",
       "technical_area": "frontend",
       "rationale": "Abrange resize do stage, grid por viewport visível e gestos touch/pinch.",
       "source": "ai",
       "completed": true,
-      "saved_hours": 2.0,
+      "saved_hours": 2,
       "saving_percent": 66.7
     },
     "TASK-RF-0002-05-001": {
@@ -71,14 +71,14 @@
       "rationale": "Fecha a feature com persistência local por página, revisão de atalhos/acessibilidade, casos de teste e validação técnica por leitura em ambiente de VM.",
       "source": "ai",
       "completed": true,
-      "saved_hours": 1.0,
+      "saved_hours": 1,
       "saving_percent": 66.7
     },
     "TASK-QA-QA-C118E4B1-001": {
       "id": "TASK-QA-QA-C118E4B1-001",
       "title": "Garantir exibição da seção Auto Layout ao selecionar frame no Design Canvas",
       "complexity": "low",
-      "manual_hours": 1.0,
+      "manual_hours": 1,
       "ai_hours": 0.3,
       "task_type": "correction",
       "technical_area": "frontend",
@@ -86,13 +86,13 @@
       "source": "ai",
       "completed": true,
       "saved_hours": 0.7,
-      "saving_percent": 70.0
+      "saving_percent": 70
     },
     "TASK-RF-0001-01-001": {
       "id": "TASK-RF-0001-01-001",
       "title": "Adicionar modelo de Auto Layout e ativação/remoção em frames",
       "complexity": "medium",
-      "manual_hours": 2.0,
+      "manual_hours": 2,
       "ai_hours": 0.7,
       "task_type": "implementation",
       "technical_area": "frontend",
@@ -100,7 +100,7 @@
       "source": "ai",
       "completed": true,
       "saved_hours": 1.3,
-      "saving_percent": 65.0
+      "saving_percent": 65
     },
     "TASK-RF-0001-02-001": {
       "id": "TASK-RF-0001-02-001",
@@ -128,7 +128,7 @@
       "source": "ai",
       "completed": true,
       "saved_hours": 1.7,
-      "saving_percent": 68.0
+      "saving_percent": 68
     },
     "TASK-RF-0001-04-001": {
       "id": "TASK-RF-0001-04-001",
@@ -141,8 +141,92 @@
       "rationale": "Persistência, histórico e validação da feature Auto Layout.",
       "source": "ai",
       "completed": true,
-      "saved_hours": 1.0,
+      "saved_hours": 1,
       "saving_percent": 66.7
+    },
+    "TASK-RF-0003-01-001": {
+      "id": "TASK-RF-0003-01-001",
+      "title": "Localizar a implementação real de local-devices e integrar navegação em duas abas.",
+      "task_type": "implementation",
+      "technical_area": "frontend",
+      "complexity": "high",
+      "manual_hours": 6,
+      "ai_hours": 2.5,
+      "saved_hours": 3.5,
+      "saving_percent": 58.3,
+      "rationale": "Há incerteza estrutural: a tela local-devices não aparece na árvore atual. O esforço contempla localizar o serviço real, conferir contratos, integrar tabs e validar a navegação. A IA acelera busca e revisão, mas o diagnóstico técnico e integração dependem do ambiente.",
+      "source": "ai",
+      "completed": false
+    },
+    "TASK-RF-0003-01-002": {
+      "id": "TASK-RF-0003-01-002",
+      "title": "Implementar listagem de computadores, seleção e empty state com Adicionar dispositivo.",
+      "task_type": "implementation",
+      "technical_area": "frontend",
+      "complexity": "medium",
+      "manual_hours": 5,
+      "ai_hours": 2,
+      "saved_hours": 3,
+      "saving_percent": 60,
+      "rationale": "Listagem remota e empty state requerem controle de estados assíncronos, seleção persistente e segurança entre usuários. A IA acelera os componentes e a revisão, com testes e ajuste de integração ainda necessários.",
+      "source": "ai",
+      "completed": false
+    },
+    "TASK-RF-0003-02-001": {
+      "id": "TASK-RF-0003-02-001",
+      "title": "Criar persistência e endpoints para computadores e emissão segura de chaves com validade.",
+      "task_type": "implementation",
+      "technical_area": "backend",
+      "complexity": "high",
+      "manual_hours": 12,
+      "ai_hours": 6,
+      "saved_hours": 6,
+      "saving_percent": 50,
+      "rationale": "Persistência com migração eventual, emissão criptográfica de credenciais, cálculo de meses, transações, idempotência e autorização multiusuário exigem revisão humana extensa. O ganho com IA é moderado pela criticidade de segurança.",
+      "source": "ai",
+      "completed": false
+    },
+    "TASK-RF-0003-02-002": {
+      "id": "TASK-RF-0003-02-002",
+      "title": "Implementar modal de cadastro com validade e visualização única da chave.",
+      "task_type": "implementation",
+      "technical_area": "frontend",
+      "complexity": "medium",
+      "manual_hours": 6,
+      "ai_hours": 2.5,
+      "saved_hours": 3.5,
+      "saving_percent": 58.3,
+      "rationale": "Modal acessível, expiração, validações e apresentação única da chave incluem estados sensíveis e tratamento de falhas. A IA gera estrutura e handlers, mantendo revisão humana de segurança e comportamento.",
+      "source": "ai",
+      "completed": false
+    },
+    "TASK-RF-0003-03-001": {
+      "id": "TASK-RF-0003-03-001",
+      "title": "Implementar cadastro, listagem e remoção de vínculos de pastas por computador.",
+      "task_type": "implementation",
+      "technical_area": "backend",
+      "complexity": "high",
+      "manual_hours": 10,
+      "ai_hours": 4.5,
+      "saved_hours": 5.5,
+      "saving_percent": 55,
+      "rationale": "Modelo relacional e APIs de pastas exigem isolamento entre computadores, validação de caminhos remotos e garantia de exclusão apenas cadastral. Testes de permissão e preservação dos arquivos físicos elevam esforço.",
+      "source": "ai",
+      "completed": false
+    },
+    "TASK-RF-0003-03-002": {
+      "id": "TASK-RF-0003-03-002",
+      "title": "Implementar cards de pastas, confirmação de exclusão e testes de segurança e interface.",
+      "task_type": "implementation",
+      "technical_area": "frontend",
+      "complexity": "medium",
+      "manual_hours": 8,
+      "ai_hours": 3.5,
+      "saved_hours": 4.5,
+      "saving_percent": 56.3,
+      "rationale": "Cards, formulários, confirmação de exclusão, responsividade e QA de múltiplos computadores/pastas exigem integração E2E. A IA acelera UI e testes, mas homologação e regressão permanecem humanas.",
+      "source": "ai",
+      "completed": false
     }
   },
   "closed_snapshots": {
@@ -153,10 +237,10 @@
       "task_type": "implementation",
       "technical_area": "frontend",
       "complexity": "medium",
-      "manual_hours": 2.0,
+      "manual_hours": 2,
       "ai_hours": 0.7,
       "saved_hours": 1.3,
-      "saving_percent": 65.0,
+      "saving_percent": 65,
       "completed": true,
       "closed": true,
       "closed_at": "2026-07-16T00:00:00Z",
@@ -173,7 +257,7 @@
       "manual_hours": 2.5,
       "ai_hours": 0.8,
       "saved_hours": 1.7,
-      "saving_percent": 68.0,
+      "saving_percent": 68,
       "completed": true,
       "closed": true,
       "closed_at": "2026-07-16T00:00:00Z",
@@ -190,7 +274,7 @@
       "manual_hours": 2.5,
       "ai_hours": 0.8,
       "saved_hours": 1.7,
-      "saving_percent": 68.0,
+      "saving_percent": 68,
       "completed": true,
       "closed": true,
       "closed_at": "2026-07-16T00:00:00Z",
@@ -204,9 +288,9 @@
       "task_type": "implementation",
       "technical_area": "frontend",
       "complexity": "high",
-      "manual_hours": 3.0,
-      "ai_hours": 1.0,
-      "saved_hours": 2.0,
+      "manual_hours": 3,
+      "ai_hours": 1,
+      "saved_hours": 2,
       "saving_percent": 66.7,
       "completed": true,
       "closed": true,
@@ -223,7 +307,7 @@
       "complexity": "medium",
       "manual_hours": 1.5,
       "ai_hours": 0.5,
-      "saved_hours": 1.0,
+      "saved_hours": 1,
       "saving_percent": 66.7,
       "completed": true,
       "closed": true,
@@ -238,10 +322,10 @@
       "task_type": "correction",
       "technical_area": "frontend",
       "complexity": "low",
-      "manual_hours": 1.0,
+      "manual_hours": 1,
       "ai_hours": 0.3,
       "saved_hours": 0.7,
-      "saving_percent": 70.0,
+      "saving_percent": 70,
       "completed": true,
       "closed": true,
       "closed_at": "2026-07-16T00:00:00Z",
@@ -255,10 +339,10 @@
       "task_type": "implementation",
       "technical_area": "frontend",
       "complexity": "medium",
-      "manual_hours": 2.0,
+      "manual_hours": 2,
       "ai_hours": 0.7,
       "saved_hours": 1.3,
-      "saving_percent": 65.0,
+      "saving_percent": 65,
       "completed": true,
       "closed": true,
       "closed_at": "2026-07-16T00:00:00Z",
@@ -292,7 +376,7 @@
       "manual_hours": 2.5,
       "ai_hours": 0.8,
       "saved_hours": 1.7,
-      "saving_percent": 68.0,
+      "saving_percent": 68,
       "completed": true,
       "closed": true,
       "closed_at": "2026-07-16T00:00:00Z",
@@ -308,7 +392,7 @@
       "complexity": "medium",
       "manual_hours": 1.5,
       "ai_hours": 0.5,
-      "saved_hours": 1.0,
+      "saved_hours": 1,
       "saving_percent": 66.7,
       "completed": true,
       "closed": true,
@@ -336,6 +420,19 @@
       "scope": "QA-C118E4B1",
       "task_ids": [
         "TASK-QA-QA-C118E4B1-001"
+      ]
+    },
+    {
+      "id": "RUN-LOCAL-DEVICES-20261011",
+      "created_at": "2026-10-12T01:06:49.761Z",
+      "scope": "REQ-0003 Reorganização de Local Devices em Computador e Dispositivos e pastas",
+      "task_ids": [
+        "TASK-RF-0003-01-001",
+        "TASK-RF-0003-01-002",
+        "TASK-RF-0003-02-001",
+        "TASK-RF-0003-02-002",
+        "TASK-RF-0003-03-001",
+        "TASK-RF-0003-03-002"
       ]
     }
   ]

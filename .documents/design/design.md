@@ -240,3 +240,41 @@ Validações previstas:
 - Criar tasks por RF.
 - Executar implementação aprovada.
 - Validar tecnicamente e registrar evidências.
+
+---
+
+## 16. Extensão arquitetural — REQ-0003 Local Devices (2026-10-11)
+
+### Diagnóstico atualizado após sincronização Git (2026-10-11)
+A tela existente foi localizada em `gitide_server/static/local-devices.html`, `local-devices.js` e `local-devices.css`. A API existente está em `gitide_server/local_bridge.py` (`DeviceStore` e `LocalBridge`); `gitide_server/main.py` registra as rotas sob `/api/local/*`. O agente Windows em `okestre_local/config.py`, `gui.py`, `client.py` publica suas raízes (pastas) autorizadas por conexão WSS. A persistência canônica dos dispositivos é o SQLite separado `~/.gitide/local_devices.db`, não o SQLAlchemy principal de projetos.
+
+Preservar integralmente os contratos atuais `/api/local/pair` (código efêmero de 5 minutos), `/api/local/claim` (resgate pelo agente) e `/api/local/devices` (lista, status e CSRF), além de `/api/local/bind`, `/api/local/revoke`, `/api/local/call` e o WebSocket `/api/local/connect`. Manter códigos efêmeros e segredos de conexão distintos: o modal recebe validade da **credencial do computador** em 1, 3, 9 meses ou Nunca, mas mostra um **código temporário de pareamento**, não a credencial WSS em texto puro. O segredo efetivo continua entregue somente ao aplicativo local durante o claim e protegido pelo sistema operacional. Implementar migração aditiva no DeviceStore e autenticação sensível à expiração no servidor.
+
+Pastas são pastas reais autorizadas pelo aplicativo local, e seus caminhos absolutos **não podem atravessar a VM**. Portanto, o painel VM lista as raízes de cada computador em cards, fornece instruções acionáveis para adicionar novas pastas no Okestre Local e permite remover a autorização compartilhada de uma raiz, sem apagar arquivos. A remoção deve persistir na VM e bloquear roteamento/MCP e futuros vínculos do projeto daquela raiz, inclusive após reconexão. Não criar cadastro fictício de caminhos via browser nem solicitar caminho absoluto na VM. Atualizar o limite de 100 pastas do protocolo/configuração para suportar múltiplas raízes de forma escalável sob os limites existentes de tamanho de mensagem/recursos.
+
+A tela existente também possui o editor de arquivos locais, que deve ser preservado integralmente na segunda aba sem modificar contratos de leitura/escrita. Esta é a decisão arquitetural consolidada para o pacote já aprovado.
+
+### Modelo de domínio
+LocalComputer: id, owner_id, name, created_at, key_hash, key_created_at, key_expires_at (opcional), key_last_used_at (opcional), revoked_at (opcional).
+LocalFolder: id, computer_id, name, path, normalized_path, created_at.
+Relações: usuário 1:N computadores; computador 1:N pastas. Folder deletion exclui somente a associação, jamais o conteúdo do disco.
+A chave de conexão é emitida no servidor e exibida apenas uma vez, sem persistir valor puro; expiração 1, 3 ou 9 meses-calendário ou ausência de vencimento automático, sempre com controle de autorização. Não reutilizar chave global administrativa. Não registrar segredo em logs.
+
+### APIs existentes preservadas e estendidas
+- GET /api/local/devices: computadores e raízes autorizadas, inclusive registros aguardando pareamento; omite caminhos físicos e credenciais.
+- POST /api/local/pair: nome + expires_in_months (1,3,9 ou null); cria código de pareamento de 5 minutos de uso único.
+- POST /api/local/claim: resgata código e emite credencial efetiva com expiração conforme período selecionado; chave efetiva somente para o agente.
+- POST /api/local/remove-root: device_id + root_id; oculta raiz e bloqueia acessos futuros de forma persistente, inclusive depois de reconexão.
+- POST /api/local/bind, /api/local/revoke, /api/local/call e WSS /api/local/connect: contratos preservados com autorização reforçada.
+A VM nunca recebe caminhos físicos absolutos das pastas. O cadastro físico é realizado pelo aplicativo local. O servidor controla os vínculos lógicos e a revogação de compartilhamento.
+
+### UI, estados e integração
+Aba Computador: quando zero, empty state com Adicionar dispositivo; quando N, cards selecionáveis com nome e status. Modal Nome do computador, expiração 1/3/9/Nunca e Gerar chave. Apresentação única da chave com opção de copiar.
+Aba Dispositivos e pastas: seletor de computador, botão Adicionar pasta, cards de pastas com nome e caminho e exclusão confirmada. Sem computadores, pedir cadastro prévio; sem pastas, mostrar CTA de inclusão. Loading, erros com retry, sucesso e foco do modal.
+Preservar tokens visuais do tema dark do projeto, JS modular, CSS escopado, acessibilidade de tabs/modal/teclado e responsividade. Se persistência for aqui, usar SQLAlchemy e planejar migração segura sem alterar tabelas legadas.
+
+### Segurança, testes e pendências
+Cobrir 0/1/N computadores e pastas, expiração correta, proteção contra duplicidade, estados assíncronos, isolamento entre usuários/computadores, não exposição de segredo, exclusão estritamente cadastral e regressões na navegação.
+Pendências: identificar origem real da tela e protocolo da chave no agente local; distinguir nome da segunda aba de um novo tipo de hardware. Não implementar exclusão física, rotação de chaves nem remoção de computadores sem escopo novo.
+Rastreabilidade: TAP seção 10; REQ-0003; RF-0003-01/02/03; RI-0003; TASK-RF-0003-*.
+

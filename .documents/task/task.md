@@ -48,3 +48,18 @@ act-ide-teste
 ## RF-0002-05 — Persistir viewport, preservar performance e acessibilidade
 
 - [x] TASK-RF-0002-05-001: Persistir viewport por página e validar performance/acessibilidade.
+
+## RF-0003-01 — Abas, empty state e múltiplos computadores
+
+- [ ] TASK-RF-0003-01-001: Localizar a implementação real de local-devices e integrar navegação em duas abas.
+- [ ] TASK-RF-0003-01-002: Implementar listagem de computadores, seleção e empty state com Adicionar dispositivo.
+
+## RF-0003-02 — Cadastro de computador, chave e validade
+
+- [ ] TASK-RF-0003-02-001: Criar persistência e endpoints para computadores e emissão segura de chaves com validade.
+- [ ] TASK-RF-0003-02-002: Implementar modal de cadastro com validade e visualização única da chave.
+
+## RF-0003-03 — Pastas por computador, cards e exclusão
+
+- [ ] TASK-RF-0003-03-001: Implementar cadastro, listagem e remoção de vínculos de pastas por computador.
+- [ ] TASK-RF-0003-03-002: Implementar cards de pastas, confirmação de exclusão e testes de segurança e interface.

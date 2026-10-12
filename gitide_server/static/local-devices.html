@@ -2,30 +2,106 @@
 <html lang="pt-BR">
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Computadores · Okestre</title>
-  <link rel="stylesheet" href="/static/local-devices.css">
-  <script src="/static/local-devices.js" defer></script>
+  <title>Dispositivos locais · Okestre</title>
+  <link rel="stylesheet" href="/static/local-devices.css?v=2">
+  <script src="/static/local-devices.js?v=2" defer></script>
 </head>
 <body>
   <main>
-    <header><div><a href="/">← Voltar ao Okestre</a><h1>Seus computadores</h1></div><button id="refresh">Atualizar</button></header>
-    <p>Conecte o Okestre Local para trabalhar nos arquivos do seu computador. Os arquivos e o histórico ficam nele; o conteúdo solicitado passa pela VM até o GPT.</p>
+    <header class="page-header">
+      <div><a href="/">← Voltar ao Okestre</a><h1>Dispositivos locais</h1>
+        <p>Gerencie computadores e pastas conectados ao Okestre Local.</p></div>
+      <button type="button" id="refresh" class="btn-muted">Atualizar</button>
+    </header>
     <p id="notice" role="status" aria-live="polite"></p>
-    <section aria-labelledby="pair-title"><h2 id="pair-title">Conectar um computador</h2>
-      <form id="pair-form"><label>Nome do computador<input id="device-name" required maxlength="100" placeholder="Meu Windows" autocomplete="off"></label><button>Gerar código de pareamento</button></form>
-      <div id="pair-result" hidden><p>Abra o Okestre Local, clique em Parear e informe o endereço desta VM e o código abaixo. Válido por 5 minutos, para um único uso. Gerar outro código invalida o anterior.</p><code id="pair-code"></code></div>
-    </section>
-    <section aria-labelledby="devices-title"><h2 id="devices-title">Dispositivos e pastas</h2><div id="devices"></div></section>
-    <section aria-labelledby="files-title"><h2 id="files-title">Arquivos locais</h2>
-      <p>Selecione um projeto para ler e editar arquivos. Git, terminal e o editor principal ainda não estão habilitados para projetos locais nesta versão.</p>
-      <label>Projeto<select id="projects"><option value="">Selecione…</option></select></label>
-      <div class="workspace"><div><ul id="files"></ul><button id="more" hidden>Mais arquivos</button></div>
-        <form id="editor"><label>Arquivo<input id="filepath" required placeholder="README.md" autocomplete="off"></label>
-          <div class="actions"><button type="button" id="read">Ler arquivo</button><button type="button" id="new-file">Preparar arquivo novo</button></div>
-          <label>Conteúdo<textarea id="content" spellcheck="false" rows="16" disabled></textarea></label>
-          <button id="save" disabled>Salvar no computador</button><small id="version"></small>
-        </form>
+
+    <nav class="local-tabs" role="tablist" aria-label="Gerenciar dispositivos locais">
+      <button id="tab-computers" type="button" role="tab" aria-controls="panel-computers" aria-selected="true" tabindex="0" class="is-active">Computador</button>
+      <button id="tab-folders" type="button" role="tab" aria-controls="panel-folders" aria-selected="false" tabindex="-1">Dispositivos e pastas</button>
+    </nav>
+
+    <section id="panel-computers" role="tabpanel" aria-labelledby="tab-computers" tabindex="0">
+      <div class="section-head">
+        <div><h2>Computadores</h2><p>Cadastre e acompanhe os computadores autorizados.</p></div>
+        <button id="add-device" type="button" class="btn-primary">Adicionar dispositivo</button>
       </div>
+      <p id="computer-loading" role="status">Carregando computadores…</p>
+      <div id="computer-empty" class="empty-state" hidden>
+        <div class="empty-icon" aria-hidden="true">⌘</div>
+        <h3>Nenhum computador cadastrado</h3>
+        <p>Adicione seu primeiro computador para conectar o Okestre Local.</p>
+        <button id="add-device-empty" type="button" class="btn-primary">Adicionar dispositivo</button>
+      </div>
+      <div id="computer-cards" class="card-grid"></div>
+    </section>
+
+    <section id="panel-folders" role="tabpanel" aria-labelledby="tab-folders" tabindex="0" hidden>
+      <div class="section-head">
+        <div><h2>Dispositivos e pastas</h2><p>Organize as pastas compartilhadas de cada computador.</p></div>
+        <button id="add-folder" type="button" class="btn-primary">Adicionar pasta</button>
+      </div>
+      <label for="folder-computer">Computador</label>
+      <select id="folder-computer" aria-label="Selecionar computador"></select>
+      <div id="folder-empty" class="empty-state" hidden>
+        <div class="empty-icon" aria-hidden="true">▣</div>
+        <h3 id="folder-empty-title">Nenhuma pasta cadastrada</h3>
+        <p id="folder-empty-description"></p>
+        <button id="folder-add-empty" type="button" class="btn-primary">Adicionar pasta</button>
+      </div>
+      <div id="devices" class="card-grid"></div>
+
+      <section class="files-panel" aria-labelledby="files-title">
+        <h2 id="files-title">Arquivos locais</h2>
+        <p>Selecione um projeto vinculado para ler e editar arquivos. Git e terminal ainda não estão habilitados para projetos locais nesta versão.</p>
+        <label for="projects">Projeto</label>
+        <select id="projects"><option value="">Selecione…</option></select>
+        <div class="workspace"><div><ul id="files"></ul><button type="button" id="more" hidden>Mais arquivos</button></div>
+          <form id="editor"><label for="filepath">Arquivo</label>
+            <input id="filepath" required placeholder="README.md" autocomplete="off">
+            <div class="actions"><button type="button" id="read">Ler arquivo</button><button type="button" id="new-file">Preparar arquivo novo</button></div>
+            <label for="content">Conteúdo</label><textarea id="content" spellcheck="false" rows="16" disabled></textarea>
+            <button id="save" disabled>Salvar no computador</button><small id="version"></small>
+          </form>
+        </div>
+      </section>
     </section>
   </main>
+
+  <dialog id="device-dialog" aria-labelledby="device-dialog-title">
+    <div class="dialog-head"><h2 id="device-dialog-title">Adicionar dispositivo</h2><button type="button" id="close-device" class="close-button" aria-label="Fechar modal">×</button></div>
+    <form id="pair-form">
+      <label for="device-name">Nome do computador</label>
+      <input id="device-name" required maxlength="100" placeholder="Ex.: Notebook do escritório" autocomplete="off">
+      <label for="device-expiry">Expiração da chave</label>
+      <select id="device-expiry" required>
+        <option value="1">1 mês</option><option value="3" selected>3 meses</option>
+        <option value="9">9 meses</option><option value="never">Nunca</option>
+      </select>
+      <p id="never-warning" class="warning" hidden>Essa chave de conexão não terá expiração automática. Guarde-a com segurança.</p>
+      <p class="hint">O código de pareamento expira em 5 minutos. A validade selecionada será aplicada à credencial do aplicativo após a conexão.</p>
+      <div class="dialog-actions"><button type="button" id="cancel-device" class="btn-muted">Cancelar</button><button id="generate-key" type="submit" class="btn-primary">Gerar chave</button></div>
+    </form>
+    <div id="pair-result" hidden>
+      <p>Abra o Okestre Local, clique em <strong>Parear</strong> e informe o endereço desta VM e o código abaixo.</p>
+      <p class="hint">Código de uso único, válido por cinco minutos. A credencial de conexão seguirá a expiração escolhida.</p>
+      <code id="pair-code"></code>
+      <div class="dialog-actions"><button type="button" id="copy-pair-code">Copiar código</button><button type="button" id="done-device" class="btn-primary">Concluir</button></div>
+    </div>
+  </dialog>
+
+  <dialog id="folder-dialog" aria-labelledby="folder-dialog-title">
+    <div class="dialog-head"><h2 id="folder-dialog-title">Adicionar pasta</h2><button type="button" id="close-folder" class="close-button" aria-label="Fechar modal">×</button></div>
+    <p>Para proteger seus arquivos, a escolha de pastas acontece no próprio computador. O caminho absoluto não é enviado à VM.</p>
+    <ol><li>Abra o aplicativo <strong>Okestre Local</strong> no computador selecionado.</li>
+        <li>Clique em <strong>Adicionar pasta</strong>, escolha a pasta, o nome e as permissões.</li>
+        <li>Retorne ao Okestre e clique em <strong>Atualizar pastas</strong>.</li></ol>
+    <div class="dialog-actions"><button type="button" id="cancel-folder" class="btn-muted">Fechar</button><button type="button" id="refresh-folders" class="btn-primary">Atualizar pastas</button></div>
+  </dialog>
+
+  <dialog id="remove-folder-dialog" aria-labelledby="remove-folder-title">
+    <h2 id="remove-folder-title">Remover cadastro da pasta?</h2>
+    <p><strong id="remove-folder-name"></strong> deixará de ser acessível por este computador no Okestre. <strong>Os arquivos físicos não serão apagados.</strong></p>
+    <p class="hint">Se já existir um projeto vinculado, seu acesso à pasta será desativado.</p>
+    <div class="dialog-actions"><button type="button" id="cancel-remove-folder" class="btn-muted">Cancelar</button><button type="button" id="confirm-remove-folder" class="btn-danger">Remover cadastro</button></div>
+  </dialog>
 </body></html>

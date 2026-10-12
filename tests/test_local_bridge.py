@@ -1,6 +1,7 @@
 import asyncio
 import json
 import socket
+import sqlite3
 import threading
 import time
 import uuid
@@ -210,3 +211,111 @@ def test_packaged_windows_agent_with_real_mcp(live):
     finally:
         process.terminate()
         process.wait(timeout=10)
+
+
+def test_multiple_pending_computers_expiry_and_one_use_codes(live):
+    client = live.client
+    pairs = []
+    for number, duration in enumerate((1, 3, 9, None), 1):
+        result = client.post("/api/local/pair",
+                             json={"name": f"Computador {number}", "expires_in_months": duration})
+        assert result.status_code == 200, result.text
+        assert result.json()["expires_in"] == 300
+        pairs.append(result.json()["code"])
+    assert len(set(pairs)) == 4
+    listing = client.get("/api/local/devices").json()
+    assert sum(d["pending"] for d in listing["devices"]) == 4
+    assert not any(code in json.dumps(listing) for code in pairs)
+    assert client.post("/api/local/pair", json={"name": "invalido", "expires_in_months": 2}).status_code == 400
+    assert client.post("/api/local/pair", json={"name": "invalido", "expires_in_months": True}).status_code == 400
+    for duration, code in zip((1, 3, 9, None), pairs):
+        claim = client.post("/api/local/claim", json={"code": code})
+        assert claim.status_code == 200, claim.text
+        assert client.post("/api/local/claim", json={"code": code}).status_code == 400
+        device_id, token = claim.json()["device_id"], claim.json()["token"]
+        stored = live.bridge.store.get(device_id)
+        assert stored is not None
+        assert stored["token_hash"] != token
+        assert live.bridge.store.authenticate(token)["id"] == device_id
+        if duration is None:
+            assert stored["expires_at"] is None
+        else:
+            assert stored["created"] < stored["expires_at"]
+            assert stored["expires_at"] == pytest.approx(
+                live.bridge.store.months_after(stored["created"], duration))
+    assert not any(d["pending"] for d in client.get("/api/local/devices").json()["devices"])
+
+
+def test_expired_token_does_not_authenticate_or_show_online(live):
+    config, folder, marker, project = live.enroll()
+    identifier, token = config.load()["device_id"], config.load()["token"]
+    with live.bridge.store.connect() as db:
+        db.execute("UPDATE devices SET expires_at=? WHERE id=?", (time.time() - 1, identifier))
+    assert live.bridge.store.authenticate(token) is None
+    assert live.bridge.store.get(identifier) is None
+    state = live.client.get("/api/local/devices").json()["devices"]
+    expired = next(item for item in state if item["id"] == identifier)
+    assert expired["expired"]
+    assert not expired["online"]
+    assert not any(p["id"] == project for p in live.client.get("/api/local/devices").json()["projects"])
+    assert "device_not_authorized" in str(live.tool("read_file", project_id=project, filepath="README.md"))
+    assert folder.joinpath("README.md").read_text() == marker
+
+
+def test_remove_folder_access_preserves_physical_content_and_blocks_project(live):
+    config, folder, marker, project = live.enroll()
+    settings = config.load()
+    device_id = settings["device_id"]
+    root_id = next(iter(settings["roots"]))
+    before = live.client.get("/api/local/devices").json()
+    assert any(r["id"] == root_id for d in before["devices"] for r in d["roots"])
+    assert live.bridge.store.remove_root(device_id, root_id, owner="2") is False
+    bad = live.client.post("/api/local/remove-root",
+        json={"device_id": device_id, "root_id": "not-a-root"})
+    assert bad.status_code == 400
+    result = live.client.post("/api/local/remove-root",
+        json={"device_id": device_id, "root_id": root_id})
+    assert result.status_code == 200, result.text
+    assert result.json()["status"] == "removed"
+    after = live.client.get("/api/local/devices").json()
+    assert not any(r["id"] == root_id for d in after["devices"] for r in d["roots"])
+    assert not any(p["id"] == project for p in after["projects"])
+    assert live.client.post("/api/local/bind",
+        json={"device_id": device_id, "root_id": root_id, "name": "Outra pasta"}).status_code == 400
+    assert "root_unavailable" in str(live.tool("read_file", project_id=project, filepath="README.md"))
+    assert folder.joinpath("README.md").read_text() == marker
+    # Revocation remains active in durable SQLite independently of the running channel.
+    assert root_id in json.loads(live.bridge.store.get(device_id)["blocked_roots"])
+    assert live.client.post("/api/local/remove-root",
+        json={"device_id": device_id, "root_id": root_id}).status_code == 200
+
+
+def test_expiry_uses_calendar_months_and_preserves_end_of_month():
+    from datetime import datetime, timezone
+    jan_31 = datetime(2027, 1, 31, 12, 45, tzinfo=timezone.utc).timestamp()
+    actual = DeviceStore.months_after(jan_31, 1)
+    assert datetime.fromtimestamp(actual, timezone.utc) == datetime(
+        2027, 2, 28, 12, 45, tzinfo=timezone.utc)
+    leap = datetime(2028, 1, 31, tzinfo=timezone.utc).timestamp()
+    assert datetime.fromtimestamp(DeviceStore.months_after(leap, 1), timezone.utc) == datetime(
+        2028, 2, 29, tzinfo=timezone.utc)
+    assert DeviceStore.months_after(jan_31, None) is None
+
+
+def test_store_additive_migration_preserves_old_device_tokens(tmp_path):
+    database = tmp_path / "legacy_devices.db"
+    with sqlite3.connect(database) as db:
+        db.executescript("""
+            CREATE TABLE devices (id TEXT PRIMARY KEY, owner TEXT NOT NULL, name TEXT NOT NULL,
+                token_hash TEXT NOT NULL UNIQUE, roots TEXT NOT NULL DEFAULT '[]',
+                created REAL NOT NULL, revoked REAL);
+            CREATE TABLE pairing (code_hash TEXT PRIMARY KEY, owner TEXT NOT NULL,
+                name TEXT NOT NULL, expires REAL NOT NULL);
+        """)
+        db.execute("INSERT INTO devices VALUES (?,?,?,?,?,?,?)",
+                   ("legacy", "1", "antigo", DeviceStore.digest("legacy-secret"), "[]", time.time(), None))
+    store = DeviceStore(database)
+    store_again = DeviceStore(database)
+    assert store_again.authenticate("legacy-secret")["expires_at"] is None
+    assert store_again.page("1")[0]["name"] == "antigo"
+

@@ -81,8 +81,6 @@ class Config:
             pass
         if not name.strip() or len(name.strip()) > 100:
             raise BridgeError("Informe um nome de até 100 caracteres.")
-        if len(data.get("roots", {})) >= 100:
-            raise BridgeError("Limite de 100 pastas.")
         if any(os.path.normcase(r["path"]) == os.path.normcase(path) for r in data.get("roots", {}).values()):
             raise BridgeError("Pasta já cadastrada.")
         identifier = uuid.uuid4().hex

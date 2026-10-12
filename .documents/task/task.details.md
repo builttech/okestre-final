@@ -984,3 +984,476 @@ Persistir viewport por página, manter pan/zoom fora do export JSON e do undo/re
 - [x] Export JSON não inclui viewport local.
 - [x] Casos de teste atualizados.
 - [x] Validação técnica registrada.
+
+# TASK-RF-0003-01-001 — Localizar implementação de local-devices e integrar navegação em duas abas
+
+## Identificação da task
+- ID: `TASK-RF-0003-01-001`
+- REQ: `REQ-0003`; RF: `RF-0003-01`; RI: `RI-0003`.
+- Tipo: implementação planejada; status: aprovada, pendente por dependência de localização do módulo.
+
+## Objetivo e história do usuário
+Confirmar repositório/entrypoint correto e organizar a experiência em abas Computador e Dispositivos e pastas sem duplicar interfaces.
+
+## Contexto e escopo
+Inventariar rotas e assets reais, contratos existentes, estados de navegação e sistema visual. Integrar tabs semânticas no componente existente; preservar navegação global.
+
+## Fora do escopo
+Remoção física de diretórios, exclusão de computadores, mudanças não relacionadas à feature e substituição silenciosa de contratos existentes.
+
+## Entradas
+REQ-0003, RF-0003-01, Design seção 16, RI-0003, código/contrato do módulo real.
+
+## Saídas
+Artefatos implementados e verificáveis correspondentes a TASK-RF-0003-01-001; testes e evidências registrados.
+
+## Atividades
+Localizar a tela em serviço/branch correta; revisar APIs e tema; implementar tablist/tabpanel com seleção preservada; garantir foco e mobile.
+
+## Regras e requisitos técnicos
+Respeitar tema/tokens e contratos existentes; autenticação e autorização por proprietário; nenhuma chave em logs ou storage persistente; alterações cirúrgicas e rastreáveis, sem execução de shell para modificar arquivos.
+
+## Arquivos / Componentes Impactados
+- [MODIFICAR] Frontend real de local-devices (a definir após inventário)
+- [MODIFICAR] CSS/roteamento correspondente após identificação do módulo
+
+## Dados envolvidos
+Computador (id, owner_id, name, datas e estado da chave) e/ou pasta (id, computer_id, name, path), conforme escopo; segredos nunca persistidos em claro.
+
+## APIs, serviços e integrações
+Contratos propostos em Design seção 16, sujeitos a confirmação com serviço/agente real.
+
+## Validações e comportamento esperado
+Verificar duas abas, teclado, foco, responsividade, nenhuma regressão da navegação existente.
+
+## Critérios de aceite
+- [ ] Comportamento do RF atendido e persistido sem regressão.
+- [ ] Estados de sucesso, erro e carregamento quando aplicáveis.
+- [ ] Segurança, acessibilidade e isolamento entre computadores verificados.
+- [ ] Leitura pós-alteração, evidência técnica e status Git revisados.
+
+## Plano de testes e evidências
+Verificar duas abas, teclado, foco, responsividade, nenhuma regressão da navegação existente. Registrar comandos/testes realmente executados e resultado após aprovação; nenhuma execução realizada nesta etapa.
+
+## Dependências
+Inventário de frontend; validação de acesso ao código da tela, ausente da árvore indexada do projeto 46.
+
+## Riscos e pendências
+O módulo pode pertencer a outro repositório; bloquear mudanças em componentes não relacionados até identificar origem.
+
+## Definition of Ready
+Repositório/serviço da feature identificado, contratos confirmados, pacote Harness aprovado, testes planejados.
+
+## Definition of Done
+Código integrado no módulo real, testes e QA concluídos, revisão de segredo e permissões, nenhuma regressão, task marcada concluída somente após verificação.
+
+## Rastreabilidade, histórico e checklist
+- TAP seção 10 -> REQ-0003 -> RF-0003-01 -> Design seção 16 -> RI-0003 -> TASK-RF-0003-01-001.
+- 2026-10-11: task planejada e não executada.
+- [x] RF e documentação relacionados.
+- [ ] Implementação aprovada, realizada e verificada.
+
+
+# TASK-RF-0003-01-002 — Listar e selecionar computadores com estado vazio
+
+## Identificação da task
+- ID: `TASK-RF-0003-01-002`
+- REQ: `REQ-0003`; RF: `RF-0003-01`; RI: `RI-0003`.
+- Tipo: implementação planejada; status: aprovada, pendente por dependência de localização do módulo.
+
+## Objetivo e história do usuário
+Oferecer entrada óbvia para Adicionar dispositivo e suporte visual a vários computadores.
+
+## Contexto e escopo
+Consumir API autenticada de listagem, exibir skeleton, empty state, cards com nome/status/validade, CTA de inclusão e seleção de computador.
+
+## Fora do escopo
+Remoção física de diretórios, exclusão de computadores, mudanças não relacionadas à feature e substituição silenciosa de contratos existentes.
+
+## Entradas
+REQ-0003, RF-0003-01, Design seção 16, RI-0003, código/contrato do módulo real.
+
+## Saídas
+Artefatos implementados e verificáveis correspondentes a TASK-RF-0003-01-002; testes e evidências registrados.
+
+## Atividades
+Definir estados loading/empty/error/data; buscar computadores do usuário, construir cards acessíveis, manter computer_id selecionado ao navegar e tratar troca de conta.
+
+## Regras e requisitos técnicos
+Respeitar tema/tokens e contratos existentes; autenticação e autorização por proprietário; nenhuma chave em logs ou storage persistente; alterações cirúrgicas e rastreáveis, sem execução de shell para modificar arquivos.
+
+## Arquivos / Componentes Impactados
+- [MODIFICAR] Frontend real de local-devices (a confirmar)
+- [MODIFICAR] CSS do módulo de computadores, com tokens existentes
+
+## Dados envolvidos
+Computador (id, owner_id, name, datas e estado da chave) e/ou pasta (id, computer_id, name, path), conforme escopo; segredos nunca persistidos em claro.
+
+## APIs, serviços e integrações
+Contratos propostos em Design seção 16, sujeitos a confirmação com serviço/agente real.
+
+## Validações e comportamento esperado
+0, 1 e vários computadores; timeout/API 500; clique em Adicionar; troca de computador e refresh sem segredo exibido.
+
+## Critérios de aceite
+- [ ] Comportamento do RF atendido e persistido sem regressão.
+- [ ] Estados de sucesso, erro e carregamento quando aplicáveis.
+- [ ] Segurança, acessibilidade e isolamento entre computadores verificados.
+- [ ] Leitura pós-alteração, evidência técnica e status Git revisados.
+
+## Plano de testes e evidências
+0, 1 e vários computadores; timeout/API 500; clique em Adicionar; troca de computador e refresh sem segredo exibido. Registrar comandos/testes realmente executados e resultado após aprovação; nenhuma execução realizada nesta etapa.
+
+## Dependências
+TASK-RF-0003-01-001 e TASK-RF-0003-02-001.
+
+## Riscos e pendências
+Falso empty durante loading, seleção desatualizada ou exposição de dados de outra conta.
+
+## Definition of Ready
+Repositório/serviço da feature identificado, contratos confirmados, pacote Harness aprovado, testes planejados.
+
+## Definition of Done
+Código integrado no módulo real, testes e QA concluídos, revisão de segredo e permissões, nenhuma regressão, task marcada concluída somente após verificação.
+
+## Rastreabilidade, histórico e checklist
+- TAP seção 10 -> REQ-0003 -> RF-0003-01 -> Design seção 16 -> RI-0003 -> TASK-RF-0003-01-002.
+- 2026-10-11: task planejada e não executada.
+- [x] RF e documentação relacionados.
+- [ ] Implementação aprovada, realizada e verificada.
+
+
+# TASK-RF-0003-02-001 — Persistir computadores e emitir chaves de conexão com validade
+
+## Identificação da task
+- ID: `TASK-RF-0003-02-001`
+- REQ: `REQ-0003`; RF: `RF-0003-02`; RI: `RI-0003`.
+- Tipo: implementação planejada; status: aprovada, pendente por dependência de localização do módulo.
+
+## Objetivo e história do usuário
+Modelar múltiplos computadores por usuário e criar credencial segura com validade 1/3/9 meses ou nunca.
+
+## Contexto e escopo
+Criar modelo/estrutura persistente e APIs GET/POST; geração atômica CSPRNG no backend; hash da chave, validade meses-calendário, status e isolamento por usuário.
+
+## Fora do escopo
+Remoção física de diretórios, exclusão de computadores, mudanças não relacionadas à feature e substituição silenciosa de contratos existentes.
+
+## Entradas
+REQ-0003, RF-0003-02, Design seção 16, RI-0003, código/contrato do módulo real.
+
+## Saídas
+Artefatos implementados e verificáveis correspondentes a TASK-RF-0003-02-001; testes e evidências registrados.
+
+## Atividades
+Confirmar contrato legado com agente; modelar LocalComputer e policy de owner_id; validar payload; emitir segredo, armazenar somente hash; devolver key_once uma vez; no-store; comparar tokens com segurança; documentar erros.
+
+## Regras e requisitos técnicos
+Respeitar tema/tokens e contratos existentes; autenticação e autorização por proprietário; nenhuma chave em logs ou storage persistente; alterações cirúrgicas e rastreáveis, sem execução de shell para modificar arquivos.
+
+## Arquivos / Componentes Impactados
+- [MODIFICAR] gitide_server/database.py (se este serviço for o dono dos dados)
+- [MODIFICAR] gitide_server/main.py ou módulo de rotas correspondente (condicional)
+- [NOVO] Migração/modelo caso identificados no serviço real
+
+## Dados envolvidos
+Computador (id, owner_id, name, datas e estado da chave) e/ou pasta (id, computer_id, name, path), conforme escopo; segredos nunca persistidos em claro.
+
+## APIs, serviços e integrações
+Contratos propostos em Design seção 16, sujeitos a confirmação com serviço/agente real.
+
+## Validações e comportamento esperado
+Criar vários computadores; validar 1/3/9 meses e null, expiração UTC, valores inválidos, usuário A/B, rollback e double-submit; verificar que segredo não aparece em GET/log/DB em claro.
+
+## Critérios de aceite
+- [ ] Comportamento do RF atendido e persistido sem regressão.
+- [ ] Estados de sucesso, erro e carregamento quando aplicáveis.
+- [ ] Segurança, acessibilidade e isolamento entre computadores verificados.
+- [ ] Leitura pós-alteração, evidência técnica e status Git revisados.
+
+## Plano de testes e evidências
+Criar vários computadores; validar 1/3/9 meses e null, expiração UTC, valores inválidos, usuário A/B, rollback e double-submit; verificar que segredo não aparece em GET/log/DB em claro. Registrar comandos/testes realmente executados e resultado após aprovação; nenhuma execução realizada nesta etapa.
+
+## Dependências
+TASK-RF-0003-01-001; protocolo de chave e mecanismo de autenticação reais confirmados.
+
+## Riscos e pendências
+Quebra de pareamento de agente, exposição de credenciais, IDOR, mecanismo de expiração incorreto.
+
+## Definition of Ready
+Repositório/serviço da feature identificado, contratos confirmados, pacote Harness aprovado, testes planejados.
+
+## Definition of Done
+Código integrado no módulo real, testes e QA concluídos, revisão de segredo e permissões, nenhuma regressão, task marcada concluída somente após verificação.
+
+## Rastreabilidade, histórico e checklist
+- TAP seção 10 -> REQ-0003 -> RF-0003-02 -> Design seção 16 -> RI-0003 -> TASK-RF-0003-02-001.
+- 2026-10-11: task planejada e não executada.
+- [x] RF e documentação relacionados.
+- [ ] Implementação aprovada, realizada e verificada.
+
+
+# TASK-RF-0003-02-002 — Modal de computador com geração e visualização única da chave
+
+## Identificação da task
+- ID: `TASK-RF-0003-02-002`
+- REQ: `REQ-0003`; RF: `RF-0003-02`; RI: `RI-0003`.
+- Tipo: implementação planejada; status: aprovada, pendente por dependência de localização do módulo.
+
+## Objetivo e história do usuário
+Entregar fluxo de cadastro com campos obrigatórios e cópia segura da chave emitida.
+
+## Contexto e escopo
+Modal Nome do computador, select 1/3/9 meses/nunca, Gerar chave, validações, loading, erro, exibição uma vez e copiar.
+
+## Fora do escopo
+Remoção física de diretórios, exclusão de computadores, mudanças não relacionadas à feature e substituição silenciosa de contratos existentes.
+
+## Entradas
+REQ-0003, RF-0003-02, Design seção 16, RI-0003, código/contrato do módulo real.
+
+## Saídas
+Artefatos implementados e verificáveis correspondentes a TASK-RF-0003-02-002; testes e evidências registrados.
+
+## Atividades
+Criar modal com labels e foco; bloquear duplo envio; validar nome e expiração; enviar POST; renderizar confirmação com key_once em memória efêmera; descartar segredo ao fechar; atualizar cards.
+
+## Regras e requisitos técnicos
+Respeitar tema/tokens e contratos existentes; autenticação e autorização por proprietário; nenhuma chave em logs ou storage persistente; alterações cirúrgicas e rastreáveis, sem execução de shell para modificar arquivos.
+
+## Arquivos / Componentes Impactados
+- [MODIFICAR] Componente/modal de local-devices no frontend real (pendente de inventário)
+- [MODIFICAR] CSS escopado e handlers do módulo
+
+## Dados envolvidos
+Computador (id, owner_id, name, datas e estado da chave) e/ou pasta (id, computer_id, name, path), conforme escopo; segredos nunca persistidos em claro.
+
+## APIs, serviços e integrações
+Contratos propostos em Design seção 16, sujeitos a confirmação com serviço/agente real.
+
+## Validações e comportamento esperado
+Obrigatoriedade do nome, cada opção de validade, Nunca com aviso, clipboard, foco/Esc, erro e retry sem duplicidade, segredo não salvo em localStorage.
+
+## Critérios de aceite
+- [ ] Comportamento do RF atendido e persistido sem regressão.
+- [ ] Estados de sucesso, erro e carregamento quando aplicáveis.
+- [ ] Segurança, acessibilidade e isolamento entre computadores verificados.
+- [ ] Leitura pós-alteração, evidência técnica e status Git revisados.
+
+## Plano de testes e evidências
+Obrigatoriedade do nome, cada opção de validade, Nunca com aviso, clipboard, foco/Esc, erro e retry sem duplicidade, segredo não salvo em localStorage. Registrar comandos/testes realmente executados e resultado após aprovação; nenhuma execução realizada nesta etapa.
+
+## Dependências
+TASK-RF-0003-01-001, TASK-RF-0003-02-001.
+
+## Riscos e pendências
+Expor chave em armazenamento persistente ou fechar confirmação antes do usuário copiá-la.
+
+## Definition of Ready
+Repositório/serviço da feature identificado, contratos confirmados, pacote Harness aprovado, testes planejados.
+
+## Definition of Done
+Código integrado no módulo real, testes e QA concluídos, revisão de segredo e permissões, nenhuma regressão, task marcada concluída somente após verificação.
+
+## Rastreabilidade, histórico e checklist
+- TAP seção 10 -> REQ-0003 -> RF-0003-02 -> Design seção 16 -> RI-0003 -> TASK-RF-0003-02-002.
+- 2026-10-11: task planejada e não executada.
+- [x] RF e documentação relacionados.
+- [ ] Implementação aprovada, realizada e verificada.
+
+
+# TASK-RF-0003-03-001 — Persistência e APIs de pastas por computador
+
+## Identificação da task
+- ID: `TASK-RF-0003-03-001`
+- REQ: `REQ-0003`; RF: `RF-0003-03`; RI: `RI-0003`.
+- Tipo: implementação planejada; status: aprovada, pendente por dependência de localização do módulo.
+
+## Objetivo e história do usuário
+Cadastrar N associações de pastas por computador e remover apenas a associação.
+
+## Contexto e escopo
+Modelo LocalFolder com FK de computador e owner; endpoints GET/POST/DELETE; validação de caminho segundo plataforma; deleção só cadastral.
+
+## Fora do escopo
+Remoção física de diretórios, exclusão de computadores, mudanças não relacionadas à feature e substituição silenciosa de contratos existentes.
+
+## Entradas
+REQ-0003, RF-0003-03, Design seção 16, RI-0003, código/contrato do módulo real.
+
+## Saídas
+Artefatos implementados e verificáveis correspondentes a TASK-RF-0003-03-001; testes e evidências registrados.
+
+## Atividades
+Criar dados/filtros por computer_id e dono; normalizar paths sem tentar resolver no filesystem do servidor; evitar duplicidade de path; usar transações; DELETE sem comandos de filesystem.
+
+## Regras e requisitos técnicos
+Respeitar tema/tokens e contratos existentes; autenticação e autorização por proprietário; nenhuma chave em logs ou storage persistente; alterações cirúrgicas e rastreáveis, sem execução de shell para modificar arquivos.
+
+## Arquivos / Componentes Impactados
+- [MODIFICAR] gitide_server/database.py (se dados pertencem ao serviço)
+- [MODIFICAR] Rotas/API de local-devices no serviço identificado
+- [NOVO] Migração segura e testes de endpoints se necessário
+
+## Dados envolvidos
+Computador (id, owner_id, name, datas e estado da chave) e/ou pasta (id, computer_id, name, path), conforme escopo; segredos nunca persistidos em claro.
+
+## APIs, serviços e integrações
+Contratos propostos em Design seção 16, sujeitos a confirmação com serviço/agente real.
+
+## Validações e comportamento esperado
+0/1/N pastas; A/B computadores e donos; path Windows/Linux; caminhos duplicados; DELETE idempotente; confirmar diretório físico intocado.
+
+## Critérios de aceite
+- [ ] Comportamento do RF atendido e persistido sem regressão.
+- [ ] Estados de sucesso, erro e carregamento quando aplicáveis.
+- [ ] Segurança, acessibilidade e isolamento entre computadores verificados.
+- [ ] Leitura pós-alteração, evidência técnica e status Git revisados.
+
+## Plano de testes e evidências
+0/1/N pastas; A/B computadores e donos; path Windows/Linux; caminhos duplicados; DELETE idempotente; confirmar diretório físico intocado. Registrar comandos/testes realmente executados e resultado após aprovação; nenhuma execução realizada nesta etapa.
+
+## Dependências
+TASK-RF-0003-02-001 e contrato de computador persistido.
+
+## Riscos e pendências
+Validação indevida de path remoto; falha IDOR; remoção física acidental (proibida).
+
+## Definition of Ready
+Repositório/serviço da feature identificado, contratos confirmados, pacote Harness aprovado, testes planejados.
+
+## Definition of Done
+Código integrado no módulo real, testes e QA concluídos, revisão de segredo e permissões, nenhuma regressão, task marcada concluída somente após verificação.
+
+## Rastreabilidade, histórico e checklist
+- TAP seção 10 -> REQ-0003 -> RF-0003-03 -> Design seção 16 -> RI-0003 -> TASK-RF-0003-03-001.
+- 2026-10-11: task planejada e não executada.
+- [x] RF e documentação relacionados.
+- [ ] Implementação aprovada, realizada e verificada.
+
+
+# TASK-RF-0003-03-002 — Cards de pastas e QA de inclusão e exclusão
+
+## Identificação da task
+- ID: `TASK-RF-0003-03-002`
+- REQ: `REQ-0003`; RF: `RF-0003-03`; RI: `RI-0003`.
+- Tipo: implementação planejada; status: aprovada, pendente por dependência de localização do módulo.
+
+## Objetivo e história do usuário
+Tornar cadastro e remoção de pastas compreensíveis em UI responsiva e acessível.
+
+## Contexto e escopo
+Aba Dispositivos e pastas, seletor do computador, empty state, formulário da pasta, grid de cards, remoção com confirmação e feedback, QA E2E.
+
+## Fora do escopo
+Remoção física de diretórios, exclusão de computadores, mudanças não relacionadas à feature e substituição silenciosa de contratos existentes.
+
+## Entradas
+REQ-0003, RF-0003-03, Design seção 16, RI-0003, código/contrato do módulo real.
+
+## Saídas
+Artefatos implementados e verificáveis correspondentes a TASK-RF-0003-03-002; testes e evidências registrados.
+
+## Atividades
+Criar UI e estados; associar cada card ao computer_id; confirmar Remover cadastro sem apagar arquivos; reagir a sucesso/erro; escrever e executar testes de regressão.
+
+## Regras e requisitos técnicos
+Respeitar tema/tokens e contratos existentes; autenticação e autorização por proprietário; nenhuma chave em logs ou storage persistente; alterações cirúrgicas e rastreáveis, sem execução de shell para modificar arquivos.
+
+## Arquivos / Componentes Impactados
+- [MODIFICAR] Frontend real de local-devices e CSS escopado
+- [MODIFICAR] Testes/casos de teste aplicáveis ao módulo
+
+## Dados envolvidos
+Computador (id, owner_id, name, datas e estado da chave) e/ou pasta (id, computer_id, name, path), conforme escopo; segredos nunca persistidos em claro.
+
+## APIs, serviços e integrações
+Contratos propostos em Design seção 16, sujeitos a confirmação com serviço/agente real.
+
+## Validações e comportamento esperado
+Sem computadores/sem pastas, várias pastas e máquinas, exclusão parcial, tela móvel, navegação teclado, API error, regressão da emissão de chave.
+
+## Critérios de aceite
+- [ ] Comportamento do RF atendido e persistido sem regressão.
+- [ ] Estados de sucesso, erro e carregamento quando aplicáveis.
+- [ ] Segurança, acessibilidade e isolamento entre computadores verificados.
+- [ ] Leitura pós-alteração, evidência técnica e status Git revisados.
+
+## Plano de testes e evidências
+Sem computadores/sem pastas, várias pastas e máquinas, exclusão parcial, tela móvel, navegação teclado, API error, regressão da emissão de chave. Registrar comandos/testes realmente executados e resultado após aprovação; nenhuma execução realizada nesta etapa.
+
+## Dependências
+TASK-RF-0003-01-001, TASK-RF-0003-01-002, TASK-RF-0003-03-001.
+
+## Riscos e pendências
+Mistura de cards entre computadores ou mensagens que sugiram apagar conteúdo físico.
+
+## Definition of Ready
+Repositório/serviço da feature identificado, contratos confirmados, pacote Harness aprovado, testes planejados.
+
+## Definition of Done
+Código integrado no módulo real, testes e QA concluídos, revisão de segredo e permissões, nenhuma regressão, task marcada concluída somente após verificação.
+
+## Rastreabilidade, histórico e checklist
+- TAP seção 10 -> REQ-0003 -> RF-0003-03 -> Design seção 16 -> RI-0003 -> TASK-RF-0003-03-002.
+- 2026-10-11: task planejada e não executada.
+- [x] RF e documentação relacionados.
+- [ ] Implementação aprovada, realizada e verificada.
+
+---
+
+## Registro de execução do pacote REQ-0003 (2026-10-11)
+
+### Autorização
+O usuário aprovou expressamente: "Aprovado executar o pacote Harness". Não é necessária nova aprovação da mesma especificação. Iniciada a task sequencial TASK-RF-0003-01-001.
+
+### Inventário executado e evidências
+- Consultada a árvore de arquivos do projeto Act IA 46 (243 itens) e verificados o branch atual codex/local-agent-bridge, scripts, frontend estático, backend FastAPI, banco SQLAlchemy e design vivo.
+- Pesquisados os identificadores locais local-devices, local_devices, LocalDevices, local-device, local_agent e variantes de dispositivo/computador/pasta.
+- Nenhuma rota, componente de interface, contrato existente ou implementação de local-devices foi encontrada no código da aplicação disponibilizado pelo projeto 46; as correspondências de local-devices existentes decorrem somente dos novos documentos Harness.
+- Consulta adicional ao repositório GitHub indicado pelo workspace não identificou o componente em busca de código; acesso ao catálogo de branches do repositório não estava disponível pela conexão existente.
+- Verificadas a Task List, dependências aprovadas e condição de prontidão. A task 01-001 exige integrar a tela REAL e proíbe criar uma segunda UI paralela antes de localizá-la.
+
+### Resultado e bloqueio
+- TASK-RF-0003-01-001: investigação efetuada; integração de abas bloqueada por ausência do frontend/serviço fonte.
+- TASK-RF-0003-01-002, 0003-02-001, 0003-02-002, 0003-03-001 e 0003-03-002: não iniciadas, por sequência/dependências do pacote.
+- Nenhuma task marcada como concluída. Nenhum arquivo de código-fonte, contrato de banco, API ou CSS foi modificado. Os arquivos de documentação e estimativa preservam o planejamento aprovado.
+- Desbloqueio: disponibilizar no projeto 46 o código da página local-devices ou identificar o repositório/branch/caminho em que ela é implementada, com acesso de edição autorizado. Em seguida, retomar a execução a partir da TASK-RF-0003-01-001 sem reiniciar o Harness.
+
+### QA
+Não se realizaram testes funcionais/UI porque a tela-alvo não estava presente antes da sincronização. O diagnóstico documental inicial não equivale a implementação ou homologação.
+
+---
+
+## Retomada após sincronização Git — REQ-0003
+
+### Código real identificado
+Após a sincronização, localizados os seguintes módulos na mesma branch:
+- [MODIFICAR] gitide_server/static/local-devices.html
+- [MODIFICAR] gitide_server/static/local-devices.js
+- [MODIFICAR] gitide_server/static/local-devices.css
+- [MODIFICAR] gitide_server/local_bridge.py
+- [MODIFICAR] okestre_local/config.py
+- [MODIFICAR] tests/test_local_bridge.py
+- [MODIFICAR] tests/test_local_devices_browser.py
+- [MODIFICAR] LOCAL_AGENT.md
+
+### Implementação realizada por task
+- TASK-RF-0003-01-001: integração das duas abas semânticas diretamente no módulo existente, preservando acesso ao editor local via aba Pastas e seleção por parâmetro project.
+- TASK-RF-0003-01-002: listagem de zero/um/N computadores com loading, empty, status, cards e seleção por ID; pendências de pareamento também são mostradas.
+- TASK-RF-0003-02-001: migração SQLite aditiva da base local_devices.db, cadastro múltiplo pendente, chave de pareamento efêmera de 5 minutos, validade da credencial do agente em meses-calendário, verificação de expiração em get/authenticate e isolamento pelo usuário existente.
+- TASK-RF-0003-02-002: modal Nome do computador, 1/3/9 meses/Nunca, Gerar chave, apresentação única do código de pareamento, botão copiar e aviso para Nunca. A credencial final nunca é enviada ao navegador.
+- TASK-RF-0003-03-001: remoção de autorização de pasta por device_id/root_id com CSRF, propriedade e blocked_roots persistente; exclusão bloqueia rota de arquivo e futuros vínculos/handshakes sem apagar conteúdo local. Cadastro físico de novas pastas permanece na GUI do computador, não na VM.
+- TASK-RF-0003-03-002: cards de pastas por computador, status de permissão/projeto, exclusão com confirmação, empty, instrução para adicionar via Okestre Local, manutenção do editor local e casos de teste novos.
+
+### Revisão técnica disponível
+- Javascript validado sintaticamente por parser JavaScript V8: OK.
+- Verificada correspondência de todos os identificadores DOM usados pelo JavaScript com HTML: sem IDs ausentes e sem IDs duplicados.
+- Inspecionadas tabs ARIA, opções de expiração, CSRF no frontend, ausência de segredo em localStorage/sessionStorage e bloqueio de pastas removidas no código backend.
+- Conferida preservação dos contratos preexistentes /api/local/pair, claim, devices, bind, revoke, call e connect.
+- Testes automatizados implementados para múltiplos computadores pendentes, 1/3/9/Nunca, uso único do código, migração de schema, expiração da credencial, remoção de pasta sem apagar conteúdo e interface desktop/mobile.
+- Comando de testes solicitado: python -m pytest tests/test_local_bridge.py tests/test_local_main.py -q; retorno da ferramenta de terminal: pending_approval (command_id=2941). Sem aprovação de execução no painel, os testes de backend não puderam rodar. Testes de browser também não foram executados.
+
+### Estado e pendência
+Código implementado, verificações estáticas favoráveis, mas **QA automatizado ainda não homologado**. Pela Definition of Done, as seis tasks permanecerão abertas até execução dos testes e inspeção de eventuais falhas. Nenhum resultado de teste pendente é tratado como PASS. A aprovação do pacote Harness continua válida; a autorização adicional é estritamente a aprovação operacional do comando de terminal no painel Act IA.
+

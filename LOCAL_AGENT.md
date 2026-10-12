@@ -44,9 +44,9 @@ Sem `--write`, a pasta fica somente leitura. O agente não cria subpastas implic
 ## Conectar ao GPT
 
 1. Acesse o Okestre na VM com sua sessão root e abra `/local-devices`.
-2. Informe o nome do computador e gere um código válido por cinco minutos, de uso único.
+2. Na aba Computador, selecione Adicionar dispositivo, informe o nome e escolha a expiração da credencial: 1, 3, 9 meses ou Nunca. Gerar chave cria um código temporário de pareamento válido por cinco minutos.
 3. Abra o aplicativo local, clique em **Parear** e informe o endereço da VM e o código.
-4. Adicione uma pasta de projeto e escolha se permite edição.
+4. Na aba Dispositivos e pastas, o cadastro físico de novas pastas continua sendo feito no aplicativo Okestre Local (botão Adicionar pasta). Cada pasta vira um card no painel da VM após o envio pelo agente. O painel não recebe caminhos absolutos do computador e a exclusão de card bloqueia a autorização no servidor, sem apagar arquivos locais.
 5. No painel da VM, clique em **Atualizar** e depois em **Vincular projeto** junto à pasta.
 6. Autorize o projeto na conexão OAuth do GPT. Concessões anteriores restritas a outros projetos não recebem acesso automaticamente.
 7. Solicite `list_projects` e `read_file` para o novo projeto.

@@ -1,19 +1,40 @@
 # Estimativa Global do Projeto
 
-> Gerada em 2026-07-16T00:00:00Z com 0 tarefa(s), valor-hora de R$ 150.00 e 8 hora(s) por dia.
+> Revisada em 2026-10-12T01:06:49.761Z para REQ-0003 Local Devices; 6 tarefas abertas; valor-hora R$ 150.00; capacidade diária 8h.
 
 ## Resumo Executivo
 
-| Cenário | Horas | Dias | Custo |
+| Cenário | Horas | Dias úteis equivalentes | Custo |
 | --- | ---: | ---: | ---: |
-| Sem IA | 0.0h | 0.0 | R$ 0.00 |
-| Com IA | 0.0h | 0.0 | R$ 0.00 |
-| Economia estimada | 0.0h | - | R$ 0.00 (0.0%) |
+| Sem IA | 47.0h | 5.88 | R$ 7050.00 |
+| Com IA (esforço humano) | 21.0h | 2.63 | R$ 3150.00 |
+| Economia estimada | 26.0h | - | R$ 3900.00 (55.3%) |
 
-## Estimativa por Tarefa
+## Estimativa por Tarefa Aberta
 
 | Tarefa | Título | Tipo | Área | Complexidade | Sem IA | Com IA | Economia |
 | --- | --- | --- | --- | --- | ---: | ---: | ---: |
+| TASK-RF-0003-01-001 | Localizar a implementação real de local-devices e integrar navegação em duas abas. | implementation | frontend | high | 6.0h | 2.5h | 3.5h |
+| TASK-RF-0003-01-002 | Implementar listagem de computadores, seleção e empty state com Adicionar dispositivo. | implementation | frontend | medium | 5.0h | 2.0h | 3.0h |
+| TASK-RF-0003-02-001 | Criar persistência e endpoints para computadores e emissão segura de chaves com validade. | implementation | backend | high | 12.0h | 6.0h | 6.0h |
+| TASK-RF-0003-02-002 | Implementar modal de cadastro com validade e visualização única da chave. | implementation | frontend | medium | 6.0h | 2.5h | 3.5h |
+| TASK-RF-0003-03-001 | Implementar cadastro, listagem e remoção de vínculos de pastas por computador. | implementation | backend | high | 10.0h | 4.5h | 5.5h |
+| TASK-RF-0003-03-002 | Implementar cards de pastas, confirmação de exclusão e testes de segurança e interface. | implementation | frontend | medium | 8.0h | 3.5h | 4.5h |
+
+## Justificativas técnicas individuais
+
+- **TASK-RF-0003-01-001**: Há incerteza estrutural: a tela local-devices não aparece na árvore atual. O esforço contempla localizar o serviço real, conferir contratos, integrar tabs e validar a navegação. A IA acelera busca e revisão, mas o diagnóstico técnico e integração dependem do ambiente.
+- **TASK-RF-0003-01-002**: Listagem remota e empty state requerem controle de estados assíncronos, seleção persistente e segurança entre usuários. A IA acelera os componentes e a revisão, com testes e ajuste de integração ainda necessários.
+- **TASK-RF-0003-02-001**: Persistência com migração eventual, emissão criptográfica de credenciais, cálculo de meses, transações, idempotência e autorização multiusuário exigem revisão humana extensa. O ganho com IA é moderado pela criticidade de segurança.
+- **TASK-RF-0003-02-002**: Modal acessível, expiração, validações e apresentação única da chave incluem estados sensíveis e tratamento de falhas. A IA gera estrutura e handlers, mantendo revisão humana de segurança e comportamento.
+- **TASK-RF-0003-03-001**: Modelo relacional e APIs de pastas exigem isolamento entre computadores, validação de caminhos remotos e garantia de exclusão apenas cadastral. Testes de permissão e preservação dos arquivos físicos elevam esforço.
+- **TASK-RF-0003-03-002**: Cards, formulários, confirmação de exclusão, responsividade e QA de múltiplos computadores/pastas exigem integração E2E. A IA acelera UI e testes, mas homologação e regressão permanecem humanas.
+
+## Incertezas da estimativa
+
+- O módulo `local-devices` não consta do workspace 46 verificado. O esforço de inventário da TASK-RF-0003-01-001 é bloqueante; se o frontend residir fora deste repositório, revisar planejamento e estimativas antes da implementação.
+- Não confundir esforço técnico estimado com promessa de calendário. Testes de integração com agente remoto e regras de autenticação real podem ampliar escopo.
+- Registros concluídos anteriormente permanecem no histórico e não entram nestes totais.
 
 ## Histórico de Tarefas Fechadas
 
