@@ -18,3 +18,4 @@ env/
 .vscode/
 /outputs/okestre-local/
 /outputs/local-bridge-qa/
+/outputs/okestre-local-no-expiry/

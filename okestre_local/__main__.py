@@ -51,7 +51,7 @@ def main():
                             raise ValueError("Snapshot sem versão anterior. Exclusão não é suportada por este comando.")
                         result = executor.dispatch(dict(type="call", version=1, request_id=uuid.uuid4().hex, root_id=row[0],
                             operation="write_file", arguments={"filepath": row[1], "content": row[2].decode("utf-8"), "expected_sha256": args.expected_sha256},
-                            can_write=True, deadline=time.time() + 30))
+                            can_write=True))
                         print(json.dumps(result))
         elif args.action == "self-test":
             import tempfile
@@ -68,7 +68,7 @@ def main():
                 identifier = temporary.add_root(root, "Teste", False)
                 executor = Executor(temporary.load()["roots"], temporary.home)
                 result = executor.dispatch(dict(type="call", version=1, request_id=uuid.uuid4().hex, root_id=identifier,
-                    operation="read_file", arguments={"filepath": "test.txt"}, can_write=False, deadline=time.time() + 30))
+                    operation="read_file", arguments={"filepath": "test.txt"}, can_write=False))
                 assert result["content"] == "ok"
                 window = tk.Tk()
                 window.withdraw()

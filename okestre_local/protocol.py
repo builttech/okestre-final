@@ -32,7 +32,8 @@ class Call(BaseModel):
     operation: str = Field(max_length=50)
     arguments: dict
     can_write: bool = False
-    deadline: float
+    # Accepted for compatibility with older servers, but never used to expire work.
+    deadline: float | None = None
 
 
 def encode(message):

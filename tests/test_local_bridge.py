@@ -44,7 +44,7 @@ def live(tmp_path):
         current_user=lambda request: SimpleNamespace(id=1, role="root") if request.cookies.get("session") == "owner" else None,
         management_csrf=lambda request, user: "test-csrf",
     )
-    bridge = LocalBridge(DeviceStore(tmp_path / "devices.db"), sessions, oauth, timeout=2)
+    bridge = LocalBridge(DeviceStore(tmp_path / "devices.db"), sessions, oauth)
     _, transport, lifespan = create_mcp(lambda request: state.grant if request.headers.get("authorization") == "Bearer test" else False,
                                        sessions, bridge=bridge)
     app = FastAPI(lifespan=lifespan)
@@ -201,15 +201,16 @@ def test_batch_binding_is_atomic_authorized_and_repeatable(live):
     assert live.client.post(url, json=payload).status_code == 400
 
 
-def test_timeout_and_inactive_owner(live):
+def test_slow_request_and_inactive_owner(live):
     config, folder, marker, project = live.enroll()
     agent, _ = live.agents[0]
     original = agent.executor.dispatch
     def slow(message):
-        time.sleep(2.2)
+        time.sleep(31)
         return original(message)
     agent.executor.dispatch = slow
-    assert "request_timeout" in str(live.tool("read_file", project_id=project, filepath="README.md"))
+    live.client.timeout = httpx.Timeout(45)
+    assert live.tool("read_file", project_id=project, filepath="README.md")["structuredContent"]["content"] == marker
     agent.executor.dispatch = original
     live.active = False
     assert "device_not_authorized" in str(live.tool("read_file", project_id=project, filepath="README.md"))
@@ -219,7 +220,7 @@ def test_timeout_and_inactive_owner(live):
 def test_packaged_windows_agent_with_real_mcp(live):
     import os
     import subprocess
-    executable = Path(__file__).parents[1] / "outputs/okestre-local/OkestreLocal/OkestreLocal.exe"
+    executable = Path(os.environ.get("OKESTRE_TEST_EXECUTABLE", str(Path(__file__).parents[1] / "outputs/okestre-local/OkestreLocal/OkestreLocal.exe")))
     if os.name != "nt" or not executable.exists():
         pytest.skip("Build the Windows portable executable to run this test")
     config, folder, marker, project = live.enroll()
@@ -348,3 +349,19 @@ def test_store_additive_migration_preserves_old_device_tokens(tmp_path):
     assert store_again.authenticate("legacy-secret")["expires_at"] is None
     assert store_again.page("1")[0]["name"] == "antigo"
 
+
+def test_disconnect_releases_pending_request_even_if_socket_already_closed():
+    from gitide_server.local_bridge import Channel
+    from starlette.websockets import WebSocketDisconnect
+    async def scenario():
+        class ClosedSocket:
+            async def close(self, **kwargs):
+                raise WebSocketDisconnect(1006)
+        bridge = LocalBridge(None, None, None)
+        future = asyncio.get_running_loop().create_future()
+        bridge.channels['device'] = Channel(ClosedSocket(), {}, {'request': future})
+        await bridge.disconnect('device')
+        assert 'device' not in bridge.channels
+        with pytest.raises(BridgeError, match='device_disconnected_result_unknown'):
+            await future
+    asyncio.run(scenario())

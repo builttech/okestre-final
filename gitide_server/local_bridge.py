@@ -16,6 +16,7 @@ from pathlib import Path
 from pydantic import ValidationError
 from starlette.responses import JSONResponse, FileResponse
 from starlette.routing import Route, WebSocketRoute
+from starlette.websockets import WebSocketDisconnect
 from sqlalchemy.exc import IntegrityError
 
 from gitide_server.database import Project
@@ -202,10 +203,9 @@ class Channel:
 
 
 class LocalBridge:
-    def __init__(self, store, sessions, oauth, timeout=30):
+    def __init__(self, store, sessions, oauth):
         self.store, self.sessions, self.oauth = store, sessions, oauth
         self.channels = {}
-        self.timeout = timeout
 
     def online(self, identifier):
         channel = self.channels.get(identifier)
@@ -222,7 +222,7 @@ class LocalBridge:
                     future.set_exception(BridgeError("device_disconnected_result_unknown"))
             try:
                 await channel.socket.close(code=code)
-            except (RuntimeError, OSError):
+            except (RuntimeError, OSError, WebSocketDisconnect):
                 pass
 
     async def websocket(self, socket):
@@ -305,18 +305,16 @@ class LocalBridge:
             raise BridgeError("device_busy")
         identifier = uuid.uuid4().hex
         message = Call(request_id=identifier, root_id=project.root_id, operation=operation,
-                       arguments=arguments, can_write=can_write, deadline=time.time() + self.timeout)
+                       arguments=arguments, can_write=can_write)
         future = asyncio.get_running_loop().create_future()
         channel.pending[identifier] = future
         try:
             async with channel.send_lock:
                 await asyncio.wait_for(channel.socket.send_text(encode(message.model_dump())), 5)
-            result = await asyncio.wait_for(future, self.timeout)
+            result = await future
             if not self.active(self.store.get(project.device_id)):
                 raise BridgeError("device_not_authorized")
             return result
-        except TimeoutError:
-            raise BridgeError("request_timeout_result_unknown" if operation in WRITES else "request_timeout") from None
         finally:
             channel.pending.pop(identifier, None)
             if not future.done():

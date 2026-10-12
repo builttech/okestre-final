@@ -72,7 +72,6 @@ class Executor:
             if call.operation in WRITES and not (root.get("writable", False) and call.can_write):
                 raise BridgeError("read_only")
             self.call, self.root = call, SafeRoot(root["path"])
-            self.check_deadline()
             fingerprint = sha(json.dumps([call.root_id, call.operation, call.arguments], sort_keys=True, ensure_ascii=False).encode())
             if call.operation in WRITES:
                 with self.database() as db:
@@ -101,10 +100,6 @@ class Executor:
                     db.execute("INSERT INTO activity(operation,outcome,created) VALUES (?,?,?)", (call.operation, outcome, time.time()))
                     db.execute("DELETE FROM activity WHERE id NOT IN (SELECT id FROM activity ORDER BY id DESC LIMIT 1000)")
 
-    def check_deadline(self):
-        if not time.time() < self.call.deadline <= time.time() + 120:
-            raise BridgeError("request_expired")
-
     def read_bytes(self, path, missing=False):
         self.root.allowed(path)
         try:
@@ -117,7 +112,6 @@ class Executor:
     def inventory(self):
         items, pending, visited = [], [""], 0
         while pending:
-            self.check_deadline()
             folder = pending.pop()
             # Pin ancestors during enumeration, and never follow reparse points.
             with self.root.parent((folder + "/" if folder else "") + "listing", policy=False) as (parent, _):
@@ -126,7 +120,6 @@ class Executor:
                         visited += 1
                         if visited > 20000:
                             raise BridgeError("inventory_limit")
-                        self.check_deadline()
                         path = (folder + "/" if folder else "") + entry.name
                         info = entry.stat(follow_symlinks=False)
                         if stat.S_ISLNK(info.st_mode) or getattr(info, "st_file_attributes", 0) & 0x400:
@@ -171,7 +164,6 @@ class Executor:
         items, seen, skipped = [], 0, 0
         needle = query if case_sensitive else query.casefold()
         for item in self.inventory():
-            self.check_deadline()
             if path_filter.casefold() not in item["path"].casefold():
                 continue
             try:
@@ -192,7 +184,6 @@ class Executor:
         data = content.encode("utf-8")
         if len(data) > MAX_FILE or b"\x00" in data:
             raise BridgeError("unsupported_file")
-        self.check_deadline()
         previous = self.read_bytes(filepath, missing=True)
         digest = sha(previous) if previous is not None else "missing"
         if expected_sha256 != digest:
@@ -212,7 +203,6 @@ class Executor:
                     stream.write(data)
                     stream.flush()
                     os.fsync(stream.fileno())
-                self.check_deadline()
                 # Recheck immediately before replacement; external editors aren't locked.
                 latest = self.read_bytes(filepath, missing=True)
                 if (sha(latest) if latest is not None else "missing") != digest:

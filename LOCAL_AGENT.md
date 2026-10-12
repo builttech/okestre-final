@@ -92,11 +92,12 @@ O hash precisa corresponder ao conteúdo atual. A restauração preserva o conte
 
 - Git, terminal, integrações de banco e execução do agente de IA da VM não estão disponíveis para projetos locais neste incremento. O MCP devolve indisponibilidade; não executa na VM como alternativa.
 - Rotas antigas `/api/projects/{id}/...` são bloqueadas para projetos locais. Ao selecionar um projeto local, a interface abre o novo painel. A integração completa com as demais abas está pendente.
-- Textos UTF-8 de até 1 MiB; até 200 linhas por página; inventário limitado a 20 mil entradas por chamada. Mensagens até 8 MiB, até oito pedidos pendentes por dispositivo e prazo padrão de 30 segundos.
+- Textos UTF-8 de até 1 MiB; até 200 linhas por página; inventário limitado a 20 mil entradas por chamada. Mensagens até 8 MiB, até oito pedidos pendentes por dispositivo sem prazo de expiração da execução.
 - A política bloqueia segredos comuns, metadados Git, diretórios internos/dependências, caminhos especiais Windows, links simbólicos, junctions e hard links. Não equivale a detecção universal de segredos em qualquer arquivo.
 - A troca de arquivo é atômica; o hash é conferido novamente antes da troca. Editores externos não participam do lock do agente, portanto não existe uma transação distribuída com o VS Code.
 - Computador desligado, pasta removida ou agente pausado significa indisponibilidade. Não há cópia de contingência na VM.
-- Relógios do computador e da VM precisam estar sincronizados para validar os prazos.
+- Pedidos não expiram por tempo nem pela diferença de relógios. Desconexão, revogação ou cancelamento encerram a espera; limites de conexão/heartbeat permanecem. ChatGPT e proxies podem impor seus próprios limites.
+- Para remover a expiração, atualize a VM e substitua a pasta inteira do aplicativo portátil Windows. O executável antigo ainda valida prazos e não suporta pedidos sem deadline.
 - O conteúdo solicitado transita pela VM e pelo serviço de IA. Armazenamento local do projeto não significa que seu conteúdo nunca saia da máquina.
 
 ## Verificação

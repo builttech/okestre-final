@@ -55,7 +55,7 @@ def test_path_policy(agent, path):
         executor.dispatch(message("read_file", filepath=path))
 
 
-def test_permissions_expiry_unsupported_and_invalid_args(agent):
+def test_permissions_legacy_deadline_unsupported_and_invalid_args(agent):
     executor, root, message = agent
     call = message("write_file", filepath="new.txt", expected_sha256="missing", content="no")
     call["can_write"] = False
@@ -67,8 +67,11 @@ def test_permissions_expiry_unsupported_and_invalid_args(agent):
         executor.dispatch(call)
     expired = message("read_file", filepath="hello.txt")
     expired["deadline"] = time.time() - 1
-    with pytest.raises(BridgeError, match="request_expired"):
-        executor.dispatch(expired)
+    assert executor.dispatch(expired)["content"] == root.joinpath("hello.txt").read_text()
+    expired["deadline"] = time.time() + 86400
+    assert executor.dispatch(expired)["content"]
+    expired.pop("deadline")
+    assert executor.dispatch(expired)["content"]
     for args in ({"filepath": "hello.txt", "limit": -1}, {"filepath": "hello.txt", "unknown": True}):
         with pytest.raises(BridgeError, match="invalid_arguments"):
             executor.dispatch(message("read_file", **args))
