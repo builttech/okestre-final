@@ -123,7 +123,9 @@ function rebuild() {
     panel.append(button('Excluir entidade',editable(()=>{if(!confirm('Excluir esta entidade e suas relações?'))return;model.relations=model.relations.filter(r=>r.from!==entity.name&&r.to!==entity.name);model.entities.splice(selected,1);rebuild();render();}),'danger'));
     entity.attributes.forEach((a,i)=>{
       const card=el('div',undefined,'card');card.append(button('×',editable(()=>{entity.attributes.splice(i,1);rebuild();render();}),'remove danger'));card.lastChild.setAttribute('aria-label','Excluir atributo '+a.name);
-      const row=el('div',undefined,'row');row.append(input('Tipo',a.type,v=>{a.type=v;render();}), input('Atributo',a.name,v=>{a.name=v;render();}));card.append(row);
+      const types=['string','text','char','varchar','int','bigint','float','double','decimal','boolean','date','time','datetime','timestamp','uuid','json','binary'];
+      if(!types.includes(a.type))types.push(a.type);
+      const row=el('div',undefined,'row');row.append(input('Tipo',a.type,v=>{a.type=v;render();},types.map(t=>[t,t])), input('Atributo',a.name,v=>{a.name=v;render();}));card.append(row);
       card.append(input('Chave',a.key,v=>{a.key=v;render();},['','PK','FK','UK','PK,FK','PK,UK','FK,UK','PK,FK,UK'].map(k=>[k,k||'Nenhuma'])),input('Comentário',a.comment,v=>{a.comment=v;render();}));panel.append(card);
     });
     panel.append(button('+ Atributo',editable(()=>{entity.attributes.push({type:'string',name:'campo_'+(entity.attributes.length+1),key:'',comment:''});rebuild();render();})));
