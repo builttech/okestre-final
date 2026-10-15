@@ -11,8 +11,6 @@ from pathlib import Path
 
 import requests
 from okestre_local.config import Config, server_url
-from okestre_local.executor import Executor, sha
-from okestre_local.paths import SafeRoot
 from okestre_local.protocol import BridgeError
 
 
@@ -35,7 +33,6 @@ class DesktopAPI:
         self._agent = Config(agent_home)
         self._lock = threading.RLock()
         self._settings = json.loads(self._file.read_text(encoding='utf-8')) if self._file.exists() else {'projects': [], 'agent_exe': ''}
-        self._executor = Executor({}, self._home / 'history')
         self._window = None
         self._diagram_url = None
         self._jobs = {}
@@ -58,88 +55,12 @@ class DesktopAPI:
                               'name': root['name'], 'path': path, 'shared': True})
         return items
 
-    def _project(self, identifier):
-        project = next((p for p in self._projects() if p['id'] == identifier), None)
-        if project is None or not Path(project['path']).is_dir():
-            raise ValueError('Projeto indisponível. Confira se a pasta existe.')
-        return project
-
-    def _dispatch(self, identifier, operation, arguments):
-        project = self._project(identifier)
-        self._executor.roots[identifier] = {'path': project['path'], 'writable': True}
-        return self._executor.dispatch({'request_id': uuid.uuid4().hex, 'root_id': identifier,
-                                       'operation': operation, 'arguments': arguments, 'can_write': True})
-
     @result
     def state(self):
         settings = self._agent.load()
         return {'projects': self._projects(), 'server': settings.get('server', ''),
                 'paired': bool(settings.get('token')), 'paused': bool(settings.get('paused')),
                 'agent_exe': self._settings.get('agent_exe', '')}
-
-    @result
-    def add_project(self, path=None):
-        if path is None:
-            import webview
-            chosen = self._window.create_file_dialog(webview.FileDialog.FOLDER)
-            if not chosen:
-                return None
-            path = chosen[0]
-        path = str(Path(path).resolve(strict=True))
-        if not Path(path).is_dir():
-            raise ValueError('Escolha uma pasta.')
-        with SafeRoot(path).parent('probe'):
-            pass
-        existing = next((p for p in self._projects() if os.path.normcase(p['path']) == os.path.normcase(path)), None)
-        if existing:
-            return existing
-        project = {'id': uuid.uuid4().hex, 'name': Path(path).name, 'path': path}
-        self._settings['projects'].append(project)
-        self._save()
-        return project
-
-    @result
-    def files(self, identifier, query='', offset=0):
-        return self._dispatch(identifier, 'list_files', {'query': query, 'offset': offset, 'limit': 200})
-
-    @result
-    def read(self, identifier, filepath):
-        project = self._project(identifier)
-        root = SafeRoot(project['path'])
-        root.allowed(filepath)
-        data = root.read(filepath)
-        if b'\x00' in data:
-            raise ValueError('Arquivo binário não pode ser editado como texto.')
-        return {'filepath': filepath, 'content': data.decode('utf-8'), 'newline': '\r\n' if b'\r\n' in data else '\n', 'sha256': sha(data)}
-
-    @result
-    def write(self, identifier, filepath, content, digest):
-        return self._dispatch(identifier, 'write_file', {'filepath': filepath, 'content': content, 'expected_sha256': digest})
-
-    @result
-    def execute(self, identifier, command):
-        value = self._dispatch(identifier, 'execute_command', {'command': command})
-        self._jobs[value['command_id']] = {'project': identifier, 'command': command}
-        return value
-
-    @result
-    def poll(self, identifier, command_id):
-        job = self._jobs.get(command_id)
-        if not job or job['project'] != identifier:
-            raise ValueError('Processo não pertence a este projeto.')
-        return self._dispatch(identifier, 'execute_command', {'command': job['command'], 'command_id': command_id})
-
-    @result
-    def stop(self, identifier, command_id):
-        return self._dispatch(identifier, 'stop_command', {'command_id': command_id})
-
-    @result
-    def git_status(self, identifier):
-        return self._dispatch(identifier, 'git_status', {})
-
-    @result
-    def git_diff(self, identifier, filepath, staged=False):
-        return self._dispatch(identifier, 'git_diff', {'filepath': filepath, 'staged': staged})
 
     @result
     def connection(self):
@@ -191,12 +112,5 @@ class DesktopAPI:
         webbrowser.open(server_url(url)+'/local-devices')
         return True
 
-    @result
-    def diagrams(self):
-        import webview
-        webview.create_window('Okestre · Diagramas ER',self._diagram_url,width=1300,height=850,min_size=(850,600))
-        return True
-
     def _close(self):
-        with self._lock:
-            self._executor.terminal.close()
+        pass

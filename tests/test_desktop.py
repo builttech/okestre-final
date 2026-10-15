@@ -1,84 +1,109 @@
 import json
 import subprocess
-import threading
-from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
-from functools import partial
+import sys
+import time
 from pathlib import Path
 
-from okestre_desktop.api import DesktopAPI
-from okestre_desktop.app import prepare_ui
+import pytest
+import requests
 from okestre_local.config import Config
-from test_local_bridge import live
 
 
-def test_desktop_files_terminal_git_and_agent_config_unchanged(tmp_path):
-    project=tmp_path/'project';project.mkdir()
-    content='linha\n'*450
-    (project/'file.txt').write_bytes(content.encode())
-    agent=Config(tmp_path/'agent');agent.save({'roots':{},'server':'https://example.invalid','token':'secret','device_id':'test'})
-    before=agent.file.read_bytes()
-    api=DesktopAPI(tmp_path/'desktop',agent.home)
-    item=api.add_project(str(project))['data'];identifier=item['id']
-    assert api.state()['data']['projects'][0]['path']==str(project)
-    read=api.read(identifier,'file.txt')['data']
-    assert read['content']==content
-    assert api.write(identifier,'file.txt',content+'edited',read['sha256'])['ok']
-    assert not api.write(identifier,'file.txt','stale',read['sha256'])['ok']
-    assert not api.read(identifier,'../outside.txt')['ok']
-    assert not api.read(identifier,'.env')['ok']
-    result=api.execute(identifier,'echo desktop-test')['data']
-    assert 'desktop-test' in result['output']
-    assert api.poll(identifier,result['command_id'])['ok']
-    subprocess.run(['git','init',str(project)],capture_output=True,check=True)
-    assert 'file.txt' in api.git_status(identifier)['data']['output']
-    api._close()
-    assert agent.file.read_bytes()==before
-    assert len(DesktopAPI(tmp_path/'desktop',agent.home).state()['data']['projects'])==1
+@pytest.fixture
+def desktop(tmp_path):
+    home = tmp_path / 'desktop'
+    home.mkdir()
+    project = tmp_path / 'Demo'
+    project.mkdir()
+    (project / 'sample.txt').write_text('Desktop file', encoding='utf-8')
+    subprocess.run(['git', 'init', str(project)], capture_output=True, check=True)
+    agent = Config(tmp_path / 'agent')
+    agent.save({'roots': {}, 'server': 'https://example.invalid', 'token': 'test', 'device_id': 'test'})
+    before = agent.file.read_bytes()
+    (home / 'workspace.json').write_text(json.dumps({'projects': [{'id': 'demo', 'name': 'Demo', 'path': str(project)}], 'agent_exe': ''}))
+    ready = tmp_path / 'ready.json'
+    stop = tmp_path / 'stop'
+    script = '''import sys,time,json
+from pathlib import Path
+from okestre_desktop.runtime import Runtime
+r=Runtime(sys.argv[1],sys.argv[2])
+try:
+ Path(sys.argv[3]).write_text(json.dumps({'url':r.start(),'origin':r.origin,'key':r.secret}))
+ while not Path(sys.argv[4]).exists():time.sleep(.1)
+finally:r.close()
+'''
+    with (tmp_path / 'server.log').open('w') as log:
+        process = subprocess.Popen([sys.executable, '-c', script, str(home), str(agent.home), str(ready), str(stop)], stdout=log, stderr=log)
+        try:
+            for _ in range(300):
+                if ready.exists(): break
+                if process.poll() is not None: pytest.fail((tmp_path / 'server.log').read_text())
+                time.sleep(.1)
+            assert ready.exists()
+            yield dict(json.loads(ready.read_text()), project=project, home=home)
+        finally:
+            stop.touch()
+            try: process.wait(15)
+            except subprocess.TimeoutExpired: process.kill(); process.wait()
+    assert agent.file.read_bytes() == before
 
 
-def test_device_status_requires_device_token(live):
-    assert live.client.get('/api/local/status').status_code==401
-    config,folder,marker,project=live.enroll()
-    response=live.client.get('/api/local/status',headers={'Authorization':'Bearer '+config.load()['token']})
-    assert response.status_code==200 and response.json()=={'online':True}
-    assert response.headers['cache-control']=='no-store'
-    live.active=False
-    assert live.client.get('/api/local/status',headers={'Authorization':'Bearer '+config.load()['token']}).status_code==401
-
-
-def test_desktop_browser_with_real_native_api(tmp_path):
+def test_full_desktop_browser_and_security(desktop):
     from playwright.sync_api import sync_playwright, expect
-    home=tmp_path/'desktop';home.mkdir()
-    ui=prepare_ui(home)
-    project=tmp_path/'Demo';project.mkdir();(project/'README.md').write_text('Desktop file')
-    api=DesktopAPI(home,tmp_path/'agent')
-    api.add_project(str(project))
-    server=ThreadingHTTPServer(('127.0.0.1',0),partial(SimpleHTTPRequestHandler,directory=str(ui)))
-    thread=threading.Thread(target=server.serve_forever,daemon=True);thread.start()
-    try:
-        with sync_playwright() as p:
-            browser=p.chromium.launch(channel='msedge',headless=True)
-            page=browser.new_page(viewport={'width':1400,'height':900})
-            errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
-            page.expose_function('nativeCall',lambda method,args:getattr(api,method)(*args))
-            page.add_init_script('window.pywebview={api:new Proxy({}, {get:(_,name)=>(...args)=>window.nativeCall(name,args)})};')
-            page.goto(f'http://127.0.0.1:{server.server_port}/index.html')
-            page.evaluate("window.dispatchEvent(new Event('pywebviewready'))")
-            page.get_by_role('button',name='Demo',exact=False).click()
-            page.get_by_role('button',name='README.md',exact=True).click()
-            expect(page.locator('#content')).to_have_value('Desktop file')
-            page.locator('#content').fill('Edited in Desktop')
-            page.get_by_role('button',name='Salvar',exact=True).click()
-            expect(page.locator('#notice')).to_have_text('Arquivo salvo.')
-            assert (project/'README.md').read_text()=='Edited in Desktop'
-            page.get_by_role('button',name='Terminal',exact=True).click()
-            page.get_by_label('Comando',exact=True).fill('echo browser-terminal')
-            page.get_by_role('button',name='Executar',exact=True).click()
-            expect(page.locator('#terminal-output')).to_contain_text('browser-terminal')
-            page.get_by_role('button',name='Arquivos',exact=True).click()
-            output=Path(__file__).parents[1]/'outputs/desktop-qa';output.mkdir(exist_ok=True,parents=True)
-            page.screenshot(path=str(output/'desktop.png'),full_page=True)
-            assert not errors
-            browser.close()
-    finally:
-        api._close();server.shutdown();server.server_close();thread.join(3)
+    origin = desktop['origin']
+    assert requests.get(origin + '/api/info').status_code in (401, 403)
+    assert requests.get(origin, headers={'Host': 'evil.example'}).status_code == 403
+    assert requests.post(origin + '/desktop/action', headers={'Origin': 'https://evil.example'}).status_code == 403
+    with sync_playwright() as p:
+        browser = p.chromium.launch(channel='msedge', headless=True)
+        page = browser.new_page(viewport={'width': 1440, 'height': 950})
+        page.goto(desktop['url'])
+        page.wait_for_function("typeof state!=='undefined' && Boolean(state.apiKey)")
+        tabs = page.locator('.nav-item[data-tab]').evaluate_all('(els)=>els.map(e=>e.dataset.tab)')
+        for tab in ['tab-files','tab-documents','tab-terminal','tab-git','tab-agent','tab-sdd','tab-discovery','tab-qa','tab-database']:
+            assert tab in tabs
+        assert len(tabs) == 15
+        headers = page.evaluate('getHeaders()')
+        projects = page.request.get(origin + '/api/projects', headers=headers).json()
+        project_id = next(x['id'] for x in projects if x['name'] == 'Demo')
+        base = origin + f'/api/projects/{project_id}'
+        assert page.request.get(base + '/files/read?filepath=sample.txt', headers=headers).json()['content'] == 'Desktop file'
+        response = page.request.post(base + '/files/write', headers=headers, data={'filepath':'sample.txt','content':'Edited by complete app'})
+        assert response.ok, response.text()
+        assert (desktop['project'] / 'sample.txt').read_text() == 'Edited by complete app'
+        response = page.request.get(base + '/git/status', headers=headers)
+        assert response.ok, response.text()
+        assert 'sample.txt' in response.text()
+        page.evaluate('(id)=>{state.activeProjectId=id}', project_id)
+        page.locator('[data-tab="tab-terminal"]').click()
+        page.locator('#terminal-input').fill('echo full-desktop-terminal')
+        page.locator('#terminal-form').evaluate('(el)=>el.requestSubmit()')
+        expect(page.locator('#terminal-output')).to_contain_text('full-desktop-terminal')
+        expect(page.locator('#terminal-output')).to_contain_text('completed')
+        page.locator('[data-tab="tab-sdd"]').click()
+        output = Path(__file__).parents[1] / 'outputs/desktop-qa'
+        output.mkdir(parents=True, exist_ok=True)
+        page.screenshot(path=str(output/'full-desktop.png'), full_page=True)
+        assert page.request.post(origin + '/desktop/action', data={'action':'state'}).status == 403
+        assert page.request.get(desktop['url']).status == 404
+        page.goto(origin + '/local-devices')
+        assert 'OkestreLocal' in page.content()
+        page.goto(origin + '/diagrams')
+        expect(page.locator('#preview svg')).to_be_visible(timeout=20000)
+        with page.expect_download() as download:
+            page.get_by_role('button', name='Exportar SVG', exact=True).click()
+        assert '<svg' in Path(download.value.path()).read_text(encoding='utf-8')
+        with page.expect_download() as download:
+            page.get_by_role('button', name='Exportar Mermaid', exact=True).click()
+        assert 'erDiagram' in Path(download.value.path()).read_text(encoding='utf-8')
+        command = 'ping -n 60 127.0.0.1 > nul'
+        action_headers = {'X-Desktop-Key':desktop['key']}
+        job = page.request.post(origin + '/desktop/action', headers=action_headers, data={'action':'execute','project_id':project_id,'command':command}).json()['data']
+        assert job['status'] == 'running'
+        time.sleep(31)
+        job = page.request.post(origin + '/desktop/action', headers=action_headers, data={'action':'poll','project_id':project_id,'command':command,'command_id':job['command_id']}).json()['data']
+        assert job['status'] == 'running' and not job['timed_out']
+        job = page.request.post(origin + '/desktop/action', headers=action_headers, data={'action':'stop','project_id':project_id,'command_id':job['command_id']}).json()['data']
+        assert job['status'] != 'running'
+        browser.close()
+    assert (desktop['home']/'server').is_dir()

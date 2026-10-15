@@ -12,7 +12,7 @@ import gitide_server.vcs as vcs
 import gitide_server.git_bridge as git_bridge
 from gitide_server.database import Project, ActivityLog, FileSnapshot
 
-CONFIG_DIR = os.path.expanduser("~/.gitide")
+CONFIG_DIR = os.path.abspath(os.getenv("GITIDE_DATA_DIR", os.path.expanduser("~/.gitide")))
 AGENT_CONFIG_PATH = os.path.join(CONFIG_DIR, "agent_config.json")
 
 DEFAULT_SYSTEM_PROMPT = """Você é o Agente de IA nativo do Act IA software engineer, integrado localmente ao ambiente de desenvolvimento do usuário.

@@ -1,0 +1,15 @@
+{
+  "https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.css": "/static/vendor/desktop/e9f893e56ef1.css",
+  "https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.js": "/static/vendor/desktop/504176d3e220.js",
+  "https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/javascript/javascript.min.js": "/static/vendor/desktop/a7d1f2f6e54b.js",
+  "https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/markdown/markdown.min.js": "/static/vendor/desktop/e4215aaec762.js",
+  "https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/python/python.min.js": "/static/vendor/desktop/c2b4996d0aa4.js",
+  "https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/sql/sql.min.js": "/static/vendor/desktop/5727bab46e5f.js",
+  "https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/xml/xml.min.js": "/static/vendor/desktop/a9e94a2db838.js",
+  "https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/theme/darcula.min.css": "/static/vendor/desktop/874383dfe8b5.css",
+  "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css": "/static/vendor/desktop/d51a5571b986.css",
+  "https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@300;400;500;600;700&display=swap": "/static/vendor/desktop/9ce9968c6887.css",
+  "https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap": "/static/vendor/desktop/bc51ba2c9680.css",
+  "https://unpkg.com/konva@9/konva.min.js": "/static/vendor/desktop/68597bc35e98.js",
+  "https://unpkg.com/lucide@latest": "/static/vendor/desktop/892b8e0a22ac.js"
+}

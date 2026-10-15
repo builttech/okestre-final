@@ -46,7 +46,7 @@ from gitide_server.sdd_tasks import (
 init_db()
 
 # Carrega ou gera a chave de API de segurança em ~/.gitide/config.json
-CONFIG_DIR = os.path.expanduser("~/.gitide")
+CONFIG_DIR = os.path.abspath(os.getenv("GITIDE_DATA_DIR", os.path.expanduser("~/.gitide")))
 CONFIG_PATH = os.path.join(CONFIG_DIR, "config.json")
 
 def load_or_create_config():

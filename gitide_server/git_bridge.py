@@ -2,7 +2,7 @@ import os
 import json
 from git import Repo, GitCommandError
 
-CONFIG_PATH = os.path.expanduser("~/.gitide/config.json")
+CONFIG_PATH = os.path.join(os.path.abspath(os.getenv("GITIDE_DATA_DIR", os.path.expanduser("~/.gitide"))), "config.json")
 
 def get_github_token() -> str:
     if os.path.exists(CONFIG_PATH):

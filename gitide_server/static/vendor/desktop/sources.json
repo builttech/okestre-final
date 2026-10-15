@@ -1,0 +1,80 @@
+[
+  {
+    "source": "https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.css",
+    "resolved": "https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.css",
+    "file": "e9f893e56ef1.css",
+    "sha256": "11077112ab6955d29fe41085c62365c7d4a2f00a570c7475e2aec2a8cbc85fc4"
+  },
+  {
+    "source": "https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.js",
+    "resolved": "https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.js",
+    "file": "504176d3e220.js",
+    "sha256": "c5223c38c0cd8ea5095bdef9e1c9eae412e3623440d06a412ba11bde39779138"
+  },
+  {
+    "source": "https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/javascript/javascript.min.js",
+    "resolved": "https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/javascript/javascript.min.js",
+    "file": "a7d1f2f6e54b.js",
+    "sha256": "99b46f351b4b1ce8a14cdf04fe4235ecb429b5b7b986867034a7dc195a710a58"
+  },
+  {
+    "source": "https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/markdown/markdown.min.js",
+    "resolved": "https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/markdown/markdown.min.js",
+    "file": "e4215aaec762.js",
+    "sha256": "6d31310a4719d151d198b604864fa7cb7dcaa5013888863585e06d7c7085f3d8"
+  },
+  {
+    "source": "https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/python/python.min.js",
+    "resolved": "https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/python/python.min.js",
+    "file": "c2b4996d0aa4.js",
+    "sha256": "6d19a4ba8b05a354935ceebf490582faffa047c86c4715a2b504b14319eb6399"
+  },
+  {
+    "source": "https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/sql/sql.min.js",
+    "resolved": "https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/sql/sql.min.js",
+    "file": "5727bab46e5f.js",
+    "sha256": "8b2eb6ce3ada53b11cef6e80afb0b290de6a57a3722c08f8efb3d1dc06a80919"
+  },
+  {
+    "source": "https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/xml/xml.min.js",
+    "resolved": "https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/xml/xml.min.js",
+    "file": "a9e94a2db838.js",
+    "sha256": "1403f6fc04264c38e933891710636ed07761898aa764de95a39a832d433cbe66"
+  },
+  {
+    "source": "https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/theme/darcula.min.css",
+    "resolved": "https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/theme/darcula.min.css",
+    "file": "874383dfe8b5.css",
+    "sha256": "7447abf70122a27eaaff6672123e14c645e941d19440a75d128d1e141a8d82c8"
+  },
+  {
+    "source": "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css",
+    "resolved": "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css",
+    "file": "d51a5571b986.css",
+    "sha256": "250a81209a0fdaedbd58fa20ad5e6aae1532e3d594aff6d0f2a689aff800d916"
+  },
+  {
+    "source": "https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@300;400;500;600;700&display=swap",
+    "resolved": "https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@300;400;500;600;700&display=swap",
+    "file": "9ce9968c6887.css",
+    "sha256": "887282158faaab5214f1d82f99e1dc886a9a76bfcc1097626b3ce8e73300ef0b"
+  },
+  {
+    "source": "https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap",
+    "resolved": "https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap",
+    "file": "bc51ba2c9680.css",
+    "sha256": "65df088b8f9a5e12f478c89c2439cf22b3d4e4c69aa0886b4255755155870ca5"
+  },
+  {
+    "source": "https://unpkg.com/konva@9/konva.min.js",
+    "resolved": "https://unpkg.com/konva@9.3.22/konva.min.js",
+    "file": "68597bc35e98.js",
+    "sha256": "4655b6cd12d0d2ee5f6d461fa98c3611b1f9979b9106f18221bf0e6a90ab6745"
+  },
+  {
+    "source": "https://unpkg.com/lucide@latest",
+    "resolved": "https://unpkg.com/lucide@1.57.0/dist/umd/lucide.min.js",
+    "file": "892b8e0a22ac.js",
+    "sha256": "c397c5299c5eb529d3523d9224f88ed9dcf147e5dd3456373b5e1e06fcd724c4"
+  }
+]

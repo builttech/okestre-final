@@ -6,7 +6,7 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship,
 # Configuração do banco de dados SQLite interno do GitIDE.
 # Por padrão, os metadados são salvos em um banco de dados global em ~/.gitide/gitide.db
 # ou no diretório de dados do aplicativo. Vamos usar um diretório padrão ~/.gitide
-DATABASE_DIR = os.path.expanduser("~/.gitide")
+DATABASE_DIR = os.path.abspath(os.getenv("GITIDE_DATA_DIR", os.path.expanduser("~/.gitide")))
 os.makedirs(DATABASE_DIR, exist_ok=True)
 DATABASE_PATH = os.path.join(DATABASE_DIR, "gitide.db")
 

@@ -1,84 +1,57 @@
-"""Standalone WebView2 desktop. The relay agent remains a separate application."""
+"""Launch the complete existing Okestre UI and backend in a Windows window."""
 import argparse
 import json
 import os
-import shutil
 import threading
+import time
 from pathlib import Path
-
 from okestre_local.config import Config
-from .api import DesktopAPI
-
-
-def prepare_ui(home):
-    base=Path(__file__).resolve().parents[1]
-    target=home/'ui'
-    target.mkdir(parents=True,exist_ok=True)
-    for path in (base/'okestre_desktop'/'ui').iterdir():
-        if path.is_file(): shutil.copyfile(path,target/path.name)
-    diagram=target/'diagrams'
-    diagram.mkdir(exist_ok=True)
-    static=base/'gitide_server'/'static'
-    for name in ('er-diagram.css','er-diagram.js'):
-        shutil.copyfile(static/name,diagram/name)
-    html=(static/'er-diagram.html').read_text(encoding='utf-8').replace('/static/','').replace('<a href="/" class="brand">← Okestre</a>','<span class="brand">Okestre Desktop</span>')
-    (diagram/'index.html').write_text(html,encoding='utf-8')
-    (diagram/'vendor').mkdir(exist_ok=True)
-    for name in ('mermaid-11.12.0.min.js','mermaid-LICENSE'):
-        shutil.copyfile(static/'vendor'/name,diagram/'vendor'/name)
-    return target
 
 
 def main():
     parser=argparse.ArgumentParser()
     parser.add_argument('--home')
     parser.add_argument('--agent-home')
-    parser.add_argument('--smoke-test',help='Write native renderer diagnostics to a JSON file, then exit.')
+    parser.add_argument('--smoke-test')
     args=parser.parse_args()
-    home=Path(args.home) if args.home else Path(os.environ.get('LOCALAPPDATA',Path.home()))/'OkestreDesktop'
-    home=home.resolve()
+    home=(Path(args.home) if args.home else Path(os.environ.get('LOCALAPPDATA',Path.home()))/'OkestreDesktop').resolve()
     home.mkdir(parents=True,exist_ok=True)
-    import webview
+    runtime=None
     try:
         with Config(home/'instance').single_instance():
-            ui=prepare_ui(home)
-            api=DesktopAPI(home,args.agent_home)
-            api._diagram_url=str(ui/'diagrams'/'index.html')
+            from .runtime import Runtime
+            runtime=Runtime(home,args.agent_home)
+            url=runtime.start()
+            import webview
             webview.settings['ALLOW_DOWNLOADS']=True
             webview.settings['OPEN_EXTERNAL_LINKS_IN_BROWSER']=True
-            window=webview.create_window('Okestre Desktop',str(ui/'index.html'),js_api=api,width=1400,height=900,min_size=(950,640),hidden=bool(args.smoke_test))
-            api._window=window
-            window.events.closed += api._close
+            window=webview.create_window('Okestre Desktop',url,width=1440,height=950,min_size=(1000,700),hidden=bool(args.smoke_test))
+            runtime.native._window=window
+            started=threading.Event()
             def smoke():
-                import time
+                if started.is_set():return
+                started.set()
                 try:
-                    for _ in range(60):
-                        value=window.evaluate_js('Boolean(window.desktopReady)')
-                        if value: break
-                        time.sleep(.25)
-                    diagram=webview.create_window('Diagram QA',api._diagram_url,hidden=True)
-                    rendered=False
-                    for _ in range(60):
-                        try:
-                            rendered=diagram.evaluate_js('Boolean(document.querySelector("#preview svg"))')
-                            if rendered: break
-                        except Exception:
-                            pass
-                        time.sleep(.25)
-                    result={'ready':bool(value),'diagram_rendered':bool(rendered),'title':window.evaluate_js('document.title'),'state':api.state()}
-                    diagram.destroy()
-                    Path(args.smoke_test).write_text(json.dumps(result),encoding='utf-8')
-                finally:
-                    window.destroy()
+                    ready=False
+                    for _ in range(100):
+                        ready=window.evaluate_js("typeof state!=='undefined' && Boolean(state.apiKey)")
+                        if ready:break
+                        time.sleep(.2)
+                    tabs=window.evaluate_js("Array.from(document.querySelectorAll('.sidebar-nav [data-tab]')).map(e=>e.dataset.tab)")
+                    data={'ready':bool(ready),'tabs':tabs,'complete_ui':all(t in tabs for t in ['tab-sdd','tab-discovery','tab-git','tab-documents','tab-ui-canvas','tab-agent','tab-qa'])}
+                    Path(args.smoke_test).write_text(json.dumps(data),encoding='utf-8')
+                finally:window.destroy()
             if args.smoke_test:
                 window.events.loaded += lambda: threading.Thread(target=smoke,daemon=True).start()
             webview.start(gui='edgechromium',private_mode=False,storage_path=str(home/'webview'))
     except Exception as exc:
-        (home/'startup-error.txt').write_text(str(exc),encoding='utf-8')
-        if args.smoke_test: raise
+        import traceback
+        (home/'startup-error.txt').write_text(traceback.format_exc(),encoding='utf-8')
+        if args.smoke_test:raise
         import ctypes
-        ctypes.windll.user32.MessageBoxW(0,'Não foi possível abrir o Okestre Desktop. Confira o WebView2 e se o aplicativo já está aberto.\n\n'+str(exc),'Okestre Desktop',16)
+        ctypes.windll.user32.MessageBoxW(0,'Não foi possível abrir o Okestre. Consulte '+str(home/'startup-error.txt')+'\n\n'+str(exc),'Okestre Desktop',16)
+    finally:
+        if runtime:runtime.close()
 
 
-if __name__=='__main__':
-    main()
+if __name__=='__main__':main()
