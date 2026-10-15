@@ -1,0 +1,2 @@
+-r requirements-local.txt
+pywebview>=6,<7

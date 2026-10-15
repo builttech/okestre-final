@@ -270,7 +270,7 @@ async def require_authenticated_session(request: Request, call_next):
         return await call_next(request)
     if path in oauth_public_paths:
         return await call_next(request)
-    public_paths = {"/login", "/api/auth/login", "/favicon.ico", "/api/local/claim"}
+    public_paths = {"/login", "/api/auth/login", "/favicon.ico", "/api/local/claim", "/api/local/status"}
     if request.method == "OPTIONS":
         return await call_next(request)
     if path in public_paths:

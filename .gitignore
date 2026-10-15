@@ -21,3 +21,6 @@ env/
 /outputs/okestre-local-no-expiry/
 
 /outputs/okestre-local-terminal/
+
+/outputs/desktop-qa/
+/outputs/okestre-desktop/

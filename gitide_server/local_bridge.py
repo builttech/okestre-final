@@ -447,13 +447,20 @@ class LocalBridge:
         except (ValidationError, ValueError, TypeError, IntegrityError):
             return JSONResponse({"detail": "invalid_request_or_duplicate_project"}, 400, headers=headers)
 
+    async def device_status(self, request):
+        auth = request.headers.get("authorization", "")
+        device = self.store.authenticate(auth[7:]) if auth.startswith("Bearer ") else None
+        if not self.active(device):
+            return JSONResponse({"detail": "device_not_authorized"}, 401, headers={"Cache-Control": "no-store"})
+        return JSONResponse({"online": self.online(device["id"])}, headers={"Cache-Control": "no-store"})
+
     def routes(self):
         async def page(request):
             user = self.oauth.current_user(request)
             if not user or user.role != "root":
                 return JSONResponse({"detail": "root_session_required"}, 403)
             return FileResponse(Path(__file__).parent / "static" / "local-devices.html", headers={"Cache-Control": "no-store"})
-        return [Route("/local-devices", page), Route("/api/local/devices", self.manage),
+        return [Route("/api/local/status", self.device_status), Route("/local-devices", page), Route("/api/local/devices", self.manage),
                 Route("/api/local/claim", self.manage, methods=["POST"]),
                 Route("/api/local/{action}", self.manage, methods=["POST"]),
                 WebSocketRoute("/api/local/connect", self.websocket)]

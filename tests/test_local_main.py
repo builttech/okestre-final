@@ -32,6 +32,7 @@ with TestClient(app) as client:
     assert response.status_code == 200, response.text
     code = response.json()["code"]
     client.cookies.clear()
+    assert client.get("/api/local/status", follow_redirects=False).status_code == 401
     assert client.get("/diagrams", follow_redirects=False).status_code == 303
     claim = client.post("/api/local/claim", json={"code":code})
     assert claim.status_code == 200, claim.text
