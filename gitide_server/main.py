@@ -7596,6 +7596,12 @@ def get_dashboard():
             return f.read()
     return HTMLResponse(content="<h1>Act IA está rodando!</h1><p>Dashboard HTML não encontrado na pasta <code>static/</code>.</p>", status_code=200)
 
+@app.get("/diagrams", response_class=HTMLResponse, tags=["Diagramas"])
+def get_er_diagrams():
+    from pathlib import Path
+    return HTMLResponse(Path(STATIC_DIR, "er-diagram.html").read_text(encoding="utf-8"),
+                        headers={"Cache-Control": "no-store"})
+
 @app.get("/design-canvas", response_class=HTMLResponse, tags=["Design Canvas"])
 def get_design_canvas():
     """Ferramenta separada de design canvas nativo com Konva."""

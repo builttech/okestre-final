@@ -23,6 +23,7 @@ with TestClient(app) as client:
     for method, path in (("get", "/files"), ("get", "/files/export.zip"), ("delete", ""), ("post", "/agent/run")):
         response = getattr(client, method)(f"/api/projects/{identifier}{path}")
         assert response.status_code == 409, response.text
+    assert client.get("/diagrams").status_code == 200
     assert client.get("/local-devices").status_code == 200
     state = client.get("/api/local/devices")
     assert state.status_code == 200, state.text
@@ -31,6 +32,7 @@ with TestClient(app) as client:
     assert response.status_code == 200, response.text
     code = response.json()["code"]
     client.cookies.clear()
+    assert client.get("/diagrams", follow_redirects=False).status_code == 303
     claim = client.post("/api/local/claim", json={"code":code})
     assert claim.status_code == 200, claim.text
 print("actual app isolated smoke OK")
