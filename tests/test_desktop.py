@@ -93,12 +93,18 @@ def test_full_desktop_browser_and_security(desktop):
         page.get_by_role('button', name='Salvar no projeto', exact=True).click()
         expect(page.locator('#project-save-confirm')).to_be_enabled()
         page.get_by_label('Projeto de destino').select_option(str(project_id))
-        page.get_by_label('Arquivo no projeto').fill('diagramas/modelo.mmd')
+        page.get_by_label('Arquivo no projeto').fill('modelo.mmd')
         page.get_by_role('button', name='Salvar arquivo', exact=True).click()
         expect(page.locator('#project-dialog')).not_to_be_visible()
-        saved = desktop['project'] / 'diagramas/modelo.mmd'
+        saved = desktop['project'] / '.documents/diagramas/modelo.mmd'
         assert 'erDiagram' in saved.read_text(encoding='utf-8')
         assert 'CUSTOMER' in saved.read_text(encoding='utf-8')
+        expect(page.locator('#diagram-list')).to_contain_text('modelo.mmd')
+        page.reload()
+        expect(page.locator('#diagram-list')).to_contain_text('modelo.mmd')
+        page.once('dialog', lambda dialog: dialog.accept())
+        page.locator('#diagram-list').get_by_role('button', name='Abrir').click()
+        expect(page.locator('#title')).to_have_value('modelo')
 
         with page.expect_download() as download:
             page.get_by_role('button', name='Exportar SVG', exact=True).click()

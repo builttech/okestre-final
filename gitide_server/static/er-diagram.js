@@ -141,7 +141,26 @@ function rebuild() {
 function download(name,data,type) {const url=URL.createObjectURL(new Blob([data],{type}));const a=el('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
 function filename() {return ($('title').value.trim()||'diagrama').replace(/[^\p{L}\p{N}_-]+/gu,'-');}
 function apply(source) {try {const next=parse(source);model=next;dirtyCode=false;selected=0;rebuild();render();}catch(e){message(e.message,true);}}
+const diagramFolder='.documents/diagramas/';
 let projectHeaders;
+async function loadProjects(){
+  if(!projectHeaders){const response=await fetch('/api/info');if(!response.ok)throw Error('Entre na Okestre para acessar os projetos.');const info=await response.json();projectHeaders={'Content-Type':'application/json','Authorization':'Bearer '+info.api_key,'x-gitide-source':'dashboard'};}
+  return (await projectRequest('/api/projects')).filter(p=>p.storage_kind!=='device');
+}
+let listRevision=0;
+async function refreshDiagrams(){
+  const revision=++listRevision,project=$('diagram-project').value,body=$('diagram-list'),status=$('diagram-list-status');body.replaceChildren();
+  if(!project){status.textContent='Selecione um projeto.';return;}status.textContent='Carregando…';
+  try{const result=await projectRequest('/api/projects/'+encodeURIComponent(project)+'/files');if(revision!==listRevision)return;
+    const files=result.files.filter(f=>f.path.startsWith(diagramFolder)&&f.path.endsWith('.mmd')).sort((a,b)=>a.path.localeCompare(b.path));
+    status.textContent=files.length?files.length+' diagrama(s)':'Nenhum diagrama salvo neste projeto.';
+    for(const file of files){const row=el('tr'),name=el('td',file.path.slice(diagramFolder.length)),action=el('td');
+      action.append(button('Abrir',async()=>{if(!confirm('Abrir este diagrama e substituir o rascunho atual?'))return;try{const data=await projectRequest('/api/projects/'+encodeURIComponent(project)+'/files/read?filepath='+encodeURIComponent(file.path));parse(data.content);$('title').value=file.path.slice(diagramFolder.length,-4);apply(data.content);message('Aberto: '+file.path);}catch(e){message(e.message,true);}}));row.append(name,action);body.append(row);}
+  }catch(e){if(revision===listRevision)status.textContent=e.message;}
+}
+async function initializeLibrary(){try{const projects=await loadProjects(),select=$('diagram-project');for(const p of projects){const option=el('option',p.name);option.value=p.id;select.append(option);}const active=localStorage.getItem('gitide_active_project_id');if([...select.options].some(o=>o.value===active))select.value=active;await refreshDiagrams();}catch(e){$('diagram-list-status').textContent=e.message;}}
+$('diagram-project').onchange=refreshDiagrams;
+$('refresh-diagrams').onclick=refreshDiagrams;
 async function projectRequest(url,options={}) {
   const response=await fetch(url,{...options,headers:projectHeaders});
   if(!response.ok) {const error=new Error('Não foi possível acessar o projeto ('+response.status+').');error.status=response.status;throw error;}
@@ -153,11 +172,9 @@ $('save-project').onclick=async()=>{
   dialog.showModal();status.textContent='Carregando projetos…';$('project-save-confirm').disabled=true;select.replaceChildren();
   $('save-project-path').value=filename()+'.mmd';
   try {
-    const infoResponse=await fetch('/api/info');if(!infoResponse.ok)throw Error('Entre na Okestre para salvar no projeto.');
-    const info=await infoResponse.json();projectHeaders={'Content-Type':'application/json','Authorization':'Bearer '+info.api_key,'x-gitide-source':'dashboard'};
-    const projects=await projectRequest('/api/projects');
+    const projects=await loadProjects();
     for(const project of projects.filter(p=>p.storage_kind!=='device')){const option=el('option',project.name);option.value=project.id;select.append(option);}
-    const active=localStorage.getItem('gitide_active_project_id');if([...select.options].some(o=>o.value===active))select.value=active;
+    const active=$('diagram-project').value||localStorage.getItem('gitide_active_project_id');if([...select.options].some(o=>o.value===active))select.value=active;
     status.textContent=select.options.length?'':'Nenhum projeto disponível neste computador. Cadastre uma pasta na Okestre.';
     $('project-save-confirm').disabled=!select.options.length;
   }catch(e){status.textContent=e.message;}
@@ -165,8 +182,9 @@ $('save-project').onclick=async()=>{
 $('project-save-cancel').onclick=()=>$('project-dialog').close();
 $('project-save-form').onsubmit=async event=>{
   event.preventDefault();const status=$('project-save-status'),button=$('project-save-confirm');
-  const filepath=$('save-project-path').value.trim().replaceAll('\\','/');
-  if(!filepath.endsWith('.mmd')||filepath.startsWith('/')||filepath.includes(':')||filepath.split('/').some(p=>!p||p==='..'||p==='.')){status.textContent='Informe um caminho relativo com extensão .mmd, como diagramas/modelo.mmd.';return;}
+  const name=$('save-project-path').value.trim();
+  const filepath=diagramFolder+name;
+  if(!name.endsWith('.mmd')||/[\\/:]/.test(name)||name==='..'||name==='.'||!name.slice(0,-4).trim()){status.textContent='Informe apenas o nome com extensão .mmd, como modelo.mmd.';return;}
   button.disabled=true;
   try{
     if(dirtyCode)throw Error('Aplique o código antes de salvar.');
@@ -175,6 +193,7 @@ $('project-save-form').onsubmit=async event=>{
     try{await projectRequest(base+'/read?filepath='+encodeURIComponent(filepath));exists=true;}catch(e){if(e.status!==404)throw e;}
     if(exists&&!confirm('O arquivo '+filepath+' já existe. Substituir?'))return;
     await projectRequest(base+'/write',{method:'POST',body:JSON.stringify({filepath,content:serialize()})});
+    $('diagram-project').value=$('save-project-id').value;await refreshDiagrams();
     $('project-dialog').close();message('Salvo no projeto: '+filepath);$('saved').textContent='Arquivo salvo no projeto: '+filepath;
   }catch(e){status.textContent=e.message;}finally{button.disabled=false;}
 };
@@ -198,5 +217,5 @@ $('zoom-in').onclick=()=>{scale=Math.min(3,scale*1.2);zoom();};$('zoom-out').onc
 for(const b of document.querySelectorAll('[data-tab]')) b.onclick=()=>{for(const other of document.querySelectorAll('[data-tab]')) {const active=other===b;other.setAttribute('aria-pressed',String(active));$(other.dataset.tab).hidden=!active;}};
 mermaid.initialize({startOnLoad:false,securityLevel:'strict',theme:'base',themeVariables:{primaryColor:'#eeebff',primaryBorderColor:'#9d88e6',primaryTextColor:'#243c48',lineColor:'#66808a',fontFamily:'Segoe UI, sans-serif'},er:{useMaxWidth:false},suppressErrorRendering:true});
 try{const stored=JSON.parse(localStorage.getItem(key));model=parse(stored?.source||example);if(stored?.title)$('title').value=stored.title;}catch{model=parse(example);}
-rebuild();render();
+rebuild();render();initializeLibrary();
 })();
