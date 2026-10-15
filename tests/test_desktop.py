@@ -90,6 +90,16 @@ def test_full_desktop_browser_and_security(desktop):
         assert 'OkestreLocal' in page.content()
         page.goto(origin + '/diagrams')
         expect(page.locator('#preview svg')).to_be_visible(timeout=20000)
+        page.get_by_role('button', name='Salvar no projeto', exact=True).click()
+        expect(page.locator('#project-save-confirm')).to_be_enabled()
+        page.get_by_label('Projeto de destino').select_option(str(project_id))
+        page.get_by_label('Arquivo no projeto').fill('diagramas/modelo.mmd')
+        page.get_by_role('button', name='Salvar arquivo', exact=True).click()
+        expect(page.locator('#project-dialog')).not_to_be_visible()
+        saved = desktop['project'] / 'diagramas/modelo.mmd'
+        assert 'erDiagram' in saved.read_text(encoding='utf-8')
+        assert 'CUSTOMER' in saved.read_text(encoding='utf-8')
+
         with page.expect_download() as download:
             page.get_by_role('button', name='Exportar SVG', exact=True).click()
         assert '<svg' in Path(download.value.path()).read_text(encoding='utf-8')

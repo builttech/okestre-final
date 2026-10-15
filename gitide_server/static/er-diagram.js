@@ -141,6 +141,43 @@ function rebuild() {
 function download(name,data,type) {const url=URL.createObjectURL(new Blob([data],{type}));const a=el('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
 function filename() {return ($('title').value.trim()||'diagrama').replace(/[^\p{L}\p{N}_-]+/gu,'-');}
 function apply(source) {try {const next=parse(source);model=next;dirtyCode=false;selected=0;rebuild();render();}catch(e){message(e.message,true);}}
+let projectHeaders;
+async function projectRequest(url,options={}) {
+  const response=await fetch(url,{...options,headers:projectHeaders});
+  if(!response.ok) {const error=new Error('Não foi possível acessar o projeto ('+response.status+').');error.status=response.status;throw error;}
+  return response.json();
+}
+$('save-project').onclick=async()=>{
+  if(dirtyCode){message('Aplique o código antes de salvar no projeto.',true);return;}
+  const dialog=$('project-dialog'),status=$('project-save-status'),select=$('save-project-id');
+  dialog.showModal();status.textContent='Carregando projetos…';$('project-save-confirm').disabled=true;select.replaceChildren();
+  $('save-project-path').value=filename()+'.mmd';
+  try {
+    const infoResponse=await fetch('/api/info');if(!infoResponse.ok)throw Error('Entre na Okestre para salvar no projeto.');
+    const info=await infoResponse.json();projectHeaders={'Content-Type':'application/json','Authorization':'Bearer '+info.api_key,'x-gitide-source':'dashboard'};
+    const projects=await projectRequest('/api/projects');
+    for(const project of projects.filter(p=>p.storage_kind!=='device')){const option=el('option',project.name);option.value=project.id;select.append(option);}
+    const active=localStorage.getItem('gitide_active_project_id');if([...select.options].some(o=>o.value===active))select.value=active;
+    status.textContent=select.options.length?'':'Nenhum projeto disponível neste computador. Cadastre uma pasta na Okestre.';
+    $('project-save-confirm').disabled=!select.options.length;
+  }catch(e){status.textContent=e.message;}
+};
+$('project-save-cancel').onclick=()=>$('project-dialog').close();
+$('project-save-form').onsubmit=async event=>{
+  event.preventDefault();const status=$('project-save-status'),button=$('project-save-confirm');
+  const filepath=$('save-project-path').value.trim().replaceAll('\\','/');
+  if(!filepath.endsWith('.mmd')||filepath.startsWith('/')||filepath.includes(':')||filepath.split('/').some(p=>!p||p==='..'||p==='.')){status.textContent='Informe um caminho relativo com extensão .mmd, como diagramas/modelo.mmd.';return;}
+  button.disabled=true;
+  try{
+    if(dirtyCode)throw Error('Aplique o código antes de salvar.');
+    const base='/api/projects/'+encodeURIComponent($('save-project-id').value)+'/files';
+    let exists=false;
+    try{await projectRequest(base+'/read?filepath='+encodeURIComponent(filepath));exists=true;}catch(e){if(e.status!==404)throw e;}
+    if(exists&&!confirm('O arquivo '+filepath+' já existe. Substituir?'))return;
+    await projectRequest(base+'/write',{method:'POST',body:JSON.stringify({filepath,content:serialize()})});
+    $('project-dialog').close();message('Salvo no projeto: '+filepath);$('saved').textContent='Arquivo salvo no projeto: '+filepath;
+  }catch(e){status.textContent=e.message;}finally{button.disabled=false;}
+};
 $('entity-select').onchange=()=>{selected=Number($('entity-select').value);rebuild();};
 $('add-entity').onclick=editable(()=>{if(model.entities.length>=100){message('Limite de 100 entidades.',true);return;}let i=1;while(model.entities.some(e=>e.name==='ENTIDADE-'+i))i++;model.entities.push({name:'ENTIDADE-'+i,attributes:[]});selected=model.entities.length-1;rebuild();render();});
 $('add-relation').onclick=editable(()=>{if(model.relations.length>=200)return;model.relations.push({from:model.entities[0].name,to:model.entities[1]?.name||model.entities[0].name,left:'one',right:'zeroMany',identifying:true,label:'relaciona'});rebuild();render();});
