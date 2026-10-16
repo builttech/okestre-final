@@ -62,7 +62,7 @@ def test_full_desktop_browser_and_security(desktop):
         tabs = page.locator('.nav-item[data-tab]').evaluate_all('(els)=>els.map(e=>e.dataset.tab)')
         for tab in ['tab-files','tab-documents','tab-terminal','tab-git','tab-agent','tab-sdd','tab-discovery','tab-qa','tab-database']:
             assert tab in tabs
-        assert len(tabs) == 15
+        assert len(tabs) == 16
         headers = page.evaluate('getHeaders()')
         projects = page.request.get(origin + '/api/projects', headers=headers).json()
         project_id = next(x['id'] for x in projects if x['name'] == 'Demo')
@@ -99,12 +99,28 @@ def test_full_desktop_browser_and_security(desktop):
         saved = desktop['project'] / '.documents/diagramas/modelo.mmd'
         assert 'erDiagram' in saved.read_text(encoding='utf-8')
         assert 'CUSTOMER' in saved.read_text(encoding='utf-8')
-        expect(page.locator('#diagram-list')).to_contain_text('modelo.mmd')
-        page.reload()
-        expect(page.locator('#diagram-list')).to_contain_text('modelo.mmd')
-        page.once('dialog', lambda dialog: dialog.accept())
-        page.locator('#diagram-list').get_by_role('button', name='Abrir').click()
+        page.goto(origin + '/#diagramas')
+        page.wait_for_function("typeof state!=='undefined' && Boolean(state.apiKey)")
+        page.locator('#project-selector').select_option(str(project_id))
+        page.locator('[data-tab="tab-diagrams"]').click()
+        expect(page.locator('#diagram-rows')).to_contain_text('modelo.mmd')
+        page.get_by_role('link', name='Abrir no editor').click()
         expect(page.locator('#title')).to_have_value('modelo')
+        expect(page.locator('#preview svg')).to_be_visible(timeout=20000)
+        assert page.locator('#diagram-list').count() == 0
+        page.locator('#title').fill('Renomeado')
+        page.get_by_role('button', name='Salvar no projeto', exact=True).click()
+        expect(page.locator('#project-save-confirm')).to_be_enabled()
+        page.get_by_role('button', name='Salvar arquivo', exact=True).click()
+        expect(page.locator('#project-dialog')).not_to_be_visible()
+        assert not saved.exists()
+        renamed = desktop['project'] / '.documents/diagramas/Renomeado.mmd'
+        assert renamed.exists()
+        page.get_by_role('button', name='Salvar no projeto', exact=True).click()
+        expect(page.locator('#project-save-confirm')).to_be_enabled()
+        page.get_by_role('button', name='Salvar arquivo', exact=True).click()
+        expect(page.locator('#project-dialog')).not_to_be_visible()
+        assert len(list(renamed.parent.glob('*.mmd'))) == 1
 
         with page.expect_download() as download:
             page.get_by_role('button', name='Exportar SVG', exact=True).click()
@@ -112,6 +128,15 @@ def test_full_desktop_browser_and_security(desktop):
         with page.expect_download() as download:
             page.get_by_role('button', name='Exportar Mermaid', exact=True).click()
         assert 'erDiagram' in Path(download.value.path()).read_text(encoding='utf-8')
+        page.goto(origin + '/#diagramas')
+        page.wait_for_function("typeof state!=='undefined' && Boolean(state.apiKey)")
+        page.locator('#project-selector').select_option(str(project_id))
+        page.locator('[data-tab="tab-diagrams"]').click()
+        expect(page.locator('#diagram-rows')).to_contain_text('Renomeado.mmd')
+        page.once('dialog', lambda dialog: dialog.accept())
+        page.get_by_role('button', name='Excluir', exact=True).click()
+        expect(page.locator('#diagram-status')).to_contain_text('Nenhum diagrama')
+        assert not renamed.exists()
         command = 'ping -n 60 127.0.0.1 > nul'
         action_headers = {'X-Desktop-Key':desktop['key']}
         job = page.request.post(origin + '/desktop/action', headers=action_headers, data={'action':'execute','project_id':project_id,'command':command}).json()['data']

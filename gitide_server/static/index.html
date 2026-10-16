@@ -111,7 +111,7 @@
                         <button class="nav-item" data-tab="tab-documents" title="Documentos (Word)">
                             <i data-lucide="file-text"></i> <span class="nav-label">Documentos</span>
                         </button>
-                        <a class="nav-item" href="/diagrams" title="Diagramas de entidades e relacionamentos"><i data-lucide="network"></i> <span class="nav-label">Diagramas ER</span></a>
+                        <button class="nav-item" data-tab="tab-diagrams" title="Diagramas de entidades e relacionamentos"><i data-lucide="network"></i> <span class="nav-label">Diagramas ER</span></button>
                         <button class="nav-item" data-tab="tab-ui-canvas" title="UI Canvas">
                             <i data-lucide="layout-dashboard"></i> <span class="nav-label">UI</span>
                         </button>
@@ -1471,6 +1471,7 @@ VALIDAÇÃO: quando o runtime real estiver em VM e comandos locais como npm/node
                 </div>
 
                 <!-- TAB: DOCUMENTS -->
+                <div id="tab-diagrams" class="tab-pane"><section class="card" style="padding:24px"><h2>Diagramas ER</h2><p>Diagramas do projeto selecionado · .documents/diagramas</p><div style="display:flex;gap:12px;margin:20px 0"><button id="diagram-create" class="btn btn-primary">Novo diagrama</button><button id="diagram-refresh" class="btn btn-secondary">Atualizar lista</button></div><p id="diagram-status" role="status"></p><table style="width:100%;text-align:left" aria-label="Diagramas do projeto"><thead><tr><th>Nome</th><th>Atualizado em</th><th>Ações</th></tr></thead><tbody id="diagram-rows"></tbody></table></section></div>
                 <div id="tab-documents" class="tab-pane">
                     <div class="documents-layout">
                         
@@ -2693,7 +2694,7 @@ VALIDAÇÃO: quando o runtime real estiver em VM e comandos locais como npm/node
     </aside>
 
     <!-- Custom JavaScript -->
-    <script src="/static/app.js?v=94"></script>
+    <script src="/static/app.js?v=94"></script><script src="/static/diagram-library.js?v=1"></script>
     <script src="/static/theme-toggle.js?v=2"></script>
 </body>
 </html>

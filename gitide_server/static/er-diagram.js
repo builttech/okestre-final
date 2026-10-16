@@ -147,20 +147,13 @@ async function loadProjects(){
   if(!projectHeaders){const response=await fetch('/api/info');if(!response.ok)throw Error('Entre na Okestre para acessar os projetos.');const info=await response.json();projectHeaders={'Content-Type':'application/json','Authorization':'Bearer '+info.api_key,'x-gitide-source':'dashboard'};}
   return (await projectRequest('/api/projects')).filter(p=>p.storage_kind!=='device');
 }
-let listRevision=0;
-async function refreshDiagrams(){
-  const revision=++listRevision,project=$('diagram-project').value,body=$('diagram-list'),status=$('diagram-list-status');body.replaceChildren();
-  if(!project){status.textContent='Selecione um projeto.';return;}status.textContent='Carregando…';
-  try{const result=await projectRequest('/api/projects/'+encodeURIComponent(project)+'/files');if(revision!==listRevision)return;
-    const files=result.files.filter(f=>f.path.startsWith(diagramFolder)&&f.path.endsWith('.mmd')).sort((a,b)=>a.path.localeCompare(b.path));
-    status.textContent=files.length?files.length+' diagrama(s)':'Nenhum diagrama salvo neste projeto.';
-    for(const file of files){const row=el('tr'),name=el('td',file.path.slice(diagramFolder.length)),action=el('td');
-      action.append(button('Abrir',async()=>{if(!confirm('Abrir este diagrama e substituir o rascunho atual?'))return;try{const data=await projectRequest('/api/projects/'+encodeURIComponent(project)+'/files/read?filepath='+encodeURIComponent(file.path));parse(data.content);$('title').value=file.path.slice(diagramFolder.length,-4);apply(data.content);message('Aberto: '+file.path);}catch(e){message(e.message,true);}}));row.append(name,action);body.append(row);}
-  }catch(e){if(revision===listRevision)status.textContent=e.message;}
+const editorParams=new URLSearchParams(location.search);
+async function openProjectDiagram(){
+ const project=editorParams.get('project'),file=editorParams.get('file');
+ if(editorParams.has('new')){editorParams.delete('file');$('title').value='Novo diagrama';apply('erDiagram\n  direction TB\n');return;}
+ if(!project||!file)return;
+ try{if(!file.startsWith(diagramFolder)||!file.endsWith('.mmd')||file.split('/').includes('..'))throw Error('Caminho de diagrama inválido.');await loadProjects();const data=await projectRequest('/api/projects/'+encodeURIComponent(project)+'/files/read?filepath='+encodeURIComponent(file));parse(data.content);$('title').value=file.slice(diagramFolder.length,-4);apply(data.content);message('Aberto do projeto: '+file);}catch(e){message(e.message,true);}
 }
-async function initializeLibrary(){try{const projects=await loadProjects(),select=$('diagram-project');for(const p of projects){const option=el('option',p.name);option.value=p.id;select.append(option);}const active=localStorage.getItem('gitide_active_project_id');if([...select.options].some(o=>o.value===active))select.value=active;await refreshDiagrams();}catch(e){$('diagram-list-status').textContent=e.message;}}
-$('diagram-project').onchange=refreshDiagrams;
-$('refresh-diagrams').onclick=refreshDiagrams;
 async function projectRequest(url,options={}) {
   const response=await fetch(url,{...options,headers:projectHeaders});
   if(!response.ok) {const error=new Error('Não foi possível acessar o projeto ('+response.status+').');error.status=response.status;throw error;}
@@ -174,7 +167,7 @@ $('save-project').onclick=async()=>{
   try {
     const projects=await loadProjects();
     for(const project of projects.filter(p=>p.storage_kind!=='device')){const option=el('option',project.name);option.value=project.id;select.append(option);}
-    const active=$('diagram-project').value||localStorage.getItem('gitide_active_project_id');if([...select.options].some(o=>o.value===active))select.value=active;
+    const active=editorParams.get('project')||localStorage.getItem('gitide_active_project_id');if([...select.options].some(o=>o.value===active))select.value=active;
     status.textContent=select.options.length?'':'Nenhum projeto disponível neste computador. Cadastre uma pasta na Okestre.';
     $('project-save-confirm').disabled=!select.options.length;
   }catch(e){status.textContent=e.message;}
@@ -191,9 +184,14 @@ $('project-save-form').onsubmit=async event=>{
     const base='/api/projects/'+encodeURIComponent($('save-project-id').value)+'/files';
     let exists=false;
     try{await projectRequest(base+'/read?filepath='+encodeURIComponent(filepath));exists=true;}catch(e){if(e.status!==404)throw e;}
-    if(exists&&!confirm('O arquivo '+filepath+' já existe. Substituir?'))return;
+    const previousProject=editorParams.get('project'),previousFile=editorParams.get('file');
+    const sameProject=previousProject===$('save-project-id').value;
+    const renaming=sameProject&&previousFile&&previousFile!==filepath;
+    if(renaming&&exists)throw Error('Já existe outro diagrama com esse nome. Escolha um nome diferente.');
+    if(exists&&!(sameProject&&previousFile===filepath)&&!confirm('O arquivo '+filepath+' já existe. Substituir?'))return;
     await projectRequest(base+'/write',{method:'POST',body:JSON.stringify({filepath,content:serialize()})});
-    $('diagram-project').value=$('save-project-id').value;await refreshDiagrams();
+    if(renaming){try{await projectRequest(base+'/delete?filepath='+encodeURIComponent(previousFile),{method:'DELETE'});}catch(e){throw Error('O novo arquivo foi salvo, mas não foi possível remover o anterior. Confira os dois arquivos na lista antes de continuar.');}}
+    editorParams.set('project',$('save-project-id').value);editorParams.set('file',filepath);editorParams.delete('new');history.replaceState(null,'','/diagrams?'+editorParams.toString());
     $('project-dialog').close();message('Salvo no projeto: '+filepath);$('saved').textContent='Arquivo salvo no projeto: '+filepath;
   }catch(e){status.textContent=e.message;}finally{button.disabled=false;}
 };
@@ -208,7 +206,7 @@ $('svg-export').onclick=()=>{if(dirtyCode){message('Aplique o código antes de e
 $('copy').onclick=async()=>{try{await navigator.clipboard.writeText($('source').value);message('Código copiado.');}catch{$('source').focus();$('source').select();message('Selecione Copiar no navegador ou pressione Ctrl+C.');}};
 $('import').onclick=()=>$('file').click();
 $('file').onchange=async()=>{const f=$('file').files[0];if(!f)return;if(f.size>100000){message('Arquivo maior que 100 KB.',true);return;}if(confirm('Substituir o rascunho atual pelo arquivo?'))apply(await f.text());$('file').value='';};
-$('new').onclick=()=>{if(confirm('Criar um novo diagrama? Exporte o atual para preservá-lo.')){$('title').value='Novo diagrama';apply('erDiagram\n  direction TB\n');}};
+$('new').onclick=()=>{if(confirm('Criar um novo diagrama? Exporte o atual para preservá-lo.')){editorParams.delete('file');$('title').value='Novo diagrama';apply('erDiagram\n  direction TB\n');}};
 $('example').onclick=()=>{if(confirm('Substituir o rascunho pelo exemplo de pedidos?')){$('title').value='Modelo de pedidos';apply(example);}};
 $('title').onchange=save;
 window.addEventListener('resize',fit);
@@ -217,5 +215,5 @@ $('zoom-in').onclick=()=>{scale=Math.min(3,scale*1.2);zoom();};$('zoom-out').onc
 for(const b of document.querySelectorAll('[data-tab]')) b.onclick=()=>{for(const other of document.querySelectorAll('[data-tab]')) {const active=other===b;other.setAttribute('aria-pressed',String(active));$(other.dataset.tab).hidden=!active;}};
 mermaid.initialize({startOnLoad:false,securityLevel:'strict',theme:'base',themeVariables:{primaryColor:'#eeebff',primaryBorderColor:'#9d88e6',primaryTextColor:'#243c48',lineColor:'#66808a',fontFamily:'Segoe UI, sans-serif'},er:{useMaxWidth:false},suppressErrorRendering:true});
 try{const stored=JSON.parse(localStorage.getItem(key));model=parse(stored?.source||example);if(stored?.title)$('title').value=stored.title;}catch{model=parse(example);}
-rebuild();render();initializeLibrary();
+rebuild();render();openProjectDiagram();
 })();
