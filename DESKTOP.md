@@ -41,3 +41,13 @@ Em Qualidade → Testes E2E, selecione o projeto, cadastre cenários e abra Deta
 Estados: Não executado, Em execução, Aprovado, Reprovado e Bloqueado. Somente Aprovado marca `[x]` na lista. O salvamento alerta quando os documentos foram alterados desde o carregamento. O GPT_INSTRUCTIONS.md orienta a criação e execução dos cenários após implementações.
 
 A pasta oficial e permanente do pacote é `outputs/okestre-desktop`. Atualizações substituem o aplicativo nessa pasta, com ele fechado. O cadastro permanece em `%LOCALAPPDATA%/OkestreDesktop`; não remova esse perfil ao atualizar.
+
+## GitHub no Ops Infra
+
+A aba Git / Acessos salva URL HTTPS, branch e autorizações de leitura, push e deploy por projeto. O token é criptografado no diretório `server/git-access` do perfil do Desktop, fora do repositório. O formulário não devolve o segredo e permite removê-lo. Novas gravações de segredos falham se a criptografia estiver indisponível; não há fallback Base64 para gravação.
+
+Configure no GitHub um token fine-grained para o repositório desejado, com Contents Read para leitura ou Read and write para push. Políticas da organização e proteção de branch continuam sendo aplicadas. Workflows exigem suas permissões próprias. O teste consulta o repositório e não executa push.
+
+Com perfil configurado, operações Git pull/push integradas usam a credencial salva, a branch cadastrada e um origin correspondente sem segredo na URL. A sincronização SSH da VM usa a credencial apenas durante a operação e faz fast-forward. Docker Compose remoto exige autorização de deploy para ações que alteram a aplicação. Terminais livres não são restringidos por essas opções. Perfis antigos sem essa configuração mantêm os fluxos anteriores.
+
+Referência de permissões: https://docs.github.com/en/rest/authentication/permissions-required-for-fine-grained-personal-access-tokens

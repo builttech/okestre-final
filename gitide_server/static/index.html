@@ -48,7 +48,7 @@
             z-index: 10;
         }
     </style>
-<link rel="stylesheet" href="/static/diagram-library.css?v=1"><link rel="stylesheet" href="/static/system-tests.css?v=1"></head>
+<link rel="stylesheet" href="/static/diagram-library.css?v=1"><link rel="stylesheet" href="/static/system-tests.css?v=1"><link rel="stylesheet" href="/static/ops-git-access.css?v=1"></head>
 <body>
     <div class="app-container">
         <!-- TOPBAR -->
@@ -1975,6 +1975,7 @@ VALIDAÇÃO: quando o runtime real estiver em VM e comandos locais como npm/node
 
                             <div class="ops-flow-tabs" role="tablist" aria-label="Fluxo Ops Infra">
                                 <button type="button" class="ops-flow-tab active" data-ops-flow-tab="vm"><span>1</span> VM / Acesso</button>
+                                <button type="button" class="ops-flow-tab" data-ops-flow-tab="git-access"><span>G</span> Git / Acessos</button>
                                 <button type="button" class="ops-flow-tab" data-ops-flow-tab="environment"><span>2</span> Ambiente</button>
                                 <button type="button" class="ops-flow-tab" data-ops-flow-tab="domain"><span>3</span> Domínio</button>
                                 <button type="button" class="ops-flow-tab" data-ops-flow-tab="database"><span>4</span> Banco</button>
@@ -1982,6 +1983,7 @@ VALIDAÇÃO: quando o runtime real estiver em VM e comandos locais como npm/node
                                 <button type="button" class="ops-flow-tab" data-ops-flow-tab="logs"><span>6</span> Operação</button>
                             </div>
 
+                            <div class="ops-flow-panel" data-ops-flow-panel="git-access"><h4>GitHub · Repositório e autonomia</h4><p class="ops-muted">Configure o acesso do projeto. O token fica criptografado no perfil da Okestre e não é incluído nos arquivos do repositório.</p><div class="ops-infra-field"><label for="ops-git-repo">URL HTTPS do repositório</label><input id="ops-git-repo" class="text-input" placeholder="https://github.com/organizacao/repositorio"></div><div class="ops-infra-field"><label for="ops-git-branch">Branch autorizada</label><input id="ops-git-branch" class="text-input" value="main"></div><div class="ops-infra-field"><label for="ops-git-token">Token de acesso GitHub</label><input id="ops-git-token" type="password" autocomplete="new-password" class="text-input" placeholder="Cole o token; deixe vazio para manter o salvo"><small id="ops-git-token-state"></small></div><fieldset class="ops-git-permissions"><legend>Autorizações das operações integradas</legend><label><input id="ops-git-read" type="checkbox" checked> Ler repositório privado e executar fetch/pull</label><label><input id="ops-git-push" type="checkbox"> Enviar commits com push para a branch cadastrada</label><label><input id="ops-git-deploy" type="checkbox"> Sincronizar o código e executar deploy / Docker Compose na VM</label></fieldset><p class="ops-muted">Estas opções não concedem permissões no GitHub e não restringem comandos livres no terminal. Proteções de branch e políticas da organização continuam valendo.</p><details><summary>Como preparar o token</summary><p>Crie um token fine-grained para o proprietário e o repositório desejados. Configure Contents como Read para leitura, ou Read and write para push. Alterações de workflows exigem a permissão correspondente. A organização pode exigir aprovação. O teste abaixo consulta o repositório; não realiza push nem deploy.</p><a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener noreferrer">Criar token no GitHub</a></details><div class="ops-git-buttons"><button id="ops-git-save" class="btn btn-primary">Salvar acessos</button><button id="ops-git-test" class="btn btn-secondary">Testar GitHub</button><button id="ops-git-remove" class="btn btn-secondary">Remover token</button></div><p id="ops-git-status" role="status"></p><p class="ops-muted">Deploy usa a VM e o diretório cadastrados em VM / Acesso. A sincronização usa somente a branch definida, sem force push ou rebase automático.</p></div>
                             <div class="ops-flow-panel active" data-ops-flow-panel="vm">
                                 <div class="ops-infra-field">
                                     <label for="ops-vm-host">IP ou host da VM</label>
@@ -2701,7 +2703,7 @@ VALIDAÇÃO: quando o runtime real estiver em VM e comandos locais como npm/node
     <div id="e2e-backdrop" class="qa-drawer-backdrop"></div><aside id="e2e-drawer" class="qa-detail-drawer" role="dialog" aria-modal="true" aria-label="Detalhe do teste" aria-hidden="true"><div class="qa-detail-header"><div><span id="e2e-id">TESTE</span><h4>Detalhe do teste</h4></div><button id="e2e-close" class="btn-icon" aria-label="Fechar detalhe do teste">×</button></div><form id="e2e-form" class="qa-detail-body"><label>Título<input id="e2e-title" class="text-input" required maxlength="180"></label><div class="e2e-fields"><label>Status<select id="e2e-status" class="text-input"><option>Não executado</option><option>Em execução</option><option>Aprovado</option><option>Reprovado</option><option>Bloqueado</option></select></label><label>Task relacionada<input id="e2e-task" class="text-input" maxlength="160"></label><label>RF / Requisito<input id="e2e-rf" class="text-input" maxlength="160"></label></div><p>Registre passos, resultado observado e evidências. A aprovação exige execução real.</p><label>Plano e registro de execução<textarea id="e2e-details" class="text-input" rows="22" required></textarea></label><p id="e2e-save-message" role="status"></p><button id="e2e-save" class="btn btn-primary" type="submit">Salvar teste</button></form></aside>
     <!-- Custom JavaScript -->
     <script src="/static/app.js?v=94"></script><script src="/static/diagram-library.js?v=1"></script>
-    <script src="/static/system-tests.js?v=1"></script><script src="/static/theme-toggle.js?v=2"></script>
+    <script src="/static/system-tests.js?v=1"></script><script src="/static/ops-git-access.js?v=1"></script><script src="/static/theme-toggle.js?v=2"></script>
 </body>
 </html>
 

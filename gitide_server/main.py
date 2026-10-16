@@ -1,4 +1,5 @@
 import builtins
+from gitide_server.ops_git_access import GitAccess, GitAccessRequest, GitActionRequest
 import os
 import re
 import shutil
@@ -2028,7 +2029,7 @@ def git_pull(branch: Optional[str] = Query(None),
              _ = Depends(get_api_key)):
     """Executa o git pull no repositório remoto."""
     try:
-        result = git_bridge.pull_git(project.path, branch)
+        result = _ops_git_access().local(project, "pull") if _ops_git_access().load(project) else git_bridge.pull_git(project.path, branch)
         
         log = ActivityLog(
             project_id=project.id,
@@ -2039,6 +2040,8 @@ def git_pull(branch: Optional[str] = Query(None),
         db.commit()
         
         return result
+    except HTTPException:
+        raise
     except Exception as e:
         conflicts = git_bridge.list_conflicts(project.path)
         if conflicts.get("files"):
@@ -2175,7 +2178,7 @@ def git_push(req: GitPushRequest,
              _ = Depends(get_api_key)):
     """Executa um Git push para enviar commits locais para o repositório remoto."""
     try:
-        result = git_bridge.push_git(project.path, req.branch)
+        result = _ops_git_access().local(project, "push") if _ops_git_access().load(project) else git_bridge.push_git(project.path, req.branch)
         
         log = ActivityLog(
             project_id=project.id,
@@ -2186,6 +2189,8 @@ def git_push(req: GitPushRequest,
         db.commit()
         
         return result
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -3176,8 +3181,7 @@ def _ops_encrypt_secret(value: str) -> str:
         from cryptography.fernet import Fernet
         return "fernet:" + Fernet(_ops_secret_key()).encrypt(value.encode("utf-8")).decode("utf-8")
     except Exception:
-        import base64
-        return "b64:" + base64.b64encode(value.encode("utf-8")).decode("utf-8")
+        raise HTTPException(status_code=500, detail="Falha ao criptografar credencial. Nenhum segredo foi salvo sem criptografia.")
 
 def _ops_decrypt_secret(value: str) -> str:
     try:
@@ -3190,6 +3194,44 @@ def _ops_decrypt_secret(value: str) -> str:
     except Exception:
         return ""
     return value
+
+def _ops_git_access():
+    return GitAccess(CONFIG_DIR, _ops_encrypt_secret, _ops_decrypt_secret)
+
+
+def _ops_sync_with_git_access(project, access, app_path):
+    manager = _ops_git_access()
+    if manager.load(project):
+        return manager.remote_sync(project, access, app_path, _ops_run_ssh)
+    return _ops_run_ssh(access, _ops_sync_script(app_path, project.git_remote), timeout=240)
+
+
+@app.get("/api/projects/{project_id}/ops-infra/git-access", tags=["Ops Infra"])
+def ops_git_access_get(project: Project = Depends(get_project_or_404), _ = Depends(get_api_key)):
+    return _ops_git_access().public(project)
+
+
+@app.post("/api/projects/{project_id}/ops-infra/git-access", tags=["Ops Infra"])
+def ops_git_access_save(req: GitAccessRequest, project: Project = Depends(get_project_or_404), db: Session = Depends(get_db), _ = Depends(get_api_key)):
+    data = _ops_git_access().save(project, req)
+    project.git_remote = data['repository']
+    db.add(ActivityLog(project_id=project.id, action_type="OPS_GIT_ACCESS", details="Configuração e autorizações GitHub atualizadas (sem credenciais no log)."))
+    db.commit()
+    return data
+
+
+@app.post("/api/projects/{project_id}/ops-infra/git-access/test", tags=["Ops Infra"])
+def ops_git_access_test(project: Project = Depends(get_project_or_404), _ = Depends(get_api_key)):
+    return _ops_git_access().test(project)
+
+
+@app.post("/api/projects/{project_id}/ops-infra/git-access/action", tags=["Ops Infra"])
+def ops_git_access_action(req: GitActionRequest, project: Project = Depends(get_project_or_404), db: Session = Depends(get_db), _ = Depends(get_api_key)):
+    result = _ops_git_access().local(project, req.action)
+    db.add(ActivityLog(project_id=project.id, action_type="OPS_GIT_ACTION", details=f"Git {req.action}: {result['status']}"))
+    db.commit()
+    return result
+
 
 def _ops_env_path(project_path: str, environment: str) -> str:
     safe_env = re.sub(r"[^a-zA-Z0-9_-]", "", environment or "prod") or "prod"
@@ -3353,7 +3395,7 @@ def _ops_ssh_base_args(access: dict, batch_mode: bool = True) -> List[str]:
         args = ["-o", "BatchMode=yes"] + args
     return args
 
-def _ops_run_ssh(access: dict, remote_command: str, timeout: int = 120) -> dict:
+def _ops_run_ssh(access: dict, remote_command: str, timeout: int = 120, stdin: Optional[str] = None) -> dict:
     auth_method = access.get("auth_method", "key")
     temp_key_path = None
     prefix = []
@@ -3384,7 +3426,7 @@ def _ops_run_ssh(access: dict, remote_command: str, timeout: int = 120) -> dict:
             safe_cmd[2] = "********"
         if temp_key_path:
             safe_cmd = ["[ssh-key-file] " + item if item == temp_key_path else item for item in safe_cmd]
-        result = subprocess.run(cmd, text=True, capture_output=True, timeout=timeout)
+        result = subprocess.run(cmd, text=True, capture_output=True, timeout=timeout, input=stdin)
         return {
             "status": "success" if result.returncode == 0 else "error",
             "command": " ".join(safe_cmd[:-1] + [remote_command]),
@@ -3698,7 +3740,7 @@ def ops_infra_sync_project(project: Project = Depends(get_project_or_404),
                            _ = Depends(get_api_key)):
     access = _ops_require_vm_access(project.path)
     app_path = _ops_require_app_path(access)
-    result = _ops_run_ssh(access, _ops_sync_script(app_path, project.git_remote), timeout=240)
+    result = _ops_sync_with_git_access(project, access, app_path)
     db.add(ActivityLog(project_id=project.id, action_type="OPS_INFRA_SYNC", details=f"Sync {project.git_remote or '-'} -> {access.get('host')}:{app_path} | Exit: {result.get('exit_code')}"))
     db.commit()
     return result
@@ -3863,6 +3905,7 @@ def ops_infra_remote_command(req: OpsInfraCommandRequest,
     access = _ops_read_vm_access(project.path, public=False)
     if not access.get("host") or not access.get("user") or not access.get("app_path"):
         raise HTTPException(status_code=400, detail="Configure VM / Acesso antes de executar comandos remotos.")
+    _ops_git_access().check_deploy(project, req.action)
     remote_command = f"cd {_ops_shell_quote(access['app_path'])} && {commands[req.action]}"
     result = _ops_run_ssh(access, remote_command, timeout=180 if req.action in ["build", "up"] else 90)
     db.add(ActivityLog(project_id=project.id, action_type="OPS_INFRA_REMOTE_COMMAND", details=f"{commands[req.action]} em {access['host']}:{access['app_path']}\nExit: {result['exit_code']}"))
@@ -6108,6 +6151,8 @@ def _native_agent_ops_tool_descriptions() -> list:
         "- `qa_get_annotation(annotation_id: str)`: Busca uma anotação QA por ID (ex: QA-D3F8D1C8) em .documents/qa/annotations.json antes de qualquer tentativa de executar comando.",
         "- `qa_list_annotations(status: Optional[str])`: Lista anotações QA resumidas, opcionalmente filtradas por status.",
         "- `qa_update_annotation_status(annotation_id: str, status: str)`: Atualiza status de uma anotação QA para aberta, em_revisao ou resolvida.",
+        "- `ops_infra_git_access()`: Mostra repositório, branch e autorizações GitHub sem credenciais.",
+        "- `ops_infra_git_action(action: str)`: Executa fetch, pull ou push local na branch cadastrada, respeitando autorizações GitHub.",
         "- `ops_infra_status()`: Mostra stack detectada, VM cadastrada e capacidades de Ops Infra disponíveis.",
         "- `ops_infra_generate_public_key()`: Gera par de chaves SSH do Act IA e retorna somente a chave pública para instalar na VM.",
         "- `ops_infra_test_ssh()`: Testa conexão SSH cadastrada e valida Docker/Compose quando possível.",
@@ -6245,10 +6290,16 @@ def _native_agent_ops_tool(tool_name: str):
                 db.commit()
                 return _native_agent_json(result)
 
+            if tool_name == "ops_infra_git_access":
+                return _native_agent_json(_ops_git_access().public(project))
+
+            if tool_name == "ops_infra_git_action":
+                return _native_agent_json(_ops_git_access().local(project, args.get("action", "")))
+
             if tool_name == "ops_infra_sync_project":
                 access = _ops_require_vm_access(project.path)
                 app_path = _ops_require_app_path(access)
-                result = _ops_run_ssh(access, _ops_sync_script(app_path, project.git_remote), timeout=240)
+                result = _ops_sync_with_git_access(project, access, app_path)
                 db.add(ActivityLog(project_id=project.id, action_type="OPS_INFRA_SYNC", details=f"[Agente] Sync {project.git_remote or '-'} -> {access.get('host')}:{app_path} | Exit: {result.get('exit_code')}"))
                 db.commit()
                 return _native_agent_json(result)
@@ -6329,6 +6380,7 @@ def _native_agent_ops_tool(tool_name: str):
                     raise HTTPException(status_code=400, detail="Ação inválida para Ops Infra.")
                 access = _ops_require_vm_access(project.path)
                 app_path = _ops_require_app_path(access)
+                _ops_git_access().check_deploy(project, action)
                 remote_command = f"cd {_ops_shell_quote(app_path)} && {commands[action]}"
                 result = _ops_run_ssh(access, remote_command, timeout=180 if action in ["build", "up"] else 90)
                 db.add(ActivityLog(project_id=project.id, action_type="OPS_INFRA_REMOTE_COMMAND", details=f"[Agente] {commands[action]} em {access['host']}:{app_path}\nExit: {result['exit_code']}"))
@@ -6395,6 +6447,8 @@ def _native_agent_ops_tools() -> dict:
         "ops_infra_create_directory",
         "ops_infra_bootstrap_vm",
         "ops_infra_sync_project",
+        "ops_infra_git_access",
+        "ops_infra_git_action",
         "ops_infra_generate_artifacts",
         "ops_infra_domain_preview",
         "ops_infra_domain_apply",
@@ -7727,6 +7781,9 @@ def ops_infra_openapi():
     allowed_operations = {
         ("GET", "/api/info"),
         ("GET", "/api/projects"),
+        ("GET", "/api/projects/{project_id}/ops-infra/git-access"),
+        ("POST", "/api/projects/{project_id}/ops-infra/git-access/action"),
+        ("POST", "/api/projects/{project_id}/ops-infra/git-access/test"),
         ("GET", "/api/projects/{project_id}/ops-infra/detect"),
         ("GET", "/api/projects/{project_id}/ops-infra/vm-access"),
         ("POST", "/api/projects/{project_id}/ops-infra/vm-access"),

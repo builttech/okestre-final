@@ -714,3 +714,16 @@ Ao reexecutar ou corrigir um teste:
 - Nenhum teste real está dentro de comentário HTML ou bloco de código.
 - Em **Qualidade → Testes E2E → Atualizar**, conferir quantidade de testes, título, status, task e RF; abrir **Detalhes** e conferir passos, resultado e evidências.
 - Se não for possível acessar a tela, informar que a sintaxe foi conferida, mas a renderização visual não foi validada. Não declarar uma validação que não ocorreu.
+
+## 14. GitHub e deploy — acessos autorizados por projeto
+
+Antes de operar um repositório privado ou sincronizar a VM, consultar a configuração de **Ops Infra → Git / Acessos** com `ops_infra_git_access()` (agente nativo) ou `GET /api/projects/{project_id}/ops-infra/git-access` (API).
+
+- O usuário configura o token, repositório, branch e autorizações. Não pedir que o token seja colado no chat, não lê-lo do cofre e não incluí-lo em arquivos, URLs de remote, prompts, commits ou logs.
+- Para operações locais autorizadas, usar `ops_infra_git_action(action)` com `fetch`, `pull` ou `push`; a API equivalente é `POST /api/projects/{project_id}/ops-infra/git-access/action` com `{"action":"fetch"}` (ou pull/push).
+- A configuração autoriza essas operações dentro do projeto e branch informados. Não alterar as autorizações para contornar uma recusa. Não usar terminal ou endpoints legados para contornar a configuração.
+- `ops_infra_sync_project()` usa o token salvo para clone/pull na VM quando o perfil GitHub está configurado. Exige leitura e deploy autorizados. O remote existente e a branch da VM devem corresponder ao perfil. A sincronização é fast-forward; divergências exigem diagnóstico, nunca force push, reset destrutivo ou rebase automático.
+- Os comandos Docker Compose remotos que alteram a aplicação respeitam a autorização de deploy quando existe perfil GitHub. Logs e status continuam sendo consultas. O acesso SSH deve estar configurado separadamente em VM / Acesso.
+- O teste de GitHub confirma apenas a consulta ao repositório; não comprova push, execução de workflows ou deploy. Permissões reais dependem do token, das políticas da organização e da proteção de branch.
+- As autorizações são aplicadas às operações integradas descritas, não constituem sandbox de comandos livres. Não prometer controle universal de todos os canais de execução.
+- Ao entregar, distinguir configuração salva, acesso consultado, push realizado e deploy/health efetivamente verificados. Não declarar ações remotas não executadas.
