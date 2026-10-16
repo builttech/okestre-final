@@ -39,3 +39,5 @@ Validação: `python -m pytest tests/test_desktop.py -q`, seguida do smoke test 
 Em Qualidade → Testes E2E, selecione o projeto, cadastre cenários e abra Detalhes para registrar passos, ambiente, resultado e evidências. A lista e os detalhes ficam em `.documents/test/test.md` e `.documents/test/test.details.md`, no mesmo padrão dos documentos de tarefas. Os templates são criados se ainda não existirem. O painel registra o planejamento e os resultados; não executa automaticamente ferramentas de teste.
 
 Estados: Não executado, Em execução, Aprovado, Reprovado e Bloqueado. Somente Aprovado marca `[x]` na lista. O salvamento alerta quando os documentos foram alterados desde o carregamento. O GPT_INSTRUCTIONS.md orienta a criação e execução dos cenários após implementações.
+
+A pasta oficial e permanente do pacote é `outputs/okestre-desktop`. Atualizações substituem o aplicativo nessa pasta, com ele fechado. O cadastro permanece em `%LOCALAPPDATA%/OkestreDesktop`; não remova esse perfil ao atualizar.

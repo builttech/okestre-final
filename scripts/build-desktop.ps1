@@ -1,8 +1,12 @@
-param([string]$Python = ".venv\Scripts\python.exe", [string]$OutputDirectory = "outputs/okestre-desktop")
+param([string]$Python = ".venv\Scripts\python.exe")
+$OutputDirectory = "outputs/okestre-desktop"
 $ErrorActionPreference = "Stop"
 $projectDirectory = Split-Path -Parent $PSScriptRoot
 Push-Location $projectDirectory
 try {
+    $desktopExecutable = [IO.Path]::GetFullPath((Join-Path $projectDirectory "$OutputDirectory/OkestreDesktop/OkestreDesktop.exe"))
+    $runningDesktop = Get-Process OkestreDesktop -ErrorAction SilentlyContinue | Where-Object { $_.Path -eq $desktopExecutable }
+    if ($runningDesktop) { throw "Feche o Okestre Desktop antes de atualizar a pasta oficial. Os dados em LOCALAPPDATA permanecem preservados." }
     $dataArguments = @()
     Get-ChildItem -LiteralPath $projectDirectory -File -Filter '*.md' | ForEach-Object {
         $dataArguments += @('--add-data', ($_.FullName + ';.'))
