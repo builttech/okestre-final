@@ -1,6 +1,6 @@
 # Okestre Desktop para Windows
 
-O executável abre a interface completa existente da Okestre, com seus 15 módulos e o mesmo layout: arquivos, documentos, UI, terminal, Git, Computer, banco, tokens, QA, métricas, estimativas, histórico, agente, Harness e Discovery. O editor de diagramas continua disponível com exportação Mermaid e SVG.
+O executável abre a interface completa existente da Okestre, com seus módulos e o mesmo layout: arquivos, documentos, UI, terminal, Git, Computer, banco, tokens, QA, métricas, estimativas, histórico, agente, Harness e Discovery. O editor de diagramas continua disponível com exportação Mermaid e SVG.
 
 ## Executar
 
@@ -33,3 +33,9 @@ O servidor embutido escuta somente em `127.0.0.1`, numa porta livre. A janela re
 Instale `requirements-desktop.txt` e PyInstaller. Execute `python okestre-desktop.py` ou compile com `scripts/build-desktop.ps1`. Para testes isolados, use `--home` e `--agent-home`. `--smoke-test arquivo.json` abre a janela oculta, verifica a interface completa e encerra.
 
 Validação: `python -m pytest tests/test_desktop.py -q`, seguida do smoke test do executável empacotado. O build inclui HTML, JavaScript, fontes, templates e contratos do projeto; não inclui bancos, tokens ou arquivos de projetos do usuário.
+
+## Testes de Sistema / Ponta a Ponta
+
+Em Qualidade → Testes E2E, selecione o projeto, cadastre cenários e abra Detalhes para registrar passos, ambiente, resultado e evidências. A lista e os detalhes ficam em `.documents/test/test.md` e `.documents/test/test.details.md`, no mesmo padrão dos documentos de tarefas. Os templates são criados se ainda não existirem. O painel registra o planejamento e os resultados; não executa automaticamente ferramentas de teste.
+
+Estados: Não executado, Em execução, Aprovado, Reprovado e Bloqueado. Somente Aprovado marca `[x]` na lista. O salvamento alerta quando os documentos foram alterados desde o carregamento. O GPT_INSTRUCTIONS.md orienta a criação e execução dos cenários após implementações.

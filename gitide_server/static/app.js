@@ -615,6 +615,8 @@ function switchTab(tabId) {
         } else if (tabId === 'tab-database') {
             loadDbTables();
             loadProjectDbCredentials();
+        } else if (tabId === 'tab-system-tests') {
+            window.loadSystemTests?.();
         } else if (tabId === 'tab-documents') {
             loadDocuments();
         } else if (tabId === 'tab-terminal') {

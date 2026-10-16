@@ -48,7 +48,7 @@
             z-index: 10;
         }
     </style>
-<link rel="stylesheet" href="/static/diagram-library.css?v=1"></head>
+<link rel="stylesheet" href="/static/diagram-library.css?v=1"><link rel="stylesheet" href="/static/system-tests.css?v=1"></head>
 <body>
     <div class="app-container">
         <!-- TOPBAR -->
@@ -142,6 +142,7 @@
 
                     <div class="sidebar-category">
                         <div class="sidebar-category-title">04. Qualidade</div>
+                        <button class="nav-item" data-tab="tab-system-tests" title="Testes de Sistema / Ponta a Ponta"><i data-lucide="list-checks"></i><span class="nav-label">Testes E2E</span></button>
                         <button class="nav-item" data-tab="tab-qa" title="QA">
                             <i data-lucide="bug"></i> <span class="nav-label">QA</span>
                         </button>
@@ -1051,6 +1052,7 @@ VALIDAÇÃO: quando o runtime real estiver em VM e comandos locais como npm/node
                 </div>
 
                 <!-- TAB: QA -->
+                <div id="tab-system-tests" class="tab-pane"><div class="e2e-heading"><div><span>QUALIDADE / VALIDAÇÃO PÓS-IMPLEMENTAÇÃO</span><h2>Testes de Sistema / Ponta a Ponta</h2><p>Planeje os cenários, registre a execução e acompanhe as evidências por projeto.</p></div><button id="e2e-new" class="btn btn-primary">+ Novo teste</button></div><section class="card e2e-card"><div class="e2e-toolbar"><input id="e2e-search" class="text-input" aria-label="Buscar testes" placeholder="Buscar por ID, título, task ou RF"><select id="e2e-filter" class="text-input" aria-label="Filtrar status"><option value="">Todos os status</option><option>Não executado</option><option>Em execução</option><option>Aprovado</option><option>Reprovado</option><option>Bloqueado</option></select><button id="e2e-refresh" class="btn btn-secondary">Atualizar</button></div><p id="e2e-summary"></p><p id="e2e-message" role="status"></p><div class="e2e-table-wrap"><table><thead><tr><th>Teste / cenário</th><th>Task / RF</th><th>Status</th><th>Ação</th></tr></thead><tbody id="e2e-rows"></tbody></table></div></section></div>
                 <div id="tab-qa" class="tab-pane">
                     <div class="qa-layout">
                         <section class="qa-main card">
@@ -2696,9 +2698,10 @@ VALIDAÇÃO: quando o runtime real estiver em VM e comandos locais como npm/node
         <div class="qa-detail-body sdd-task-detail-body" id="sdd-task-detail-body"></div>
     </aside>
 
+    <div id="e2e-backdrop" class="qa-drawer-backdrop"></div><aside id="e2e-drawer" class="qa-detail-drawer" role="dialog" aria-modal="true" aria-label="Detalhe do teste" aria-hidden="true"><div class="qa-detail-header"><div><span id="e2e-id">TESTE</span><h4>Detalhe do teste</h4></div><button id="e2e-close" class="btn-icon" aria-label="Fechar detalhe do teste">×</button></div><form id="e2e-form" class="qa-detail-body"><label>Título<input id="e2e-title" class="text-input" required maxlength="180"></label><div class="e2e-fields"><label>Status<select id="e2e-status" class="text-input"><option>Não executado</option><option>Em execução</option><option>Aprovado</option><option>Reprovado</option><option>Bloqueado</option></select></label><label>Task relacionada<input id="e2e-task" class="text-input" maxlength="160"></label><label>RF / Requisito<input id="e2e-rf" class="text-input" maxlength="160"></label></div><p>Registre passos, resultado observado e evidências. A aprovação exige execução real.</p><label>Plano e registro de execução<textarea id="e2e-details" class="text-input" rows="22" required></textarea></label><p id="e2e-save-message" role="status"></p><button id="e2e-save" class="btn btn-primary" type="submit">Salvar teste</button></form></aside>
     <!-- Custom JavaScript -->
     <script src="/static/app.js?v=94"></script><script src="/static/diagram-library.js?v=1"></script>
-    <script src="/static/theme-toggle.js?v=2"></script>
+    <script src="/static/system-tests.js?v=1"></script><script src="/static/theme-toggle.js?v=2"></script>
 </body>
 </html>
 

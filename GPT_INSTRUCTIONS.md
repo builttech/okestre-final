@@ -599,26 +599,21 @@ graph TD
 Importante: O usuário pode solicitar que se pule uma etapa sempre que necessário, mas isso deve ser feito apenas quando solicitado explicitamente.
 
 
-## 13. Etapa Final — Criação de Casos de Teste (Pós-Execução)
+## 13. Etapa Final — Testes de Sistema / Ponta a Ponta (pós-implementação)
 
-- Após a execução sequencial e verificação técnica de todas as tasks, o agente deve gerar ou atualizar os casos de teste.
-- Os casos de teste devem ser salvos nos arquivos `.documents/casos/test_cases.json` e `.documents/casos/test_cases.md`.
-- Esses arquivos são únicos e vivos. O agente NÃO deve sobrescrevê-os apagando o histórico; deve adicionar ou atualizar mantendo o histórico das baterias anteriores.
-- A criação de casos de teste conclui a entrega do pacote.
+Após implementar uma task ou pacote, criar ou atualizar testes na tela **Qualidade → Testes E2E**.
+O contrato segue Task List + Task Details:
 
-- O arquivo `.documents/casos/test_cases.json` DEVE seguir obrigatoriamente a seguinte estrutura para ser renderizado corretamente na interface:
-```json
-{
-  "test_cases": [
-    {
-      "id": "TC-001",
-      "origem": "REQ-0001",
-      "titulo": "Título do Caso de Teste",
-      "pre_condicoes": "O usuário deve estar logado",
-      "passos": "1. Clique em X\n2. Faça Y",
-      "resultado_esperado": "O sistema deve exibir a tela Z"
-    }
-  ],
-  "updated_at": "YYYY-MM-DDTHH:MM:SSZ"
-}
-```
+- `.documents/test/test.md`: lista viva com `- [ ] TEST-E2E-001: Título do cenário`.
+- `.documents/test/test.details.md`: detalhes sob `# TEST-E2E-001 — Título do cenário`.
+- Usar os templates `gitide_server/templates/test.md` e `test.details.md` como referência; exemplos comentados não são testes executados.
+- Cada ID deve ser único e estável. Atualizar o mesmo ID ao revisar o cenário, preservando testes anteriores e o histórico das execuções.
+- Vincular cada teste à task implementada e ao RF/requisito. Cobrir fluxo principal, permissões, falhas/validações, persistência, integrações e regressões pertinentes ao escopo.
+- Registrar objetivo, ambiente/versão, pré-condições, massa de dados, passos reproduzíveis, resultado esperado, resultado obtido, evidências, defeito/task de correção, responsável e data/hora com fuso.
+- Usar exatamente o campo `- **Status:**` com um dos valores: `Não executado`, `Em execução`, `Aprovado`, `Reprovado`, `Bloqueado`.
+- `[x]` na lista significa exclusivamente **Aprovado**, com resultado observado e evidência. Nos demais estados, usar `[ ]`.
+- Build, lint, leitura do código ou geração do caso não comprovam aprovação E2E. Executar o fluxo real no ambiente autorizado; se faltar acesso, registrar Bloqueado e a causa. Não inventar evidências.
+- A cada execução, acrescentar o resultado ao histórico, incluindo versão, responsável e evidências. Após uma correção, reexecutar o caso e as regressões relevantes.
+- Na entrega, informar quantos testes foram planejados, executados, aprovados, reprovados e bloqueados; explicitar pendências.
+
+Arquivos legados `.documents/casos/test_cases.json` e `test_cases.md` podem ser mantidos para consulta. Não apagar nem migrar automaticamente; novos testes usam o contrato acima.

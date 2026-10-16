@@ -62,7 +62,7 @@ def test_full_desktop_browser_and_security(desktop):
         tabs = page.locator('.nav-item[data-tab]').evaluate_all('(els)=>els.map(e=>e.dataset.tab)')
         for tab in ['tab-files','tab-documents','tab-terminal','tab-git','tab-agent','tab-sdd','tab-discovery','tab-qa','tab-database']:
             assert tab in tabs
-        assert len(tabs) == 16
+        assert len(tabs) == 17
         headers = page.evaluate('getHeaders()')
         projects = page.request.get(origin + '/api/projects', headers=headers).json()
         project_id = next(x['id'] for x in projects if x['name'] == 'Demo')

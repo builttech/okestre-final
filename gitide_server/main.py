@@ -1,3 +1,4 @@
+import builtins
 import os
 import re
 import shutil
@@ -754,6 +755,7 @@ def sync_project_system_files(project_path: str) -> list[str]:
         os.path.join(".documents", "functional-requirements"),
         os.path.join(".documents", "spec"),
         os.path.join(".documents", "task"),
+        os.path.join(".documents", "test"),
     ):
         try:
             os.makedirs(os.path.join(project_path, rel_dir), exist_ok=True)
@@ -798,6 +800,8 @@ def sync_project_system_files(project_path: str) -> list[str]:
             "RF-01-01-template.md": rf_md,
             "task.md": task_md,
             "task.details.md": task_details_md,
+            "test.md": os.path.join(project_path, ".documents", "test", "test.md"),
+            "test.details.md": os.path.join(project_path, ".documents", "test", "test.details.md"),
             "design.md": design_md,
             "dri.md": dri_md,
             "project-charter.md": project_charter_md

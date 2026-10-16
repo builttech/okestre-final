@@ -24,3 +24,5 @@ env/
 
 /outputs/desktop-qa/
 /outputs/okestre-desktop/
+
+/outputs/okestre-desktop-e2e/
