@@ -48,7 +48,7 @@
             z-index: 10;
         }
     </style>
-</head>
+<link rel="stylesheet" href="/static/diagram-library.css?v=1"></head>
 <body>
     <div class="app-container">
         <!-- TOPBAR -->
@@ -1471,7 +1471,10 @@ VALIDAÇÃO: quando o runtime real estiver em VM e comandos locais como npm/node
                 </div>
 
                 <!-- TAB: DOCUMENTS -->
-                <div id="tab-diagrams" class="tab-pane"><section class="card" style="padding:24px"><h2>Diagramas ER</h2><p>Diagramas do projeto selecionado · .documents/diagramas</p><div style="display:flex;gap:12px;margin:20px 0"><button id="diagram-create" class="btn btn-primary">Novo diagrama</button><button id="diagram-refresh" class="btn btn-secondary">Atualizar lista</button></div><p id="diagram-status" role="status"></p><table style="width:100%;text-align:left" aria-label="Diagramas do projeto"><thead><tr><th>Nome</th><th>Atualizado em</th><th>Ações</th></tr></thead><tbody id="diagram-rows"></tbody></table></section></div>
+                <div id="tab-diagrams" class="tab-pane">
+                    <div class="diagrams-heading"><div><span class="diagrams-eyebrow">Workspace / Modelagem de dados</span><h2>Diagramas ER</h2><p>Organize os diagramas de entidades e relacionamentos deste projeto.</p></div><button id="diagram-create" class="btn btn-primary">+ Novo diagrama</button></div>
+                    <section class="card diagrams-card"><div class="diagrams-toolbar"><div><h3>Diagramas do projeto</h3><span class="diagrams-location">.documents/diagramas</span></div><button id="diagram-refresh" class="btn btn-secondary">Atualizar lista</button></div><p id="diagram-status" role="status"></p><div class="diagrams-table-wrap"><table aria-label="Diagramas do projeto"><thead><tr><th>Nome do diagrama</th><th>Última atualização</th><th>Ações</th></tr></thead><tbody id="diagram-rows"></tbody></table></div></section>
+                </div>
                 <div id="tab-documents" class="tab-pane">
                     <div class="documents-layout">
                         

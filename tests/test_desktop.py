@@ -104,6 +104,7 @@ def test_full_desktop_browser_and_security(desktop):
         page.locator('#project-selector').select_option(str(project_id))
         page.locator('[data-tab="tab-diagrams"]').click()
         expect(page.locator('#diagram-rows')).to_contain_text('modelo.mmd')
+        page.screenshot(path=str(output/'diagrams-library.png'), full_page=True)
         page.get_by_role('link', name='Abrir no editor').click()
         expect(page.locator('#title')).to_have_value('modelo')
         expect(page.locator('#preview svg')).to_be_visible(timeout=20000)
