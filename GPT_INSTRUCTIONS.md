@@ -617,3 +617,100 @@ O contrato segue Task List + Task Details:
 - Na entrega, informar quantos testes foram planejados, executados, aprovados, reprovados e bloqueados; explicitar pendências.
 
 Arquivos legados `.documents/casos/test_cases.json` e `test_cases.md` podem ser mantidos para consulta. Não apagar nem migrar automaticamente; novos testes usam o contrato acima.
+
+### 13.1 Contrato obrigatório de renderização
+
+A IA deve escrever os dois arquivos abaixo **na pasta do projeto ativo**, em UTF-8. Não basta responder no chat. Os caminhos e a sintaxe são um contrato com a interface:
+
+| Arquivo | Função na interface |
+| --- | --- |
+| `.documents/test/test.md` | Define quais testes aparecem na lista e seus títulos. |
+| `.documents/test/test.details.md` | Fornece o status, a task, o RF e o conteúdo do painel lateral, vinculados pelo ID. |
+
+**Regras exatas:**
+
+1. Cada linha de teste começa na primeira coluna, sem indentação: `- [ ] TEST-E2E-001: Título`. Manter um espaço depois do hífen, depois de `]` e depois de `:`. Não usar tabela, lista numerada, `*`, `[✓]` ou títulos de teste quebrados em várias linhas.
+2. O ID usa o prefixo literal `TEST-E2E-` seguido apenas de números. Adotar sequência de pelo menos três dígitos (`001`, `002`, `003`...). Não usar `TC-001`, `TEST-RF-001` ou inserir RF no ID. Antes de gerar um ID, consultar os dois arquivos e escolher um número ainda não usado.
+3. O detalhe começa na primeira coluna com **um único `#`**, seguido de espaço, o mesmo ID, espaço, travessão `—`, espaço e título: `# TEST-E2E-001 — Título`. Não usar `##` para o cabeçalho de um teste. Cada seção termina quando começa o próximo cabeçalho de teste ou acaba o arquivo.
+4. O ID deve ser idêntico nos dois arquivos, incluindo zeros à esquerda. Usar exatamente uma linha na lista e uma seção no detalhe por ID. Alterar título, passos ou resultado não cria um novo ID. Manter o título sincronizado nos dois arquivos.
+5. Os campos `- **Status:**`, `- **Task relacionada:**` e `- **RF / Requisito:**` são extraídos pela interface. Escrevê-los exatamente assim, na primeira coluna, uma única vez por seção, com o valor **na mesma linha**. O dois-pontos fica dentro do negrito. Não trocar por `**Status**:`, `Situação`, `Task`, JSON ou subtítulos.
+6. `Resultado obtido` e `Evidências` também devem usar o mesmo formato, com um resumo/valor na mesma linha, pois o formulário verifica esses campos ao aprovar. Evidências adicionais podem continuar em linhas abaixo.
+7. Não envolver os testes reais em comentários HTML (`<!-- ... -->`): esses comentários são ignorados pela interface. Os templates possuem exemplos comentados para não cadastrar testes fictícios; ao criar um teste real, copiá-lo **fora** do comentário e preencher seus dados.
+8. Os blocos de código desta diretriz servem apenas para demonstrar a sintaxe. Nos arquivos reais, gravar Markdown diretamente, **sem cercas de código** (três crases) e sem colar esta diretriz inteira.
+9. Um teste somente em `test.details.md` não aparece na lista. Um teste sem detalhe fica incompleto. Gravar primeiro a seção detalhada e depois sua linha correspondente; conferir ambos ao terminar.
+10. Os campos restantes constituem o conteúdo Markdown editável do painel lateral. Não são formulários estruturados separados nem iniciam execução automática. Usar todos os campos do modelo para tornar o cenário reproduzível.
+
+### 13.2 Exemplo completo de `.documents/test/test.md`
+
+Exemplo de um cenário **planejado, ainda não executado**. Substituir título e referências pelos dados reais do projeto. Cabeçalhos de agrupamento por RF são opcionais; não alteram o vínculo, que vem do detalhe.
+
+```markdown
+# Test List — Testes de Sistema / Ponta a Ponta
+
+## RF-0001-01 — Cadastro de cliente
+
+- [ ] TEST-E2E-001: Cadastrar cliente e confirmar persistência após recarga.
+```
+
+### 13.3 Exemplo completo de `.documents/test/test.details.md`
+
+```markdown
+# Test Details — Testes de Sistema / Ponta a Ponta
+
+# TEST-E2E-001 — Cadastrar cliente e confirmar persistência após recarga.
+- **Status:** Não executado
+- **Task relacionada:** TASK-RF-0001-01-003
+- **RF / Requisito:** RF-0001-01
+- **Objetivo:** Validar o cadastro pela interface, a confirmação de sucesso e a persistência após recarregar a aplicação.
+- **Ambiente / Versão:** A definir antes da execução: URL do ambiente autorizado, commit/versão, navegador e dispositivo.
+- **Pré-condições:** Implementação disponível; usuário de teste com permissão de cadastro; identificador da massa de teste ainda não cadastrado.
+- **Massa de dados:** Cliente sintético Cliente E2E 001; demais campos preenchidos conforme as regras do RF. Não usar dados pessoais reais.
+- **Passos:**
+  1. Entrar na aplicação com o usuário de teste autorizado.
+  2. Abrir Clientes e selecionar Novo cliente.
+  3. Preencher todos os campos obrigatórios com a massa de dados definida.
+  4. Salvar e observar a resposta da aplicação.
+  5. Retornar à lista e localizar o cliente pelo identificador informado.
+  6. Recarregar a página e abrir o registro salvo.
+  7. Comparar os valores persistidos com os dados enviados.
+- **Resultado esperado:** Cadastro confirmado, um único registro na lista e dados preservados após recarga, sem erro de autorização ou duplicação.
+- **Resultado obtido:** Não executado.
+- **Evidências:** Nenhuma; execução pendente.
+- **Defeito / Task de correção:** Não identificado; execução pendente.
+- **Responsável:** A definir antes da execução.
+- **Executado em:** Não executado.
+- **Histórico de execuções:**
+  - Planejado após a implementação da TASK-RF-0001-01-003. Execução pendente.
+```
+
+Preencher os campos antes de executar: `Ambiente / Versão` identifica onde e em qual versão; `Pré-condições` descreve o estado necessário; `Massa de dados` define entradas reproduzíveis; `Passos` contém ações ordenadas; `Resultado esperado` define o critério observável. Após executar, substituir as pendências em `Resultado obtido`, `Evidências`, `Responsável` e `Executado em` por fatos reais. Usar data/hora ISO 8601 com fuso, por exemplo no formato `AAAA-MM-DDTHH:mm:ss-03:00`.
+
+### 13.4 Status, execução e atualização sem duplicação
+
+| Status literal no detalhe | Checkbox na lista | Quando usar |
+| --- | --- | --- |
+| Não executado | `[ ]` | Cenário planejado; nenhuma execução comprovada. |
+| Em execução | `[ ]` | Validação iniciada e ainda sem resultado final. |
+| Aprovado | `[x]` | Fluxo executado, resultado esperado confirmado e evidências reais registradas. |
+| Reprovado | `[ ]` | Execução apresentou divergência; descrever resultado, evidência e defeito/task de correção. |
+| Bloqueado | `[ ]` | Falta de ambiente, credencial, dependência ou condição impede concluir; registrar motivo e providência. |
+
+Não usar outros valores, emojis, traduções ou complementos na linha de status: `Aprovado ✅`, `Passou`, `Concluído` e `Em andamento` não são os valores reconhecidos pelos filtros. O status do detalhe tem prioridade na exibição; não confiar no checkbox para corrigir um detalhe incoerente. Manter sempre ambos sincronizados.
+
+Ao reexecutar ou corrigir um teste:
+
+1. Localizar seu ID nos dois arquivos; não anexar outra seção com o mesmo ID.
+2. Atualizar a seção existente, mantendo os registros de execução anteriores.
+3. Acrescentar ao histórico uma entrada com data/hora, executor, versão, status, resultado e caminho/link da evidência. Falhas anteriores não devem ser apagadas quando uma nova execução for aprovada.
+4. Atualizar o checkbox da linha existente conforme a tabela acima.
+5. Não declarar Aprovado com valores como `Nenhuma`, `Pendente`, `[preencher]` ou caminhos inventados em Evidências. A validação do formulário não substitui a obrigação de comprovar a execução.
+
+### 13.5 Conferência obrigatória antes de entregar
+
+- Os dois arquivos existem na pasta do projeto correto e estão legíveis em UTF-8.
+- Cada ID da lista possui exatamente uma seção correspondente, e não há IDs duplicados.
+- Os três metadados extraídos (`Status`, `Task relacionada`, `RF / Requisito`) respeitam grafia, negrito, posição e valor na mesma linha.
+- Checkbox e status estão coerentes; títulos e vínculos são os do projeto real.
+- Nenhum teste real está dentro de comentário HTML ou bloco de código.
+- Em **Qualidade → Testes E2E → Atualizar**, conferir quantidade de testes, título, status, task e RF; abrir **Detalhes** e conferir passos, resultado e evidências.
+- Se não for possível acessar a tela, informar que a sintaxe foi conferida, mas a renderização visual não foi validada. Não declarar uma validação que não ocorreu.
