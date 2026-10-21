@@ -84,8 +84,24 @@ function serialize() {
   return lines.join('\n')+'\n';
 }
 function save() { try {localStorage.setItem(key,JSON.stringify({title:$('title').value,source:serialize()})); $('saved').textContent='Rascunho salvo neste navegador';} catch { $('saved').textContent='Não foi possível salvar neste navegador. Exporte o arquivo.'; } }
-function fit() { const el=$('preview').querySelector('svg');if(!el)return; const b=el.viewBox.baseVal; scale=Math.min(1,($('viewport').clientWidth-60)/b.width); zoom(); }
-function zoom() { const el=$('preview').querySelector('svg'); if(!el)return; const b=el.viewBox.baseVal;el.style.width=b.width*scale+'px';el.style.height=b.height*scale+'px'; }
+let panX=0,panY=0;
+function zoom(){
+ const el=$('preview').querySelector('svg');if(!el)return;
+ const b=el.viewBox.baseVal;el.style.width=b.width+'px';el.style.height=b.height+'px';
+ $('preview').style.transform=`translate(${panX}px, ${panY}px) scale(${scale})`;
+ $('zoom-reset').textContent=Math.round(scale*100)+'%';
+}
+function fit(){const el=$('preview').querySelector('svg');if(!el)return;const b=el.viewBox.baseVal,v=$('viewport');scale=Math.min(1,Math.max(.01,Math.min((v.clientWidth-60)/b.width,(v.clientHeight-60)/b.height)));panX=(v.clientWidth-b.width*scale)/2;panY=(v.clientHeight-b.height*scale)/2;zoom();}
+function zoomAt(next,x=$('viewport').clientWidth/2,y=$('viewport').clientHeight/2){next=Math.max(.01,Math.min(8,next));const ratio=next/scale;panX=x-(x-panX)*ratio;panY=y-(y-panY)*ratio;scale=next;zoom();}
+const viewport=$('viewport');
+viewport.addEventListener('wheel',e=>{e.preventDefault();const unit=e.deltaMode===1?16:e.deltaMode===2?viewport.clientHeight:1;if(e.ctrlKey||e.metaKey){const r=viewport.getBoundingClientRect();zoomAt(scale*Math.exp(-e.deltaY*unit*.002),e.clientX-r.left,e.clientY-r.top);}else{panX-=(e.shiftKey?e.deltaY:e.deltaX)*unit;panY-=(e.shiftKey?0:e.deltaY)*unit;zoom();}},{passive:false});
+let drag=null;
+viewport.addEventListener('pointerdown',e=>{if(e.button!==0&&e.button!==1)return;e.preventDefault();drag={id:e.pointerId,x:e.clientX,y:e.clientY};viewport.setPointerCapture(e.pointerId);viewport.classList.add('is-panning');});
+viewport.addEventListener('pointermove',e=>{if(!drag||drag.id!==e.pointerId)return;panX+=e.clientX-drag.x;panY+=e.clientY-drag.y;drag.x=e.clientX;drag.y=e.clientY;zoom();});
+function stopPan(){drag=null;viewport.classList.remove('is-panning');}
+viewport.addEventListener('pointerup',stopPan);viewport.addEventListener('pointercancel',stopPan);viewport.addEventListener('lostpointercapture',stopPan);
+viewport.addEventListener('keydown',e=>{if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key)){e.preventDefault();panX+=e.key==='ArrowLeft'?60:e.key==='ArrowRight'?-60:0;panY+=e.key==='ArrowUp'?60:e.key==='ArrowDown'?-60:0;zoom();}else if(e.key==='+'||e.key==='='){e.preventDefault();zoomAt(scale*1.2);}else if(e.key==='-'){e.preventDefault();zoomAt(scale/1.2);}else if(e.key==='0'){e.preventDefault();fit();}});
+
 async function render() {
   const seq=++revision;
   $('svg-export').disabled=true;
@@ -211,7 +227,7 @@ $('example').onclick=()=>{if(confirm('Substituir o rascunho pelo exemplo de pedi
 $('title').onchange=save;
 window.addEventListener('resize',fit);
 window.addEventListener('beforeunload',e=>{if(dirtyCode){e.preventDefault();e.returnValue='';}});
-$('zoom-in').onclick=()=>{scale=Math.min(3,scale*1.2);zoom();};$('zoom-out').onclick=()=>{scale=Math.max(.15,scale/1.2);zoom();};$('fit').onclick=fit;
+$('zoom-in').onclick=()=>zoomAt(scale*1.2);$('zoom-out').onclick=()=>zoomAt(scale/1.2);$('zoom-reset').onclick=()=>zoomAt(1);$('fit').onclick=fit;
 for(const b of document.querySelectorAll('[data-tab]')) b.onclick=()=>{for(const other of document.querySelectorAll('[data-tab]')) {const active=other===b;other.setAttribute('aria-pressed',String(active));$(other.dataset.tab).hidden=!active;}};
 mermaid.initialize({startOnLoad:false,securityLevel:'strict',theme:'base',themeVariables:{primaryColor:'#eeebff',primaryBorderColor:'#9d88e6',primaryTextColor:'#243c48',lineColor:'#66808a',fontFamily:'Segoe UI, sans-serif'},er:{useMaxWidth:false},suppressErrorRendering:true});
 try{const stored=JSON.parse(localStorage.getItem(key));model=parse(stored?.source||example);if(stored?.title)$('title').value=stored.title;}catch{model=parse(example);}
