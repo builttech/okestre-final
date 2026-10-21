@@ -12,6 +12,17 @@ import requests
 from fastapi import HTTPException
 from pydantic import BaseModel, Field
 
+def normalize_repository(value):
+    """Accept GitHub HTTPS and SSH addresses; token transport is always HTTPS."""
+    match=re.fullmatch(r'(?:https://github\.com/|git@github\.com:|ssh://git@github\.com/)([A-Za-z0-9_.-]+)/([A-Za-z0-9_.-]+)',value.strip())
+    if not match:
+        raise HTTPException(400,'Use uma URL GitHub HTTPS ou SSH, sem token na URL.')
+    owner,repo=match.groups()
+    repo=repo.removesuffix('.git')
+    if owner in ('.','..') or repo in ('','.','..'):
+        raise HTTPException(400,'Repositório GitHub inválido.')
+    return f'https://github.com/{owner}/{repo}.git'
+
 _lock = threading.RLock()
 class GitAccessRequest(BaseModel):
     repository: str = Field('', max_length=250)
@@ -44,11 +55,8 @@ class GitAccess:
         return {k:v for k,v in data.items() if k!='token'} | {'configured':bool(data), 'has_token':bool(data.get('token'))}
 
     def save(self, project, req):
-        repository=req.repository.strip().removesuffix('.git')
-        match=re.fullmatch(r'https://github\.com/([A-Za-z0-9_.-]+)/([A-Za-z0-9_.-]+)',repository)
+        repository=normalize_repository(req.repository)
         branch=req.branch.strip()
-        if not match or any(x in ('.','..') for x in match.groups()):
-            raise HTTPException(400,'Use https://github.com/organizacao/repositorio sem credenciais na URL.')
         if not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9._/-]*',branch) or any(x in branch for x in ('..','//','@{')) or branch.endswith(('/', '.', '.lock')):
             raise HTTPException(400,'Branch inválida.')
         if any(c.isspace() for c in req.token):raise HTTPException(400,'Token inválido.')
@@ -56,7 +64,7 @@ class GitAccess:
             old=self.load(project)
             token='' if req.remove_token else self.encrypt(req.token) if req.token else old.get('token','')
             if not token and not req.remove_token:raise HTTPException(400,'Informe o token do GitHub.')
-            data={'repository':repository+'.git','branch':branch,'allow_read':req.allow_read,'allow_push':req.allow_push,'allow_deploy':req.allow_deploy,'token':token}
+            data={'repository':repository,'branch':branch,'allow_read':req.allow_read,'allow_push':req.allow_push,'allow_deploy':req.allow_deploy,'token':token}
             self.home.mkdir(parents=True,exist_ok=True)
             path=self.path(project);temp=path.with_suffix('.tmp')
             temp.write_text(json.dumps(data,indent=2),encoding='utf-8');os.replace(temp,path)
@@ -98,8 +106,8 @@ class GitAccess:
         if os.name=='nt':opts['creationflags']=subprocess.CREATE_NO_WINDOW
         try:
             origin=subprocess.run(['git','remote','get-url','origin'],**opts)
-            remote=origin.stdout.strip().replace('git@github.com:','https://github.com/').removesuffix('.git')
-            if origin.returncode or remote!=data['repository'].removesuffix('.git'):raise HTTPException(400,'O origin local deve corresponder ao repositório cadastrado, sem token na URL.')
+            remote=normalize_repository(origin.stdout) if not origin.returncode else ''
+            if origin.returncode or remote.lower()!=data['repository'].lower():raise HTTPException(400,'O origin local deve corresponder ao repositório cadastrado, sem token na URL.')
             current=subprocess.run(['git','branch','--show-current'],**opts)
             if current.stdout.strip()!=data['branch']:raise HTTPException(400,'Selecione localmente a branch cadastrada antes de executar.')
             args={'fetch':['fetch',data['repository'],data['branch']], 'pull':['pull','--ff-only',data['repository'],data['branch']], 'push':['push',data['repository'],'HEAD:refs/heads/'+data['branch']]}[action]
@@ -119,7 +127,11 @@ class GitAccess:
         script+="export GIT_CONFIG_KEY_1=credential.helper\nexport GIT_CONFIG_VALUE_1=''\nexport GIT_CONFIG_KEY_2=http.followRedirects\nexport GIT_CONFIG_VALUE_2=false\n"
         script+=f'''if [ -d {path}/.git ]; then
 cd {path}
-test "$(git remote get-url origin)" = {url} || {{ echo 'Origin diferente do cadastrado'; exit 2; }}
+origin=$(git remote get-url origin)
+case "$origin" in
+  {url}|{q(data['repository'].removesuffix('.git'))}|{q(data['repository'].replace('https://github.com/','git@github.com:'))}|{q(data['repository'].replace('https://github.com/','git@github.com:').removesuffix('.git'))}|{q(data['repository'].replace('https://github.com/','ssh://git@github.com/'))}|{q(data['repository'].replace('https://github.com/','ssh://git@github.com/').removesuffix('.git'))}) ;;
+  *) echo 'Origin diferente do cadastrado'; exit 2 ;;
+esac
 test "$(git branch --show-current)" = {branch} || {{ echo 'Branch diferente da cadastrada'; exit 2; }}
 git pull --ff-only {url} {branch}
 else

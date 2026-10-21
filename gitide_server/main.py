@@ -757,6 +757,7 @@ def sync_project_system_files(project_path: str) -> list[str]:
         os.path.join(".documents", "spec"),
         os.path.join(".documents", "task"),
         os.path.join(".documents", "test"),
+        os.path.join(".documents", "diagramas"),
     ):
         try:
             os.makedirs(os.path.join(project_path, rel_dir), exist_ok=True)
@@ -797,6 +798,7 @@ def sync_project_system_files(project_path: str) -> list[str]:
                 )
 
         template_map = {
+            "erDiagram-template.mmd": os.path.join(project_path, ".documents", "diagramas", "erDiagram-template.mmd"),
             "REQ-01-template.md": req_md,
             "RF-01-01-template.md": rf_md,
             "task.md": task_md,
@@ -6068,7 +6070,9 @@ def _find_task_context(project: Project, task_id: str) -> dict:
 def _native_agent_intent_context(project: Project, prompt: str) -> str:
     """Cria contexto determinístico para IDs do Act IA antes da LLM decidir ferramentas."""
     prompt_text = prompt or ""
-    parts = []
+    from .project_flow import flow_context
+    flow = flow_context(lambda path: vcs.read_project_file(project.path, path))
+    parts = [flow] if flow else []
     template_rules = (
         "TEMPLATES OFICIAIS OBRIGATÓRIOS DO HARNESS:\n"
         "- Esta regra vale para todos os documentos gerados ou revisados pelo agente, sem exceção.\n"

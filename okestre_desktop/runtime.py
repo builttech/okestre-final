@@ -35,13 +35,19 @@ class Runtime:
         from .api import DesktopAPI
         self.native=DesktopAPI(self.home,agent_home)
         self._import_projects()
+        from .qa_bridge import QABridge
+        self.qa_bridge=QABridge(self)
         root=Path(__file__).resolve().parent
         self.assets=json.loads((root/'ui'/'asset-map.json').read_text(encoding='utf-8'))
 
         @self.app.middleware('http')
         async def desktop(request, call_next):
             host=request.headers.get('host','')
-            if host!=f'127.0.0.1:{self.port}' or request.headers.get('origin',self.origin)!=self.origin:
+            if host!=f'127.0.0.1:{self.port}':
+                return JSONResponse({'detail':'desktop_origin_denied'},403)
+            if request.url.path.startswith('/desktop/qa/'):
+                return await self.qa_bridge.handle(request,call_next)
+            if request.headers.get('origin',self.origin)!=self.origin:
                 return JSONResponse({'detail':'desktop_origin_denied'},403)
             path=request.url.path
             if path=='/desktop-launch/'+self.secret and request.method=='GET' and not self.launched:
@@ -71,6 +77,8 @@ class Runtime:
                 try:
                     data=json.loads(body)
                     name=data['action']
+                    if name=='qa_pair':return JSONResponse(self.qa_bridge.issue())
+                    if name=='qa_revoke':return JSONResponse(self.qa_bridge.revoke())
                     if name in ('state','connection','choose_agent','open_agent','open_vm'):
                         return JSONResponse(await run_in_threadpool(getattr(self.native,name)))
                     if name in ('execute','poll','stop'):

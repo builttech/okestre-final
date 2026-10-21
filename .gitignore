@@ -26,3 +26,7 @@ env/
 /outputs/okestre-desktop/
 
 /outputs/okestre-desktop-e2e/
+
+node_modules/
+/tests
+/.documents

@@ -16,6 +16,14 @@
 
     <section class="panel">
       <div class="panel-title">Conexão</div>
+      <label for="desktopPairing">Parear com Okestre Desktop</label>
+      <textarea id="desktopPairing" placeholder="Cole o código gerado em QA → Gerar código de pareamento"></textarea>
+      <button id="pairDesktop" type="button">Conectar ao Desktop</button>
+      <p>Após reiniciar o Desktop, gere um novo código. As credenciais ficam somente neste navegador.</p>
+      <label for="desktopProjects">Projeto local</label>
+      <select id="desktopProjects"><option value="">Conecte para selecionar</option></select>
+      <button id="refreshDesktopProjects" type="button" class="secondary">Atualizar projetos locais</button>
+      <button id="disconnectDesktop" type="button" class="secondary">Desconectar neste navegador</button>
       <label>API Base</label>
       <input id="apiBase" type="text" placeholder="http://127.0.0.1:8000">
       <label>Project ID</label>

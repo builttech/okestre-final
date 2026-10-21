@@ -1,0 +1,1 @@
+{"name":"okestre-flowcharts","private":true,"version":"1.0.0","scripts":{"build":"esbuild src.jsx --bundle --minify --format=iife --target=es2020 --outfile=../../gitide_server/static/flowcharts.js"},"dependencies":{"@dagrejs/dagre":"^3.1.1","@xyflow/react":"^12.12.0","react":"^19.3.1","react-dom":"^19.3.1"},"devDependencies":{"esbuild":"^0.28.2"}}

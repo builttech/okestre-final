@@ -90,3 +90,18 @@ assert main._ops_decrypt_secret(main._ops_encrypt_secret('test-only-secret'))=='
 '''
     result=subprocess.run([sys.executable,'-c',script],env=env,capture_output=True,text=True,timeout=30)
     assert result.returncode==0,result.stderr
+
+@pytest.mark.parametrize('url', ['git@github.com:example/private.git', 'ssh://git@github.com/example/private.git', 'https://github.com/example/private'])
+def test_ssh_and_https_use_token_transport(profile, url):
+    manager,project=profile
+    result=manager.save(project,request(repository=url,allow_push=True,allow_deploy=True))
+    assert result['repository']=='https://github.com/example/private.git'
+    replies=[SimpleNamespace(stdout=url,returncode=0),SimpleNamespace(stdout='main',returncode=0),SimpleNamespace(stdout='ok',stderr='',returncode=0)]
+    with patch('gitide_server.ops_git_access.subprocess.run',side_effect=replies) as run:
+        assert manager.local(project,'push')['status']=='success'
+        assert run.call_args.args[0][2]=='https://github.com/example/private.git'
+        assert 'test-token' not in str(run.call_args.args[0])
+
+@pytest.mark.parametrize('url',['git@evil.example:x/y','ssh://root@github.com/x/y','ssh://git@github.com:22/x/y','git@github.com:x/y?token=secret','git@github.com:x/..'])
+def test_ssh_rejects_other_hosts_and_credentials(profile,url):
+    with pytest.raises(HTTPException):profile[0].save(profile[1],request(repository=url))

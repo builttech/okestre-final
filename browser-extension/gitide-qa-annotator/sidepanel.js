@@ -57,14 +57,16 @@ async function getActiveTab() {
 }
 
 async function loadConfig() {
-  const saved = await chrome.storage.sync.get(['apiBase', 'projectId', 'token']);
+  let saved = await chrome.storage.local.get(['apiBase', 'projectId', 'token']);
+  if (!saved.apiBase) { saved=await chrome.storage.sync.get(['apiBase','projectId','token']); await chrome.storage.local.set(saved); await chrome.storage.sync.remove(['token']); }
   fields.apiBase.value = saved.apiBase || 'http://127.0.0.1:8000';
   fields.projectId.value = saved.projectId || '';
   fields.token.value = saved.token || '';
+  if (isDesktopBase(fields.apiBase.value)) await refreshDesktopProjects();
 }
 
 async function saveConfig() {
-  await chrome.storage.sync.set(getConnectionConfig());
+  await chrome.storage.local.set(getConnectionConfig());
   setStatus('Configuração salva.');
 }
 
@@ -88,7 +90,7 @@ async function testConnection() {
 
 function buildNetworkErrorMessage(err) {
   const message = err?.message || 'Falha de rede';
-  return `Falha de conexão: ${message}. Se só ocorre nesta máquina, verifique VPN/proxy/firewall, permissão da extensão e se https://ide.builtt.com.br abre neste navegador.`;
+  return isDesktopBase(fields.apiBase.value) ? `Desktop indisponível: ${message}. Abra o Okestre e gere um novo código na tela QA para reconectar.` : `Falha de conexão: ${message}. Confira a API Base, rede e permissão da extensão.`;
 }
 
 async function polishQaText(mode, text, context = '') {
@@ -440,3 +442,18 @@ document.getElementById('pickElement').addEventListener('click', pickElement);
 document.getElementById('sendAnnotation').addEventListener('click', sendAnnotation);
 
 loadConfig();
+
+function isDesktopBase(value){try{const u=new URL(value);return u.protocol==='http:'&&u.hostname==='127.0.0.1'&&u.pathname==='/desktop/qa'&&!u.username&&!u.password&&!u.search&&!u.hash;}catch{return false;}}
+async function refreshDesktopProjects(){
+ const select=document.getElementById('desktopProjects');select.replaceChildren(new Option('Selecione um projeto',''));
+ const config=getConnectionConfig();if(!isDesktopBase(config.apiBase)){setStatus('Gere um código na tela QA do Desktop e conecte primeiro.');return;}
+ try{const {response,data}=await requestGitide(config,'/projects');if(!response.ok)throw Error(data.detail||'Falha ao listar projetos.');for(const item of data)select.add(new Option(item.name,String(item.id)));select.value=config.projectId;if(!select.value){fields.projectId.value='';await chrome.storage.local.set({projectId:''});}setStatus('Desktop conectado. Selecione o projeto local.');}catch(e){setStatus(buildNetworkErrorMessage(e));}
+}
+document.getElementById('pairDesktop').onclick=async()=>{
+ try{const pairing=JSON.parse(document.getElementById('desktopPairing').value);const u=new URL(pairing.url);if(u.protocol!=='http:'||u.hostname!=='127.0.0.1'||u.pathname!=='/'||u.username||u.password||u.search||u.hash||typeof pairing.code!=='string')throw Error('Código inválido. Use o código gerado no Desktop.');
+ const response=await fetch(u.origin+'/desktop/qa/pair',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:pairing.code})});const data=await response.json();if(!response.ok)throw Error(data.detail||'Falha no pareamento.');fields.apiBase.value=data.apiBase;fields.token.value=data.token;fields.projectId.value='';document.getElementById('desktopPairing').value='';await saveConfig();await refreshDesktopProjects();
+ }catch(e){setStatus(e.message);}
+};
+document.getElementById('desktopProjects').onchange=async e=>{fields.projectId.value=e.target.value;await saveConfig();};
+document.getElementById('refreshDesktopProjects').onclick=refreshDesktopProjects;
+document.getElementById('disconnectDesktop').onclick=async()=>{fields.token.value='';fields.projectId.value='';document.getElementById('desktopProjects').replaceChildren(new Option('Conecte para selecionar',''));await saveConfig();setStatus('Credencial local removida. Para revogar todas as conexões, use o botão na tela QA do Desktop.');};

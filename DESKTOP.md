@@ -51,3 +51,19 @@ Configure no GitHub um token fine-grained para o repositório desejado, com Cont
 Com perfil configurado, operações Git pull/push integradas usam a credencial salva, a branch cadastrada e um origin correspondente sem segredo na URL. A sincronização SSH da VM usa a credencial apenas durante a operação e faz fast-forward. Docker Compose remoto exige autorização de deploy para ações que alteram a aplicação. Terminais livres não são restringidos por essas opções. Perfis antigos sem essa configuração mantêm os fluxos anteriores.
 
 Referência de permissões: https://docs.github.com/en/rest/authentication/permissions-required-for-fine-grained-personal-access-tokens
+
+## Extensão QA conectada ao Desktop
+
+1. Instale/atualize a pasta `browser-extension/gitide-qa-annotator` como extensão descompactada no navegador Chromium. O pacote atualizado está em `outputs/okestre-qa-extension.zip`.
+2. No Okestre Desktop, selecione um projeto e abra **QA → Extensão QA · conexão local → Gerar código de pareamento**.
+3. Copie o conteúdo exibido. Na extensão, cole em **Parear com Okestre Desktop** e clique em **Conectar ao Desktop**.
+4. Selecione o **Projeto local** na lista. Abra sua aplicação em `http://localhost:<porta>`, selecione elementos e envie anotações normalmente. Elas aparecem na Central QA do projeto.
+5. **Revogar conexões QA**, no Desktop, invalida todos os tokens da sessão. Desconectar na extensão remove a credencial daquele navegador. Fechar/reiniciar o Desktop encerra o pareamento: gere um novo código ao reabrir.
+
+O código não expira por tempo e só pode ser usado uma vez. Gerar outro código invalida o anterior. O pareamento permanece válido até revogação ou encerramento do Desktop. A porta local é obtida do código, sem configuração manual. O token fica em `chrome.storage.local`, sem sincronização de credenciais entre navegadores. A conexão permite listar projetos locais, consultar/criar anotações QA e usar a revisão de texto por IA já configurada no Okestre. Não permite terminal, arquivos, Git ou exclusão de anotações. A revisão de texto continua dependendo do provedor de IA configurado; capturar e salvar QA não requer VM. A extensão realiza QA manual, não executa testes E2E automaticamente.
+
+## Fluxogramas
+
+A tela **Workspace → Fluxogramas** permite manter vários fluxogramas por projeto em `.documents/fluxogramas/*.mmd`. O código Mermaid é o documento principal, com prévia automática, direção TB/LR/BT/RL, zoom e exportação Mermaid/SVG. Use o formulário para adicionar processos, início/fim, decisões, círculos, bancos e subprocessos, ou edite diretamente o código para sintaxes avançadas. Clique em uma declaração simples da prévia para editar seu nó.
+
+Salvar atualiza o arquivo aberto; mudar seu nome renomeia o arquivo e recusa colisão com outro fluxograma. Exclusão pede confirmação. Os documentos são independentes de **Fluxo do projeto**, que continua sendo o guia único de execução da IA em `.documents/flow`. Os fluxogramas não executam tarefas nem substituem esse guia. A exportação SVG usa a última prévia válida correspondente ao código atual.

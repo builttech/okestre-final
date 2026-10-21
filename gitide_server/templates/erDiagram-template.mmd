@@ -1,0 +1,64 @@
+erDiagram
+    direction TB
+
+    %% REFERENCIA OFICIAL DE SINTAXE - nao use este arquivo como diagrama de trabalho.
+    %% Copie para .documents/diagramas/<nome-do-diagrama>.mmd e adapte ao projeto.
+    %% Grave Mermaid puro: sem cercas Markdown, HTML, negrito ou JSON embutido.
+    %% Entidades e atributos: identificadores sem espacos ou acentos, em snake_case.
+    %% Atributo: tipo nome [PK, FK, UK] ["comentario opcional"]
+    %% Tipos convencionais: uuid, string, int, bigint, decimal, float, boolean,
+    %% date, datetime, timestamp, text, json. Mermaid nao valida tipos SQL.
+    %% Chaves combinadas: PK, FK (com virgula). Sem chave: omita o marcador.
+    %% Comentarios de atributo: aspas duplas, uma linha, sem aspas internas.
+    %% Cardinalidades: || exatamente um; o| ou |o zero ou um;
+    %% }| ou |{ um ou mais; }o ou o{ zero ou mais (conforme o lado).
+    %% Relacao identificadora: -- ; nao identificadora: ..
+    %% Relacionamento: ENTIDADE_A ||--o{ ENTIDADE_B : "rotulo"
+    %% Entidades isoladas podem ser declaradas apenas pelo identificador.
+    %% Use somente entidades, atributos e relacionamentos confirmados pelos requisitos.
+
+    CLIENTE {
+        uuid id PK "Identificador do cliente"
+        string nome "Nome completo"
+        string email UK "Email unico"
+        boolean ativo "Cadastro ativo"
+        datetime criado_em "Data de criacao"
+    }
+
+    ENDERECO {
+        uuid id PK
+        uuid cliente_id FK "Referencia a CLIENTE.id"
+        string logradouro
+        string cidade
+        string cep
+    }
+
+    PEDIDO {
+        uuid id PK
+        uuid cliente_id FK "Referencia a CLIENTE.id"
+        uuid endereco_id FK "Endereco opcional de entrega"
+        date data_pedido
+        decimal valor_total
+        string status
+    }
+
+    ITEM_PEDIDO {
+        uuid pedido_id PK, FK "Parte da chave composta"
+        uuid produto_id PK, FK "Parte da chave composta"
+        int quantidade
+        decimal preco_unitario
+    }
+
+    PRODUTO {
+        uuid id PK
+        string sku UK
+        string nome
+        text descricao
+        decimal preco
+    }
+
+    CLIENTE ||..o{ ENDERECO : "possui"
+    CLIENTE ||..o{ PEDIDO : "realiza"
+    ENDERECO |o..o{ PEDIDO : "recebe"
+    PEDIDO ||--|{ ITEM_PEDIDO : "contem"
+    PRODUTO ||..o{ ITEM_PEDIDO : "referenciado em"
