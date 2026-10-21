@@ -424,7 +424,7 @@ flow protocolo_engenharia["GPT_INSTRUCTIONS"]@{
 
   git_task_checkpoint["Git / checkpoint obrigatório por TASK"]@{
     instruction: |-
-      Contrato repetido DENTRO da execução sequencial, para cada TASK-RF ou TASK-QA do pacote aprovado: implementar apenas a tarefa atual na branch dev; validar tecnicamente na MESMA instalação local preexistente sem reinstalar, criar ambiente/banco/container adicional ou perder usuários admin/super-admin; revisar e aplicar migrations seguras no banco local existente quando necessárias; verificar frontend/backend, autenticação, permissões, persistência, responsividade e integrações pertinentes; registrar evidência; marcar [x] no ID da task em task.md somente após sucesso; conferir git status e diff para separar alterações da própria task; criar commit automático específico com ID da TASK; realizar push obrigatório imediato para origin/dev; conferir SHA no remoto. Somente após push confirmado iniciar a próxima task. Não agrupar tasks distintas em um commit do pacote e não esperar o fim da sprint/pacote. Se task não modifica arquivos, não criar commit vazio: registrar por ID que não houve diff e SHA remoto já sincronizado. Se erro ou acesso negado, bloquear; não avançar, não usar force-push ou branch alternativa. Esta instrução governa a iteração INTERNA do nó execution; o grafo não introduz ciclos.
+      Contrato repetido DENTRO da execução sequencial, para cada TASK-RF ou TASK-QA do pacote aprovado: implementar apenas a tarefa atual na branch dev; validar tecnicamente na MESMA instalação local preexistente sem reinstalar, criar ambiente/banco/container adicional ou perder usuários admin/super-admin; revisar e aplicar migrations seguras no banco local existente quando necessárias; verificar frontend/backend, autenticação, permissões, persistência, responsividade e integrações pertinentes; registrar evidência; marcar [x] no ID da task em task.md somente após sucesso; conferir git status e diff para separar alterações da própria task; criar commit automático específico com ID da TASK; realizar push obrigatório imediato para origin/dev; conferir SHA no remoto. Somente após push confirmado e devolutiva em CHAT nas três seções (O que foi realizado; Pendências; Próxima ação/tarefa) iniciar a próxima task. Não agrupar tasks distintas em um commit do pacote e não esperar o fim da sprint/pacote. Se task não modifica arquivos, não criar commit vazio: registrar por ID que não houve diff e SHA remoto já sincronizado. Se erro ou acesso negado, bloquear; não avançar, não usar force-push ou branch alternativa. Esta instrução governa a iteração INTERNA do nó execution; o grafo não introduz ciclos.
   }
 
   git_each_task_audit["Git / auditar publicação individual de cada TASK"]@{
@@ -439,7 +439,7 @@ flow protocolo_engenharia["GPT_INSTRUCTIONS"]@{
 
   execution["Executar tasks sequencialmente"]@{
     instruction: |-
-      Executar uma task por vez, na ordem de .documents/task/task.md e conforme .documents/task/task.details.md, sem nova aprovação intermediária. Para CADA task, obrigatoriamente: (1) implementar em dev de forma cirúrgica; (2) verificar código/testes e aplicação local; (3) registrar evidência e marcar o próprio ID [x] somente após validação; (4) revisar diff e stage apenas arquivos da tarefa; (5) criar commit automático específico, com ID TASK e descrição objetiva; (6) executar push IMEDIATO para origin/dev e confirmar SHA remoto; (7) somente então começar a próxima task. Este nó repete o subfluxo inteiro por task internamente para manter o grafo externo acíclico. Nenhuma task seguinte pode iniciar com push anterior pendente ou falho. Exceção: task sem mudanças reais em arquivos não recebe commit vazio; registrar ausência de diff e sincronização comprovada. Nunca esperar a conclusão de todas as tasks para fazer os primeiros commits/pushes; o passo Git do final é auditoria/complemento. Se surgir impacto funcional em QA visual, parar exceção e retomar Harness completo. Seções 13, 15.1 e adendo Git 3.2.6.
+      Executar uma task por vez, na ordem de .documents/task/task.md e conforme .documents/task/task.details.md, sem nova aprovação intermediária. Para CADA task, obrigatoriamente: (1) implementar em dev de forma cirúrgica; (2) verificar código/testes e aplicação local; (3) registrar evidência e marcar o próprio ID [x] somente após validação; (4) revisar diff e stage apenas arquivos da tarefa; (5) criar commit automático específico, com ID TASK e descrição objetiva; (6) executar push IMEDIATO para origin/dev e confirmar SHA remoto; (7) somente então começar a próxima task. Este nó repete o subfluxo inteiro por task internamente para manter o grafo externo acíclico. Nenhuma task seguinte pode iniciar com push anterior pendente ou falho. Após cada TASK concluída e publicada, emitir IMEDIATAMENTE no CHAT a devolutiva obrigatória em 3 seções (O que foi realizado; Pendências em checklist ou ✓ Nenhuma pendência; Próxima ação/tarefa) ANTES de iniciar a próxima. Não guardar todas as devolutivas para o fim do pacote. Exceção: task sem mudanças reais em arquivos não recebe commit vazio; registrar ausência de diff e sincronização comprovada. Nunca esperar a conclusão de todas as tasks para fazer os primeiros commits/pushes; o passo Git do final é auditoria/complemento. Se surgir impacto funcional em QA visual, parar exceção e retomar Harness completo. Seções 13, 15.1 e adendo Git 3.2.6.
   }
 
   tasks_valid{"Todas as tasks executadas e verificadas?"}@{
@@ -487,9 +487,44 @@ flow protocolo_engenharia["GPT_INSTRUCTIONS"]@{
       Manter checkbox [ ] e Status Bloqueado ou Não executado conforme situação real; explicitar ambiente, dependência, acesso e risco residual. Não criar evidência fictícia nem marcar aprovado. Etapa Final E2E.
   }
 
+  output_per_task["Output / devolutiva no chat após CADA tarefa"]@{
+    instruction: |-
+      Requisito transversal e repetido internamente para CADA task: após implementação, validação na mesma instalação local, commit e push da task para origin/dev confirmados (ou justificativa sem diff), enviar IMEDIATAMENTE ao usuário a devolutiva no CHAT; somente depois iniciar outra task. Formato obrigatório de resposta no CHAT (não basta editar arquivo): exatamente três seções nesta ordem. 1) O que foi realizado: descrição curta, objetiva e factual da tarefa/resultado, com ID quando disponível; não alegar execução, teste, commit ou push sem confirmação. 2) Pendências: se existirem, apresentar SOMENTE checklist Markdown - [ ] para cada pendência real; quando não existir pendência, escrever somente ✓ Nenhuma pendência. 3) Próxima ação/tarefa: indicar a próxima task específica com ID quando conhecido, ou o próximo passo concreto para desbloquear/aprovar, ou Nenhuma tarefa pendente — aguardando nova demanda. Nunca inventar próxima task. Não acrescentar seções extras; evidências imprescindíveis e status técnico devem caber concisamente nessas três seções. A devolutiva deve aparecer no chat após cada task concluída, antes de iniciar a próxima, e em todo encerramento ou bloqueio. Exemplo conciso: O que foi realizado: TASK-... — corrigido cadastro e verificado localmente; Pendências: ✓ Nenhuma pendência; Próxima ação/tarefa: TASK-... — implementar validação. Se houve falha ou bloqueio, usar checklist de pendências e próximo passo real, sem marcar task não concluída.
+  }
+
+  output_success["Output final / tarefa ou pacote concluído"]@{
+    instruction: |-
+      Após conclusão técnica e antes do encerramento de sucesso, entregar devolutiva em chat. Formato obrigatório de resposta no CHAT (não basta editar arquivo): exatamente três seções nesta ordem. 1) O que foi realizado: descrição curta, objetiva e factual da tarefa/resultado, com ID quando disponível; não alegar execução, teste, commit ou push sem confirmação. 2) Pendências: se existirem, apresentar SOMENTE checklist Markdown - [ ] para cada pendência real; quando não existir pendência, escrever somente ✓ Nenhuma pendência. 3) Próxima ação/tarefa: indicar a próxima task específica com ID quando conhecido, ou o próximo passo concreto para desbloquear/aprovar, ou Nenhuma tarefa pendente — aguardando nova demanda. Nunca inventar próxima task. Não acrescentar seções extras; evidências imprescindíveis e status técnico devem caber concisamente nessas três seções. A devolutiva deve aparecer no chat após cada task concluída, antes de iniciar a próxima, e em todo encerramento ou bloqueio. Consolidar somente o escopo realizado; quando for pacote de várias tasks, referenciar status e commit/push comprovados de cada task de forma concisa e informar próxima task pendente, se existir.
+  }
+
+  output_hold["Output final / aguardando aprovação"]@{
+    instruction: |-
+      Mesmo sem execução técnica, devolver no chat o planejamento/documentação efetivamente realizados e a necessidade de aprovação, sem marcar tarefa como executada. Formato obrigatório de resposta no CHAT (não basta editar arquivo): exatamente três seções nesta ordem. 1) O que foi realizado: descrição curta, objetiva e factual da tarefa/resultado, com ID quando disponível; não alegar execução, teste, commit ou push sem confirmação. 2) Pendências: se existirem, apresentar SOMENTE checklist Markdown - [ ] para cada pendência real; quando não existir pendência, escrever somente ✓ Nenhuma pendência. 3) Próxima ação/tarefa: indicar a próxima task específica com ID quando conhecido, ou o próximo passo concreto para desbloquear/aprovar, ou Nenhuma tarefa pendente — aguardando nova demanda. Nunca inventar próxima task. Não acrescentar seções extras; evidências imprescindíveis e status técnico devem caber concisamente nessas três seções. A devolutiva deve aparecer no chat após cada task concluída, antes de iniciar a próxima, e em todo encerramento ou bloqueio. Pendências devem conter o item de aprovação; próxima ação é obter autorização explícita do pacote Harness.
+  }
+
+  output_scope["Output final / escopo de QA pendente"]@{
+    instruction: |-
+      Devolver no chat somente a análise de QAs realmente realizada e pendências de seleção/escopo, sem inventar task de execução. Formato obrigatório de resposta no CHAT (não basta editar arquivo): exatamente três seções nesta ordem. 1) O que foi realizado: descrição curta, objetiva e factual da tarefa/resultado, com ID quando disponível; não alegar execução, teste, commit ou push sem confirmação. 2) Pendências: se existirem, apresentar SOMENTE checklist Markdown - [ ] para cada pendência real; quando não existir pendência, escrever somente ✓ Nenhuma pendência. 3) Próxima ação/tarefa: indicar a próxima task específica com ID quando conhecido, ou o próximo passo concreto para desbloquear/aprovar, ou Nenhuma tarefa pendente — aguardando nova demanda. Nunca inventar próxima task. Não acrescentar seções extras; evidências imprescindíveis e status técnico devem caber concisamente nessas três seções. A devolutiva deve aparecer no chat após cada task concluída, antes de iniciar a próxima, e em todo encerramento ou bloqueio. Próxima ação é a seleção/definição de IDs de QA pendentes.
+  }
+
+  output_revise["Output final / revisão documental necessária"]@{
+    instruction: |-
+      Relatar no chat o trabalho documental realmente realizado e as lacunas verificadas em checklist. Formato obrigatório de resposta no CHAT (não basta editar arquivo): exatamente três seções nesta ordem. 1) O que foi realizado: descrição curta, objetiva e factual da tarefa/resultado, com ID quando disponível; não alegar execução, teste, commit ou push sem confirmação. 2) Pendências: se existirem, apresentar SOMENTE checklist Markdown - [ ] para cada pendência real; quando não existir pendência, escrever somente ✓ Nenhuma pendência. 3) Próxima ação/tarefa: indicar a próxima task específica com ID quando conhecido, ou o próximo passo concreto para desbloquear/aprovar, ou Nenhuma tarefa pendente — aguardando nova demanda. Nunca inventar próxima task. Não acrescentar seções extras; evidências imprescindíveis e status técnico devem caber concisamente nessas três seções. A devolutiva deve aparecer no chat após cada task concluída, antes de iniciar a próxima, e em todo encerramento ou bloqueio. Próxima ação é corrigir o documento/artefato específico, ou solicitar o dado indispensável, sem alegar aprovação ou execução.
+  }
+
+  output_block["Output final / impedimento técnico"]@{
+    instruction: |-
+      Relatar no chat o que realmente foi realizado até o bloqueio e listar cada motivo/pendência em checklist. Formato obrigatório de resposta no CHAT (não basta editar arquivo): exatamente três seções nesta ordem. 1) O que foi realizado: descrição curta, objetiva e factual da tarefa/resultado, com ID quando disponível; não alegar execução, teste, commit ou push sem confirmação. 2) Pendências: se existirem, apresentar SOMENTE checklist Markdown - [ ] para cada pendência real; quando não existir pendência, escrever somente ✓ Nenhuma pendência. 3) Próxima ação/tarefa: indicar a próxima task específica com ID quando conhecido, ou o próximo passo concreto para desbloquear/aprovar, ou Nenhuma tarefa pendente — aguardando nova demanda. Nunca inventar próxima task. Não acrescentar seções extras; evidências imprescindíveis e status técnico devem caber concisamente nessas três seções. A devolutiva deve aparecer no chat após cada task concluída, antes de iniciar a próxima, e em todo encerramento ou bloqueio. Indicar próxima ação específica para desbloquear, sem alegar execução, commit/push, ambiente ou teste concluído que não tenham sido comprovados.
+  }
+
+  output_flow["Output final / fluxo visual inconsistente"]@{
+    instruction: |-
+      Relatar no chat qual leitura/validação do fluxo foi realmente feita, detalhar as inconsistências verificáveis em checklist e a próxima ação necessária para regularizar flow.mmd/flow.editor.json. Formato obrigatório de resposta no CHAT (não basta editar arquivo): exatamente três seções nesta ordem. 1) O que foi realizado: descrição curta, objetiva e factual da tarefa/resultado, com ID quando disponível; não alegar execução, teste, commit ou push sem confirmação. 2) Pendências: se existirem, apresentar SOMENTE checklist Markdown - [ ] para cada pendência real; quando não existir pendência, escrever somente ✓ Nenhuma pendência. 3) Próxima ação/tarefa: indicar a próxima task específica com ID quando conhecido, ou o próximo passo concreto para desbloquear/aprovar, ou Nenhuma tarefa pendente — aguardando nova demanda. Nunca inventar próxima task. Não acrescentar seções extras; evidências imprescindíveis e status técnico devem caber concisamente nessas três seções. A devolutiva deve aparecer no chat após cada task concluída, antes de iniciar a próxima, e em todo encerramento ou bloqueio. Não executar nem alterar arquivos por suposição.
+  }
+
   closing["Relatório final e validação do usuário"]@{
     instruction: |-
-      Informar por task concluída: ID, validação, commit e SHA remoto origin/dev confirmado após a tarefa, ou justificativa sem diff; listar qualquer task cujo push falhou ou ficou pendente. Informar tasks e arquivos alterados, testes planejados/executados/aprovados/reprovados/bloqueados, riscos e pendências; confirmar URL/porta local, frontend/backend e dependências saudáveis, versão da dev realmente em execução e mecanismo de persistência verificado (ou indisponibilidade documentada); informar branches main/dev/hml, SHA e confirmação real dos commits/pushes, homologação e eventual autorização de produção, além das evidências. Distinguir validação estática de execução real, configuração de deploy de deploy validado; somente após todas as verificações solicitar validação final do usuário. Seções 14, 20, 21 e Etapa Final E2E.
+      Toda resposta de encerramento no chat deve obedecer exclusivamente a três títulos: O que foi realizado; Pendências; Próxima ação/tarefa. Em Pendências, usar checklist - [ ] quando houver itens; caso contrário, apenas ✓ Nenhuma pendência. Entregar devolutiva também ao fim de cada TASK, antes da próxima, não somente ao fim do pacote. Integrar os fatos e evidências relevantes dentro dessas seções, sem criar seções adicionais. Informar por task concluída: ID, validação, commit e SHA remoto origin/dev confirmado após a tarefa, ou justificativa sem diff; listar qualquer task cujo push falhou ou ficou pendente. Informar tasks e arquivos alterados, testes planejados/executados/aprovados/reprovados/bloqueados, riscos e pendências; confirmar URL/porta local, frontend/backend e dependências saudáveis, versão da dev realmente em execução e mecanismo de persistência verificado (ou indisponibilidade documentada); informar branches main/dev/hml, SHA e confirmação real dos commits/pushes, homologação e eventual autorização de produção, além das evidências. Distinguir validação estática de execução real, configuração de deploy de deploy validado; somente após todas as verificações solicitar validação final do usuário. Seções 14, 20, 21 e Etapa Final E2E.
   }
 
   end_success["Fim / entrega e pendências reais"]@{
@@ -525,12 +560,12 @@ flow protocolo_engenharia["GPT_INSTRUCTIONS"]@{
   start --> read_flow
   read_flow --> flow_ok
   flow_ok -- Sim --> classify
-  flow_ok -- Não --> end_flow
+  flow_ok -- Não --> output_flow
   classify -- Sim --> qa_source
   classify -- Não --> discovery_exists
   qa_source --> qa_scope
   qa_scope -- Sim --> qa_pure
-  qa_scope -- Não --> end_scope
+  qa_scope -- Não --> output_scope
   qa_pure -- Sim --> qa_tasks
   qa_pure -- Não --> discovery_exists
   qa_tasks --> qa_details
@@ -552,7 +587,7 @@ flow protocolo_engenharia["GPT_INSTRUCTIONS"]@{
   der_document --> der_check
   der_check -- Sim --> ui_impact
   der_check -- Não --> der_block
-  der_block --> end_revise
+  der_block --> output_revise
   ui_impact -- Sim --> dri
   ui_impact -- Não --> dri_na
   dri --> task_list
@@ -562,15 +597,15 @@ flow protocolo_engenharia["GPT_INSTRUCTIONS"]@{
   estimate --> package_ok
   package_ok -- Sim --> approval
   package_ok -- Não --> fix_docs
-  fix_docs --> end_revise
+  fix_docs --> output_revise
   approval --> approved
   approved -- Sim --> infra_needed
-  approved -- Não --> end_hold
+  approved -- Não --> output_hold
   infra_needed -- Sim --> ops_check
   infra_needed -- Não --> git_branch_block
   ops_check --> ops_allowed
   ops_allowed -- Sim --> git_inspect
-  ops_allowed -- Não --> end_block
+  ops_allowed -- Não --> output_block
   git_inspect --> git_only_main
   git_only_main -- Sim --> git_create_dev_hml
   git_only_main -- Não --> git_triad
@@ -591,10 +626,11 @@ flow protocolo_engenharia["GPT_INSTRUCTIONS"]@{
   local_fix_start --> local_recovered
   local_recovered -- Sim --> git_task_checkpoint
   local_recovered -- Não --> local_block
-  local_block --> end_block
+  local_block --> output_block
   git_dev_ready -- Não --> git_branch_block
-  git_branch_block --> end_block
-  git_task_checkpoint --> execution
+  git_branch_block --> output_block
+  git_task_checkpoint --> output_per_task
+  output_per_task --> execution
   execution --> git_each_task_audit
   git_each_task_audit --> git_each_task_ok
   git_each_task_ok -- Sim --> tasks_valid
@@ -603,7 +639,7 @@ flow protocolo_engenharia["GPT_INSTRUCTIONS"]@{
   tasks_valid -- Não --> fix_task
   fix_task --> fixed
   fixed -- Sim --> mark_tasks
-  fixed -- Não --> end_block
+  fixed -- Não --> output_block
   mark_tasks --> qa_final
   qa_final --> local_postchange
   local_postchange --> local_migration_needed
@@ -635,7 +671,7 @@ flow protocolo_engenharia["GPT_INSTRUCTIONS"]@{
   git_no_diff --> git_push_verified
   git_push_verified -- Sim --> git_hml_ready
   git_push_verified -- Não --> git_publish_block
-  git_publish_block --> end_block
+  git_publish_block --> output_block
   git_hml_ready -- Sim --> git_promote_hml
   git_hml_ready -- Não --> git_record
   git_promote_hml --> git_hml_published
@@ -656,5 +692,11 @@ flow protocolo_engenharia["GPT_INSTRUCTIONS"]@{
   local_keep_running --> local_final_ok
   local_final_ok -- Sim --> closing
   local_final_ok -- Não --> local_block
-  closing --> end_success
+  closing --> output_success
+  output_success --> end_success
+  output_flow --> end_flow
+  output_block --> end_block
+  output_revise --> end_revise
+  output_scope --> end_scope
+  output_hold --> end_hold
 end
