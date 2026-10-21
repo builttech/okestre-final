@@ -97,29 +97,29 @@ flow protocolo_engenharia["GPT_INSTRUCTIONS"]@{
       Produzir lista verificável do schema declarado nas migrations atuais: tabelas, campos/tipos, nulabilidade/defaults, PK simples/composta, índices, unique, FKs físicas e referências lógicas; identificar migration de origem e alterações posteriores. Incluir tabelas pivô e objetos equivalentes para evitar duplicar tabelas, campos ou constraints. EXISTENTE significa declarado nas migrations, não necessariamente implantado.
   }
 
-  der_pattern{"Há arquivos DER existentes em .documents/diagramas?"}@{
+  der_pattern{"Template erDiagram-template.mmd acessível?"}@{
     instruction: |-
-      Inspecionar sempre .documents/diagramas antes de criar DER. SIM se existir exemplo legível; NÃO se a ausência de DER for comprovada. Erro de leitura é bloqueio, não ausência. Respeitar formato, extensão, nomenclatura, estruturas, notação e seções dos arquivos existentes.
+      Antes de criar ou atualizar qualquer DER, ler obrigatoriamente .documents/diagramas/erDiagram-template.mmd, que é a referência canônica de estrutura e sintaxe. SIM somente quando o arquivo estiver acessível, legível e sua sintaxe puder ser analisada. NÃO quando estiver ausente, ilegível ou inconsistente: registrar bloqueio e não gerar diagrama por aproximação. Também listar os DERs já existentes em .documents/diagramas para evitar duplicidades e preservar o padrão real de organização dos arquivos.
   }
 
-  der_reuse["DER / seguir exemplo já existente"]@{
+  der_reuse["DER / utilizar erDiagram-template.mmd como referência"]@{
     instruction: |-
-      Ler os DERs existentes em .documents/diagramas, identificar o domínio e seu padrão de estrutura; atualizar pontualmente o arquivo correspondente sem duplicar o DER, sem apagar conteúdo alheio nem histórico. Novo DER, quando realmente necessário, deve obedecer ao mesmo padrão já usado no projeto.
+      OBRIGATÓRIO: antes de produzir ou alterar qualquer DER, abrir e ler integralmente o arquivo .documents/diagramas/erDiagram-template.mmd (equivalente Windows .documents\\diagramas\\erDiagram-template.mmd) e utilizar sua estrutura, sintaxe Mermaid erDiagram, notação, organização, comentários, convenções e estilo como referência principal. Criar ou atualizar arquivos DER SEMPRE dentro de .documents/diagramas, preferindo reutilizar o arquivo existente do domínio e sem duplicar o mesmo diagrama; preservar o template e históricos. Identificar CADA campo/atributo com o status explícito EXISTENTE (comprovado nas migrations atuais) ou PROPOSTO (ausente e justificado por REQ/RF), usando a representação e os comentários previstos no template; nunca deixar campo sem classificação. Diferenciar FK FÍSICA, confirmada por constraint efetivamente declarada nas migrations, de RELACIONAMENTO LÓGICO, associado por ORM/convenção/regra sem constraint física comprovada. Indicar a distinção na legenda ou comentários com sintaxe válida conforme o template; não inferir FK física pelo nome *_id nem por uma linha no gráfico. Rastrear PK e FK físicas, referência lógica, migrations fonte e mudanças propostas. Se o template não puder ser consultado, BLOQUEAR a geração; não inventar ou substituir silenciosamente sua estrutura.
   }
 
-  der_initial["DER / usar padrão inicial somente se não houver exemplo"]@{
+  der_initial["DER / template ausente ou ilegível: bloquear"]@{
     instruction: |-
-      Apenas quando não existir nenhum DER prévio: adotar .documents/diagramas/DER-<escopo>.md com identidade, REQs/RFs, migrations, EXISTENTE, PROPOSTO, diagrama Mermaid erDiagram, PK e FK física, referências lógicas, decisões, conflitos e revisão. Não alterar convenções existentes para adotar este padrão inicial.
+      Se o arquivo obrigatório .documents/diagramas/erDiagram-template.mmd estiver ausente ou não puder ser lido, não criar DER com estrutura alternativa, não gerar arquivo .md genérico e não modificar DER existente. Registrar erro, caminho exato, situação de acesso e providência necessária; encaminhar a der_block até que o template esteja disponível. Nunca presumir conteúdo de template não consultado.
   }
 
   der_document["DER / criar ou atualizar diagrama sem duplicidades"]@{
     instruction: |-
-      Criar ou revisar arquivos exclusivamente em .documents/diagramas. Apresentar EXISTENTE com evidências em migrations e PROPOSTO somente para estruturas/alterações ausentes justificadas por RF/Design. Identificar PK e distinguir FK física declarada por constraint de associação lógica sem constraint física comprovada; não inferir FK física pelo sufixo _id, ORM ou notação Mermaid. Evitar repetir tabelas/colunas/índices/constraints/diagramas. Se nenhuma mudança for necessária registrar PROPOSTO: nenhuma alteração necessária. Nunca executar migrations nesta etapa.
+      Criar ou revisar DERs somente dentro de .documents/diagramas e obrigatoriamente usar a estrutura/sintaxe do arquivo .documents/diagramas/erDiagram-template.mmd previamente lido. Identificar INDIVIDUALMENTE CADA campo como EXISTENTE (comprovado nas migrations) ou PROPOSTO (ausente e fundamentado por REQ/RF), conforme convenção do template, incluindo legenda/comentários válidos quando necessário. Registrar PK e diferenciar FK física efetivamente declarada nas migrations de relacionamento lógico sem constraint comprovada; jamais deduzir FK física somente por *_id, ORM ou linha Mermaid. Apresentar migrations e justificativas, evitar duplicar tabelas/colunas/constraints/arquivos; se não houver mudanças registrar PROPOSTO: nenhuma alteração necessária. Não modificar o template nem executar migrations nesta etapa.
   }
 
   der_check{"DER validado contra migrations e sem duplicidades?"}@{
     instruction: |-
-      SIM somente quando migrations e arquivos DER existentes foram analisados; inventário EXISTENTE e delta PROPOSTO possuem fontes, PK/FK física e lógica estão distinguídas, padrão de arquivo preservado e não há duplicidades, lacunas críticas nem conflitos com REQ/RF/Design. NÃO quando faltar evidência, houver duplicata, conflito ou leitura insuficiente; impedir passagem ao planejamento das tasks.
+      SIM somente após leitura efetiva de .documents/diagramas/erDiagram-template.mmd, uso fiel de sua estrutura e sintaxe, análise das migrations/DERs existentes e identificação explícita de CADA campo como EXISTENTE ou PROPOSTO; PK e FK física declarada nas migrations diferenciadas de relacionamento lógico; rastreabilidade REQ/RF e ausência de duplicidades, conflitos ou lacunas críticas. NÃO quando faltar evidência, houver duplicata, conflito ou leitura insuficiente; impedir passagem ao planejamento das tasks.
   }
 
   der_block["DER / documentar pendências e impedir liberação"]@{
@@ -548,7 +548,7 @@ flow protocolo_engenharia["GPT_INSTRUCTIONS"]@{
   der_pattern -- Sim --> der_reuse
   der_pattern -- Não --> der_initial
   der_reuse --> der_document
-  der_initial --> der_document
+  der_initial --> der_block
   der_document --> der_check
   der_check -- Sim --> ui_impact
   der_check -- Não --> der_block
