@@ -1,0 +1,357 @@
+/* Okestre presentation layer. Neutral palette adapted from OpenHands.
+ * See vendor/openhands-LICENSE.txt. No OpenHands services or runtime included.
+ * Scoped to the workspace shell; domain views retain their existing behavior.
+ */
+html[data-ui="okestre"] {
+    --shell-bg: #181818;
+    --shell-panel: #202020;
+    --shell-hover: #282828;
+    --shell-active: #313131;
+    --shell-border: #404040;
+    --shell-text: #ececec;
+    --shell-muted: #bebebe;
+    --shell-font: 'Inter', 'Segoe UI', system-ui, sans-serif;
+}
+html[data-ui="okestre"][data-theme="light"] {
+    --shell-bg: #f7f7f7;
+    --shell-panel: #ffffff;
+    --shell-hover: #ececec;
+    --shell-active: #dcdcdc;
+    --shell-border: #d0d0d0;
+    --shell-text: #202020;
+    --shell-muted: #565656;
+}
+html[data-ui="okestre"] body::before { display: none !important; }
+html[data-ui="okestre"] .app-container .topbar {
+    height: 56px !important;
+    padding: 0 20px !important;
+    background: var(--shell-bg) !important;
+    border-bottom: 1px solid var(--shell-border) !important;
+}
+html[data-ui="okestre"] .topbar .brand { gap: 10px !important; }
+html[data-ui="okestre"] .topbar .brand-text h1 {
+    font: 600 15px/1.4 var(--shell-font) !important;
+    text-transform: none !important;
+    letter-spacing: -.02em !important;
+    color: var(--shell-text) !important;
+    -webkit-text-fill-color: var(--shell-text) !important;
+}
+html[data-ui="okestre"] .topbar .logo-icon {
+    width: 28px !important; height: 28px !important;
+    border: 1px solid var(--shell-border) !important;
+    border-radius: 8px !important;
+    background: var(--shell-active) !important;
+    color: var(--shell-text) !important;
+    font-size: 14px !important;
+}
+html[data-ui="okestre"] .topbar .logo-icon :is(i,svg) { display: inline-block !important; }
+html[data-ui="okestre"] .app-container .sidebar {
+    background: var(--shell-bg) !important;
+    border-right: 1px solid var(--shell-border) !important;
+    color: var(--shell-text) !important;
+}
+html[data-ui="okestre"] .app-container:not(.sidebar-collapsed) .sidebar {
+    width: 244px !important; min-width: 244px !important; flex: 0 0 244px !important; padding: 12px !important;
+}
+html[data-ui="okestre"] .sidebar .sidebar-category-title {
+    font: 500 11px/1.5 var(--shell-font) !important;
+    text-transform: none !important; letter-spacing: .02em !important;
+    color: var(--shell-muted) !important; padding: 12px 10px 6px !important;
+}
+html[data-ui="okestre"] .app-container .sidebar .sidebar-nav .nav-item {
+    min-height: 36px !important;
+    border-radius: 7px !important;
+    font: 400 13px/1.4 var(--shell-font) !important;
+    text-transform: none !important; letter-spacing: 0 !important;
+    color: var(--shell-muted) !important;
+    background: transparent !important;
+    margin: 1px 0 !important;
+}
+html[data-ui="okestre"] .app-container .sidebar .sidebar-nav .nav-item:hover {
+    background: var(--shell-hover) !important; color: var(--shell-text) !important;
+}
+html[data-ui="okestre"] .app-container .sidebar .sidebar-nav .nav-item.active {
+    background: var(--shell-active) !important; color: var(--shell-text) !important;
+    font-weight: 600 !important;
+}
+html[data-ui="okestre"] .sidebar .sidebar-nav .nav-item :is(.nav-label,i,svg) {
+    color: inherit !important; font-family: var(--shell-font) !important;
+    text-transform: none !important; letter-spacing: 0 !important;
+}
+html[data-ui="okestre"] .app-container:not(.sidebar-collapsed) .sidebar .sidebar-nav .nav-label {
+    max-width: none !important;
+}
+html[data-ui="okestre"] .app-container .sidebar .sidebar-nav .nav-item svg * { stroke-width: 1.5px !important; }
+html[data-ui="okestre"] :is(.sidebar,.topbar) :is(button,select) {
+    border-radius: 7px !important;
+    font-family: var(--shell-font) !important;
+    text-transform: none !important; letter-spacing: 0 !important;
+}
+html[data-ui="okestre"] :is(.sidebar,.topbar) button:focus-visible {
+    outline: 2px solid var(--shell-text) !important; outline-offset: 2px;
+}
+html[data-ui="okestre"] .topbar .status-panel { gap: 12px !important; }
+html[data-ui="okestre"] .sidebar .sidebar-footer {
+    color: var(--shell-muted) !important;
+    font: 400 11px/1.5 var(--shell-font) !important;
+}
+
+/* Shared workspace surfaces. Keep editor/canvas internals and status semantics intact. */
+html[data-ui="okestre"],
+html[data-ui="okestre"] body {
+    --console-bg: var(--shell-bg);
+    --console-panel: var(--shell-panel);
+    --console-panel-2: var(--shell-hover);
+    --console-text: var(--shell-text);
+    --console-text-soft: var(--shell-muted);
+    --console-muted: var(--shell-muted);
+    --console-dim: var(--shell-muted);
+    --console-line: var(--shell-border);
+    --console-line-strong: var(--shell-border);
+    --console-font-ui: var(--shell-font);
+    --console-radius: 7px;
+    --console-radius-soft: 10px;
+    --topbar-height: 56px;
+}
+html[data-ui="okestre"] :is(.file-tree-panel,.editor-panel,.db-explorer-sidebar,
+.db-editor-panel,.db-results-panel,.git-status-card,.git-operations-card,.git-console-card,
+.activity-logs-panel,.all-snapshots-panel,.tokens-sidebar-card,.tokens-content-panel,
+.settings-card,.agent-main-panel,.modal-card,.card,.panel,.sdd-panel,.qa-panel,
+.metric-card,.stat-card,.ops-card,.agent-chat-welcome,.agent-reasoning-monitor,
+.github-profile-bar,.token-container,.collapsible-content) {
+    border: 1px solid var(--shell-border) !important;
+    border-radius: 10px !important;
+    background-color: var(--shell-panel) !important;
+    box-shadow: none !important;
+}
+html[data-ui="okestre"] :is(.file-tree-panel,.editor-panel,.db-explorer-sidebar,
+.db-editor-panel,.db-results-panel,.git-status-card,.git-operations-card,.git-console-card,
+.activity-logs-panel,.all-snapshots-panel,.tokens-sidebar-card,.tokens-content-panel,
+.settings-card,.agent-main-panel,.modal-card,.card,.panel,.sdd-panel,.qa-panel,
+.metric-card,.stat-card,.ops-card,.agent-chat-welcome,.agent-reasoning-monitor,
+.github-profile-bar,.token-container,.collapsible-content)::before {
+    content: none !important;
+}
+html[data-ui="okestre"] :is(.content-area,.modal-card) :is(.btn,button) {
+    border-radius: 7px !important;
+    font-family: var(--shell-font) !important;
+    font-size: 12px !important;
+    letter-spacing: 0 !important;
+    text-transform: none !important;
+    line-height: 1.35 !important;
+}
+html[data-ui="okestre"] :is(.content-area,.modal-card) :is(.btn-secondary,.btn-tertiary,.btn-icon,.btn-icon-sm) {
+    background: var(--shell-panel) !important;
+    border-color: var(--shell-border) !important;
+    color: var(--shell-text) !important;
+}
+html[data-ui="okestre"] :is(.content-area,.modal-card) :is(.btn-secondary,.btn-tertiary,.btn-icon,.btn-icon-sm):hover:not(:disabled) {
+    background: var(--shell-hover) !important;
+}
+html[data-ui="okestre"] :is(.content-area,.modal-card) :is(button,a,input,select,textarea):focus-visible {
+    outline: 2px solid var(--shell-muted) !important;
+    outline-offset: 2px;
+}
+html[data-ui="okestre"] :is(.content-area,.modal-card) :is(button:disabled,.btn[aria-disabled="true"]) {
+    opacity: .45 !important; cursor: not-allowed !important;
+}
+html[data-ui="okestre"] :is(.content-area,.modal-card) :is(.text-input,.select-input,input[type="text"],input[type="password"],input[type="number"],input[type="url"],select) {
+    border: 1px solid var(--shell-border) !important;
+    border-radius: 7px !important;
+    background: var(--shell-bg) !important;
+    color: var(--shell-text) !important;
+    font: 400 13px/1.5 var(--shell-font) !important;
+    min-height: 36px;
+}
+html[data-ui="okestre"] :is(.panel-header,.panel-header-simple,.card-header,.section-header) {
+    border-color: var(--shell-border) !important;
+    background: transparent !important;
+}
+html[data-ui="okestre"] :is(.panel-header,.panel-header-simple,.card-header,.section-header) :is(h2,h3,h4,h5) {
+    font-family: var(--shell-font) !important;
+    text-transform: none !important;
+    letter-spacing: -.01em !important;
+    color: var(--shell-text) !important;
+}
+html[data-ui="okestre"] .content-area table :is(th,td) {
+    border-color: var(--shell-border) !important;
+}
+html[data-ui="okestre"] .content-area table th {
+    font: 500 12px/1.5 var(--shell-font) !important;
+    text-transform: none !important; letter-spacing: 0 !important;
+    color: var(--shell-muted) !important;
+    background: var(--shell-hover) !important;
+}
+html[data-ui="okestre"] .content-area table tbody tr:hover {
+    background-color: var(--shell-hover) !important;
+}
+html[data-ui="okestre"] .content-area :is(.empty-state,.qa-empty-state) {
+    color: var(--shell-muted) !important;
+}
+
+html[data-ui="okestre"] .app-container :is(.content-area,.tab-content,.main-layout) {
+    background-color: var(--shell-bg) !important;
+    color: var(--shell-text) !important;
+}
+
+/* Document libraries and guided engineering: shared visual hierarchy. */
+html[data-ui="okestre"] :is(#tab-diagrams,#tab-documents,#tab-sdd,#tab-system-tests) :is(h2,h3,h4) {
+    color: var(--shell-text) !important;
+    font-family: var(--shell-font) !important;
+    text-transform: none !important;
+    letter-spacing: -.015em !important;
+}
+html[data-ui="okestre"] :is(#tab-diagrams,#tab-documents,#tab-sdd,#tab-system-tests) :is(.diagrams-heading p,.diagrams-eyebrow,.diagrams-location,#diagram-status,.documents-subtitle,.documents-empty-state,.documents-preview-empty,.sdd-task-bulk-count,.e2e-heading p) {
+    color: var(--shell-muted) !important;
+    font-family: var(--shell-font) !important;
+    letter-spacing: 0 !important;
+    text-transform: none !important;
+}
+html[data-ui="okestre"] :is(.diagrams-heading,.diagrams-toolbar,.documents-header,.documents-preview-header,.sdd-workspace-header,.e2e-heading) {
+    border-color: var(--shell-border) !important;
+}
+html[data-ui="okestre"] :is(.documents-prompt-card,.documents-table-shell,.sdd-task-bulk-toolbar) {
+    background: var(--shell-hover) !important;
+    border: 1px solid var(--shell-border) !important;
+    border-radius: 8px !important;
+}
+html[data-ui="okestre"] :is(#tab-diagrams,#tab-documents,#tab-system-tests) table td {
+    color: var(--shell-text) !important;
+    font-family: var(--shell-font) !important;
+    line-height: 1.6 !important;
+}
+html[data-ui="okestre"] #tab-sdd .sdd-criteria-row {
+    background: var(--shell-panel) !important;
+    border: 1px solid var(--shell-border) !important;
+    border-radius: 8px !important;
+    padding: 12px !important;
+    gap: 12px !important;
+}
+html[data-ui="okestre"] #tab-sdd .sdd-criteria-row:hover,
+html[data-ui="okestre"] #tab-sdd .sdd-criteria-row.is-selected {
+    background: var(--shell-hover) !important;
+}
+html[data-ui="okestre"] #tab-sdd .sdd-criteria-text {
+    font: 400 13px/1.6 var(--shell-font) !important;
+    color: var(--shell-text) !important;
+}
+html[data-ui="okestre"] #tab-sdd .sdd-criteria-row.checked .sdd-criteria-text {
+    color: var(--shell-muted) !important;
+}
+html[data-ui="okestre"] :is(.documents-actions,.sdd-task-actions,.diagram-actions) {
+    gap: 8px;
+}
+html[data-ui="okestre"] :is(.qa-detail-header,.qa-detail-body,.sdd-task-detail-header,.sdd-task-detail-body) {
+    background-color: var(--shell-panel) !important;
+    color: var(--shell-text) !important;
+    border-color: var(--shell-border) !important;
+}
+html[data-ui="okestre"] #e2e-drawer label { color: var(--shell-muted) !important; }
+html[data-ui="okestre"] :is(#tab-diagrams,#tab-documents,#tab-sdd,#tab-system-tests) :is(button,a.btn) {
+    min-height: 34px !important;
+    font-size: 12px !important;
+}
+/* High specificity is necessary while the legacy console theme is still present. */
+html[data-ui="okestre"][data-theme="light"] .app-container .sidebar .sidebar-nav .nav-item {
+    color: var(--shell-muted) !important;
+}
+html[data-ui="okestre"][data-theme="light"] .app-container .sidebar .sidebar-nav .nav-item.active {
+    background: var(--shell-active) !important;
+    color: var(--shell-text) !important;
+}
+html[data-ui="okestre"][data-theme="light"] .app-container .sidebar .sidebar-nav .nav-item :is(span,i,svg) {
+    color: inherit !important;
+}
+@media (max-width: 1000px) {
+    html[data-ui="okestre"] :is(.documents-header,.documents-preview-header,.diagrams-toolbar,.sdd-task-bulk-toolbar) {
+        flex-wrap: wrap;
+        gap: 12px !important;
+    }
+}
+
+/* Flow workspace and infrastructure settings. */
+html[data-ui="okestre"] #tab-project-flow :is(.pf-shell,.pf-palette,.pf-inspector,.pf-node,.pf-tools) {
+    background: var(--shell-panel) !important;
+    color: var(--shell-text) !important;
+    border-color: var(--shell-border) !important;
+}
+html[data-ui="okestre"] #tab-project-flow .pf-shell { border-radius: 10px; overflow: hidden; }
+html[data-ui="okestre"] #tab-project-flow :is(.pf-header,.pf-workspace,.pf-node header,.pf-connection) { border-color: var(--shell-border) !important; }
+html[data-ui="okestre"] #tab-project-flow :is(small,.pf-node p,.pf-palette p,.pf-header span) { color: var(--shell-muted) !important; }
+html[data-ui="okestre"] #tab-project-flow .pf-view {
+    background-color: var(--shell-bg) !important;
+    background-image: radial-gradient(var(--shell-border) 1px, transparent 1px) !important;
+}
+html[data-ui="okestre"] #tab-project-flow .pf-type {
+    border-color: var(--shell-border) !important;
+    background: var(--shell-bg) !important;
+    color: var(--shell-text) !important;
+}
+html[data-ui="okestre"] #tab-project-flow .pf-type:hover { background: var(--shell-hover) !important; }
+html[data-ui="okestre"] #tab-project-flow :is(.pf-inspector,.pf-palette) :is(input,textarea,select) {
+    background: var(--shell-bg) !important;
+    color: var(--shell-text) !important;
+    border-color: var(--shell-border) !important;
+}
+html[data-ui="okestre"] #tab-project-flow .pf-node.selected { outline-color: var(--shell-text); }
+html[data-ui="okestre"] #tab-project-flow .pf-edge { stroke: var(--shell-muted); }
+html[data-ui="okestre"] #tab-project-flow .pf-edge-label { fill: var(--shell-text); }
+html[data-ui="okestre"] #tab-project-flow .pf-port {
+    background: var(--shell-panel) !important;
+    border-color: var(--shell-muted) !important;
+    border-radius: 50% !important;
+}
+html[data-ui="okestre"] #tab-ops-infra :is(.ops-muted,label,small) { color: var(--shell-muted) !important; }
+html[data-ui="okestre"] #tab-ops-infra .ops-flow-tabs {
+    display: flex !important; flex-wrap: wrap; gap: 6px !important;
+    padding: 6px !important;
+    background: var(--shell-bg) !important;
+    border: 1px solid var(--shell-border) !important;
+    border-radius: 9px;
+}
+html[data-ui="okestre"] #tab-ops-infra .ops-flow-tab {
+    flex: 1 0 130px;
+    background: transparent !important;
+    border-color: transparent !important;
+    color: var(--shell-muted) !important;
+    min-height: 36px !important;
+}
+html[data-ui="okestre"] #tab-ops-infra .ops-flow-tab.active {
+    background: var(--shell-active) !important;
+    color: var(--shell-text) !important;
+}
+html[data-ui="okestre"] #tab-ops-infra :is(.ops-git-permissions,details) {
+    padding: 18px !important;
+    border: 1px solid var(--shell-border) !important;
+    border-radius: 8px;
+    background: var(--shell-bg) !important;
+}
+html[data-ui="okestre"] #tab-ops-infra textarea {
+    background: var(--shell-bg) !important;
+    color: var(--shell-text) !important;
+    border: 1px solid var(--shell-border) !important;
+    border-radius: 7px !important;
+}
+html[data-ui="okestre"] #tab-ops-infra .ops-git-buttons { display: flex; flex-wrap: wrap; gap: 8px; }
+@media (max-width: 1100px) {
+    html[data-ui="okestre"] #tab-project-flow .pf-workspace {
+        grid-template-columns: 160px minmax(180px,1fr);
+        position: relative;
+    }
+    html[data-ui="okestre"] #tab-project-flow .pf-inspector {
+        position: absolute; top: 0; right: 0; bottom: 0;
+        height: 100%; width: min(300px,85%); z-index: 4;
+        box-shadow: -8px 0 24px #0003;
+    }
+    html[data-ui="okestre"] #tab-project-flow .pf-inspector:empty { display: none; }
+    html[data-ui="okestre"] #tab-project-flow .pf-header { padding: 16px; }
+}
+
+html[data-ui="okestre"] #tab-ops-infra .ops-infra-layout {
+    height: auto !important; min-height: 0 !important;
+    grid-auto-rows: max-content;
+}
+html[data-ui="okestre"] #tab-ops-infra :is(.ops-infra-main,.ops-infra-side) {
+    height: auto !important; max-height: none !important;
+    min-height: 0 !important; overflow: visible !important;
+}

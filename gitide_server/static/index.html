@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" data-ui="okestre">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dayact IA Workspace</title>
+    <title>Okestre Workspace</title>
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -48,7 +48,7 @@
             z-index: 10;
         }
     </style>
-<link rel="stylesheet" href="/static/diagram-library.css?v=1"><link rel="stylesheet" href="/static/system-tests.css?v=1"><link rel="stylesheet" href="/static/ops-git-access.css?v=1"><link rel="stylesheet" href="/static/project-flow.css?v=1"><link rel="stylesheet" href="/static/flowcharts.css?v=2"></head>
+<link rel="stylesheet" href="/static/diagram-library.css?v=1"><link rel="stylesheet" href="/static/system-tests.css?v=1"><link rel="stylesheet" href="/static/ops-git-access.css?v=1"><link rel="stylesheet" href="/static/project-flow.css?v=1"><link rel="stylesheet" href="/static/flowcharts.css?v=2"><link rel="stylesheet" href="/static/workspace-shell.css?v=4"><link rel="stylesheet" href="/static/workspace-components.css?v=4"></head>
 <body>
     <div class="app-container">
         <!-- TOPBAR -->
@@ -56,7 +56,7 @@
             <div class="brand">
                 <div class="logo-icon"><i class="fa-solid fa-code-merge"></i></div>
                 <div class="brand-text">
-                    <h1>Dayact IA Workspace</h1>
+                    <h1>Okestre</h1>
                     <span>Engineering workspace & Git bridge</span>
                 </div>
             </div>
@@ -198,8 +198,8 @@
                 </div>
 
                 <!-- TAB: FILES -->
-                <div id="tab-files" class="tab-pane">
-                    <div class="files-layout">
+                <div id="tab-files" class="tab-pane ok-page">
+                    <div class="files-layout ok-layout">
                         <!-- File Tree -->
                         <div class="file-tree-panel">
                             <div class="panel-header">
@@ -248,7 +248,7 @@
                 </div>
 
                 <!-- TAB: TERMINAL -->
-                <div id="tab-terminal" class="tab-pane">
+                <div id="tab-terminal" class="tab-pane ok-page">
                     <div class="terminal-panel">
                         <!-- Pending Commands Card -->
                         <div id="pending-commands-panel" style="display: none; background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.2); border-radius: 8px; padding: 16px; margin-bottom: 16px; flex-shrink: 0;">
@@ -279,7 +279,7 @@
                 </div>
 
                 <!-- TAB: DATABASE -->
-                <div id="tab-database" class="tab-pane">
+                <div id="tab-database" class="tab-pane ok-page">
                     <!-- Database Sub-tabs Navigation -->
                     <div class="db-tabs-nav" style="display: flex; gap: 8px; border-bottom: 1px solid var(--border-color); margin-bottom: 20px; padding: 20px 20px 2px 20px; flex-shrink: 0;">
                         <button class="db-tab-btn active" data-db-subtab="db-subtab-explorer" style="background: none; border: none; padding: 10px 16px; border-bottom: 2px solid var(--color-primary); color: var(--text-light); font-weight: 600; cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 8px; transition: all var(--transition-speed);">
@@ -491,8 +491,8 @@
                 </div>
 
                 <!-- TAB: GIT BRIDGE -->
-                <div id="tab-git" class="tab-pane">
-                    <div class="git-layout">
+                <div id="tab-git" class="tab-pane ok-page">
+                    <div class="git-layout ok-layout">
                         <div class="git-status-card card">
                             <div class="card-header">
                                 <h4><i data-lucide="git-branch"></i> Status do Repositório Git</h4>
@@ -673,8 +673,8 @@
                 </div>
 
                 <!-- TAB: LOGS & ROLLBACKS -->
-                <div id="tab-logs" class="tab-pane">
-                    <div class="logs-layout">
+                <div id="tab-logs" class="tab-pane ok-page">
+                    <div class="logs-layout ok-layout">
                         <!-- Activity History -->
                         <div class="activity-logs-panel">
                             <div class="panel-header">
@@ -700,8 +700,8 @@
                 </div>
 
                 <!-- TAB: SETTINGS & TUNNEL -->
-                <div id="tab-settings" class="tab-pane">
-                    <div class="settings-dashboard-layout">
+                <div id="tab-settings" class="tab-pane ok-page">
+                    <div class="settings-dashboard-layout ok-layout">
                         
                         <!-- CARD 1: CONFIGURAÇÕES DO AGENTE IA -->
                         <div class="settings-card card" style="display: flex; flex-direction: column; height: fit-content;">
@@ -904,8 +904,8 @@ VALIDAÇÃO: quando o runtime real estiver em VM e comandos locais como npm/node
                 </div>
 
                 <!-- TAB: DESIGN SYSTEM (TOKENS) -->
-                <div id="tab-tokens" class="tab-pane">
-                    <div class="tokens-layout">
+                <div id="tab-tokens" class="tab-pane ok-page">
+                    <div class="tokens-layout ok-layout">
                         <!-- Sidebar de Configuração (Temas e Sets) -->
                         <div class="tokens-sidebar">
                             <div class="tokens-sidebar-card card">
@@ -943,7 +943,7 @@ VALIDAÇÃO: quando o runtime real estiver em VM e comandos locais como npm/node
                 </div>
 
                 <!-- TAB: UI CANVAS -->
-                <div id="tab-ui-canvas" class="tab-pane">
+                <div id="tab-ui-canvas" class="tab-pane ok-page">
                     <div class="ui-canvas-shell">
                         <aside class="ui-canvas-panel ui-canvas-files">
                             <div class="ui-canvas-panel-header">
@@ -1054,9 +1054,9 @@ VALIDAÇÃO: quando o runtime real estiver em VM e comandos locais como npm/node
                 </div>
 
                 <!-- TAB: QA -->
-                <div id="tab-system-tests" class="tab-pane"><div class="e2e-heading"><div><span>QUALIDADE / VALIDAÇÃO PÓS-IMPLEMENTAÇÃO</span><h2>Testes de Sistema / Ponta a Ponta</h2><p>Planeje os cenários, registre a execução e acompanhe as evidências por projeto.</p></div><button id="e2e-new" class="btn btn-primary">+ Novo teste</button></div><section class="card e2e-card"><div class="e2e-toolbar"><input id="e2e-search" class="text-input" aria-label="Buscar testes" placeholder="Buscar por ID, título, task ou RF"><select id="e2e-filter" class="text-input" aria-label="Filtrar status"><option value="">Todos os status</option><option>Não executado</option><option>Em execução</option><option>Aprovado</option><option>Reprovado</option><option>Bloqueado</option></select><button id="e2e-refresh" class="btn btn-secondary">Atualizar</button></div><p id="e2e-summary"></p><p id="e2e-message" role="status"></p><div class="e2e-table-wrap"><table><thead><tr><th>Teste / cenário</th><th>Task / RF</th><th>Status</th><th>Ação</th></tr></thead><tbody id="e2e-rows"></tbody></table></div></section></div>
-                <div id="tab-qa" class="tab-pane">
-                    <div class="qa-layout">
+                <div id="tab-system-tests" class="tab-pane ok-page"><div class="e2e-heading"><div><span>QUALIDADE / VALIDAÇÃO PÓS-IMPLEMENTAÇÃO</span><h2>Testes de Sistema / Ponta a Ponta</h2><p>Planeje os cenários, registre a execução e acompanhe as evidências por projeto.</p></div><button id="e2e-new" class="btn btn-primary">+ Novo teste</button></div><section class="card e2e-card ok-panel ok-panel-body"><div class="e2e-toolbar ok-toolbar"><input id="e2e-search" class="text-input" aria-label="Buscar testes" placeholder="Buscar por ID, título, task ou RF"><select id="e2e-filter" class="text-input" aria-label="Filtrar status"><option value="">Todos os status</option><option>Não executado</option><option>Em execução</option><option>Aprovado</option><option>Reprovado</option><option>Bloqueado</option></select><button id="e2e-refresh" class="btn btn-secondary">Atualizar</button></div><p id="e2e-summary"></p><p id="e2e-message" role="status"></p><div class="e2e-table-wrap ok-table-scroll"><table><thead><tr><th>Teste / cenário</th><th>Task / RF</th><th>Status</th><th>Ação</th></tr></thead><tbody id="e2e-rows"></tbody></table></div></section></div>
+                <div id="tab-qa" class="tab-pane ok-page">
+                    <div class="qa-layout ok-layout">
                         <section class="qa-main card">
                             <div class="qa-header">
                                 <div>
@@ -1157,7 +1157,7 @@ VALIDAÇÃO: quando o runtime real estiver em VM e comandos locais como npm/node
                 </div>
 
                 <!-- TAB: ENGINEERING METRICS -->
-                <div id="tab-engineering-metrics" class="tab-pane">
+                <div id="tab-engineering-metrics" class="tab-pane ok-page">
                     <div class="engineering-intelligence-shell">
                         <div class="engineering-tabs">
                             <button class="engineering-tab active" type="button" data-engineering-panel="dora"><i data-lucide="chart-line"></i> DORA</button>
@@ -1166,7 +1166,7 @@ VALIDAÇÃO: quando o runtime real estiver em VM e comandos locais como npm/node
                         </div>
 
                         <div class="engineering-panel-view active" data-engineering-panel-view="dora">
-                            <div class="engineering-metrics-layout">
+                            <div class="engineering-metrics-layout ok-layout">
                                 <section class="engineering-metrics-main card">
                                     <div class="engineering-metrics-header">
                                         <div>
@@ -1299,7 +1299,7 @@ VALIDAÇÃO: quando o runtime real estiver em VM e comandos locais como npm/node
                 </div>
 
                 <!-- TAB: PROJECT ESTIMATION -->
-                <div id="tab-estimation" class="tab-pane">
+                <div id="tab-estimation" class="tab-pane ok-page">
                     <div class="estimation-page">
                         <header class="estimation-header">
                             <div>
@@ -1391,7 +1391,7 @@ VALIDAÇÃO: quando o runtime real estiver em VM e comandos locais como npm/node
                 </div>
 
                 <!-- TAB: AGENT -->
-                <div id="tab-agent" class="tab-pane">
+                <div id="tab-agent" class="tab-pane ok-page">
                     <div class="agent-layout" style="display: flex; gap: 20px; height: 100%; min-height: 0;">
                         <!-- Coluna Única: Chat & Monitor de Raciocínio (Largura Total) -->
                         <div class="agent-main-panel" style="flex: 1; display: flex; flex-direction: column; min-width: 0; height: 100%; overflow: hidden; border: none; background: transparent;">
@@ -1475,21 +1475,21 @@ VALIDAÇÃO: quando o runtime real estiver em VM e comandos locais como npm/node
                 </div>
 
                 <!-- TAB: DOCUMENTS -->
-                <div id="tab-project-flow" class="tab-pane">
+                <div id="tab-project-flow" class="tab-pane ok-page">
 <section class="pf-shell">
-<header class="pf-header"><div><small>AUTOMAÇÃO / FLUXO DO PROJETO</small><h2>Fluxo de execução</h2><span>.documents/flow/flow.mmd · um fluxo por projeto</span></div><div class="pf-actions"><span id="pf-badge">Não criado</span><button id="pf-load" class="btn btn-secondary">Recarregar</button><button id="pf-check" class="btn btn-secondary">Validar</button><button id="pf-save" class="btn btn-secondary">Salvar rascunho</button><button id="pf-activate" class="btn btn-primary">Ativar fluxo</button></div></header>
+<header class="pf-header"><div><small>AUTOMAÇÃO / FLUXO DO PROJETO</small><h2>Fluxo de execução</h2><span>.documents/flow/flow.mmd · um fluxo por projeto</span></div><div class="pf-actions ok-toolbar"><span id="pf-badge">Não criado</span><button id="pf-load" class="btn btn-secondary">Recarregar</button><button id="pf-check" class="btn btn-secondary">Validar</button><button id="pf-save" class="btn btn-secondary">Salvar rascunho</button><button id="pf-activate" class="btn btn-primary">Ativar fluxo</button></div></header>
 <p id="pf-status" role="status"></p>
 <div class="pf-workspace"><aside class="pf-palette"><label for="pf-name">Nome do fluxo</label><input id="pf-name" maxlength="100" placeholder="Fluxo do projeto"><h3>Adicionar nó</h3><div id="pf-types"></div><p>Arraste os cartões no canvas. Use a saída de um nó e depois a entrada do próximo para conectar.</p><button id="pf-example" class="btn btn-secondary">Criar fluxo inicial</button><p>O fluxo orienta a IA. Ativá-lo não executa comandos nem inicia deploy.</p></aside>
 <div class="pf-view"><div id="pf-viewport"><div id="pf-canvas"><svg id="pf-edges" aria-label="Conexões do fluxo"></svg><div id="pf-nodes"></div></div></div><div class="pf-tools"><button id="pf-arrange" class="btn btn-secondary">Organizar</button><button id="pf-fit" class="btn btn-secondary">Ajustar</button><button id="pf-minus" class="btn btn-secondary" aria-label="Diminuir zoom">−</button><span id="pf-zoom">100%</span><button id="pf-plus" class="btn btn-secondary" aria-label="Aumentar zoom">+</button></div></div>
 <aside id="pf-inspector" class="pf-inspector" aria-label="Detalhes do nó"><p>Selecione um nó ou clique em Editar para configurar suas propriedades.</p></aside></div>
 </section></div>
-                <div id="tab-flowcharts" class="tab-pane"><div id="flowcharts-app"></div></div>
-                <div id="tab-diagrams" class="tab-pane">
+                <div id="tab-flowcharts" class="tab-pane ok-page"><div id="flowcharts-app"></div></div>
+                <div id="tab-diagrams" class="tab-pane ok-page">
                     <div class="diagrams-heading"><div><span class="diagrams-eyebrow">Workspace / Modelagem de dados</span><h2>Diagramas ER</h2><p>Organize os diagramas de entidades e relacionamentos deste projeto.</p></div><button id="diagram-create" class="btn btn-primary">+ Novo diagrama</button></div>
-                    <section class="card diagrams-card"><div class="diagrams-toolbar"><div><h3>Diagramas do projeto</h3><span class="diagrams-location">.documents/diagramas</span></div><button id="diagram-refresh" class="btn btn-secondary">Atualizar lista</button></div><p id="diagram-status" role="status"></p><div class="diagrams-table-wrap"><table aria-label="Diagramas do projeto"><thead><tr><th>Nome do diagrama</th><th>Última atualização</th><th>Ações</th></tr></thead><tbody id="diagram-rows"></tbody></table></div></section>
+                    <section class="card diagrams-card ok-panel"><div class="diagrams-toolbar"><div><h3>Diagramas do projeto</h3><span class="diagrams-location">.documents/diagramas</span></div><button id="diagram-refresh" class="btn btn-secondary">Atualizar lista</button></div><p id="diagram-status" role="status"></p><div class="diagrams-table-wrap ok-table-scroll"><table aria-label="Diagramas do projeto"><thead><tr><th>Nome do diagrama</th><th>Última atualização</th><th>Ações</th></tr></thead><tbody id="diagram-rows"></tbody></table></div></section>
                 </div>
-                <div id="tab-documents" class="tab-pane">
-                    <div class="documents-layout">
+                <div id="tab-documents" class="tab-pane ok-page">
+                    <div class="documents-layout ok-layout">
                         
                         <!-- Painel Esquerdo: Lista de Documentos -->
                         <section class="documents-card documents-list-card card">
@@ -1505,7 +1505,7 @@ VALIDAÇÃO: quando o runtime real estiver em VM e comandos locais como npm/node
                                         <p>Exportação executiva dos documentos vivos do Harness Engineering (.docx).</p>
                                     </div>
                                 </div>
-                                <div class="documents-actions">
+                                <div class="documents-actions ok-toolbar">
                                     <button class="btn btn-secondary btn-sm documents-icon-button" id="btn-refresh-documents" title="Recarregar lista" aria-label="Recarregar lista de documentos"><i class="fa-solid fa-rotate"></i></button>
                                     <button class="btn btn-secondary btn-sm" id="btn-upload-document"><i class="fa-solid fa-cloud-arrow-up"></i> Upload</button>
                                     <input type="file" id="input-upload-document" accept=".docx" class="documents-file-input">
@@ -1578,7 +1578,7 @@ VALIDAÇÃO: quando o runtime real estiver em VM e comandos locais como npm/node
                 </div>
 
                 <!-- TAB: SPEC-DRIVEN DEVELOPMENT (SDD) -->
-                <div id="tab-sdd" class="tab-pane">
+                <div id="tab-sdd" class="tab-pane ok-page">
                     <div class="harness-shell">
                         <div class="harness-header">
                             <div>
@@ -1925,7 +1925,7 @@ VALIDAÇÃO: quando o runtime real estiver em VM e comandos locais como npm/node
                 </div>
 
                 <!-- TAB: DISCOVERY (MARKITDOWN) -->
-                <div id="tab-discovery" class="tab-pane">
+                <div id="tab-discovery" class="tab-pane ok-page">
                     <div class="discovery-layout">
                         <!-- Coluna 1: Upload / Input -->
                         <div class="discovery-input-panel">
@@ -1973,8 +1973,8 @@ VALIDAÇÃO: quando o runtime real estiver em VM e comandos locais como npm/node
                 </div>
 
                 <!-- TAB: OPS INFRA -->
-                <div id="tab-ops-infra" class="tab-pane">
-                    <div class="ops-infra-layout">
+                <div id="tab-ops-infra" class="tab-pane ok-page">
+                    <div class="ops-infra-layout ok-layout">
                         <section class="ops-infra-main card">
                             <div class="card-header">
                                 <div>
@@ -1994,23 +1994,23 @@ VALIDAÇÃO: quando o runtime real estiver em VM e comandos locais como npm/node
                                 <button type="button" class="ops-flow-tab" data-ops-flow-tab="logs"><span>6</span> Operação</button>
                             </div>
 
-                            <div class="ops-flow-panel" data-ops-flow-panel="git-access"><h4>GitHub · Repositório e autonomia</h4><p class="ops-muted">Aceita HTTPS ou SSH; com token, as operações usam HTTPS. O token fica criptografado no perfil da Okestre e não é incluído nos arquivos do repositório.</p><div class="ops-infra-field"><label for="ops-git-repo">URL do repositório (HTTPS ou SSH)</label><input id="ops-git-repo" class="text-input" placeholder="https://github.com/organizacao/repositorio"></div><div class="ops-infra-field"><label for="ops-git-branch">Branch autorizada</label><input id="ops-git-branch" class="text-input" value="main"></div><div class="ops-infra-field"><label for="ops-git-token">Token de acesso GitHub</label><input id="ops-git-token" type="password" autocomplete="new-password" class="text-input" placeholder="Cole o token; deixe vazio para manter o salvo"><small id="ops-git-token-state"></small></div><fieldset class="ops-git-permissions"><legend>Autorizações das operações integradas</legend><label><input id="ops-git-read" type="checkbox" checked> Ler repositório privado e executar fetch/pull</label><label><input id="ops-git-push" type="checkbox"> Enviar commits com push para a branch cadastrada</label><label><input id="ops-git-deploy" type="checkbox"> Sincronizar o código e executar deploy / Docker Compose na VM</label></fieldset><p class="ops-muted">Estas opções não concedem permissões no GitHub e não restringem comandos livres no terminal. Proteções de branch e políticas da organização continuam valendo.</p><details><summary>Como preparar o token</summary><p>Crie um token fine-grained para o proprietário e o repositório desejados. Configure Contents como Read para leitura, ou Read and write para push. Alterações de workflows exigem a permissão correspondente. A organização pode exigir aprovação. O teste abaixo consulta o repositório; não realiza push nem deploy.</p><a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener noreferrer">Criar token no GitHub</a></details><div class="ops-git-buttons"><button id="ops-git-save" class="btn btn-primary">Salvar acessos</button><button id="ops-git-test" class="btn btn-secondary">Testar GitHub</button><button id="ops-git-remove" class="btn btn-secondary">Remover token</button></div><p id="ops-git-status" role="status"></p><p class="ops-muted">Deploy usa a VM e o diretório cadastrados em VM / Acesso. A sincronização usa somente a branch definida, sem force push ou rebase automático.</p></div>
+                            <div class="ops-flow-panel" data-ops-flow-panel="git-access"><h4>GitHub · Repositório e autonomia</h4><p class="ops-muted">Aceita HTTPS ou SSH; com token, as operações usam HTTPS. O token fica criptografado no perfil da Okestre e não é incluído nos arquivos do repositório.</p><div class="ops-infra-field ok-field"><label for="ops-git-repo">URL do repositório (HTTPS ou SSH)</label><input id="ops-git-repo" class="text-input" placeholder="https://github.com/organizacao/repositorio"></div><div class="ops-infra-field ok-field"><label for="ops-git-branch">Branch autorizada</label><input id="ops-git-branch" class="text-input" value="main"></div><div class="ops-infra-field ok-field"><label for="ops-git-token">Token de acesso GitHub</label><input id="ops-git-token" type="password" autocomplete="new-password" class="text-input" placeholder="Cole o token; deixe vazio para manter o salvo"><small id="ops-git-token-state"></small></div><fieldset class="ops-git-permissions"><legend>Autorizações das operações integradas</legend><label><input id="ops-git-read" type="checkbox" checked> Ler repositório privado e executar fetch/pull</label><label><input id="ops-git-push" type="checkbox"> Enviar commits com push para a branch cadastrada</label><label><input id="ops-git-deploy" type="checkbox"> Sincronizar o código e executar deploy / Docker Compose na VM</label></fieldset><p class="ops-muted">Estas opções não concedem permissões no GitHub e não restringem comandos livres no terminal. Proteções de branch e políticas da organização continuam valendo.</p><details><summary>Como preparar o token</summary><p>Crie um token fine-grained para o proprietário e o repositório desejados. Configure Contents como Read para leitura, ou Read and write para push. Alterações de workflows exigem a permissão correspondente. A organização pode exigir aprovação. O teste abaixo consulta o repositório; não realiza push nem deploy.</p><a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener noreferrer">Criar token no GitHub</a></details><div class="ops-git-buttons ok-toolbar"><button id="ops-git-save" class="btn btn-primary">Salvar acessos</button><button id="ops-git-test" class="btn btn-secondary">Testar GitHub</button><button id="ops-git-remove" class="btn btn-secondary">Remover token</button></div><p id="ops-git-status" role="status"></p><p class="ops-muted">Deploy usa a VM e o diretório cadastrados em VM / Acesso. A sincronização usa somente a branch definida, sem force push ou rebase automático.</p></div>
                             <div class="ops-flow-panel active" data-ops-flow-panel="vm">
-                                <div class="ops-infra-field">
+                                <div class="ops-infra-field ok-field">
                                     <label for="ops-vm-host">IP ou host da VM</label>
                                     <input type="text" id="ops-vm-host" class="text-input" placeholder="ex: 203.0.113.10">
                                 </div>
                                 <div class="ops-infra-grid compact">
-                                    <div class="ops-infra-field">
+                                    <div class="ops-infra-field ok-field">
                                         <label for="ops-vm-user">Usuário SSH</label>
                                         <input type="text" id="ops-vm-user" class="text-input" placeholder="root ou deploy">
                                     </div>
-                                    <div class="ops-infra-field">
+                                    <div class="ops-infra-field ok-field">
                                         <label for="ops-vm-port">Porta SSH</label>
                                         <input type="number" id="ops-vm-port" class="text-input" value="22">
                                     </div>
                                 </div>
-                                <div class="ops-infra-field">
+                                <div class="ops-infra-field ok-field">
                                     <label for="ops-vm-path">Diretório do app na VM</label>
                                     <div class="ops-path-control">
                                         <input type="text" id="ops-vm-path" class="text-input" placeholder="/opt/apps/meu-app">
@@ -2031,7 +2031,7 @@ VALIDAÇÃO: quando o runtime real estiver em VM e comandos locais como npm/node
                                         </div>
                                     </div>
                                 </div>
-                                <div class="ops-infra-field">
+                                <div class="ops-infra-field ok-field">
                                     <label for="ops-vm-auth-method">Autenticação SSH</label>
                                     <select id="ops-vm-auth-method" class="select-input">
                                         <option value="key">Chave privada</option>
@@ -2039,7 +2039,7 @@ VALIDAÇÃO: quando o runtime real estiver em VM e comandos locais como npm/node
                                         <option value="password">Senha</option>
                                     </select>
                                 </div>
-                                <div class="ops-infra-field" id="ops-vm-private-key-field">
+                                <div class="ops-infra-field ok-field" id="ops-vm-private-key-field">
                                     <label for="ops-vm-private-key">Chave privada SSH</label>
                                     <textarea id="ops-vm-private-key" class="text-input" rows="5" placeholder="Cole aqui a chave privada. Ela será salva criptografada."></textarea>
                                     <span class="ops-muted" id="ops-vm-private-key-status"></span>
@@ -2049,7 +2049,7 @@ VALIDAÇÃO: quando o runtime real estiver em VM e comandos locais como npm/node
                                     </div>
                                     <textarea id="ops-vm-public-key" class="text-input" rows="3" readonly placeholder="A chave pública gerada aparecerá aqui. Cadastre esta chave no painel da VPS."></textarea>
                                 </div>
-                                <div class="ops-infra-field" id="ops-vm-password-field">
+                                <div class="ops-infra-field ok-field" id="ops-vm-password-field">
                                     <label for="ops-vm-password">Senha SSH</label>
                                     <input type="password" id="ops-vm-password" class="text-input" placeholder="Senha da VM">
                                     <span class="ops-muted" id="ops-vm-password-status"></span>
@@ -2062,7 +2062,7 @@ VALIDAÇÃO: quando o runtime real estiver em VM e comandos locais como npm/node
 
                             <div class="ops-flow-panel" data-ops-flow-panel="environment">
                                 <div class="ops-infra-grid">
-                                    <div class="ops-infra-field">
+                                    <div class="ops-infra-field ok-field">
                                         <label for="ops-env-select">Ambiente</label>
                                         <select id="ops-env-select" class="select-input">
                                             <option value="prod">prod</option>
@@ -2070,7 +2070,7 @@ VALIDAÇÃO: quando o runtime real estiver em VM e comandos locais como npm/node
                                             <option value="dev">dev</option>
                                         </select>
                                     </div>
-                                    <div class="ops-infra-field">
+                                    <div class="ops-infra-field ok-field">
                                         <label for="ops-db-select">Banco</label>
                                         <select id="ops-db-select" class="select-input">
                                             <option value="">sem banco</option>
@@ -2108,7 +2108,7 @@ VALIDAÇÃO: quando o runtime real estiver em VM e comandos locais como npm/node
                             </div>
 
                             <div class="ops-flow-panel" data-ops-flow-panel="domain">
-                                <div class="ops-infra-field">
+                                <div class="ops-infra-field ok-field">
                                     <label for="ops-domain-input">Domínio</label>
                                     <input type="text" id="ops-domain-input" class="text-input" placeholder="app.seudominio.com">
                                 </div>
@@ -2133,7 +2133,7 @@ VALIDAÇÃO: quando o runtime real estiver em VM e comandos locais como npm/node
                                     <i data-lucide="database"></i>
                                     <span>Nesta etapa, o Act IA prepara o serviço de banco no Docker Compose. A criação em produção depende do deploy na VM.</span>
                                 </div>
-                                <div class="ops-infra-field">
+                                <div class="ops-infra-field ok-field">
                                     <label for="ops-db-select-mirror">Banco selecionado</label>
                                     <input type="text" id="ops-db-select-mirror" class="text-input" value="Use o campo Banco na aba Ambiente" readonly>
                                 </div>

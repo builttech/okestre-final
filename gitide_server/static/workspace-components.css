@@ -1,0 +1,205 @@
+/* Shared layout primitives. Presentation only; never change active/hidden states. */
+html[data-ui="okestre"] {
+    --space-page: 12px;
+    --space-panel: 16px;
+    --space-gap: 12px;
+    --control-height: 36px;
+}
+html[data-ui="okestre"] .content-area { min-width: 0; min-height: 0; }
+html[data-ui="okestre"] .content-area > .ok-page {
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: var(--space-page) !important;
+    box-sizing: border-box;
+    min-width: 0;
+}
+html[data-ui="okestre"] .ok-page > .ok-layout {
+    width: 100% !important; max-width: none !important;
+    margin: 0 !important; padding: 0 !important;
+    gap: var(--space-gap) !important;
+    min-width: 0;
+}
+html[data-ui="okestre"] .ok-toolbar {
+    display: flex; align-items: center; flex-wrap: wrap;
+    gap: 8px; min-width: 0;
+}
+html[data-ui="okestre"] .ok-panel {
+    min-width: 0; border: 1px solid var(--shell-border);
+    border-radius: 10px; background: var(--shell-panel);
+    color: var(--shell-text);
+}
+html[data-ui="okestre"] .ok-panel-body { padding: var(--space-panel); min-width: 0; }
+html[data-ui="okestre"] .ok-field {
+    display: flex; flex-direction: column; gap: 6px; min-width: 0;
+}
+html[data-ui="okestre"] .ok-form-grid {
+    display: grid; grid-template-columns: repeat(auto-fit,minmax(min(240px,100%),1fr));
+    gap: var(--space-gap);
+}
+html[data-ui="okestre"] .ok-table-scroll { width: 100%; overflow: auto; min-width: 0; }
+html[data-ui="okestre"] .ok-page :is(.diagrams-heading,.e2e-heading) {
+    margin: 0 0 var(--space-gap) !important; padding-bottom: var(--space-gap) !important;
+}
+html[data-ui="okestre"] .ok-page :is(.diagrams-toolbar,.documents-header,.documents-preview-header,.sdd-workspace-header,.pf-header) {
+    padding: var(--space-panel) !important;
+}
+html[data-ui="okestre"] #tab-project-flow { height: 100% !important; }
+html[data-ui="okestre"] #tab-ops-infra .ops-infra-layout {
+    grid-template-columns: minmax(0,1fr) minmax(280px, 28%);
+}
+html[data-ui="okestre"] #tab-documents .documents-layout {
+    grid-template-columns: minmax(0,1.08fr) minmax(0,.92fr);
+}
+@media (max-width: 1100px) {
+    html[data-ui="okestre"] #tab-ops-infra .ops-infra-layout { grid-template-columns: minmax(0,1fr); }
+}
+@media (max-width: 900px) {
+    html[data-ui="okestre"] { --space-page: 8px; --space-panel: 12px; }
+    html[data-ui="okestre"] #tab-documents .documents-layout {
+        grid-template-columns: minmax(0,1fr); height: auto;
+    }
+    html[data-ui="okestre"] #tab-documents .documents-card { min-height: 340px; }
+}
+
+/* Git: compact command column and flexible inspection workspace. */
+html[data-ui="okestre"] #tab-git .git-layout {
+    display: grid !important;
+    grid-template-columns: minmax(300px, 32%) minmax(0,1fr) !important;
+    grid-template-rows: auto auto auto !important;
+    grid-template-areas: "status side" "deploy side" "credentials side" "conflicts conflicts" !important;
+    align-items: start !important;
+    gap: var(--space-gap) !important;
+    height: auto !important;
+}
+html[data-ui="okestre"] #tab-git .git-conflicts-card { grid-area: conflicts !important; }
+html[data-ui="okestre"] #tab-git :is(.git-status-card,.git-operations-card) {
+    height: auto !important; min-height: 0 !important;
+}
+html[data-ui="okestre"] #tab-git .git-side-panel {
+    height: calc(100dvh - 88px) !important;
+    min-height: 420px !important;
+    border-radius: 10px !important;
+    border: 1px solid var(--shell-border) !important;
+    background: var(--shell-panel) !important;
+}
+html[data-ui="okestre"] #tab-git :is(.card-header,.git-side-panel-header) {
+    padding: 14px 16px !important;
+    border-bottom: 1px solid var(--shell-border) !important;
+}
+html[data-ui="okestre"] #tab-git :is(.card-body,#git-status-detail) { padding: 16px !important; }
+html[data-ui="okestre"] #tab-git :is(.git-side-panel-header h4,.git-side-eyebrow,.git-dev-hint,label) {
+    font-family: var(--shell-font) !important;
+    letter-spacing: 0 !important; text-transform: none !important;
+    color: var(--shell-muted) !important;
+}
+html[data-ui="okestre"] #tab-git .git-side-panel-tabs {
+    display: flex !important; flex-wrap: wrap;
+    gap: 4px !important; padding: 8px !important;
+    border-bottom: 1px solid var(--shell-border) !important;
+    background: var(--shell-bg) !important;
+}
+html[data-ui="okestre"] #tab-git .git-side-tab {
+    flex: 1 1 auto; min-height: 34px !important;
+    border: 0 !important; background: transparent !important;
+    color: var(--shell-muted) !important;
+}
+html[data-ui="okestre"] #tab-git .git-side-tab.active {
+    background: var(--shell-active) !important; color: var(--shell-text) !important;
+}
+html[data-ui="okestre"] #tab-git :is(.git-side-panel-content,.git-side-panel-pane) {
+    min-height: 0 !important; min-width: 0 !important;
+}
+html[data-ui="okestre"] #tab-git :is(#git-console-output,#git-graph-container,.gitignore-manager,.git-changed-files-list) {
+    background: var(--shell-panel) !important; color: var(--shell-text) !important;
+}
+html[data-ui="okestre"] #tab-git :is(.git-deploy-buttons,.git-advanced-actions) {
+    display: flex !important; flex-wrap: wrap; gap: 8px !important;
+}
+html[data-ui="okestre"] #tab-git .git-deploy-buttons .btn {
+    flex: 1 1 160px; white-space: normal !important; padding: 9px 12px !important;
+}
+html[data-ui="okestre"] #tab-git .git-advanced-actions {
+    padding-top: 12px !important; border-top: 1px solid var(--shell-border) !important;
+}
+html[data-ui="okestre"] #tab-git .git-side-empty-state {
+    color: var(--shell-muted) !important; padding: 24px !important;
+}
+@media(max-width: 1050px) {
+    html[data-ui="okestre"] #tab-git .git-layout {
+        grid-template-columns: minmax(0,1fr) !important;
+        grid-template-areas: "status" "deploy" "credentials" "side" "conflicts" !important;
+        grid-template-rows: auto !important;
+    }
+    html[data-ui="okestre"] #tab-git .git-side-panel { height: 540px !important; }
+}
+
+html[data-ui="okestre"] #tab-git .git-side-panel { grid-area: side !important; width: 100% !important; max-width: none !important; }
+html[data-ui="okestre"] #tab-git :is(.git-side-panel-header,.git-side-panel-tabs) { position: relative; z-index: 1; }
+html[data-ui="okestre"] #tab-git .git-operations-card :is(button,input,label,h4) {
+    font-family: var(--shell-font) !important; text-transform: none !important; letter-spacing: 0 !important;
+}
+
+/* Retire the legacy console overrides on Git action and credential cards. */
+html[data-ui="okestre"] .app-container #tab-git :is(.git-operations-card,.git-credentials-card).card {
+    background: var(--shell-panel) !important;
+    border: 1px solid var(--shell-border) !important;
+    border-radius: 10px !important;
+    overflow: hidden !important;
+}
+html[data-ui="okestre"] .app-container #tab-git :is(.git-operations-card,.git-credentials-card).card .card-header {
+    background: var(--shell-panel) !important;
+    border-color: var(--shell-border) !important;
+}
+html[data-ui="okestre"] .app-container #tab-git :is(.git-operations-card,.git-credentials-card).card :is(h4,label,p,.git-dev-hint,.btn,button,input) {
+    font-family: var(--shell-font) !important;
+    font-size: 12px !important;
+    text-transform: none !important;
+    letter-spacing: 0 !important;
+    line-height: 1.5 !important;
+}
+html[data-ui="okestre"] .app-container #tab-git :is(.git-operations-card,.git-credentials-card).card :is(h4,label,p) { color: var(--shell-text) !important; }
+html[data-ui="okestre"] .app-container #tab-git :is(.git-operations-card,.git-credentials-card).card :is(.btn,button,input,.git-current-branch-readonly) { border-radius: 7px !important; }
+html[data-ui="okestre"] .app-container #tab-git :is(.git-operations-card,.git-credentials-card).card input {
+    background: var(--shell-bg) !important; color: var(--shell-text) !important;
+    border-color: var(--shell-border) !important;
+}
+html[data-ui="okestre"] #tab-git .gitignore-manager {
+    display: flex !important; flex-direction: column !important;
+    flex: 1 1 0 !important; min-height: 0 !important;
+    overflow: hidden !important;
+}
+html[data-ui="okestre"] #tab-git .gitignore-manager > :not(.gitignore-list) { flex-shrink: 0; }
+html[data-ui="okestre"] #tab-git .gitignore-list {
+    flex: 1 1 0 !important; min-height: 0 !important;
+    overflow-y: auto !important;
+}
+html[data-ui="okestre"] #tab-git .gitignore-entry { flex-shrink: 0; }
+html[data-ui="okestre"] #tab-git .gitignore-footer {
+    position: static !important;
+    background: var(--shell-panel) !important;
+    border-color: var(--shell-border) !important;
+}
+
+html[data-ui="okestre"] .app-container #tab-git .git-operations-card #git-commit-msg,
+html[data-ui="okestre"] .app-container #tab-git .git-operations-card #git-remote-url-input,
+html[data-ui="okestre"] .app-container #tab-git .git-operations-card .git-current-branch-readonly,
+html[data-ui="okestre"] .app-container #tab-git .git-credentials-card.card .generated-command-container {
+    background: var(--shell-bg) !important;
+    color: var(--shell-text) !important;
+    border: 1px solid var(--shell-border) !important;
+    border-radius: 7px !important;
+    font: 400 13px/1.5 var(--shell-font) !important;
+    text-transform: none !important; letter-spacing: 0 !important;
+    min-height: var(--control-height) !important;
+}
+html[data-ui="okestre"] .app-container #tab-git .git-credentials-card.card #git-generated-command-text {
+    font: 400 12px/1.6 var(--font-mono) !important;
+    letter-spacing: 0 !important; color: var(--shell-muted) !important;
+    overflow-wrap: anywhere; white-space: pre-wrap;
+}
+html[data-ui="okestre"] .app-container #tab-git .git-operations-card .git-commit-input-shell { position: relative; }
+html[data-ui="okestre"] .app-container #tab-git .git-operations-card #git-commit-msg { padding-right: 48px !important; }
+html[data-ui="okestre"] .app-container #tab-git .git-operations-card #git-commit-msg::placeholder {
+    font: inherit !important; color: var(--shell-muted) !important; letter-spacing: 0 !important;
+}

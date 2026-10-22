@@ -105,7 +105,7 @@ def test_full_desktop_browser_and_security(desktop):
         page.locator('[data-tab="tab-diagrams"]').click()
         expect(page.locator('#diagram-rows')).to_contain_text('modelo.mmd')
         page.screenshot(path=str(output/'diagrams-library.png'), full_page=True)
-        page.get_by_role('link', name='Abrir no editor').click()
+        page.locator('#diagram-rows tr').filter(has_text='modelo.mmd').get_by_role('link', name='Abrir no editor').click()
         expect(page.locator('#title')).to_have_value('modelo')
         expect(page.locator('#preview svg')).to_be_visible(timeout=20000)
         assert page.locator('#diagram-list').count() == 0
@@ -121,7 +121,7 @@ def test_full_desktop_browser_and_security(desktop):
         expect(page.locator('#project-save-confirm')).to_be_enabled()
         page.get_by_role('button', name='Salvar arquivo', exact=True).click()
         expect(page.locator('#project-dialog')).not_to_be_visible()
-        assert len(list(renamed.parent.glob('*.mmd'))) == 1
+        assert {f.name for f in renamed.parent.glob('*.mmd')} == {'Renomeado.mmd', 'erDiagram-template.mmd'}
 
         with page.expect_download() as download:
             page.get_by_role('button', name='Exportar SVG', exact=True).click()
@@ -135,8 +135,9 @@ def test_full_desktop_browser_and_security(desktop):
         page.locator('[data-tab="tab-diagrams"]').click()
         expect(page.locator('#diagram-rows')).to_contain_text('Renomeado.mmd')
         page.once('dialog', lambda dialog: dialog.accept())
-        page.get_by_role('button', name='Excluir', exact=True).click()
-        expect(page.locator('#diagram-status')).to_contain_text('Nenhum diagrama')
+        page.locator('#diagram-rows tr').filter(has_text='Renomeado.mmd').get_by_role('button', name='Excluir', exact=True).click()
+        expect(page.locator('#diagram-rows')).not_to_contain_text('Renomeado.mmd')
+        expect(page.locator('#diagram-rows')).to_contain_text('erDiagram-template.mmd')
         assert not renamed.exists()
         command = 'ping -n 60 127.0.0.1 > nul'
         action_headers = {'X-Desktop-Key':desktop['key']}
