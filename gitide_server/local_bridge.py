@@ -47,6 +47,9 @@ class DeviceStore:
                 "pending_id": "TEXT",
                 "created": "REAL",
             })
+            # expires=0 denotes a single-use pairing code without time expiry.
+            # Promote still-valid legacy codes; never revive already-expired codes.
+            db.execute("UPDATE pairing SET expires=0 WHERE expires>?", (time.time(),))
             db.execute("CREATE INDEX IF NOT EXISTS idx_local_devices_owner ON devices(owner)")
             db.execute("CREATE INDEX IF NOT EXISTS idx_local_pairing_owner ON pairing(owner)")
 
@@ -90,13 +93,13 @@ class DeviceStore:
         code = secrets.token_urlsafe(24)
         now = time.time()
         with self.connect() as db:
-            db.execute("DELETE FROM pairing WHERE expires < ?", (now,))
-            # Same computer can regenerate its temporary code without invalidating other computers.
+            db.execute("DELETE FROM pairing WHERE expires > 0 AND expires < ?", (now,))
+            # Same computer can regenerate its single-use code without invalidating other computers.
             db.execute("DELETE FROM pairing WHERE owner=? AND name=?", (str(owner), name))
             db.execute("""INSERT INTO pairing
                 (code_hash,owner,name,expires,expires_in_months,pending_id,created)
                 VALUES (?,?,?,?,?,?,?)""",
-                (self.digest(code), str(owner), name, now + 300,
+                (self.digest(code), str(owner), name, 0,
                  expires_in_months, uuid.uuid4().hex, now))
         return code
 
@@ -104,7 +107,7 @@ class DeviceStore:
         token, identifier = secrets.token_urlsafe(48), uuid.uuid4().hex
         with self.connect() as db:
             db.execute("BEGIN IMMEDIATE")
-            row = db.execute("SELECT * FROM pairing WHERE code_hash=? AND expires>?",
+            row = db.execute("SELECT * FROM pairing WHERE code_hash=? AND (expires=0 OR expires>?)",
                              (self.digest(code), time.time())).fetchone()
             if not row:
                 raise BridgeError("pairing_invalid_or_expired")
@@ -172,7 +175,7 @@ class DeviceStore:
             rows = db.execute("""SELECT id,name,roots,created,revoked,expires_at,blocked_roots
                 FROM devices WHERE owner=? ORDER BY created DESC""", (str(owner),)).fetchall()
             pending = db.execute("""SELECT name,pending_id,created,expires_in_months
-                FROM pairing WHERE owner=? AND expires>? ORDER BY created DESC""",
+                FROM pairing WHERE owner=? AND (expires=0 OR expires>?) ORDER BY created DESC""",
                 (str(owner), now)).fetchall()
         items = []
         for row in rows:
@@ -367,7 +370,7 @@ class LocalBridge:
                 if (months is not None and (type(months) is not int or months not in (1, 3, 9))):
                     raise BridgeError("invalid_expiry")
                 code = self.store.pair(user.id, name.strip(), months)
-                return JSONResponse({"code": code, "expires_in": 300, "expires_in_months": months}, headers=headers)
+                return JSONResponse({"code": code, "expires_in": None, "expires_in_months": months}, headers=headers)
             if action == "revoke":
                 if not self.store.revoke(body.get("device_id"), user.id):
                     raise BridgeError("device_not_authorized")

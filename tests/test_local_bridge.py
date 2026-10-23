@@ -255,7 +255,7 @@ def test_multiple_pending_computers_expiry_and_one_use_codes(live):
         result = client.post("/api/local/pair",
                              json={"name": f"Computador {number}", "expires_in_months": duration})
         assert result.status_code == 200, result.text
-        assert result.json()["expires_in"] == 300
+        assert result.json()["expires_in"] is None
         pairs.append(result.json()["code"])
     assert len(set(pairs)) == 4
     listing = client.get("/api/local/devices").json()
@@ -396,3 +396,28 @@ def test_local_terminal_jobs_permissions_and_git(live):
     assert marker in diff['structuredContent']['diff']
     live.grant.can_write = False
     assert live.tool('execute_command', project_id=project, command='echo denied')['isError']
+
+
+def test_pairing_code_has_no_time_expiry(tmp_path, monkeypatch):
+    import gitide_server.local_bridge as module
+    store = DeviceStore(tmp_path / "no-expiry.db")
+    code = store.pair("1", "Persistent code")
+    future = time.time() + 10 * 365 * 86400
+    monkeypatch.setattr(module.time, "time", lambda: future)
+    assert any(item["pending"] for item in store.page("1"))
+    reopened = DeviceStore(tmp_path / "no-expiry.db")
+    result = reopened.claim(code)
+    assert result["device_id"]
+    with pytest.raises(BridgeError):
+        reopened.claim(code)
+
+
+def test_new_pairing_code_replaces_previous_without_affecting_other_computer(tmp_path):
+    store = DeviceStore(tmp_path / "replacement.db")
+    first = store.pair("1", "Computer A")
+    other = store.pair("1", "Computer B")
+    replacement = store.pair("1", "Computer A")
+    with pytest.raises(BridgeError):
+        store.claim(first)
+    assert store.claim(replacement)["device_id"]
+    assert store.claim(other)["device_id"]

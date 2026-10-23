@@ -10,6 +10,7 @@ from tkinter import ttk, filedialog, messagebox, simpledialog
 import pystray
 from PIL import Image, ImageDraw
 
+from .protocol import BridgeError
 from .client import Agent
 
 
@@ -48,10 +49,10 @@ def run(config):
                 messagebox.showerror("Okestre Local", str(exc) if isinstance(exc, ValueError) else "Não foi possível concluir a operação.", parent=window)
         return action
     def pair():
-        server = simpledialog.askstring("Parear computador", "Endereço HTTPS da VM:", initialvalue=config.load().get("server", ""), parent=window)
+        server = simpledialog.askstring("Parear computador", "Endereço HTTPS do Connect (sem /connect-device):", initialvalue=config.load().get("server", ""), parent=window)
         if not server:
             return
-        code = simpledialog.askstring("Parear computador", "Código gerado no painel /local-devices da VM:", show="*", parent=window)
+        code = simpledialog.askstring("Parear computador", "Código gerado no painel /connect-device:", show="*", parent=window)
         if not code:
             return
         if config.load().get("token") and not messagebox.askyesno("Substituir conexão", "Será necessário cadastrar as pastas novamente. Continuar?", parent=window):
@@ -60,9 +61,10 @@ def run(config):
         def perform():
             try:
                 config.pair(server, code)
-                messages.put(("paired", "Pareado. Adicione as pastas e vincule-as no painel da VM."))
-            except Exception:
-                messages.put(("error", "Pareamento recusado. Confira o endereço e gere um novo código."))
+                messages.put(("paired", "Pareado. Adicione as pastas e vincule-as no painel do Connect."))
+            except Exception as exc:
+                message = str(exc) if isinstance(exc, BridgeError) else "Não foi possível concluir o pareamento. A conexão anterior foi preservada."
+                messages.put(("error", message))
         threading.Thread(target=perform, daemon=True).start()
     def add():
         path = filedialog.askdirectory(parent=window, title="Escolha a pasta do projeto")
@@ -118,6 +120,7 @@ def run(config):
                 window.deiconify()
                 window.lift()
             elif kind == "error":
+                status.set("Pareamento ou operação não concluída.")
                 messagebox.showerror("Okestre Local", text, parent=window)
             else:
                 status.set(text)

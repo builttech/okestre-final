@@ -135,8 +135,7 @@
   el('pair-form').onsubmit = (event) => { event.preventDefault(); action(async () => {
     const expiry = el('device-expiry').value;
     const data = await request('pair', { name: el('device-name').value, expires_in_months: expiry === 'never' ? null : Number(expiry) });
-    el('pair-code').value = data.code; el('pair-result').hidden = false; el('pair-expiry').textContent = 'Válido por 5 minutos e para um único uso.';
-    setTimeout(() => { if (el('pair-code').value === data.code) { el('pair-code').value = ''; el('pair-expiry').textContent = 'Código expirado. Gere um novo código para continuar.'; } }, data.expires_in * 1000);
+    el('pair-code').value = data.code; el('pair-result').hidden = false; el('pair-expiry').textContent = 'Sem expiração por tempo. Válido para um único pareamento; gerar outro código para este computador substitui o anterior.';
   }); };
   el('server-url').value = location.origin;
   el('device-expiry').onchange = () => { el('never-warning').hidden = el('device-expiry').value !== 'never'; };

@@ -63,6 +63,7 @@ def test_empty_state_pairing_and_error_keeps_step(live):
         context = browser.new_context()
         context.add_cookies([{"name": "session", "value": "owner", "url": live.url}])
         page = context.new_page()
+        page.clock.install()
         page.goto(live.url + "/connect-device")
         expect = playwright.expect
         expect(page.locator("#pair-details")).to_have_attribute("open", "")
@@ -71,7 +72,12 @@ def test_empty_state_pairing_and_error_keeps_step(live):
         page.get_by_role("button", name="Gerar código", exact=True).click()
         expect(page.locator("#pair-result")).to_be_visible()
         expect(page.locator("#server-url")).to_have_value(live.url)
-        assert len(page.locator("#pair-code").input_value()) > 20
+        code = page.locator("#pair-code").input_value()
+        assert len(code) > 20
+        expect(page.locator("#pair-expiry")).to_contain_text("Sem expiração por tempo")
+        expect(page.locator("#device-expiry")).to_have_value("never")
+        page.clock.fast_forward(10 * 60 * 1000)
+        expect(page.locator("#pair-code")).to_have_value(code)
         page.route("**/api/local/devices", lambda route: route.fulfill(status=503, content_type="application/json", body="{}"))
         page.get_by_role("button", name="Atualizar conexão").click()
         expect(page.locator("#notice")).to_contain_text("Não foi possível")

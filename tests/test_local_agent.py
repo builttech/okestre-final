@@ -169,3 +169,29 @@ def test_terminal_long_job_poll_stop_and_root_isolation(agent):
         assert stopped['exit_code'] is not None
     finally:
         executor.terminal.close()
+
+
+@pytest.mark.parametrize("status,message", [(400,"Código inválido"),(403,"HTTP 403"),(404,"API de pareamento"),(302,"redirecionou"),(503,"HTTP 503")])
+def test_pairing_reports_reason_and_preserves_existing_config(tmp_path, monkeypatch, status, message):
+    from types import SimpleNamespace
+    import okestre_local.config as module
+    config = Config(tmp_path / "config")
+    previous = {"token":"existing-test-token","roots":{"root":{"name":"Keep"}}}
+    config.save(previous)
+    monkeypatch.setattr(module.requests, "post", lambda *a, **kw: SimpleNamespace(status_code=status))
+    with pytest.raises(BridgeError, match=message):
+        config.pair("https://connect.example.invalid", "test-code")
+    assert config.load() == previous
+
+
+def test_pairing_network_failure_is_safe(tmp_path, monkeypatch):
+    import requests
+    import okestre_local.config as module
+    config = Config(tmp_path / "config")
+    def fail(*args, **kwargs):
+        raise requests.exceptions.SSLError("private-test-value")
+    monkeypatch.setattr(module.requests, "post", fail)
+    with pytest.raises(BridgeError, match="certificado HTTPS") as error:
+        config.pair("https://connect.example.invalid", "test-code")
+    assert "private-test-value" not in str(error.value)
+    assert not config.file.exists()

@@ -115,3 +115,12 @@ Os testes da ponte usam HTTP/MCP e WebSocket reais no loopback, com arquivos tem
 O teste do painel usa Edge em desktop e largura móvel. O executável oferece `--home DIRETORIO_TEMPORARIO self-test`, que verifica DPAPI, leitura local e inicialização Tk. Esses testes não substituem instalação em Windows limpo, suspensão/retomada, proxy HTTPS público ou conexão real do GPT à VM, que permanecem pendentes.
 
 Validação em 2026-10-11: 57 testes da bateria principal passaram, além de um teste adicional que executou o aplicativo Windows empacotado e confirmou leitura e gravação via MCP/WebSocket reais no loopback (58 testes distintos). O self-test do executável terminou com código zero; JavaScript e diff passaram nas verificações de sintaxe/espaçamento. Capturas do painel desktop e móvel e o log de build estão em `outputs/local-bridge-qa`, fora do Git.
+
+
+### Pareamento sem expiração por tempo
+
+Os códigos novos de pareamento não expiram por tempo. Continuam sendo de uso único: o primeiro pareamento concluído consome o código; gerar outro para o mesmo nome de computador substitui o anterior. Códigos legados ainda válidos no momento da atualização são preservados sem prazo. Códigos que já estavam expirados não são reativados.
+
+A duração do acesso do computador é uma escolha separada e inicia com **Nunca** no painel. A revogação continua disponível. A API mantém `expires_in` por compatibilidade, com valor `null` para códigos sem prazo. Não é necessário atualizar o executável Local para utilizar os códigos sem expiração; a mudança é aplicada no Connect.
+
+O código-fonte do agente também apresenta erros distintos para código inválido/utilizado, rede, certificado, redirecionamento e recusa HTTP, sem incluir a resposta bruta do servidor ou credenciais nas mensagens. Essa melhoria de diagnóstico exige atualizar o executável Local.

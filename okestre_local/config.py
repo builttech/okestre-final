@@ -61,10 +61,32 @@ class Config:
 
     def pair(self, server, code):
         server = server_url(server)
-        response = requests.post(server + "/api/local/claim", json={"code": code.strip()}, timeout=15, allow_redirects=False)
+        if not code.strip():
+            raise BridgeError("Informe o código gerado no Connect.")
+        try:
+            response = requests.post(server + "/api/local/claim", json={"code": code.strip()}, timeout=15, allow_redirects=False)
+        except requests.exceptions.SSLError:
+            raise BridgeError("Não foi possível validar o certificado HTTPS do Connect. Confira o domínio e o certificado do servidor.") from None
+        except requests.exceptions.Timeout:
+            raise BridgeError("O Connect não respondeu a tempo. Confira sua conexão e tente novamente.") from None
+        except requests.exceptions.RequestException:
+            raise BridgeError("Não foi possível alcançar o Connect. Confira o endereço e a conexão de rede.") from None
         if response.status_code != 200:
-            raise BridgeError("Pareamento recusado. Gere um novo código no painel da VM.")
-        value = response.json()
+            if response.status_code == 400:
+                raise BridgeError("Código inválido ou já utilizado. Gere um novo código no mesmo Connect e use-o uma única vez.")
+            if response.status_code == 403:
+                raise BridgeError("O servidor ou a proteção do domínio bloqueou o aplicativo (HTTP 403). Verifique as regras de acesso do Connect.")
+            if response.status_code == 404:
+                raise BridgeError("A API de pareamento não existe nesse endereço. Informe apenas a origem do Connect, sem /connect-device.")
+            if 300 <= response.status_code < 400:
+                raise BridgeError("O endereço redirecionou para outro destino. Use o endereço HTTPS final do Connect.")
+            raise BridgeError("O Connect recusou o pareamento (HTTP " + str(response.status_code) + "). Tente novamente após verificar o serviço.")
+        try:
+            value = response.json()
+        except ValueError:
+            raise BridgeError("O servidor não retornou uma resposta válida de pareamento. Confira o endereço do Connect.") from None
+        if not isinstance(value, dict):
+            raise BridgeError("Resposta de pareamento inválida.")
         if not isinstance(value.get("token"), str) or not isinstance(value.get("device_id"), str):
             raise BridgeError("Resposta de pareamento inválida.")
         previous = self.load()
