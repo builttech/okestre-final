@@ -1,0 +1,89 @@
+/* Desktop shell inspired by compact, contextual IDE navigation. */
+html[data-ui="okestre"] .ok-activity-rail {
+    flex: 0 0 48px; width: 48px; padding: 8px 5px;
+    display: flex; flex-direction: column; gap: 8px;
+    background: var(--shell-bg); border-right: 1px solid var(--shell-border);
+    overflow-y: auto;
+}
+html[data-ui="okestre"] .ok-activity-rail .ok-activity-button {
+    width: 36px !important; height: 36px !important; min-height: 36px !important;
+    flex: 0 0 36px; padding: 0 !important;
+    display: flex !important; align-items: center; justify-content: center;
+    border: 0 !important; border-radius: 8px !important;
+    background: transparent !important; color: var(--shell-muted) !important;
+}
+html[data-ui="okestre"] .ok-activity-rail .ok-activity-button:hover,
+html[data-ui="okestre"] .ok-activity-rail .ok-activity-button[aria-pressed="true"] {
+    background: var(--shell-active) !important; color: var(--shell-text) !important;
+}
+html[data-ui="okestre"] .ok-activity-button svg { width: 18px; height: 18px; }
+html[data-ui="okestre"] .ok-activity-button:focus-visible { outline: 2px solid var(--shell-text) !important; outline-offset: -2px; }
+html[data-ui="okestre"] .app-container:not(.sidebar-collapsed) .sidebar {
+    width: 224px !important; min-width: 224px !important; flex-basis: 224px !important;
+    padding: 8px !important;
+}
+html[data-ui="okestre"] .sidebar .sidebar-category[hidden] { display: none !important; }
+html[data-ui="okestre"] .ok-context-heading {
+    padding: 12px 10px; font: 600 14px/1.5 var(--shell-font); color: var(--shell-text);
+}
+html[data-ui="okestre"] .app-container.sidebar-collapsed .ok-context-heading { display: none; }
+html[data-ui="okestre"] .ok-page-title {
+    padding-left: 18px; border-left: 1px solid var(--shell-border);
+    margin-left: 8px; color: var(--shell-text);
+    font: 500 13px/1.5 var(--shell-font);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+html[data-ui="okestre"] .topbar .brand { min-width: 0; }
+html[data-ui="okestre"] .app-container .topbar { height: 48px !important; padding: 0 14px !important; }
+html[data-ui="okestre"] { --topbar-height: 48px; }
+html[data-ui="okestre"] .content-area { border-radius: 12px 0 0 0 !important; }
+@media(max-width: 900px) {
+    html[data-ui="okestre"] .app-container:not(.sidebar-collapsed) .sidebar {
+        width: 190px !important; min-width: 190px !important; flex-basis: 190px !important;
+    }
+    html[data-ui="okestre"] .ok-page-title { max-width: 160px; }
+}
+
+/* A single rounded workspace contains contextual navigation and content. */
+html[data-ui="okestre"] .main-layout { min-height: 0; min-width: 0; gap: 0 !important; }
+html[data-ui="okestre"] .ok-workspace-surface {
+    display: flex; flex: 1 1 0; min-width: 0; min-height: 0;
+    margin: 0 4px 4px 0;
+    border: 1px solid var(--shell-border);
+    border-radius: 14px;
+    background: var(--shell-bg);
+    overflow: hidden;
+}
+html[data-ui="okestre"] .ok-workspace-surface > .content-area {
+    border-radius: 0 !important;
+    min-width: 0; min-height: 0;
+}
+html[data-ui="okestre"] .ok-workspace-surface > .sidebar {
+    border-radius: 0 !important;
+    border-right: 1px solid var(--shell-border) !important;
+}
+html[data-ui="okestre"] .ok-activity-rail { border-right: 0; }
+
+/* The rounded workspace owns the outline; the top header has no separator. */
+html[data-ui="okestre"] .app-container .topbar {
+    border: 0 !important;
+    box-shadow: none !important;
+}
+html[data-ui="okestre"] .app-container .topbar::after,
+html[data-ui="okestre"] .app-container .topbar::before { content: none !important; }
+
+/* Context sidebar is fully hidden; the activity rail remains available. */
+html[data-ui="okestre"] .app-container.sidebar-collapsed .ok-workspace-surface > .sidebar {
+    display: none !important;
+}
+html[data-ui="okestre"] .topbar #btn-sidebar-collapse {
+    display: inline-flex !important; flex: 0 0 32px;
+    align-items: center; justify-content: center;
+    width: 32px !important; height: 32px !important;
+    min-width: 32px !important; padding: 0 !important;
+    border: 0 !important; background: transparent !important;
+    color: var(--shell-muted) !important;
+}
+html[data-ui="okestre"] .topbar #btn-sidebar-collapse:hover {
+    background: var(--shell-hover) !important; color: var(--shell-text) !important;
+}

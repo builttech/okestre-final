@@ -48,12 +48,15 @@
             z-index: 10;
         }
     </style>
-<link rel="stylesheet" href="/static/diagram-library.css?v=1"><link rel="stylesheet" href="/static/system-tests.css?v=1"><link rel="stylesheet" href="/static/ops-git-access.css?v=1"><link rel="stylesheet" href="/static/project-flow.css?v=1"><link rel="stylesheet" href="/static/flowcharts.css?v=2"><link rel="stylesheet" href="/static/workspace-shell.css?v=4"><link rel="stylesheet" href="/static/workspace-components.css?v=4"></head>
+<link rel="stylesheet" href="/static/diagram-library.css?v=1"><link rel="stylesheet" href="/static/system-tests.css?v=1"><link rel="stylesheet" href="/static/ops-git-access.css?v=1"><link rel="stylesheet" href="/static/project-flow.css?v=1"><link rel="stylesheet" href="/static/flowcharts.css?v=2"><link rel="stylesheet" href="/static/workspace-shell.css?v=5"><link rel="stylesheet" href="/static/workspace-components.css?v=4"><link rel="stylesheet" href="/static/workspace-navigation.css?v=4"><script defer src="/static/workspace-navigation.js?v=2"></script><link rel="stylesheet" href="/static/workspace-surfaces.css?v=2"></head>
 <body>
     <div class="app-container">
         <!-- TOPBAR -->
         <header class="topbar">
             <div class="brand">
+<button class="btn-icon sidebar-collapse-toggle" id="btn-sidebar-collapse" title="Ocultar menu contextual" aria-label="Ocultar menu contextual" aria-expanded="true" aria-controls="workspace-context-sidebar">
+                        <i data-lucide="panel-left-close"></i>
+                    </button>
                 <div class="logo-icon"><i class="fa-solid fa-code-merge"></i></div>
                 <div class="brand-text">
                     <h1>Okestre</h1>
@@ -78,12 +81,9 @@
         <!-- MAIN LAYOUT -->
         <div class="main-layout">
             <!-- SIDEBAR -->
-            <aside class="sidebar">
-                <div class="sidebar-collapse-header">
-                    <button class="btn-icon sidebar-collapse-toggle" id="btn-sidebar-collapse" title="Colapsar sidebar" aria-label="Colapsar sidebar" aria-expanded="true">
-                        <i data-lucide="panel-left-close"></i>
-                    </button>
-                </div>
+            <div class="ok-workspace-surface">
+            <aside class="sidebar" id="workspace-context-sidebar">
+
                 <!-- Project Section -->
                 <div class="sidebar-section">
                     <div class="section-header">
@@ -2193,6 +2193,7 @@ VALIDAÇÃO: quando o runtime real estiver em VM e comandos locais como npm/node
                     </div>
                 </div>
             </main>
+            </div><!-- shared workspace surface -->
         </div>
     </div>
 

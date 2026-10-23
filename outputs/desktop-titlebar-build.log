@@ -1,0 +1,200 @@
+225 INFO: PyInstaller: 6.22.3, contrib hooks: 2026.8
+225 INFO: Python: 3.12.5
+252 INFO: Platform: Windows-11-10.0.26200-SP0
+252 INFO: Python environment: C:\Users\augus\.workspace\okestre\.venv
+253 INFO: wrote outputs/okestre-desktop\OkestreDesktop.spec
+174 WARNING: Failed to collect submodules for 'webview.platforms.android' because importing 'webview.platforms.android' raised: ModuleNotFoundError: No module named 'android'
+C:\Users\augus\.workspace\okestre\.venv\Lib\site-packages\pydub\utils.py:170: RuntimeWarning: Couldn't find ffmpeg or avconv - defaulting to ffmpeg, but may not work
+  warn("Couldn't find ffmpeg or avconv - defaulting to ffmpeg, but may not work", RuntimeWarning)
+2832 WARNING: Failed to collect submodules for 'openai.lib.streaming.agents' because importing 'openai.lib.streaming.agents' raised: ImportError: cannot import name 'ToolDispatcher' from partially initialized module 'openai.lib.streaming.agents._dispatch' (most likely due to a circular import) (C:\Users\augus\.workspace\okestre\.venv\Lib\site-packages\openai\lib\streaming\agents\_dispatch.py)
+16495 INFO: Module search paths (PYTHONPATH):
+['C:\\Users\\augus\\.workspace\\okestre',
+ 'C:\\Users\\augus\\AppData\\Local\\Programs\\Python\\Python312\\python312.zip',
+ 'C:\\Users\\augus\\AppData\\Local\\Programs\\Python\\Python312\\DLLs',
+ 'C:\\Users\\augus\\AppData\\Local\\Programs\\Python\\Python312\\Lib',
+ 'C:\\Users\\augus\\AppData\\Local\\Programs\\Python\\Python312',
+ 'C:\\Users\\augus\\.workspace\\okestre\\.venv',
+ 'C:\\Users\\augus\\.workspace\\okestre\\.venv\\Lib\\site-packages',
+ 'C:\\Users\\augus\\.workspace\\okestre\\.venv\\Lib\\site-packages\\win32',
+ 'C:\\Users\\augus\\.workspace\\okestre\\.venv\\Lib\\site-packages\\win32\\lib',
+ 'C:\\Users\\augus\\.workspace\\okestre\\.venv\\Lib\\site-packages\\pythonwin',
+ 'C:\\Users\\augus\\.workspace\\okestre']
+17083 INFO: Appending 'binaries' from .spec
+17084 INFO: Appending 'datas' from .spec
+17175 INFO: checking Analysis
+17326 INFO: Building because _input_datas changed
+17327 INFO: Looking for Python shared library...
+17327 INFO: Using Python shared library: C:\Users\augus\AppData\Local\Programs\Python\Python312\python312.dll
+17327 INFO: Running Analysis Analysis-00.toc
+17327 INFO: Target bytecode optimization level: 0
+17327 INFO: Initializing module dependency graph...
+17330 INFO: Initializing module graph hook caches...
+17405 INFO: Analyzing modules for base_library.zip ...
+18627 INFO: Processing standard module hook 'hook-encodings.py' from 'C:\\Users\\augus\\.workspace\\okestre\\.venv\\Lib\\site-packages\\PyInstaller\\hooks'
+19564 INFO: Processing standard module hook 'hook-math.py' from 'C:\\Users\\augus\\.workspace\\okestre\\.venv\\Lib\\site-packages\\PyInstaller\\hooks'
+19792 INFO: Processing standard module hook 'hook-heapq.py' from 'C:\\Users\\augus\\.workspace\\okestre\\.venv\\Lib\\site-packages\\PyInstaller\\hooks'
+20793 INFO: Processing standard module hook 'hook-pickle.py' from 'C:\\Users\\augus\\.workspace\\okestre\\.venv\\Lib\\site-packages\\PyInstaller\\hooks'
+23283 INFO: Caching module dependency graph...
+23322 INFO: Analyzing C:\Users\augus\.workspace\okestre\okestre-desktop.py
+23459 INFO: Processing standard module hook 'hook-platform.py' from 'C:\\Users\\augus\\.workspace\\okestre\\.venv\\Lib\\site-packages\\PyInstaller\\hooks'
+23498 INFO: Processing standard module hook 'hook-urllib3.py' from 'C:\\Users\\augus\\.workspace\\okestre\\.venv\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+23753 INFO: Processing pre-safe-import-module hook 'hook-backports.py' from 'C:\\Users\\augus\\.workspace\\okestre\\.venv\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+23755 INFO: SetuptoolsInfo: initializing cached setuptools info...
+24529 INFO: Setuptools: 'backports' appears to be a full setuptools-vendored copy - creating alias to 'setuptools._vendor.backports'!
+24547 INFO: Processing standard module hook 'hook-setuptools.py' from 'C:\\Users\\augus\\.workspace\\okestre\\.venv\\Lib\\site-packages\\PyInstaller\\hooks'
+24588 INFO: Processing pre-safe-import-module hook 'hook-distutils.py' from 'C:\\Users\\augus\\.workspace\\okestre\\.venv\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+24680 INFO: Processing standard module hook 'hook-sysconfig.py' from 'C:\\Users\\augus\\.workspace\\okestre\\.venv\\Lib\\site-packages\\PyInstaller\\hooks'
+24698 INFO: Processing pre-safe-import-module hook 'hook-jaraco.py' from 'C:\\Users\\augus\\.workspace\\okestre\\.venv\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+24699 INFO: Setuptools: 'jaraco' appears to be a full setuptools-vendored copy - creating alias to 'setuptools._vendor.jaraco'!
+24716 INFO: Processing pre-safe-import-module hook 'hook-more_itertools.py' from 'C:\\Users\\augus\\.workspace\\okestre\\.venv\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+24718 INFO: Setuptools: 'more_itertools' appears to be a setuptools-vendored copy - creating alias to 'setuptools._vendor.more_itertools'!
+24909 INFO: Processing standard module hook 'hook-_osx_support.py' from 'C:\\Users\\augus\\.workspace\\okestre\\.venv\\Lib\\site-packages\\PyInstaller\\hooks'
+24920 INFO: Processing pre-safe-import-module hook 'hook-typing_extensions.py' from 'C:\\Users\\augus\\.workspace\\okestre\\.venv\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+25205 INFO: Processing standard module hook 'hook-multiprocessing.util.py' from 'C:\\Users\\augus\\.workspace\\okestre\\.venv\\Lib\\site-packages\\PyInstaller\\hooks'
+25339 INFO: Processing standard module hook 'hook-xml.py' from 'C:\\Users\\augus\\.workspace\\okestre\\.venv\\Lib\\site-packages\\PyInstaller\\hooks'
+25668 INFO: Processing standard module hook 'hook-_ctypes.py' from 'C:\\Users\\augus\\.workspace\\okestre\\.venv\\Lib\\site-packages\\PyInstaller\\hooks'
+26242 INFO: Processing pre-safe-import-module hook 'hook-packaging.py' from 'C:\\Users\\augus\\.workspace\\okestre\\.venv\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+26590 INFO: Processing standard module hook 'hook-setuptools._vendor.jaraco.text.py' from 'C:\\Users\\augus\\.workspace\\okestre\\.venv\\Lib\\site-packages\\PyInstaller\\hooks'
+26592 INFO: Processing pre-safe-import-module hook 'hook-importlib_resources.py' from 'C:\\Users\\augus\\.workspace\\okestre\\.venv\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+27731 INFO: Processing pre-safe-import-module hook 'hook-tomli.py' from 'C:\\Users\\augus\\.workspace\\okestre\\.venv\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+27731 INFO: Setuptools: 'tomli' appears to be a setuptools-vendored copy - creating alias to 'setuptools._vendor.tomli'!
+28523 INFO: Processing pre-safe-import-module hook 'hook-wheel.py' from 'C:\\Users\\augus\\.workspace\\okestre\\.venv\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+28524 INFO: Setuptools: 'wheel' appears to be a setuptools-vendored copy - creating alias to 'setuptools._vendor.wheel'!
+29247 INFO: Processing standard module hook 'hook-certifi.py' from 'C:\\Users\\augus\\.workspace\\okestre\\.venv\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+29346 INFO: Processing standard module hook 'hook-charset_normalizer.py' from 'C:\\Users\\augus\\.workspace\\okestre\\.venv\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+29544 INFO: Processing standard module hook 'hook-cryptography.py' from 'C:\\Users\\augus\\.workspace\\okestre\\.venv\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+30910 INFO: hook-cryptography: cryptography does not seem to be using dynamically linked OpenSSL.
+31543 INFO: Processing standard module hook 'hook-pydantic.py' from 'C:\\Users\\augus\\.workspace\\okestre\\.venv\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+32646 INFO: Processing standard module hook 'hook-zoneinfo.py' from 'C:\\Users\\augus\\.workspace\\okestre\\.venv\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+33875 INFO: Processing standard module hook 'hook-uvicorn.py' from 'C:\\Users\\augus\\.workspace\\okestre\\.venv\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+35357 INFO: Processing standard module hook 'hook-difflib.py' from 'C:\\Users\\augus\\.workspace\\okestre\\.venv\\Lib\\site-packages\\PyInstaller\\hooks'
+35544 INFO: Processing standard module hook 'hook-webbrowser.py' from 'C:\\Users\\augus\\.workspace\\okestre\\.venv\\Lib\\site-packages\\PyInstaller\\hooks'
+35920 INFO: Processing standard module hook 'hook-websockets.py' from 'C:\\Users\\augus\\.workspace\\okestre\\.venv\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+36995 INFO: Processing standard module hook 'hook-anyio.py' from 'C:\\Users\\augus\\.workspace\\okestre\\.venv\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+39400 INFO: Processing standard module hook 'hook-opentelemetry.py' from 'C:\\Users\\augus\\.workspace\\okestre\\.venv\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+40121 INFO: Processing standard module hook 'hook-sqlite3.py' from 'C:\\Users\\augus\\.workspace\\okestre\\.venv\\Lib\\site-packages\\PyInstaller\\hooks'
+40667 INFO: Processing standard module hook 'hook-sqlalchemy.py' from 'C:\\Users\\augus\\.workspace\\okestre\\.venv\\Lib\\site-packages\\PyInstaller\\hooks'
+46488 INFO: Processing standard module hook 'hook-docx.py' from 'C:\\Users\\augus\\.workspace\\okestre\\.venv\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+46704 INFO: Processing standard module hook 'hook-lxml.py' from 'C:\\Users\\augus\\.workspace\\okestre\\.venv\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+47209 INFO: Processing standard module hook 'hook-lxml.etree.py' from 'C:\\Users\\augus\\.workspace\\okestre\\.venv\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+49192 INFO: Processing standard module hook 'hook-pygments.py' from 'C:\\Users\\augus\\.workspace\\okestre\\.venv\\Lib\\site-packages\\PyInstaller\\hooks'
+50928 INFO: Processing standard module hook 'hook-jsonschema.py' from 'C:\\Users\\augus\\.workspace\\okestre\\.venv\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+51393 INFO: Processing standard module hook 'hook-jsonschema_specifications.py' from 'C:\\Users\\augus\\.workspace\\okestre\\.venv\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+51669 INFO: Processing standard module hook 'hook-pywintypes.py' from 'C:\\Users\\augus\\.workspace\\okestre\\.venv\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+52242 INFO: Processing standard module hook 'hook-xml.etree.cElementTree.py' from 'C:\\Users\\augus\\.workspace\\okestre\\.venv\\Lib\\site-packages\\PyInstaller\\hooks'
+53835 INFO: Processing standard module hook 'hook-psycopg2.py' from 'C:\\Users\\augus\\.workspace\\okestre\\.venv\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+54773 INFO: Processing standard module hook 'hook-numpy.py' from 'C:\\Users\\augus\\.workspace\\okestre\\.venv\\Lib\\site-packages\\PyInstaller\\hooks'
+57168 INFO: Processing standard module hook 'hook-clr.py' from 'C:\\Users\\augus\\.workspace\\okestre\\.venv\\Lib\\site-packages\\pythonnet\\_pyinstaller'
+57203 INFO: Processing standard module hook 'hook-clr_loader.py' from 'C:\\Users\\augus\\.workspace\\okestre\\.venv\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+57370 INFO: Processing standard module hook 'hook-pycparser.py' from 'C:\\Users\\augus\\.workspace\\okestre\\.venv\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+59265 INFO: Processing standard module hook 'hook-onnxruntime.py' from 'C:\\Users\\augus\\.workspace\\okestre\\.venv\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+59712 INFO: Processing standard module hook 'hook-xml.dom.domreg.py' from 'C:\\Users\\augus\\.workspace\\okestre\\.venv\\Lib\\site-packages\\PyInstaller\\hooks'
+60832 INFO: Processing standard module hook 'hook-pdfminer.py' from 'C:\\Users\\augus\\.workspace\\okestre\\.venv\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+61643 INFO: Processing standard module hook 'hook-PIL.py' from 'C:\\Users\\augus\\.workspace\\okestre\\.venv\\Lib\\site-packages\\PyInstaller\\hooks'
+61741 INFO: Processing standard module hook 'hook-PIL.Image.py' from 'C:\\Users\\augus\\.workspace\\okestre\\.venv\\Lib\\site-packages\\PyInstaller\\hooks'
+62423 INFO: Processing standard module hook 'hook-PIL.ImageFilter.py' from 'C:\\Users\\augus\\.workspace\\okestre\\.venv\\Lib\\site-packages\\PyInstaller\\hooks'
+62754 INFO: Processing standard module hook 'hook-pandas.py' from 'C:\\Users\\augus\\.workspace\\okestre\\.venv\\Lib\\site-packages\\PyInstaller\\hooks'
+66265 INFO: Processing standard module hook 'hook-pandas.io.formats.style.py' from 'C:\\Users\\augus\\.workspace\\okestre\\.venv\\Lib\\site-packages\\PyInstaller\\hooks'
+69480 INFO: Processing standard module hook 'hook-pandas.plotting.py' from 'C:\\Users\\augus\\.workspace\\okestre\\.venv\\Lib\\site-packages\\PyInstaller\\hooks'
+70033 INFO: Processing standard module hook 'hook-dateutil.py' from 'C:\\Users\\augus\\.workspace\\okestre\\.venv\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+70176 INFO: Processing pre-safe-import-module hook 'hook-six.moves.py' from 'C:\\Users\\augus\\.workspace\\okestre\\.venv\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+71376 INFO: Processing standard module hook 'hook-openpyxl.py' from 'C:\\Users\\augus\\.workspace\\okestre\\.venv\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+74881 INFO: Processing standard module hook 'hook-pandas.io.clipboard.py' from 'C:\\Users\\augus\\.workspace\\okestre\\.venv\\Lib\\site-packages\\PyInstaller\\hooks'
+75170 INFO: Processing standard module hook 'hook-pytest.py' from 'C:\\Users\\augus\\.workspace\\okestre\\.venv\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+75667 INFO: Processing standard module hook 'hook-py.py' from 'C:\\Users\\augus\\.workspace\\okestre\\.venv\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+77656 INFO: Processing standard module hook 'hook-pypdfium2.py' from 'C:\\Users\\augus\\.workspace\\okestre\\.venv\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+77694 INFO: Processing standard module hook 'hook-pypdfium2_raw.py' from 'C:\\Users\\augus\\.workspace\\okestre\\.venv\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+78108 INFO: Processing standard module hook 'hook-pptx.py' from 'C:\\Users\\augus\\.workspace\\okestre\\.venv\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+80105 INFO: Processing standard module hook 'hook-speech_recognition.py' from 'C:\\Users\\augus\\.workspace\\okestre\\.venv\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+80228 INFO: Processing pre-safe-import-module hook 'hook-tensorflow.py' from 'C:\\Users\\augus\\.workspace\\okestre\\.venv\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\pre_safe_import_module'
+C:\Users\augus\.workspace\okestre\.venv\Lib\site-packages\pydub\utils.py:300: SyntaxWarning: invalid escape sequence '\('
+  m = re.match('([su]([0-9]{1,2})p?) \(([0-9]{1,2}) bit\)$', token)
+C:\Users\augus\.workspace\okestre\.venv\Lib\site-packages\pydub\utils.py:301: SyntaxWarning: invalid escape sequence '\('
+  m2 = re.match('([su]([0-9]{1,2})p?)( \(default\))?$', token)
+C:\Users\augus\.workspace\okestre\.venv\Lib\site-packages\pydub\utils.py:310: SyntaxWarning: invalid escape sequence '\('
+  elif re.match('(flt)p?( \(default\))?$', token):
+C:\Users\augus\.workspace\okestre\.venv\Lib\site-packages\pydub\utils.py:314: SyntaxWarning: invalid escape sequence '\('
+  elif re.match('(dbl)p?( \(default\))?$', token):
+99307 INFO: Processing pre-safe-import-module hook 'hook-gi.py' from 'C:\\Users\\augus\\.workspace\\okestre\\.venv\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+100327 INFO: Processing standard module hook 'hook-webview.py' from 'C:\\Users\\augus\\.workspace\\okestre\\.venv\\Lib\\site-packages\\webview\\__pyinstaller'
+100613 INFO: Processing standard module hook 'hook-jinja2.py' from 'C:\\Users\\augus\\.workspace\\okestre\\.venv\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+101682 INFO: Analyzing hidden import 'uvicorn.loops.auto'
+101700 INFO: Analyzing hidden import 'uvicorn.protocols.http.auto'
+101707 INFO: Analyzing hidden import 'uvicorn.protocols.websockets.auto'
+101713 INFO: Analyzing hidden import 'uvicorn.lifespan.on'
+101725 INFO: Analyzing hidden import 'pymysql'
+101926 INFO: Analyzing hidden import 'webview.__pyinstaller'
+101932 INFO: Analyzing hidden import 'webview.__pyinstaller.hook-webview'
+101975 INFO: Processing pre-safe-import-module hook 'hook-importlib_metadata.py' from 'C:\\Users\\augus\\.workspace\\okestre\\.venv\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+101976 INFO: Setuptools: 'importlib_metadata' appears to be a setuptools-vendored copy - creating alias to 'setuptools._vendor.importlib_metadata'!
+102042 INFO: Processing standard module hook 'hook-setuptools._vendor.importlib_metadata.py' from 'C:\\Users\\augus\\.workspace\\okestre\\.venv\\Lib\\site-packages\\PyInstaller\\hooks'
+102129 INFO: Processing pre-safe-import-module hook 'hook-zipp.py' from 'C:\\Users\\augus\\.workspace\\okestre\\.venv\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+102130 INFO: Setuptools: 'zipp' appears to be a setuptools-vendored copy - creating alias to 'setuptools._vendor.zipp'!
+102227 INFO: Processing standard module hook 'hook-win32ctypes.core.py' from 'C:\\Users\\augus\\.workspace\\okestre\\.venv\\Lib\\site-packages\\PyInstaller\\hooks'
+103994 INFO: Analyzing hidden import 'webview._version'
+104001 INFO: Analyzing hidden import 'pythonnet._pyinstaller'
+104006 INFO: Analyzing hidden import 'pythonnet._pyinstaller.hook-clr'
+104007 INFO: Analyzing hidden import 'markitdown.__main__'
+104020 INFO: Analyzing hidden import 'openai.helpers'
+104050 INFO: Analyzing hidden import 'openai.lib.browser'
+104107 INFO: Analyzing hidden import 'openai.lib.decisions_tool_runner'
+104132 INFO: Analyzing hidden import 'openai.lib.live'
+104204 INFO: Analyzing hidden import 'openai.lib.responses_tool_runner'
+104320 INFO: Analyzing hidden import 'openai.lib.responses_websocket'
+104382 INFO: Analyzing hidden import 'openai.types.beta.chat'
+104384 INFO: Analyzing hidden import 'openai.types.containers.files'
+104386 INFO: Analyzing hidden import 'openai.types.skills.versions'
+104388 INFO: Analyzing hidden import 'pypdfium2.__main__'
+104429 INFO: Processing module hooks (post-graph stage)...
+104822 INFO: Processing standard module hook 'hook-lxml.isoschematron.py' from 'C:\\Users\\augus\\.workspace\\okestre\\.venv\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+104860 WARNING: Hidden import "mx.DateTime" not found!
+104860 WARNING: Hidden import "pycparser.lextab" not found!
+104860 WARNING: Hidden import "pycparser.yacctab" not found!
+105931 INFO: Processing standard module hook 'hook-PIL.SpiderImagePlugin.py' from 'C:\\Users\\augus\\.workspace\\okestre\\.venv\\Lib\\site-packages\\PyInstaller\\hooks'
+110060 INFO: Processing standard module hook 'hook-sqlalchemy.py' from 'C:\\Users\\augus\\.workspace\\okestre\\.venv\\Lib\\site-packages\\PyInstaller\\hooks'
+110612 WARNING: Hidden import "pysqlite2" not found!
+110613 WARNING: Hidden import "MySQLdb" not found!
+112103 INFO: Processing standard module hook 'hook-lxml.objectify.py' from 'C:\\Users\\augus\\.workspace\\okestre\\.venv\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+112104 INFO: Processing standard module hook 'hook-tzdata.py' from 'C:\\Users\\augus\\.workspace\\okestre\\.venv\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+112831 INFO: Performing binary vs. data reclassification (3191 entries)
+119331 INFO: Looking for ctypes DLLs
+119499 INFO: Analyzing run-time hooks ...
+119517 INFO: Including run-time hook 'pyi_rth_inspect.py' from 'C:\\Users\\augus\\.workspace\\okestre\\.venv\\Lib\\site-packages\\PyInstaller\\hooks\\rthooks'
+119530 INFO: Including run-time hook 'pyi_rth_pkgutil.py' from 'C:\\Users\\augus\\.workspace\\okestre\\.venv\\Lib\\site-packages\\PyInstaller\\hooks\\rthooks'
+119539 INFO: Including run-time hook 'pyi_rth_multiprocessing.py' from 'C:\\Users\\augus\\.workspace\\okestre\\.venv\\Lib\\site-packages\\PyInstaller\\hooks\\rthooks'
+119549 INFO: Including run-time hook 'pyi_rth_setuptools.py' from 'C:\\Users\\augus\\.workspace\\okestre\\.venv\\Lib\\site-packages\\PyInstaller\\hooks\\rthooks'
+119556 INFO: Including run-time hook 'pyi_rth_cryptography_openssl.py' from 'C:\\Users\\augus\\.workspace\\okestre\\.venv\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\rthooks'
+119563 INFO: Including run-time hook 'pyi_rth_pywintypes.py' from 'C:\\Users\\augus\\.workspace\\okestre\\.venv\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\rthooks'
+119687 INFO: Creating base_library.zip...
+119750 INFO: Looking for dynamic libraries
+C:\Users\augus\.workspace\okestre\.venv\Lib\site-packages\pydub\utils.py:170: RuntimeWarning: Couldn't find ffmpeg or avconv - defaulting to ffmpeg, but may not work
+  warn("Couldn't find ffmpeg or avconv - defaulting to ffmpeg, but may not work", RuntimeWarning)
+126578 INFO: Extra DLL search directories (AddDllDirectory): ['C:\\Users\\augus\\.workspace\\okestre\\.venv\\Lib\\site-packages\\numpy.libs', 'C:\\Users\\augus\\.workspace\\okestre\\.venv\\Lib\\site-packages\\pandas.libs', 'C:\\Users\\augus\\.workspace\\okestre\\.venv\\Lib\\site-packages\\psycopg2_binary.libs']
+126578 INFO: Extra DLL search directories (PATH): []
+128583 INFO: Warnings written to C:\Users\augus\.workspace\okestre\outputs\okestre-desktop\build\OkestreDesktop\warn-OkestreDesktop.txt
+129066 INFO: Graph cross-reference written to C:\Users\augus\.workspace\okestre\outputs\okestre-desktop\build\OkestreDesktop\xref-OkestreDesktop.html
+129315 INFO: checking PYZ
+129383 INFO: Building because toc changed
+129384 INFO: Building PYZ (ZlibArchive) C:\Users\augus\.workspace\okestre\outputs\okestre-desktop\build\OkestreDesktop\PYZ-00.pyz
+132107 INFO: Building PYZ (ZlibArchive) C:\Users\augus\.workspace\okestre\outputs\okestre-desktop\build\OkestreDesktop\PYZ-00.pyz completed successfully.
+132198 INFO: checking PKG
+132210 INFO: Building because C:\Users\augus\.workspace\okestre\outputs\okestre-desktop\build\OkestreDesktop\PYZ-00.pyz changed
+132210 INFO: Building PKG (CArchive) OkestreDesktop.pkg
+132253 INFO: Building PKG (CArchive) OkestreDesktop.pkg completed successfully.
+132255 INFO: Bootloader C:\Users\augus\.workspace\okestre\.venv\Lib\site-packages\PyInstaller\bootloader\Windows-64bit-intel\runw.exe
+132255 INFO: checking EXE
+132266 INFO: Rebuilding EXE-00.toc because pkg is more recent
+132266 INFO: Building EXE from EXE-00.toc
+132266 INFO: Copying bootloader EXE to C:\Users\augus\.workspace\okestre\outputs\okestre-desktop\build\OkestreDesktop\OkestreDesktop.exe
+132347 INFO: Copying icon to EXE
+132387 INFO: Copying 0 resources to EXE
+132387 INFO: Embedding manifest in EXE
+132420 INFO: Appending PKG archive to EXE
+132492 INFO: Fixing EXE headers
+132852 INFO: Building EXE from EXE-00.toc completed successfully.
+132878 INFO: checking COLLECT
+132922 INFO: Removing dir C:\Users\augus\.workspace\okestre\outputs\okestre-desktop\OkestreDesktop
+133911 INFO: Building COLLECT COLLECT-00.toc
+137380 INFO: Building COLLECT COLLECT-00.toc completed successfully.
+137438 INFO: Build complete! The results are available in: C:\Users\augus\.workspace\okestre\outputs\okestre-desktop
+Aplicativo: outputs/okestre-desktop/OkestreDesktop/OkestreDesktop.exe

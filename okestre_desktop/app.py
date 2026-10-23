@@ -25,7 +25,14 @@ def main():
             import webview
             webview.settings['ALLOW_DOWNLOADS']=True
             webview.settings['OPEN_EXTERNAL_LINKS_IN_BROWSER']=True
-            window=webview.create_window('Okestre Desktop',url,width=1440,height=950,min_size=(1000,700),hidden=bool(args.smoke_test))
+            webview.settings['DRAG_REGION_SELECTOR']='.topbar, .desktop-drag-region'
+            webview.settings['DRAG_REGION_DIRECT_TARGET_ONLY']=True
+            from .titlebar import TitlebarTheme, THEME_OBSERVER
+            titlebar = TitlebarTheme()
+            window=webview.create_window('Okestre Desktop',url,width=1440,height=950,min_size=(1000,700),hidden=bool(args.smoke_test),js_api=titlebar,frameless=True,easy_drag=False)
+            titlebar._window = window
+            window.events.shown += lambda: titlebar.set_theme('dark')
+            window.events.loaded += lambda: window.evaluate_js(THEME_OBSERVER + (Path(__file__).parent/'ui'/'window-chrome.js').read_text(encoding='utf-8'))
             runtime.native._window=window
             started=threading.Event()
             def smoke():

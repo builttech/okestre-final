@@ -297,8 +297,8 @@ function applySidebarCollapsedState(collapsed) {
     app.classList.toggle('sidebar-collapsed', collapsed);
     if (btn) {
         btn.setAttribute('aria-expanded', String(!collapsed));
-        btn.setAttribute('aria-label', collapsed ? 'Expandir sidebar' : 'Colapsar sidebar');
-        btn.title = collapsed ? 'Expandir sidebar' : 'Colapsar sidebar';
+        btn.setAttribute('aria-label', collapsed ? 'Mostrar menu contextual' : 'Ocultar menu contextual');
+        btn.title = collapsed ? 'Mostrar menu contextual' : 'Ocultar menu contextual';
         btn.innerHTML = collapsed ? '<i data-lucide="panel-left-open"></i>' : '<i data-lucide="panel-left-close"></i>';
         if (window.lucide) lucide.createIcons();
     }
