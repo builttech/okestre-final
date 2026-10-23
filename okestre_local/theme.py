@@ -11,7 +11,8 @@ BORDER = "#303030"
 
 def apply_theme(window):
     window.configure(background=BG)
-    window.option_add("*Font", ("Segoe UI", 10))
+    for widget in ("Label", "Button", "Entry"):
+        window.option_add("*" + widget + ".Font", ("Segoe UI", 10))
     window.option_add("*Background", BG)
     window.option_add("*Foreground", TEXT)
     window.option_add("*Entry.Background", PANEL)
@@ -47,9 +48,15 @@ def apply_theme(window):
     style.map("Treeview", background=[("selected", "#363636")], foreground=[("selected", TEXT)])
     style.map("Treeview.Heading", background=[("active", "#282828")])
     style.configure("TSeparator", background=BORDER)
-    style.configure("TScrollbar", background="#414141", troughcolor=BG,
-                    bordercolor=BG, arrowcolor=MUTED, lightcolor=BG, darkcolor=BG)
+    for scrollbar in ("Vertical.TScrollbar", "Horizontal.TScrollbar"):
+        style.configure(scrollbar, background="#414141", troughcolor=BG,
+                        bordercolor=BG, arrowcolor=MUTED, lightcolor=BG, darkcolor=BG,
+                        gripcount=0, arrowsize=12)
+        style.map(scrollbar, background=[("pressed", "#666666"), ("active", "#555555")],
+                  arrowcolor=[("disabled", "#686868"), ("!disabled", MUTED)])
     window.after_idle(lambda: style_caption(window))
+    window.bind("<Map>", lambda event: window.after(50, lambda: style_caption(window))
+                if event.widget is window else None, add=True)
 
 
 def style_caption(window):
@@ -57,7 +64,10 @@ def style_caption(window):
         return
     import ctypes
     try:
-        hwnd = ctypes.windll.user32.GetAncestor(window.winfo_id(), 2)
+        ancestor = ctypes.windll.user32.GetAncestor
+        ancestor.argtypes = [ctypes.c_void_p, ctypes.c_uint]
+        ancestor.restype = ctypes.c_void_p
+        hwnd = ancestor(ctypes.c_void_p(window.winfo_id()), 2)
         for attribute, value in ((20, 1), (35, 0x181818), (36, 0xECECEC)):
             data = ctypes.c_uint(value)
             ctypes.windll.dwmapi.DwmSetWindowAttribute(ctypes.c_void_p(hwnd), attribute,
