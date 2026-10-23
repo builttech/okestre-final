@@ -34,7 +34,7 @@ def eventually(predicate, seconds=8):
 
 
 @pytest.fixture
-def live(tmp_path):
+def live(tmp_path, request):
     engine = create_engine("sqlite:///" + str(tmp_path / "server.db"))
     Base.metadata.create_all(engine)
     sessions = sessionmaker(bind=engine, expire_on_commit=False)
@@ -46,7 +46,7 @@ def live(tmp_path):
     )
     bridge = LocalBridge(DeviceStore(tmp_path / "devices.db"), sessions, oauth)
     _, transport, lifespan = create_mcp(lambda request: state.grant if request.headers.get("authorization") == "Bearer test" else False,
-                                       sessions, bridge=bridge)
+                                       sessions, bridge=bridge, remote_only=getattr(request, "param", False))
     app = FastAPI(lifespan=lifespan)
     app.router.routes.extend(bridge.routes())
     app.mount("/mcp", transport)
@@ -100,6 +100,7 @@ def live(tmp_path):
     engine.dispose()
 
 
+@pytest.mark.parametrize("live", [False, True], indirect=True)
 def test_end_to_end_mcp_reads_edits_and_keeps_server_content_free(live, tmp_path):
     config, folder, marker, project = live.enroll()
     read = live.tool("read_file", project_id=project, filepath="README.md")

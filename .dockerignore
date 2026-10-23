@@ -1,0 +1,12 @@
+*
+!requirements.txt
+!gitide_server/
+!gitide_server/*.py
+!gitide_server/static/
+!gitide_server/static/local-devices.html
+!gitide_server/static/local-devices.css
+!gitide_server/static/local-devices.js
+!okestre_local/
+!okestre_local/__init__.py
+!okestre_local/protocol.py
+!Dockerfile

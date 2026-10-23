@@ -379,3 +379,17 @@ Entregue no código:
 Validação local: 4 testes passaram em `test_local_main.py` e `test_local_devices_browser.py`, incluindo as duas rotas, bloqueio sem sessão, pareamento, cadastro de múltiplos projetos e viewport móvel. Não representa validação de login OAuth real no ChatGPT ou deploy na VPS.
 
 Limite desta entrega: a aplicação atual ainda monta os módulos existentes. A rota `/` não foi redirecionada e os recursos do workspace não foram retirados. A separação da composição Connect/Desktop, o inventário de consumidores e projetos armazenados no servidor e a imagem mínima continuam pendentes conforme fases 0, 2, 3 e 4. Nenhum executável ou ambiente VPS foi atualizado nesta etapa.
+
+
+## Correção da publicação VPS — composição Connect (2026-10-23)
+
+O Dockerfile passa a iniciar `gitide_server.connect:app`. A composição exclusiva não importa `gitide_server.main`, não monta editor, IA nativa, Git, Ops Infra ou APIs de workspace e não monta a pasta estática inteira. A raiz redireciona para `/connect-device`; `/local-devices` permanece compatível. Somente CSS/JS do painel são servidos.
+
+O build usa cópias explícitas e `.dockerignore`: Desktop, outputs, projetos, contratos de usuário e a interface completa ficam fora da imagem. O Desktop continua com sua composição existente. Os módulos de execução local não são carregados pelo MCP em `remote_only=True`; projetos `server` são omitidos da listagem/consentimento e recusados nas ferramentas. Os registros existentes não são apagados ou convertidos.
+
+Login, formato do cookie e arquivos de persistência usam os caminhos e formatos existentes em `GITIDE_DATA_DIR`. Preservar o volume atual e `GITIDE_PUBLIC_URL` no deploy para manter contas, sessões, dispositivos, grants e issuer OAuth. O serviço continua usando um processo. Um override de comando no painel de deploy deve usar `uvicorn gitide_server.connect:app --host 0.0.0.0 --port 8000 --workers 1 --ws-max-size 8388608`, ou ser removido para respeitar o CMD do Dockerfile.
+
+As extrações físicas e a migração de contratos das demais fases não fazem parte desta correção. O serviço antigo não deve continuar sendo usado para projetos armazenados na VPS sem um plano separado para esses projetos.
+
+
+Validação desta correção: 46 testes de serviço passaram (Connect, ponte, MCP e OAuth), além da construção do Dockerfile e teste HTTP dentro da imagem: login, redirecionamento da raiz, painel, pareamento e descoberta OAuth. Confirmada ausência física de `main.py`, `static/index.html`, Desktop, outputs e executor Git na imagem, além de 404 para páginas/APIs do workspace. A checagem adicional do executável Windows antigo do agente falhou na leitura do resultado MCP e não foi considerada aprovação dessa distribuição; o executável não foi alterado. O agente em código-fonte passou no fluxo real de leitura/escrita pela ponte em ambos os modos. Publicação do código não comprova atualização da VPS: requer redeploy com o novo entrypoint.

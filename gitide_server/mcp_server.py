@@ -25,9 +25,7 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse
 from starlette.routing import Route
 
-from gitide_server import vcs, git_bridge
 from gitide_server.database import SessionLocal, Project, ActivityLog, PendingCommand
-from gitide_server import mcp_terminal
 from gitide_server.sdd_tasks import TASK_FILE, SDD_TASK_CODE_FRAGMENT, parse_task_line
 
 MAX_BYTES = 1024 * 1024
@@ -139,6 +137,7 @@ def require_project_access(project_id, write=False):
 
 
 def safe_path(project, filepath):
+    from gitide_server import vcs
     relative = filepath.replace("\\", "/")
     if not relative or PureWindowsPath(relative).drive or relative.startswith("/"):
         raise ValueError("Use a relative project filepath.")
@@ -208,6 +207,8 @@ def mount_mcp(app, transport):
 
 
 def create_mcp(validate_bearer, session_factory=SessionLocal, metadata_url=None, audit=None, integrations=None, bridge=None, remote_only=False):
+    if not remote_only:
+        from gitide_server import vcs, git_bridge, mcp_terminal
     # Trust only the configured public origin, never an incoming Host header.
     public = urlsplit(metadata_url or os.getenv("GITIDE_PUBLIC_URL", ""))
     public_host = public.netloc if public.scheme in {"https", "http"} and public.hostname and not public.username and not public.password else ""
