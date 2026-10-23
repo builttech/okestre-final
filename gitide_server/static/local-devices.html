@@ -1,8 +1,10 @@
 <!doctype html>
 <html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Conectar dispositivos · Okestre Connect</title><link rel="stylesheet" href="/static/local-devices.css?v=3"><script src="/static/local-devices.js?v=2" defer></script></head>
-<body><main>
-<header><div><span class="product-name">Okestre Connect</span><h1>Conectar dispositivos</h1><p>Escolha o computador e as pastas que deseja compartilhar. Os arquivos continuam na sua máquina. O Connect encaminha as operações autorizadas entre o GPT e o Okestre Local.</p></div><button id="refresh" class="secondary">Atualizar conexão</button></header>
+<body>
+<header class="connect-topbar"><div class="connect-brand"><span class="connect-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="7" cy="5" r="2"/><circle cx="17" cy="12" r="2"/><circle cx="7" cy="19" r="2"/><path d="M7 7v10m2-5h6"/></svg></span><strong>Okestre</strong><span class="connect-brand-label">Connect</span></div><span class="connect-scope">Dispositivos locais</span></header>
+<main>
+<header class="page-header"><div><h1>Conectar dispositivos</h1><p>Escolha o computador e as pastas que deseja compartilhar. Os arquivos continuam na sua máquina. O Connect encaminha as operações autorizadas entre o GPT e o Okestre Local.</p></div><button id="refresh" class="secondary">Atualizar conexão</button></header>
 <nav class="steps" aria-label="Etapas de configuração"><button data-step="1" aria-current="step"><span>1</span>Computador</button><button data-step="2" disabled><span>2</span>Projetos</button><button data-step="3" disabled><span>3</span>Conectar ao GPT</button></nav>
 <p id="notice" role="status" aria-live="polite"></p>
 <section id="step-1" aria-labelledby="computer-title"><small>ETAPA 1 DE 3</small><h2 id="computer-title" tabindex="-1">Escolha seu computador</h2><p>Selecione um dispositivo já pareado ou conecte um novo.</p><div id="devices" class="cards"></div>
