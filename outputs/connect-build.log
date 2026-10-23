@@ -1,0 +1,55 @@
+#0 building with "desktop-linux" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 1.17kB 0.0s done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/python:3.11-slim
+#2 DONE 0.8s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 335B done
+#3 DONE 0.0s
+
+#4 [internal] load build context
+#4 transferring context: 8.05kB 0.0s done
+#4 DONE 0.0s
+
+#5 [1/8] FROM docker.io/library/python:3.11-slim@sha256:b7a9e5f6a93d6d4a31f129bbd4bdee69efccb6ded0fb230d78aafaf37af98377
+#5 resolve docker.io/library/python:3.11-slim@sha256:b7a9e5f6a93d6d4a31f129bbd4bdee69efccb6ded0fb230d78aafaf37af98377 0.0s done
+#5 DONE 0.0s
+
+#6 [2/8] RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*
+#6 CACHED
+
+#7 [4/8] COPY requirements.txt .
+#7 CACHED
+
+#8 [3/8] WORKDIR /app
+#8 CACHED
+
+#9 [5/8] RUN pip install --no-cache-dir -r requirements.txt
+#9 CACHED
+
+#10 [6/8] COPY gitide_server/connect.py gitide_server/connect_auth.py gitide_server/database.py gitide_server/local_bridge.py gitide_server/mcp_oauth.py gitide_server/mcp_connections.py gitide_server/mcp_audit.py gitide_server/mcp_server.py gitide_server/sdd_tasks.py ./gitide_server/
+#10 DONE 0.1s
+
+#11 [7/8] COPY gitide_server/static/local-devices.html gitide_server/static/local-devices.css gitide_server/static/local-devices.js ./gitide_server/static/
+#11 DONE 0.1s
+
+#12 [8/8] COPY okestre_local/__init__.py okestre_local/protocol.py ./okestre_local/
+#12 DONE 0.1s
+
+#13 exporting to image
+#13 exporting layers
+#13 exporting layers 0.2s done
+#13 exporting manifest sha256:9a1033d358ba3346f3fb13b8eceac71948fa884900824fba7141843ffe4fb35b 0.0s done
+#13 exporting config sha256:db391fcfe0dd0e858464a23001d4742cef0ad0c6b7b78cfbf70b452e7e530dfb 0.0s done
+#13 exporting attestation manifest sha256:d13b48bf550f1877cca9ba4ada0238a59a31f5e362b5c2e31fd1045d1c9202fd 0.0s done
+#13 exporting manifest list sha256:8620d91c3fabe1a89b5e2a1282dee5a0ac8474972e02b354640a544f9d5c669f
+#13 exporting manifest list sha256:8620d91c3fabe1a89b5e2a1282dee5a0ac8474972e02b354640a544f9d5c669f 0.0s done
+#13 naming to docker.io/library/okestre-connect-check:latest done
+#13 unpacking to docker.io/library/okestre-connect-check:latest 0.1s done
+#13 DONE 0.5s
+
+View build details: docker-desktop://dashboard/build/desktop-linux/desktop-linux/qg6yvg477iudbz6cqiit8nbi4
