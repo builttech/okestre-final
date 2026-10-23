@@ -12,33 +12,61 @@ from PIL import Image, ImageDraw
 
 from .protocol import BridgeError
 from .client import Agent
+from .theme import apply_theme
 
 
 def run(config):
     window = tk.Tk()
     window.title("Okestre Local")
-    window.geometry("780x500")
-    window.minsize(620, 420)
+    window.geometry("960x580")
+    window.minsize(720, 480)
+    apply_theme(window)
     messages = queue.Queue()
     agent = Agent(config, lambda text: messages.put(("status", text)))
     worker = threading.Thread(target=lambda: asyncio.run(agent.run()), daemon=True)
     worker.start()
-    frame = ttk.Frame(window, padding=18)
-    frame.pack(fill="both", expand=True)
-    ttk.Label(frame, text="Okestre Local", font=("Segoe UI", 18, "bold")).pack(anchor="w")
+    brand = ttk.Frame(window, padding=(20, 12))
+    brand.pack(fill="x")
+    ttk.Label(brand, text="Okestre", style="Brand.TLabel").pack(side="left")
+    ttk.Label(brand, text="  /  Local", style="Muted.TLabel").pack(side="left")
     status = tk.StringVar(value="Iniciando…")
-    ttk.Label(frame, textvariable=status).pack(anchor="w", pady=(3, 14))
-    ttk.Label(frame, text="Os arquivos ficam neste computador. O conteúdo solicitado passa pela VM até o GPT.", wraplength=710).pack(anchor="w")
-    table = ttk.Treeview(frame, columns=("name", "path", "permission"), show="headings", height=9)
-    for column, title, width in (("name", "Projeto", 160), ("path", "Pasta local", 380), ("permission", "Permissão", 120)):
-        table.heading(column, text=title)
-        table.column(column, width=width)
-    table.pack(fill="both", expand=True, pady=14)
-    controls = ttk.Frame(frame)
-    controls.pack(fill="x")
+    status_badge = ttk.Label(brand, textvariable=status, style="Status.TLabel")
+    status_badge.pack(side="right")
+    frame = ttk.Frame(window, padding=(20, 8, 20, 18))
+    frame.pack(fill="both", expand=True)
+    heading = ttk.Frame(frame)
+    heading.pack(fill="x")
+    ttk.Label(heading, text="Projetos compartilhados", style="Title.TLabel").pack(side="left")
+    header_actions = ttk.Frame(heading)
+    header_actions.pack(side="right")
+    description = ttk.Label(frame, text="Seus arquivos ficam neste computador. Compartilhe apenas as pastas que o GPT pode acessar.",
+                            style="Muted.TLabel", wraplength=860)
+    description.pack(anchor="w", pady=(10, 20))
+    table_frame = ttk.Frame(frame)
+    table_frame.pack(fill="both", expand=True)
+    table_frame.columnconfigure(0, weight=1)
+    table_frame.rowconfigure(0, weight=1)
+    table = ttk.Treeview(table_frame, columns=("name", "path", "permission"), show="headings", height=9)
+    for column, title, width, minimum in (("name", "Projeto", 180, 120), ("path", "Pasta local", 450, 220), ("permission", "Permissão", 170, 140)):
+        table.heading(column, text=title, anchor="w")
+        table.column(column, width=width, minwidth=minimum, anchor="w", stretch=column == "path")
+    table.grid(row=0, column=0, sticky="nsew")
+    vertical = ttk.Scrollbar(table_frame, orient="vertical", command=table.yview)
+    vertical.grid(row=0, column=1, sticky="ns")
+    horizontal = ttk.Scrollbar(table_frame, orient="horizontal", command=table.xview)
+    horizontal.grid(row=1, column=0, sticky="ew")
+    table.configure(yscrollcommand=vertical.set, xscrollcommand=horizontal.set)
+    footer = ttk.Frame(frame)
+    footer.pack(fill="x", pady=(14, 0))
+    count = tk.StringVar()
+    ttk.Label(footer, textvariable=count, style="Muted.TLabel").pack(side="left")
+    controls = ttk.Frame(footer)
+    controls.pack(side="right")
     def refresh():
         table.delete(*table.get_children())
-        for identifier, root in config.load().get("roots", {}).items():
+        roots = config.load().get("roots", {})
+        count.set(str(len(roots)) + " pasta(s) compartilhada(s)")
+        for identifier, root in roots.items():
             table.insert("", "end", iid=identifier, values=(root["name"], root["path"], "Leitura e edição" if root.get("writable") else "Somente leitura"))
     def guarded(function):
         def action():
@@ -88,12 +116,23 @@ def run(config):
     def panel():
         server = config.load().get("server")
         if server:
-            webbrowser.open(server + "/local-devices")
-    for label, callback in (("Parear", pair), ("Adicionar pasta", add), ("Remover acesso", remove), ("Pausar / retomar", toggle), ("Painel da VM", panel)):
-        ttk.Button(controls, text=label, command=guarded(callback)).pack(side="left", padx=(0, 6))
-    ttk.Label(frame, text="Fechar a janela mantém o agente na bandeja. Use Sair no ícone para encerrar.", wraplength=710).pack(anchor="w", pady=(12, 0))
-    image = Image.new("RGB", (64, 64), "#17202b")
-    ImageDraw.Draw(image).ellipse((13, 13, 51, 51), outline="#74d3b0", width=7)
+            webbrowser.open(server + "/connect-device")
+    ttk.Button(header_actions, text="Parear", command=guarded(pair)).pack(side="left", padx=(0, 8))
+    ttk.Button(header_actions, text="Abrir Connect", command=guarded(panel)).pack(side="left")
+    for label, callback, button_style in (("Adicionar pasta", add, "Primary.TButton"), ("Remover acesso", remove, "TButton"), ("Pausar / retomar", toggle, "TButton")):
+        ttk.Button(controls, text=label, style=button_style, command=guarded(callback)).pack(side="left", padx=(8, 0))
+    hint = ttk.Label(frame, text="Fechar a janela mantém o agente na bandeja. Para encerrar, use Sair no ícone.",
+                    style="Muted.TLabel", wraplength=860)
+    hint.pack(anchor="w", pady=(18, 0))
+    def resized(event):
+        if event.widget is window:
+            description.configure(wraplength=max(300, event.width - 48))
+            hint.configure(wraplength=max(300, event.width - 48))
+    window.bind("<Configure>", resized, add=True)
+    status.trace_add("write", lambda *_: status_badge.configure(
+        style="Connected.Status.TLabel" if status.get() == "Conectado" else "Status.TLabel"))
+    image = Image.new("RGB", (64, 64), "#202020")
+    ImageDraw.Draw(image).ellipse((13, 13, 51, 51), outline="#ececec", width=7)
     def show(*_):
         messages.put(("show", ""))
     def stop(*_):

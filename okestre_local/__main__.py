@@ -72,7 +72,11 @@ def main():
                 assert result["content"] == "ok"
                 window = tk.Tk()
                 window.withdraw()
+                from .theme import apply_theme
+                from tkinter import ttk
+                apply_theme(window)
                 window.update()
+                assert ttk.Style(window).lookup("Treeview", "background") == "#202020"
                 window.destroy()
             (config.home / "self-test.json").write_text(json.dumps({"config": "ok", "local_read": "ok", "tk_startup": "ok"}))
         else:
