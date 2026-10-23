@@ -31,6 +31,10 @@ with TestClient(connect.app) as client:
     for path in ("/connect-device", "/local-devices"):
         page = client.get(path)
         assert page.status_code == 200 and "Okestre Connect" in page.text
+        assert "<style>" in page.text and "color-scheme:dark" in page.text
+        assert "/* Setup only." in page.text
+        assert '<script src="/static/' not in page.text
+        assert '<link rel="stylesheet"' not in page.text
     for asset in ("local-devices.css", "local-devices.js"):
         assert client.get("/static/" + asset).status_code == 200
     assert client.post("/api/projects/1/commands/execute", json={"command":"whoami"}).status_code == 404

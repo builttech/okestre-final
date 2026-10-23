@@ -6,7 +6,7 @@ import os
 from pathlib import Path
 
 from fastapi import FastAPI, Request
-from fastapi.responses import FileResponse, RedirectResponse
+from fastapi.responses import FileResponse, RedirectResponse, HTMLResponse
 from fastapi.middleware.gzip import GZipMiddleware
 
 from gitide_server import connect_auth as auth
@@ -58,7 +58,20 @@ app = FastAPI(title="Okestre Connect", lifespan=lifespan,
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 app.include_router(auth.router)
 app.router.routes.extend(mcp_oauth.routes())
-app.router.routes.extend(local_bridge.routes())
+def panel_page():
+    static = Path(__file__).parent / "static"
+    html = (static / "local-devices.html").read_text(encoding="utf-8")
+    css = (static / "local-devices.css").read_text(encoding="utf-8")
+    script = (static / "local-devices.js").read_text(encoding="utf-8")
+    # Package assets together so proxy/browser caches cannot leave a bare panel.
+    html = html.replace('<link rel="stylesheet" href="/static/local-devices.css?v=3">',
+                        "<style>" + css + "</style>")
+    html = html.replace('<script src="/static/local-devices.js?v=2" defer></script>', "")
+    html = html.replace("</body>", "<script>" + script + "</script></body>")
+    return HTMLResponse(html, headers={"Cache-Control": "no-store"})
+
+
+app.router.routes.extend(local_bridge.routes(page_response=panel_page))
 mount_mcp(app, transport)
 
 

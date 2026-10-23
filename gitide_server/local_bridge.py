@@ -454,11 +454,13 @@ class LocalBridge:
             return JSONResponse({"detail": "device_not_authorized"}, 401, headers={"Cache-Control": "no-store"})
         return JSONResponse({"online": self.online(device["id"])}, headers={"Cache-Control": "no-store"})
 
-    def routes(self):
+    def routes(self, page_response=None):
         async def page(request):
             user = self.oauth.current_user(request)
             if not user or user.role != "root":
                 return JSONResponse({"detail": "root_session_required"}, 403)
+            if page_response is not None:
+                return page_response()
             return FileResponse(Path(__file__).parent / "static" / "local-devices.html", headers={"Cache-Control": "no-store"})
         return [Route("/api/local/status", self.device_status), Route("/connect-device", page), Route("/local-devices", page), Route("/api/local/devices", self.manage),
                 Route("/api/local/claim", self.manage, methods=["POST"]),
