@@ -232,7 +232,10 @@ def test_packaged_windows_agent_with_real_mcp(live):
     process = subprocess.Popen([str(executable), "--home", str(config.home), "run"], creationflags=subprocess.CREATE_NO_WINDOW)
     try:
         eventually(lambda: live.bridge.online(config.load()["device_id"]), seconds=10)
-        read = live.tool("read_file", project_id=project, filepath="README.md")["structuredContent"]
+        read_result = live.tool("read_file", project_id=project, filepath="README.md")
+        assert not read_result.get("isError"), read_result
+        assert "structuredContent" in read_result, read_result
+        read = read_result["structuredContent"]
         assert read["content"] == marker
         result = live.tool("write_file", project_id=project, filepath="README.md", content="packaged executable edit", expected_sha256=read["sha256"])
         assert not result.get("isError"), result
