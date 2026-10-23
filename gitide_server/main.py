@@ -283,7 +283,7 @@ async def require_authenticated_session(request: Request, call_next):
             with SessionLocal() as db:
                 project = db.get(Project, int(match.group(1)))
                 if project and project.storage_kind == "device":
-                    return Response(status_code=409, content='{"detail":"Projeto local: utilize o MCP ou o painel /local-devices. Esta operacao ainda nao esta disponivel no editor principal."}', media_type="application/json")
+                    return Response(status_code=409, content='{"detail":"Projeto local: utilize o MCP ou o painel /connect-device. Esta operacao ainda nao esta disponivel no editor principal."}', media_type="application/json")
         return await call_next(request)
     if path.startswith("/api/"):
         return Response(status_code=status.HTTP_401_UNAUTHORIZED, content='{"detail":"Autenticação obrigatória."}', media_type="application/json")

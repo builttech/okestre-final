@@ -460,7 +460,7 @@ class LocalBridge:
             if not user or user.role != "root":
                 return JSONResponse({"detail": "root_session_required"}, 403)
             return FileResponse(Path(__file__).parent / "static" / "local-devices.html", headers={"Cache-Control": "no-store"})
-        return [Route("/api/local/status", self.device_status), Route("/local-devices", page), Route("/api/local/devices", self.manage),
+        return [Route("/api/local/status", self.device_status), Route("/connect-device", page), Route("/local-devices", page), Route("/api/local/devices", self.manage),
                 Route("/api/local/claim", self.manage, methods=["POST"]),
                 Route("/api/local/{action}", self.manage, methods=["POST"]),
                 WebSocketRoute("/api/local/connect", self.websocket)]

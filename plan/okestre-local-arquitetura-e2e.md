@@ -362,3 +362,20 @@ Esta diretriz registra uma decisão de planejamento. Nenhuma alteração de inte
 ## 15. Entrega desta análise
 
 Somente este documento foi criado. Não houve reorganização, movimentação do contrato, mudança do GPT_INSTRUCTIONS.md, atualização de executáveis, alteração de banco, deploy ou execução de testes. A implementação depende de uma solicitação posterior explícita do usuário.
+
+
+## Implementação incremental — entrada Connect (2026-10-23)
+
+Escopo autorizado nesta etapa: iniciar `/connect-device` no checkout `okestre-final`, sem executar a reorganização completa do plano.
+
+Entregue no código:
+
+- `/connect-device` como entrada canônica do painel **Okestre Connect / Conectar dispositivos**.
+- `/local-devices` preservado como alias direto (HTTP 200), inclusive seus parâmetros de consulta; clientes existentes não precisam de novo pareamento.
+- Links da interface web e orientação para projetos locais apontam para a rota canônica.
+- Mesma autenticação e autorização de administração, respostas sem cache e mesmo fluxo de computador → projetos → conexão MCP.
+- Sem mudanças em `/api/local/*`, WebSocket, OAuth, MCP, credenciais, permissões, contratos ou armazenamento dos projetos.
+
+Validação local: 4 testes passaram em `test_local_main.py` e `test_local_devices_browser.py`, incluindo as duas rotas, bloqueio sem sessão, pareamento, cadastro de múltiplos projetos e viewport móvel. Não representa validação de login OAuth real no ChatGPT ou deploy na VPS.
+
+Limite desta entrega: a aplicação atual ainda monta os módulos existentes. A rota `/` não foi redirecionada e os recursos do workspace não foram retirados. A separação da composição Connect/Desktop, o inventário de consumidores e projetos armazenados no servidor e a imagem mínima continuam pendentes conforme fases 0, 2, 3 e 4. Nenhum executável ou ambiente VPS foi atualizado nesta etapa.

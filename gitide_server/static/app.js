@@ -474,7 +474,7 @@ function selectProject(projectId) {
     }
 
     if (nextProject.storage_kind === 'device') {
-        window.location.assign(`/local-devices?project=${encodeURIComponent(nextProject.id)}`);
+        window.location.assign(`/connect-device?project=${encodeURIComponent(nextProject.id)}`);
         return;
     }
     

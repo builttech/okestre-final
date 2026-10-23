@@ -3,7 +3,8 @@ import json
 import pytest
 from test_local_bridge import live, eventually
 
-def test_wizard_multiple_projects_and_mobile(live, tmp_path):
+@pytest.mark.parametrize("route", ["/connect-device", "/local-devices"])
+def test_wizard_multiple_projects_and_mobile(live, tmp_path, route):
     playwright = pytest.importorskip("playwright.sync_api")
     config, folder, marker, project = live.enroll()
     for name in ("sendget", "meu-site"):
@@ -22,7 +23,7 @@ def test_wizard_multiple_projects_and_mobile(live, tmp_path):
         errors, calls = [], []
         page.on("pageerror", lambda error: errors.append(str(error)))
         page.on("request", lambda request: calls.append(request.url))
-        page.goto(live.url + "/local-devices")
+        page.goto(live.url + route)
         expect = playwright.expect
         expect(page.locator("#step-1")).to_be_visible()
         expect(page.locator("#step-2")).to_be_hidden()
@@ -62,7 +63,7 @@ def test_empty_state_pairing_and_error_keeps_step(live):
         context = browser.new_context()
         context.add_cookies([{"name": "session", "value": "owner", "url": live.url}])
         page = context.new_page()
-        page.goto(live.url + "/local-devices")
+        page.goto(live.url + "/connect-device")
         expect = playwright.expect
         expect(page.locator("#pair-details")).to_have_attribute("open", "")
         expect(page.locator("#to-projects")).to_be_disabled()
