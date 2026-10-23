@@ -50,7 +50,7 @@ def main():
                 finally:window.destroy()
             if args.smoke_test:
                 window.events.loaded += lambda: threading.Thread(target=smoke,daemon=True).start()
-            webview.start(gui='edgechromium',private_mode=False,storage_path=str(home/'webview'))
+            webview.start(gui='edgechromium',private_mode=False,storage_path=str(home/'webview'),icon=str(Path(__file__).resolve().parents[1]/'resources'/'brand'/'okestre.ico'))
     except Exception as exc:
         import traceback
         (home/'startup-error.txt').write_text(traceback.format_exc(),encoding='utf-8')

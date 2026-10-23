@@ -1,5 +1,6 @@
 """Neutral Okestre presentation for the native tray application."""
 import os
+from pathlib import Path
 from tkinter import ttk
 
 BG = "#181818"
@@ -9,7 +10,12 @@ MUTED = "#bebebe"
 BORDER = "#303030"
 
 
+def brand_asset(name):
+    return Path(__file__).resolve().parents[1] / "resources" / "brand" / name
+
+
 def apply_theme(window):
+    window.iconbitmap(str(brand_asset("okestre.ico")))
     window.configure(background=BG)
     for widget in ("Label", "Button", "Entry"):
         window.option_add("*" + widget + ".Font", ("Segoe UI", 10))

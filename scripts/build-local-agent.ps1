@@ -6,7 +6,9 @@ try {
     $canonicalExecutable = [IO.Path]::GetFullPath((Join-Path $projectDirectory 'outputs/okestre-local/OkestreLocal/OkestreLocal.exe'))
     $activeLocal = Get-Process OkestreLocal -ErrorAction SilentlyContinue | Where-Object { $_.Path -eq $canonicalExecutable }
     if ($activeLocal) { throw "Saia do Okestre Local pela bandeja antes de atualizar a pasta oficial. O perfil em LOCALAPPDATA sera preservado." }
-    & $Python -m PyInstaller --noconfirm --clean --windowed --onedir --name OkestreLocal `
+    $brandIcon = Join-Path $projectDirectory 'resources/brand/okestre.ico'
+    $brandData = (Join-Path $projectDirectory 'resources/brand') + ';resources/brand'
+    & $Python -m PyInstaller --icon $brandIcon --add-data $brandData --noconfirm --clean --windowed --onedir --name OkestreLocal `
         --distpath outputs/okestre-local --workpath outputs/okestre-local/build `
         --specpath outputs/okestre-local --hidden-import pystray._win32 --hidden-import win32crypt `
         --collect-submodules websockets okestre-local.py

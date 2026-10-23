@@ -8,11 +8,11 @@ from pathlib import Path
 from tkinter import ttk, filedialog, messagebox, simpledialog
 
 import pystray
-from PIL import Image, ImageDraw
+from PIL import Image
 
 from .protocol import BridgeError
 from .client import Agent
-from .theme import apply_theme
+from .theme import apply_theme, brand_asset
 
 
 def run(config):
@@ -29,6 +29,8 @@ def run(config):
     window.columnconfigure(0, weight=1)
     window.rowconfigure(1, weight=1)
     brand.grid(row=0, column=0, sticky="ew")
+    window._brand_icon = tk.PhotoImage(file=str(brand_asset("okestre-32.png")))
+    ttk.Label(brand, image=window._brand_icon).pack(side="left", padx=(0, 10))
     ttk.Label(brand, text="Okestre", style="Brand.TLabel").pack(side="left")
     ttk.Label(brand, text="  /  Local", style="Muted.TLabel").pack(side="left")
     status = tk.StringVar(value="Iniciando…")
@@ -135,8 +137,8 @@ def run(config):
     window.bind("<Configure>", resized, add=True)
     status.trace_add("write", lambda *_: status_badge.configure(
         style="Connected.Status.TLabel" if status.get() == "Conectado" else "Status.TLabel"))
-    image = Image.new("RGB", (64, 64), "#202020")
-    ImageDraw.Draw(image).ellipse((13, 13, 51, 51), outline="#ececec", width=7)
+    with Image.open(brand_asset("okestre-64.png")) as official_icon:
+        image = official_icon.convert("RGBA")
     def show(*_):
         messages.put(("show", ""))
     def stop(*_):

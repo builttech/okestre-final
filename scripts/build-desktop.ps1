@@ -11,7 +11,9 @@ try {
     Get-ChildItem -LiteralPath $projectDirectory -File -Filter '*.md' | ForEach-Object {
         $dataArguments += @('--add-data', ($_.FullName + ';.'))
     }
-    & $Python -m PyInstaller --noconfirm --windowed --onedir --name OkestreDesktop `
+    $brandIcon = Join-Path $projectDirectory 'resources/brand/okestre.ico'
+    $brandData = (Join-Path $projectDirectory 'resources/brand') + ';resources/brand'
+    & $Python -m PyInstaller --icon $brandIcon --add-data $brandData --noconfirm --windowed --onedir --name OkestreDesktop `
         --distpath $OutputDirectory --workpath outputs/okestre-desktop/build --specpath $OutputDirectory `
         --collect-all webview --collect-all pythonnet --collect-all clr_loader `
         --collect-data mcp --collect-all markitdown --collect-all magika --collect-all openai `
