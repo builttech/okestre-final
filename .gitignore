@@ -6,7 +6,6 @@ db_credentials.json
 *.sqlite3
 .cache/
 ~$*
-outputs/test-min*
 __pycache__/
 *.py[cod]
 *$py.class
@@ -16,17 +15,12 @@ env/
 .env
 .idea/
 .vscode/
-/outputs/okestre-local/
-/outputs/local-bridge-qa/
-/outputs/okestre-local-no-expiry/
 
-/outputs/okestre-local-terminal/
 
-/outputs/desktop-qa/
-/outputs/okestre-desktop/
 
-/outputs/okestre-desktop-e2e/
 
 node_modules/
 /tests
 /.documents
+
+/outputs/
