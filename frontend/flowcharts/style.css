@@ -13,3 +13,5 @@
 #flowcharts-app .fc-edge-label.is-selected .fc-label-placeholder{padding:4px 7px;background:var(--fc-panel);border:1px dashed var(--fc-muted)}
 #flowcharts-app .fc-edge-label input{width:160px;padding:5px;font:12px 'Segoe UI',sans-serif}
 #flowcharts-app .fc-inspector input[type=color]{height:36px;padding:3px;cursor:pointer}
+
+#flowcharts-app .fc-flow-link > span{bottom:30px}#flowcharts-app .fc-node .fc-open-flow{position:absolute;bottom:8px;left:25px;right:25px;padding:2px 5px;font:10px 'Segoe UI',sans-serif;z-index:3;overflow:hidden;text-overflow:ellipsis}

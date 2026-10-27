@@ -97,10 +97,12 @@ def test_text_style_routing_clipboard_and_roundtrip(tmp_path):
         # Connect explicit left/right ports, independent of the diagram direction.
         first=page.locator('.react-flow__node[data-id="n1"] .react-flow__handle[data-handleid="right"]')
         last=page.locator('.react-flow__node[data-id="n3"] .react-flow__handle[data-handleid="left"]')
+        page.locator('#fc-fit').click()
+        page.wait_for_timeout(400)
         a,b=first.bounding_box(),last.bounding_box()
-        page.mouse.move(a['x']+5,a['y']+5)
+        page.mouse.move(a['x']+a['width']/2,a['y']+a['height']/2)
         page.mouse.down()
-        page.mouse.move(b['x']+5,b['y']+5,steps=20)
+        page.mouse.move(b['x']+b['width']/2,b['y']+b['height']/2,steps=20)
         page.mouse.up()
         expect(page.locator('.react-flow__edge')).to_have_count(3)
         # Select an edge then edit its label on the canvas.
@@ -137,6 +139,36 @@ def test_text_style_routing_clipboard_and_roundtrip(tmp_path):
             page.locator('#fc-export-svg').click()
         svg=Path(download.value.path()).read_text(encoding='utf-8')
         assert '#334455' in svg and '#aabbcc' in svg
+        # Link another saved flow, persist the reference and navigate to it.
+        page.once('dialog',lambda dialog:dialog.accept())
+        page.get_by_role('button',name='Novo',exact=True).click()
+        page.get_by_role('button',name='Outro fluxo',exact=True).click()
+        page.get_by_label('Fluxograma de destino').select_option('.documents/fluxogramas/teste-visual.mmd')
+        page.locator('#fc-name').fill('fluxo-principal')
+        page.locator('#fc-save').click()
+        expect(page.locator('#fc-status')).to_have_text('Fluxograma salvo no projeto.')
+        link_source=stored['.documents/fluxogramas/fluxo-principal.mmd']
+        assert '%% okestre-flows {"n4":".documents/fluxogramas/teste-visual.mmd"}' in link_source
+        page.get_by_role('button',name='Código',exact=True).click()
+        page.get_by_role('button',name='Aplicar ao canvas',exact=True).click()
+        expect(page.locator('#fc-code')).to_have_count(0)
+        expect(page.locator('.fc-open-flow')).to_be_enabled()
+        page.once('dialog',lambda dialog:dialog.dismiss())
+        page.locator('.fc-open-flow').click()
+        expect(page.locator('#fc-name')).to_have_value('fluxo-principal')
+        page.locator('#fc-save').click()
+        expect(page.locator('#fc-status')).to_have_text('Fluxograma salvo no projeto.')
+        page.locator('.fc-open-flow').click()
+        expect(page.locator('#fc-name')).to_have_value('teste-visual')
+        expect(page.locator('.react-flow__node')).to_have_count(5)
+        page.locator('#fc-files button').filter(has_text='fluxo-principal').click()
+        expect(page.locator('.fc-open-flow')).to_be_enabled()
+        # A missing destination reports an error and keeps the current graph intact.
+        del stored['.documents/fluxogramas/teste-visual.mmd']
+        page.locator('.fc-open-flow').click()
+        expect(page.locator('#fc-status')).to_contain_text('HTTP 404')
+        expect(page.locator('#fc-name')).to_have_value('fluxo-principal')
+        expect(page.locator('.react-flow__node')).to_have_count(4)
         assert not errors,errors
         page.screenshot(path=str(tmp_path/'flowchart.png'))
         browser.close()
